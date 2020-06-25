@@ -1,0 +1,7 @@
+terraform-provider-redfish
+.terraform/
+*.backup
+./*.tfstate
+crash.log
+tests_mike
+.vscode
