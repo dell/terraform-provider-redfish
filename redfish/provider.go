@@ -30,8 +30,7 @@ func Provider() *schema.Provider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"redfish_server": resourceServer(), //Dummy resource
-			"redfish_user":   resourceUser(),
+			"redfish_user_account": resourceUserAccount(),
 		},
 
 		ConfigureFunc: providerConfigure,
