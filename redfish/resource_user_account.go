@@ -82,13 +82,31 @@ func resourceUserAccountRead(d *schema.ResourceData, m interface{}) error {
 		d.SetId("")
 		return nil
 	}
-
-	d.Set("UserName", account.UserName)
+	d.Set("username", account.UserName)
+	//d.Set("password", account.Password)
+	d.Set("enabled", account.Enabled)
+	d.Set("role_id", account.RoleID)
 	return nil
 }
 
 func resourceUserAccountUpdate(d *schema.ResourceData, m interface{}) error {
-	//TBD
+	c := m.(*gofish.APIClient)
+	account, err := getAccount(c, d.Id())
+	if err != nil {
+		return err
+	}
+	payload := make(map[string]interface{})
+	payload["UserName"] = d.Get("username")
+	payload["Password"] = d.Get("password")
+	payload["Enabled"] = d.Get("enabled")
+	payload["RoleId"] = d.Get("role_id")
+	res, err := c.Patch(account.ODataID, payload)
+	if err != nil {
+		return err
+	}
+	if res.StatusCode != 200 {
+		return fmt.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
+	}
 	return resourceUserAccountRead(d, m)
 }
 
