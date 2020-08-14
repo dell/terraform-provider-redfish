@@ -33,6 +33,10 @@ func Provider() *schema.Provider {
 			"redfish_user_account": resourceUserAccount(),
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+                        "redfish_bios": dataSourceRedfishBios(),
+		},
+
 		ConfigureFunc: providerConfigure,
 		//StopFunc: NEEDS TO BE IMPLEMENTED to revoke the redfish token
 	}
