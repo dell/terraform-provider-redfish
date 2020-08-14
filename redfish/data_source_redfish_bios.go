@@ -52,8 +52,6 @@ func dataSourceRedfishBiosRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	//var bios_attributes []map[string]interface{}
-	//bios_attributes = append(bios_attributes, bios.Attributes)
 	d.SetId("attributes")
 	if err := d.Set("attributes", bios_attributes_map); err != nil {
 		return fmt.Errorf("error setting bios attributes: %s", err)
