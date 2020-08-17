@@ -1,11 +1,11 @@
 package redfish
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func Provider() *schema.Provider {
-	return &schema.Provider{
+	provider := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"user": {
 				Type:        schema.TypeString,
@@ -37,12 +37,23 @@ func Provider() *schema.Provider {
                         "redfish_bios": dataSourceRedfishBios(),
 		},
 
-		ConfigureFunc: providerConfigure,
 		//StopFunc: NEEDS TO BE IMPLEMENTED to revoke the redfish token
 	}
+
+	provider.ConfigureFunc = func(d *schema.ResourceData) (interface{}, error) {
+                terraformVersion := provider.TerraformVersion
+                if terraformVersion == "" {
+                        // Terraform 0.12 introduced this field to the protocol
+                        // We can therefore assume that if it's missing it's 0.10 or 0.11
+                        terraformVersion = "0.11+compatible"
+                }
+                return providerConfigure(d, terraformVersion)
+        }
+
+        return provider
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+func providerConfigure(d *schema.ResourceData, terraformVersion string) (interface{}, error) {
 	/*Redfish token issued by iDRAC needs to be revoked when the provider is done.
 	At the moment, the terraform SDK (Provider.StopFunc) is not implemented. To follow up, please refer to this pull request:
 	https://github.com/hashicorp/terraform-plugin-sdk/pull/377
