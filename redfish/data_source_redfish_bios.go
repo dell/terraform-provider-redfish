@@ -24,7 +24,7 @@ func dataSourceRedfishBios() *schema.Resource {
 					Type: schema.TypeString,
 					Computed: true,
 				},
-				Computed:    true,
+				Computed: true,
 			},
 			"id": {
 				Type: schema.TypeString,
@@ -36,6 +36,8 @@ func dataSourceRedfishBios() *schema.Resource {
 }
 
 func dataSourceRedfishBiosRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
 	conn := meta.(*gofish.APIClient)
 
 	service := conn.Service
@@ -53,17 +55,14 @@ func dataSourceRedfishBiosRead(ctx context.Context, d *schema.ResourceData, meta
 	// TODO: BIOS Attributes' values might be any of several types.
 	// terraform-sdk currently does not support a map with different
 	// value types. So we will convert int and float values to string
-	bios_attributes_map := make(map[string]string)
-
-	bios_id := bios.ID
-	bios_odata_id := bios.ODataID
+	attributes := make(map[string]string)
 
 	// copy from the BIOS attributes to the new bios attributes map
 	for key, value := range bios.Attributes {
 		if attr_val, ok := value.(string); ok {
-			bios_attributes_map[key] = attr_val
+			attributes[key] = attr_val
 		} else {
-			bios_attributes_map[key] = fmt.Sprintf("%v", value)
+			attributes[key] = fmt.Sprintf("%v", value)
 		}
 	}
 
@@ -75,12 +74,12 @@ func dataSourceRedfishBiosRead(ctx context.Context, d *schema.ResourceData, meta
                 return diag.Errorf("error setting bios ID: %s", err)
         }
 
-	if err := d.Set("attributes", bios_attributes_map); err != nil {
+	if err := d.Set("attributes", attributes); err != nil {
                 return diag.Errorf("error setting bios attributes: %s", err)
         }
 
 	// Set the ID to the @odata.id
 	d.SetId(bios.ODataID)
 
-	return nil
+	return diags
 }
