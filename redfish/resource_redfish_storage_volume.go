@@ -16,6 +16,7 @@ const (
 	storageControllerStr string = "storage_controller"
 	volumeNameStr        string = "volume_name"
 	raidLevelStr         string = "raid_level"
+	volumeDisks          string = "volume_disks"
 	settingsApplyTimeStr string = "settings_apply_time"
 	biosConfigJobURIStr  string = "bios_config_job_uri"
 )
@@ -37,21 +38,29 @@ func resourceRedfishStorageVolume() *schema.Resource {
 				Required:    true,
 				Description: "This value is the desired name for the volume to be given",
 			},
-			raidLevelStr: &schema.Schema{
+			raidLevelStr: &schema.Schema{ //Call it volumeType
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "This value specifies the raid level the virtual disk is going to have. Possible values are: NonRedundant (RAID-0), Mirrored (RAID-1), StripedWithParity (RAID-5), SpannedMirrors (RAID-10) or SpannedStripesWithParity (RAID-50)",
 			},
+			volumeDisks: &schema.Schema{
+				Type:        schema.TypeList,
+				Required:    true,
+				Description: "This list contains the disks to create the volume within a disk controller",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 			settingsApplyTimeStr: &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				//ValidateFunc: xxxx,
 			},
-			/*			biosConfigJobURIStr: {
-						Type:        schema.TypeString,
-						Description: "Volume configuration job URI",
-						Computed:    true,
-					},*/
+			/*ValidateFunc: xxxx,
+				biosConfigJobURIStr: {
+				Type:        schema.TypeString,
+				Description: "Volume configuration job URI",
+				Computed:    true,
+			},*/
 		},
 	}
 }
@@ -64,8 +73,16 @@ func resourceStorageVolumeCreate(ctx context.Context, d *schema.ResourceData, m 
 	raidLevel := d.Get(raidLevelStr).(string)
 	volumeName := d.Get(volumeNameStr).(string)
 	applyTime := d.Get(settingsApplyTimeStr).(string)
+	driveNamesRaw := d.Get(volumeDisks).([]interface{})
+
+	//Convert from []interface{} to []string for using
+	driveNames := make([]string, len(driveNamesRaw))
+	for i, raw := range driveNamesRaw {
+		driveNames[i] = raw.(string)
+	}
+
 	//Need to figure out how to proceed with settingsApplyTime (Immediate or OnReset)
-	jobID, err := createVolume(conn, storageController, raidLevel, volumeName)
+	jobID, err := createVolume(conn, storageController, raidLevel, volumeName, driveNames)
 	if err != nil {
 		return diag.Errorf("Error when creating the virtual disk on disk controller %s - %s", storageController, err)
 	}
@@ -187,7 +204,19 @@ func deleteVolume(c *gofish.APIClient, volumeURI string) (jobID string, err erro
 	return jobID, nil
 }
 
-func getAllDrivesStorageController(c *gofish.APIClient, diskControllerName string) ([]*redfish.Drive, error) {
+func getDrivesStorageController(c *gofish.APIClient, diskControllerName string, driveNames []string) ([]*redfish.Drive, error) {
+	var drivesToReturn = []*redfish.Drive{}
+	for _, v := range driveNames {
+		drive, err := getDrive(c, diskControllerName, v)
+		if err != nil {
+			return nil, err
+		}
+		drivesToReturn = append(drivesToReturn, drive)
+	}
+	return drivesToReturn, nil
+}
+
+func getDrive(c *gofish.APIClient, diskControllerName string, driveName string) (*redfish.Drive, error) {
 	storage, err := getStorageController(c, diskControllerName)
 	if err != nil {
 		return nil, err
@@ -196,7 +225,12 @@ func getAllDrivesStorageController(c *gofish.APIClient, diskControllerName strin
 	if err != nil {
 		return nil, err
 	}
-	return drives, nil
+	for _, v := range drives {
+		if v.Name == driveName {
+			return v, nil
+		}
+	}
+	return nil, fmt.Errorf("The drive %s you were trying to find does not exist", driveName)
 }
 
 /*
@@ -212,17 +246,22 @@ Parameters:
 			- RAID-10 -> "SpannedMirrors"
 			- RAID-50 -> "SpannedStripesWithParity"
 	volumeName -> Name for the volume
+	driveNames -> Drives to use for the raid configuration
 */
-func createVolume(c *gofish.APIClient, diskControllerName string, raidMode string, volumeName string) (jobID string, err error) {
+func createVolume(c *gofish.APIClient, diskControllerName string, raidMode string, volumeName string, driveNames []string) (jobID string, err error) {
 	//At the moment is creates a virtual disk using all disk from the disk controller
 	//Get storage controller to get @odata.id from volumes
 	storage, err := getStorageController(c, diskControllerName)
 	if err != nil {
 		return "", err
 	}
-	drives, err := getAllDrivesStorageController(c, diskControllerName)
+	/*drives, err := getAllDrivesStorageController(c, diskControllerName)
 	if err != nil {
 		panic(err)
+	}*/
+	drives, err := getDrivesStorageController(c, diskControllerName, driveNames)
+	if err != nil {
+		return "", err
 	}
 	newVolume := make(map[string]interface{})
 	newVolume["VolumeType"] = raidMode
