@@ -121,7 +121,7 @@ func resourceRedfishBiosUpdate(ctx context.Context, d *schema.ResourceData, m in
 			}
 
 		} else {
-			return diag.Errorf("BIOS attibute %s not found", key)
+			return diag.Errorf("BIOS attribute %s not found", key)
 		}
 	}
 
@@ -131,6 +131,13 @@ func resourceRedfishBiosUpdate(ctx context.Context, d *schema.ResourceData, m in
 			if err != nil {
 				return diag.Errorf("error updating bios attributes: %s", err)
 			}
+		} else {
+			log.Printf("[DEBUG] Not updating the attributes as a previous BIOS job is pending")
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary: "Unable to update bios attributes",
+				Detail: "Unable to update bios attributes as a previous BIOS job is pending",
+			})
 		}
 	} else {
 		log.Printf("[DEBUG] BIOS attributes are already set")
