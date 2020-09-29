@@ -33,11 +33,11 @@ func WaitForJobToFinish(c *gofish.APIClient, jobURI string, timeBetweenAttempts 
 			fmt.Printf("[DEBUG] - Attempting one more time... Job state is %s\n", job.TaskState)
 			//Check if job has finished
 			switch status := job.TaskState; status {
-			case "Completed":
+			case redfish.CompletedTaskState:
 				return nil
-			case "Killed ":
+			case redfish.KilledTaskState:
 				return fmt.Errorf("the job has finished unsucessfully with a %s state", job.TaskState)
-			case "Exception":
+			case redfish.ExceptionTaskState:
 				return fmt.Errorf("the job has finished unsucessfully with a %s state", job.TaskState)
 			}
 		case <-timeoutTick.C:
@@ -45,4 +45,21 @@ func WaitForJobToFinish(c *gofish.APIClient, jobURI string, timeBetweenAttempts 
 			return fmt.Errorf("Timeout waiting for the job to finish")
 		}
 	}
+}
+
+// DeleteDellJob is intended to delete a task schedules in a Dell system.
+// This function is only a workaround until HTTP DELETE is supported under each task o taskmonitor
+//		Parameters:
+//		- taskID: Id of the tasks to delete
+func DeleteDellJob(c *gofish.APIClient, taskID string) error {
+	url := "/redfish/v1/Managers/iDRAC.Embedded.1/Jobs/"
+	resp, err := c.Delete(fmt.Sprintf("%s%s", url, taskID))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("Error when deleting the task, Delete status code was %d", resp.StatusCode)
+	}
+	return nil
 }

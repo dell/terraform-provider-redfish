@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
+	//	"strings"
 )
 
 const (
@@ -55,6 +56,10 @@ func resourceRedfishStorageVolume() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			biosConfigJobURIStr: &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			/*ValidateFunc: xxxx,
 				biosConfigJobURIStr: {
 				Type:        schema.TypeString,
@@ -82,7 +87,7 @@ func resourceStorageVolumeCreate(ctx context.Context, d *schema.ResourceData, m 
 	}
 
 	//Need to figure out how to proceed with settingsApplyTime (Immediate or OnReset)
-	jobID, err := createVolume(conn, storageController, raidLevel, volumeName, driveNames)
+	jobID, err := createVolume(conn, storageController, raidLevel, volumeName, driveNames, applyTime)
 	if err != nil {
 		return diag.Errorf("Error when creating the virtual disk on disk controller %s - %s", storageController, err)
 	}
@@ -96,24 +101,20 @@ func resourceStorageVolumeCreate(ctx context.Context, d *schema.ResourceData, m 
 		if err != nil {
 			return diag.Errorf("Error. The volume ID with volume name %s on %s controller was not found", volumeName, storageController)
 		}
+		d.Set(biosConfigJobURIStr, "")
 		d.SetId(volumeID)
+	} else {
+		//TODO - Implement for not Immediate scenarios
+		d.Set(biosConfigJobURIStr, jobID)
+		d.SetId(jobID)
 	}
-	//TODO - Implement for not Immediate scenarios
-	//TODO - Implement for not Immediate scenarios
-	//TODO - Implement for not Immediate scenarios
+
+	//resourceStorageVolumeRead(ctx, d, m)
 	return diags
 }
 
 func resourceStorageVolumeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
-	/*conn := m.(*gofish.APIClient)
-	storageController := d.Get(storageControllerStr).(string)
-	volumeName := d.Get(volumeNameStr).(string)
-	volumeID, err := getVolumeID(conn, storageController, volumeName)
-	if err != nil {
-		return diag.Errorf("Error when creating the virtual disk on disk controller %s - %s", storageController, err)
-	}
-	d.SetId(volumeID)*/
 	return diags
 }
 
@@ -126,6 +127,8 @@ func resourceStorageVolumeDelete(ctx context.Context, d *schema.ResourceData, m 
 	var diags diag.Diagnostics
 	conn := m.(*gofish.APIClient)
 	//Get user config
+	//If applyTime has been set to Immediate, the volumeID of the resource will be the ODataID of the volume just created.
+	//If applyTime is OnReset, the volumeID will be the JobID
 	volumeID := d.Id()
 	applyTime := d.Get(settingsApplyTimeStr).(string)
 	//DELETE VOLUME
@@ -139,10 +142,42 @@ func resourceStorageVolumeDelete(ctx context.Context, d *schema.ResourceData, m 
 		if err != nil {
 			panic(err)
 		}
+	} else {
+		//Check if the job has been completed or not. If not, kill the job. If so, kill the volume
+		task, err := redfish.GetTask(conn, volumeID)
+		if err != nil {
+			return diag.Errorf("Issue when retrieving the tasks: %s", err)
+		}
+		if task.TaskState == redfish.CompletedTaskState {
+			//Get the actual volumeID for destroying it
+			storageController := d.Get(storageControllerStr).(string)
+			volumeName := d.Get(volumeNameStr).(string)
+			actualVolumeID, err := getVolumeID(conn, storageController, volumeName)
+			if err != nil {
+				return diag.Errorf("Issue when getting the actual volumeID: %s", err)
+			}
+			//MAYBE WE NEED TO SET A JOB INSTEAD OF DELETING IT RIGHTAWAY
+			_, err = deleteVolume(conn, actualVolumeID)
+			d.SetId("")
+		} else {
+			//Get rid of the Job that will create the volume
+			//IMPORTART LIMITATION. TO DELETE A TASK IN DELL EMC REDFISH IMPLEMENTATION, NEEDS TO BE DONE THROUGH ITS MANAGER/redfish/v1/Managers/iDRAC.Embedded.1/Jobs/%s
+			//KEEPING THIS CODE FOR THE FUTURE
+			/*res, err := conn.Delete(volumeID)
+			if err != nil {
+				return diag.Errorf("Issue when deleting the job: %s", err)
+			}
+			defer res.Body.Close()
+			if res.StatusCode != 200 {
+				return diag.Errorf("Issue when deleting the job. The HTTP Delete response returned %v code", res.StatusCode)
+			}*/
+			err := common.DeleteDellJob(conn, task.ID)
+			if err != nil {
+				return diag.Errorf("Issue when deleting the task: %s", err)
+			}
+			d.SetId("")
+		}
 	}
-	//TODO - Implement for not Immediate scenarios
-	//TODO - Implement for not Immediate scenarios
-	//TODO - Implement for not Immediate scenarios
 	return diags
 }
 
@@ -164,34 +199,8 @@ func getStorageController(c *gofish.APIClient, diskControllerName string) (*redf
 	return nil, fmt.Errorf("Error. Didn't find the storage controller %v", diskControllerName)
 }
 
-func deleteAllVolumes(c *gofish.APIClient, diskControllerName string) (err error) {
-	storage, err := getStorageController(c, diskControllerName)
-	if err != nil {
-		return err
-	}
-	// TEST CODE
-	/*opeartionValues, err := storage.GetOperationApplyTimeValues()
-	if err != nil {
-		return err
-	}
-	fmt.Printf(string(len(opeartionValues)))*/
-	// END TEST CODE
-	volumes, err := storage.Volumes()
-	if err != nil {
-		return fmt.Errorf("Error when retreiving volumes from %v from the Redfish API", storage.Entity.Name)
-	}
-	for _, v := range volumes {
-		res, err := c.Delete(v.Entity.ODataID)
-		if err != nil {
-			return fmt.Errorf("Error while deleting the volume %v", v.Entity.Name)
-		}
-		defer res.Body.Close()
-		fmt.Printf(v.Entity.ODataID)
-	}
-	return nil
-}
-
 func deleteVolume(c *gofish.APIClient, volumeURI string) (jobID string, err error) {
+	//TODO - Check if we can delete immediately or if we need to schedule a job
 	res, err := c.Delete(volumeURI)
 	if err != nil {
 		return "", fmt.Errorf("Error while deleting the volume %s", volumeURI)
@@ -248,17 +257,18 @@ Parameters:
 	volumeName -> Name for the volume
 	driveNames -> Drives to use for the raid configuration
 */
-func createVolume(c *gofish.APIClient, diskControllerName string, raidMode string, volumeName string, driveNames []string) (jobID string, err error) {
+func createVolume(c *gofish.APIClient,
+	diskControllerName string,
+	raidMode string,
+	volumeName string,
+	driveNames []string,
+	applyTime string) (jobID string, err error) {
 	//At the moment is creates a virtual disk using all disk from the disk controller
 	//Get storage controller to get @odata.id from volumes
 	storage, err := getStorageController(c, diskControllerName)
 	if err != nil {
 		return "", err
 	}
-	/*drives, err := getAllDrivesStorageController(c, diskControllerName)
-	if err != nil {
-		panic(err)
-	}*/
 	drives, err := getDrivesStorageController(c, diskControllerName, driveNames)
 	if err != nil {
 		return "", err
@@ -266,7 +276,7 @@ func createVolume(c *gofish.APIClient, diskControllerName string, raidMode strin
 	newVolume := make(map[string]interface{})
 	newVolume["VolumeType"] = raidMode
 	newVolume["Name"] = volumeName
-	//newVolume["Drives"] = []interface{}{}
+	newVolume["@Redfish.OperationApplyTime"] = applyTime
 	var listDrives []map[string]string
 	for _, drive := range drives {
 		storageDrive := make(map[string]string)
@@ -302,7 +312,8 @@ func getVolumeID(c *gofish.APIClient, diskControllerName string, volumeName stri
 	for _, v := range volumes {
 		if v.Name == volumeName {
 			volumeID = v.ODataID
+			return volumeID, nil
 		}
 	}
-	return volumeID, nil
+	return "", nil
 }

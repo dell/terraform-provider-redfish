@@ -11,5 +11,6 @@ resource "redfish_storage_volume" "volume" {
     raid_level = "Mirrored"
     volume_disks = ["Physical Disk 0:1:0", "Physical Disk 0:1:1"]
     settings_apply_time = "Immediate"
+//    settings_apply_time = "OnReset"
 }
 
