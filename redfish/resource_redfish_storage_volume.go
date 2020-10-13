@@ -1,25 +1,23 @@
 package redfish
 
 import (
+	"context"
+	"fmt"
 	"github.com/dell/terraform-provider-redfish/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	// "github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"context"
-	"fmt"
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
-	//	"strings"
 )
 
 const (
 	// This constants are used to avoid hardcoding the terraform input variables
-	storageControllerStr string = "storage_controller"
-	volumeNameStr        string = "volume_name"
-	raidLevelStr         string = "raid_level"
-	volumeDisks          string = "volume_disks"
-	settingsApplyTimeStr string = "settings_apply_time"
-	biosConfigJobURIStr  string = "bios_config_job_uri"
+	storageControllerID string = "storage_controller_id"
+	volumeName          string = "volume_name"
+	volumeType          string = "volume_type"
+	volumeDisks         string = "volume_disks"
+	settingsApplyTime   string = "settings_apply_time"
+	biosConfigJobURI    string = "bios_config_job_uri"
 )
 
 func resourceRedfishStorageVolume() *schema.Resource {
@@ -29,17 +27,17 @@ func resourceRedfishStorageVolume() *schema.Resource {
 		UpdateContext: resourceStorageVolumeUpdate,
 		DeleteContext: resourceStorageVolumeDelete,
 		Schema: map[string]*schema.Schema{
-			storageControllerStr: &schema.Schema{
+			storageControllerID: &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "This value must be the disk controller the user want to manage. I.e: RAID.Integrated.1-1",
+				Description: "This value must be the storage controller ID the user want to manage. I.e: RAID.Integrated.1-1",
 			},
-			volumeNameStr: &schema.Schema{
+			volumeName: &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "This value is the desired name for the volume to be given",
 			},
-			raidLevelStr: &schema.Schema{ //Call it volumeType
+			volumeType: &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "This value specifies the raid level the virtual disk is going to have. Possible values are: NonRedundant (RAID-0), Mirrored (RAID-1), StripedWithParity (RAID-5), SpannedMirrors (RAID-10) or SpannedStripesWithParity (RAID-50)",
@@ -47,25 +45,22 @@ func resourceRedfishStorageVolume() *schema.Resource {
 			volumeDisks: &schema.Schema{
 				Type:        schema.TypeList,
 				Required:    true,
-				Description: "This list contains the disks to create the volume within a disk controller",
+				Description: "This list contains the physical disks names to create the volume within a disk controller",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			settingsApplyTimeStr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+			settingsApplyTime: &schema.Schema{
+				Type:        schema.TypeString,
+				Description: "Flag to make the operation either \"Immediate\" or \"OnReset\". By default value is \"Immediate\"",
+				Optional:    true,
 			},
-			biosConfigJobURIStr: &schema.Schema{
+			biosConfigJobURI: &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			/*ValidateFunc: xxxx,
-				biosConfigJobURIStr: {
-				Type:        schema.TypeString,
-				Description: "Volume configuration job URI",
-				Computed:    true,
-			},*/
+			/*TODO
+			Implement validate function with redfish.GetOperationApplyTimeValues()*/
 		},
 	}
 }
@@ -74,11 +69,15 @@ func resourceStorageVolumeCreate(ctx context.Context, d *schema.ResourceData, m 
 	var diags diag.Diagnostics
 	conn := m.(*gofish.APIClient)
 	//Get user config
-	storageController := d.Get(storageControllerStr).(string)
-	raidLevel := d.Get(raidLevelStr).(string)
-	volumeName := d.Get(volumeNameStr).(string)
-	applyTime := d.Get(settingsApplyTimeStr).(string)
+	storageController := d.Get(storageControllerID).(string)
+	raidLevel := d.Get(volumeType).(string)
+	volumeName := d.Get(volumeName).(string)
 	driveNamesRaw := d.Get(volumeDisks).([]interface{})
+	applyTime, ok := d.GetOk(settingsApplyTime)
+	if !ok {
+		//If settingsApplyTime has not set, by default use Immediate
+		applyTime = "Immediate"
+	}
 
 	//Convert from []interface{} to []string for using
 	driveNames := make([]string, len(driveNamesRaw))
@@ -87,11 +86,11 @@ func resourceStorageVolumeCreate(ctx context.Context, d *schema.ResourceData, m 
 	}
 
 	//Need to figure out how to proceed with settingsApplyTime (Immediate or OnReset)
-	jobID, err := createVolume(conn, storageController, raidLevel, volumeName, driveNames, applyTime)
+	jobID, err := createVolume(conn, storageController, raidLevel, volumeName, driveNames, applyTime.(string))
 	if err != nil {
 		return diag.Errorf("Error when creating the virtual disk on disk controller %s - %s", storageController, err)
 	}
-	if applyTime == "Immediate" {
+	if applyTime.(string) == "Immediate" {
 		err = common.WaitForJobToFinish(conn, jobID, common.TimeBetweenAttempts, common.Timeout)
 		if err != nil {
 			return diag.Errorf("Error. Job %s wasn't able to complete", jobID)
@@ -101,11 +100,11 @@ func resourceStorageVolumeCreate(ctx context.Context, d *schema.ResourceData, m 
 		if err != nil {
 			return diag.Errorf("Error. The volume ID with volume name %s on %s controller was not found", volumeName, storageController)
 		}
-		d.Set(biosConfigJobURIStr, "")
+		d.Set(biosConfigJobURI, "")
 		d.SetId(volumeID)
 	} else {
 		//TODO - Implement for not Immediate scenarios
-		d.Set(biosConfigJobURIStr, jobID)
+		d.Set(biosConfigJobURI, jobID)
 		d.SetId(jobID)
 	}
 
@@ -130,9 +129,13 @@ func resourceStorageVolumeDelete(ctx context.Context, d *schema.ResourceData, m 
 	//If applyTime has been set to Immediate, the volumeID of the resource will be the ODataID of the volume just created.
 	//If applyTime is OnReset, the volumeID will be the JobID
 	volumeID := d.Id()
-	applyTime := d.Get(settingsApplyTimeStr).(string)
+	applyTime, ok := d.GetOk(settingsApplyTime)
+	if !ok {
+		//If settingsApplyTime has not set, by default use Immediate
+		applyTime = "Immediate"
+	}
 	//DELETE VOLUME
-	if applyTime == "Immediate" {
+	if applyTime.(string) == "Immediate" {
 		jobID, err := deleteVolume(conn, volumeID)
 		if err != nil {
 			return diag.Errorf("Error. There was an error when deleting volume %s", volumeID)
@@ -150,8 +153,8 @@ func resourceStorageVolumeDelete(ctx context.Context, d *schema.ResourceData, m 
 		}
 		if task.TaskState == redfish.CompletedTaskState {
 			//Get the actual volumeID for destroying it
-			storageController := d.Get(storageControllerStr).(string)
-			volumeName := d.Get(volumeNameStr).(string)
+			storageController := d.Get(storageControllerID).(string)
+			volumeName := d.Get(volumeName).(string)
 			actualVolumeID, err := getVolumeID(conn, storageController, volumeName)
 			if err != nil {
 				return diag.Errorf("Issue when getting the actual volumeID: %s", err)
@@ -162,15 +165,6 @@ func resourceStorageVolumeDelete(ctx context.Context, d *schema.ResourceData, m 
 		} else {
 			//Get rid of the Job that will create the volume
 			//IMPORTART LIMITATION. TO DELETE A TASK IN DELL EMC REDFISH IMPLEMENTATION, NEEDS TO BE DONE THROUGH ITS MANAGER/redfish/v1/Managers/iDRAC.Embedded.1/Jobs/%s
-			//KEEPING THIS CODE FOR THE FUTURE
-			/*res, err := conn.Delete(volumeID)
-			if err != nil {
-				return diag.Errorf("Issue when deleting the job: %s", err)
-			}
-			defer res.Body.Close()
-			if res.StatusCode != 200 {
-				return diag.Errorf("Issue when deleting the job. The HTTP Delete response returned %v code", res.StatusCode)
-			}*/
 			err := common.DeleteDellJob(conn, task.ID)
 			if err != nil {
 				return diag.Errorf("Issue when deleting the task: %s", err)
