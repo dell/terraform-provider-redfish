@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stmcginnis/gofish"
+	redfishcommon "github.com/stmcginnis/gofish/common"
 	"github.com/stmcginnis/gofish/redfish"
 )
 
@@ -86,7 +87,7 @@ func resourceStorageVolumeCreate(ctx context.Context, d *schema.ResourceData, m 
 	}
 
 	//Need to figure out how to proceed with settingsApplyTime (Immediate or OnReset)
-	jobID, err := createVolume(conn, storageController, raidLevel, volumeName, driveNames, applyTime.(string))
+	jobID, err := createVolume(conn, conn.Service, storageController, raidLevel, volumeName, driveNames, applyTime.(string))
 	if err != nil {
 		return diag.Errorf("Error when creating the virtual disk on disk controller %s - %s", storageController, err)
 	}
@@ -96,7 +97,7 @@ func resourceStorageVolumeCreate(ctx context.Context, d *schema.ResourceData, m 
 			return diag.Errorf("Error. Job %s wasn't able to complete", jobID)
 		}
 		// Get new volumeID
-		volumeID, err := getVolumeID(conn, storageController, volumeName)
+		volumeID, err := getVolumeID(conn.Service, storageController, volumeName)
 		if err != nil {
 			return diag.Errorf("Error. The volume ID with volume name %s on %s controller was not found", volumeName, storageController)
 		}
@@ -155,7 +156,7 @@ func resourceStorageVolumeDelete(ctx context.Context, d *schema.ResourceData, m 
 			//Get the actual volumeID for destroying it
 			storageController := d.Get(storageControllerID).(string)
 			volumeName := d.Get(volumeName).(string)
-			actualVolumeID, err := getVolumeID(conn, storageController, volumeName)
+			actualVolumeID, err := getVolumeID(conn.Service, storageController, volumeName)
 			if err != nil {
 				return diag.Errorf("Issue when getting the actual volumeID: %s", err)
 			}
@@ -175,8 +176,7 @@ func resourceStorageVolumeDelete(ctx context.Context, d *schema.ResourceData, m 
 	return diags
 }
 
-func getStorageController(c *gofish.APIClient, diskControllerName string) (*redfish.Storage, error) {
-	service := c.Service
+func getStorageController(service *gofish.Service, diskControllerName string) (*redfish.Storage, error) {
 	systems, err := service.Systems()
 	if err != nil {
 		return nil, fmt.Errorf("Error when retreiving the Systems from the Redfish API")
@@ -193,7 +193,7 @@ func getStorageController(c *gofish.APIClient, diskControllerName string) (*redf
 	return nil, fmt.Errorf("Error. Didn't find the storage controller %v", diskControllerName)
 }
 
-func deleteVolume(c *gofish.APIClient, volumeURI string) (jobID string, err error) {
+func deleteVolume(c redfishcommon.Client, volumeURI string) (jobID string, err error) {
 	//TODO - Check if we can delete immediately or if we need to schedule a job
 	res, err := c.Delete(volumeURI)
 	if err != nil {
@@ -207,10 +207,10 @@ func deleteVolume(c *gofish.APIClient, volumeURI string) (jobID string, err erro
 	return jobID, nil
 }
 
-func getDrivesStorageController(c *gofish.APIClient, diskControllerName string, driveNames []string) ([]*redfish.Drive, error) {
+func getDrivesStorageController(service *gofish.Service, diskControllerName string, driveNames []string) ([]*redfish.Drive, error) {
 	var drivesToReturn = []*redfish.Drive{}
 	for _, v := range driveNames {
-		drive, err := getDrive(c, diskControllerName, v)
+		drive, err := getDrive(service, diskControllerName, v)
 		if err != nil {
 			return nil, err
 		}
@@ -219,8 +219,8 @@ func getDrivesStorageController(c *gofish.APIClient, diskControllerName string, 
 	return drivesToReturn, nil
 }
 
-func getDrive(c *gofish.APIClient, diskControllerName string, driveName string) (*redfish.Drive, error) {
-	storage, err := getStorageController(c, diskControllerName)
+func getDrive(service *gofish.Service, diskControllerName string, driveName string) (*redfish.Drive, error) {
+	storage, err := getStorageController(service, diskControllerName)
 	if err != nil {
 		return nil, err
 	}
@@ -239,8 +239,9 @@ func getDrive(c *gofish.APIClient, diskControllerName string, driveName string) 
 /*
 createVolume creates a virtualdisk on a disk controller by using the redfish API
 Parameters:
-	c -> gofish API
-	diskControllerName -> ID of the disk controller to manage (i.e. RAID.Integrated.1-1)
+	c -> client API
+	service -> Service struct from gofish
+	diskControllerID -> ID of the disk controller to manage (i.e. RAID.Integrated.1-1)
 	raidMode -> raid mode to apply to that set of disks
 		Modes:
 			- RAID-0 -> "NonRedundant"
@@ -251,19 +252,20 @@ Parameters:
 	volumeName -> Name for the volume
 	driveNames -> Drives to use for the raid configuration
 */
-func createVolume(c *gofish.APIClient,
-	diskControllerName string,
+func createVolume(c redfishcommon.Client,
+	service *gofish.Service,
+	diskControllerID string,
 	raidMode string,
 	volumeName string,
 	driveNames []string,
 	applyTime string) (jobID string, err error) {
 	//At the moment is creates a virtual disk using all disk from the disk controller
 	//Get storage controller to get @odata.id from volumes
-	storage, err := getStorageController(c, diskControllerName)
+	storage, err := getStorageController(service, diskControllerID)
 	if err != nil {
 		return "", err
 	}
-	drives, err := getDrivesStorageController(c, diskControllerName, driveNames)
+	drives, err := getDrivesStorageController(service, diskControllerID, driveNames)
 	if err != nil {
 		return "", err
 	}
@@ -293,8 +295,8 @@ func createVolume(c *gofish.APIClient,
 	return jobID, nil
 }
 
-func getVolumeID(c *gofish.APIClient, diskControllerName string, volumeName string) (volumeID string, err error) {
-	storage, err := getStorageController(c, diskControllerName)
+func getVolumeID(service *gofish.Service, diskControllerName string, volumeName string) (volumeID string, err error) {
+	storage, err := getStorageController(service, diskControllerName)
 	if err != nil {
 		return "", err
 	}
