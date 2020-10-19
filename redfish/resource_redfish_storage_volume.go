@@ -9,6 +9,7 @@ import (
 	"github.com/stmcginnis/gofish"
 	redfishcommon "github.com/stmcginnis/gofish/common"
 	"github.com/stmcginnis/gofish/redfish"
+	"net/http"
 )
 
 const (
@@ -225,8 +226,9 @@ func deleteVolume(c redfishcommon.Client, volumeURI string) (jobID string, err e
 		return "", fmt.Errorf("Error while deleting the volume %s", volumeURI)
 	}
 	defer res.Body.Close()
-	/*Check HTTP return code*/
-
+	if res.StatusCode != http.StatusAccepted {
+		return "", fmt.Errorf("The operation was not successful. Return code was different from 202 ACCEPTED")
+	}
 	jobID = res.Header.Get("Location")
 	if len(jobID) == 0 {
 		return "", fmt.Errorf("There was some error when retreiving the jobID")
@@ -251,7 +253,7 @@ func getDrives(storage *redfish.Storage, driveNames []string) ([]*redfish.Drive,
 			}
 		}
 	}
-	if len(drives) != len(drivesToReturn) {
+	if len(driveNames) != len(drivesToReturn) {
 		return nil, fmt.Errorf("Any of the drives you inserted doesn't exist")
 	}
 	return drivesToReturn, nil
@@ -279,16 +281,7 @@ func createVolume(client redfishcommon.Client,
 	volumeName string,
 	drives []*redfish.Drive,
 	applyTime string) (jobID string, err error) {
-	//At the moment is creates a virtual disk using all disk from the disk controller
-	//Get storage controller to get @odata.id from volumes
-	/*storage, err := getStorageController(service, diskControllerName)
-	if err != nil {
-		return "", err
-	}
-	drives, err := getDrivesStorageController(service, diskControllerName, driveNames)
-	if err != nil {
-		return "", err
-	}*/
+
 	newVolume := make(map[string]interface{})
 	newVolume["VolumeType"] = volumeType
 	newVolume["Name"] = volumeName
@@ -305,7 +298,8 @@ func createVolume(client redfishcommon.Client,
 	if err != nil {
 		return "", err
 	}
-	if res.StatusCode != 202 {
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusAccepted {
 		return "", fmt.Errorf("The query was unsucessfull")
 	}
 	jobID = res.Header.Get("Location")
@@ -331,5 +325,5 @@ func getVolumeID(storage *redfish.Storage, volumeName string) (volumeLink string
 			return volumeLink, nil
 		}
 	}
-	return "", nil
+	return "", fmt.Errorf("Couldn't find a volume with the provided name")
 }
