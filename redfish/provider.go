@@ -30,28 +30,29 @@ func Provider() *schema.Provider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"redfish_user_account": resourceUserAccount(),
-			"redfish_bios": resourceRedfishBios(),
+			"redfish_user_account":   resourceUserAccount(),
+			"redfish_bios":           resourceRedfishBios(),
+			"redfish_storage_volume": resourceRedfishStorageVolume(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-                        "redfish_bios": dataSourceRedfishBios(),
+			"redfish_bios": dataSourceRedfishBios(),
 		},
 
 		//StopFunc: NEEDS TO BE IMPLEMENTED to revoke the redfish token
 	}
 
 	provider.ConfigureFunc = func(d *schema.ResourceData) (interface{}, error) {
-                terraformVersion := provider.TerraformVersion
-                if terraformVersion == "" {
-                        // Terraform 0.12 introduced this field to the protocol
-                        // We can therefore assume that if it's missing it's 0.10 or 0.11
-                        terraformVersion = "0.11+compatible"
-                }
-                return providerConfigure(d, terraformVersion)
-        }
+		terraformVersion := provider.TerraformVersion
+		if terraformVersion == "" {
+			// Terraform 0.12 introduced this field to the protocol
+			// We can therefore assume that if it's missing it's 0.10 or 0.11
+			terraformVersion = "0.11+compatible"
+		}
+		return providerConfigure(d, terraformVersion)
+	}
 
-        return provider
+	return provider
 }
 
 func providerConfigure(d *schema.ResourceData, terraformVersion string) (interface{}, error) {
