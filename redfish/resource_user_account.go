@@ -1,7 +1,8 @@
 package redfish
 
 import (
-	"fmt"
+	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
@@ -9,10 +10,10 @@ import (
 
 func resourceUserAccount() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceUserAccountCreate,
-		Read:   resourceUserAccountRead,
-		Update: resourceUserAccountUpdate,
-		Delete: resourceUserAccountDelete,
+		CreateContext: resourceUserAccountCreate,
+		ReadContext:   resourceUserAccountRead,
+		UpdateContext: resourceUserAccountUpdate,
+		DeleteContext: resourceUserAccountDelete,
 
 		Schema: map[string]*schema.Schema{
 			"username": &schema.Schema{
@@ -40,14 +41,15 @@ func resourceUserAccount() *schema.Resource {
 	}
 }
 
-func resourceUserAccountCreate(d *schema.ResourceData, m interface{}) error {
+func resourceUserAccountCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
 	userIDs := make(map[string]string)
 
 	c := m.([]*ClientConfig)
 	for _, v := range c {
 		accountList, err := getAccountList(v.API)
 		if err != nil {
-			return err
+			return diag.Errorf("Error when retrieving account list %v", err)
 		}
 		payload := make(map[string]interface{})
 		for _, account := range accountList {
@@ -67,10 +69,10 @@ func resourceUserAccountCreate(d *schema.ResourceData, m interface{}) error {
 				//Ideally a go routine for each server should be done
 				res, err := v.API.Patch(account.ODataID, payload)
 				if err != nil {
-					return err
+					return diag.Errorf("Error when contacting the redfish API %v", err)
 				}
 				if res.StatusCode != 200 {
-					return fmt.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
+					return diag.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
 				}
 				userIDs[v.Endpoint] = account.ID
 				break //Finish the loop, don't want another user created
@@ -81,35 +83,40 @@ func resourceUserAccountCreate(d *schema.ResourceData, m interface{}) error {
 	}
 	d.SetId("Users")
 	d.Set("users_id", userIDs)
-	return resourceUserAccountRead(d, m)
+	return diags
 
 }
 
-func resourceUserAccountRead(d *schema.ResourceData, m interface{}) error {
-	/*	userIDs := d.Get("users_id").(map[string]string)
-		c := m.([]*gofish.APIClient)
-		for _, v := range c {
-			account, err := getAccount(v, userIDs[v.Service.ODataID])
-			if err != nil {
-				return err
-			}
-			if account == nil {
+func resourceUserAccountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+	users := d.Get("users_id").(map[string]interface{})
+	c := m.([]*ClientConfig)
+	for _, v := range c {
+		account, err := getAccount(v.API, users[v.Endpoint].(string))
+		if err != nil {
+			return diag.Errorf("Error when retrieving accounts %v", err)
+		}
+		if account == nil {
+			delete(users, v.Endpoint) //Remove user from subresource
+			if len(users) == 0 {      //If no users are left, remove parent ID
 				d.SetId("")
-				return nil
 			}
-			d.Set("username", account.UserName)
-			d.Set("enabled", account.Enabled)
-			d.Set("role_id", account.RoleID)
-		}*/
-	return nil
+			return diags
+		}
+		//THIS CODE BELOW SHOULD BE DONE PER SERVER
+		/*d.Set("username", account.UserName)
+		d.Set("enabled", account.Enabled)
+		d.Set("role_id", account.RoleID)*/
+	}
+	return diags
 }
 
-func resourceUserAccountUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceUserAccountUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.([]*ClientConfig)
 	for _, v := range c {
 		account, err := getAccount(v.API, d.Get("users_id").(map[string]interface{})[v.Endpoint].(string))
 		if err != nil {
-			return err
+			return diag.Errorf("Error when retrieving accounts %v", err)
 		}
 		payload := make(map[string]interface{})
 		payload["UserName"] = d.Get("username")
@@ -118,38 +125,40 @@ func resourceUserAccountUpdate(d *schema.ResourceData, m interface{}) error {
 		payload["RoleId"] = d.Get("role_id")
 		res, err := v.API.Patch(account.ODataID, payload)
 		if err != nil {
-			return err
+			return diag.Errorf("Error when contacting the redfish API %v", err)
 		}
 		if res.StatusCode != 200 {
-			return fmt.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
+			return diag.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
 		}
 	}
-	return resourceUserAccountRead(d, m)
+	return resourceUserAccountRead(ctx, d, m)
 }
 
-func resourceUserAccountDelete(d *schema.ResourceData, m interface{}) error {
+func resourceUserAccountDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+	//Get subresources
+	users := d.Get("users_id").(map[string]interface{})
 	c := m.([]*ClientConfig)
 	for _, v := range c {
-		account, err := getAccount(v.API, d.Get("users_id").(map[string]interface{})[v.Endpoint].(string))
+		account, err := getAccount(v.API, users[v.Endpoint].(string))
 		if err != nil {
-			return err
+			return diag.Errorf("Error when retrieving accounts %v", err)
 		}
 		if account == nil {
-			return fmt.Errorf("The user account does not exist")
+			return diag.Errorf("The user account does not exist")
 		}
 		payload := make(map[string]interface{})
 		payload["UserName"] = ""
 		res, err := v.API.Patch(account.ODataID, payload)
 		if err != nil {
-			return err
+			return diag.Errorf("Error when contacting the redfish API %v", err)
 		}
 		if res.StatusCode != 200 {
-			return fmt.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
+			return diag.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
 		}
 	}
 	d.SetId("")
-	return nil
-
+	return diags
 }
 
 func getAccountList(c *gofish.APIClient) ([]*redfish.ManagerAccount, error) {
