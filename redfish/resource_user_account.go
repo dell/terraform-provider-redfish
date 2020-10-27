@@ -32,101 +32,120 @@ func resourceUserAccount() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"users_id": &schema.Schema{
+				Type:     schema.TypeMap,
+				Computed: true,
+			},
 		},
 	}
 }
 
 func resourceUserAccountCreate(d *schema.ResourceData, m interface{}) error {
-	c := m.(*gofish.APIClient)
-	accountList, err := getAccountList(c)
-	if err != nil {
-		return err
-	}
-	payload := make(map[string]interface{})
-	for _, account := range accountList {
-		if len(account.UserName) == 0 && account.ID != "1" { //ID 1 is reserved
-			payload["UserName"] = d.Get("username").(string)
-			payload["Password"] = d.Get("password").(string)
-			if value, set := d.GetOk("enabled"); set {
-				payload["Enabled"] = value
-			} else {
-				payload["Enabled"] = false
-			}
-			if value, set := d.GetOk("role_id"); set {
-				payload["RoleId"] = value
-			} else {
-				payload["RoleId"] = "None"
-			}
-			res, err := c.Patch(account.ODataID, payload)
-			if err != nil {
-				return err
-			}
-			if res.StatusCode != 200 {
-				return fmt.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
-			}
-			d.SetId(account.ID)
-			return resourceUserAccountRead(d, m)
+	userIDs := make(map[string]string)
+
+	c := m.([]*ClientConfig)
+	for _, v := range c {
+		accountList, err := getAccountList(v.API)
+		if err != nil {
+			return err
 		}
+		payload := make(map[string]interface{})
+		for _, account := range accountList {
+			if len(account.UserName) == 0 && account.ID != "1" { //ID 1 is reserved
+				payload["UserName"] = d.Get("username").(string)
+				payload["Password"] = d.Get("password").(string)
+				if value, set := d.GetOk("enabled"); set {
+					payload["Enabled"] = value
+				} else {
+					payload["Enabled"] = false
+				}
+				if value, set := d.GetOk("role_id"); set {
+					payload["RoleId"] = value
+				} else {
+					payload["RoleId"] = "None"
+				}
+				//Ideally a go routine for each server should be done
+				res, err := v.API.Patch(account.ODataID, payload)
+				if err != nil {
+					return err
+				}
+				if res.StatusCode != 200 {
+					return fmt.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
+				}
+				userIDs[v.Endpoint] = account.ID
+				break //Finish the loop, don't want another user created
+			}
+		}
+		//No room for new users
+		//return fmt.Errorf("There are no room for new users")
 	}
-	//No room for new users
-	return fmt.Errorf("There are no room for new users")
+	d.SetId("Users")
+	d.Set("users_id", userIDs)
+	return resourceUserAccountRead(d, m)
+
 }
 
 func resourceUserAccountRead(d *schema.ResourceData, m interface{}) error {
-	c := m.(*gofish.APIClient)
-	account, err := getAccount(c, d.Id())
-	if err != nil {
-		return err
-	}
-	if account == nil {
-		d.SetId("")
-		return nil
-	}
-	d.Set("username", account.UserName)
-	//d.Set("password", account.Password)
-	d.Set("enabled", account.Enabled)
-	d.Set("role_id", account.RoleID)
+	/*	userIDs := d.Get("users_id").(map[string]string)
+		c := m.([]*gofish.APIClient)
+		for _, v := range c {
+			account, err := getAccount(v, userIDs[v.Service.ODataID])
+			if err != nil {
+				return err
+			}
+			if account == nil {
+				d.SetId("")
+				return nil
+			}
+			d.Set("username", account.UserName)
+			d.Set("enabled", account.Enabled)
+			d.Set("role_id", account.RoleID)
+		}*/
 	return nil
 }
 
 func resourceUserAccountUpdate(d *schema.ResourceData, m interface{}) error {
-	c := m.(*gofish.APIClient)
-	account, err := getAccount(c, d.Id())
-	if err != nil {
-		return err
-	}
-	payload := make(map[string]interface{})
-	payload["UserName"] = d.Get("username")
-	payload["Password"] = d.Get("password")
-	payload["Enabled"] = d.Get("enabled")
-	payload["RoleId"] = d.Get("role_id")
-	res, err := c.Patch(account.ODataID, payload)
-	if err != nil {
-		return err
-	}
-	if res.StatusCode != 200 {
-		return fmt.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
+	c := m.([]*ClientConfig)
+	for _, v := range c {
+		account, err := getAccount(v.API, d.Get("users_id").(map[string]interface{})[v.Endpoint].(string))
+		if err != nil {
+			return err
+		}
+		payload := make(map[string]interface{})
+		payload["UserName"] = d.Get("username")
+		payload["Password"] = d.Get("password")
+		payload["Enabled"] = d.Get("enabled")
+		payload["RoleId"] = d.Get("role_id")
+		res, err := v.API.Patch(account.ODataID, payload)
+		if err != nil {
+			return err
+		}
+		if res.StatusCode != 200 {
+			return fmt.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
+		}
 	}
 	return resourceUserAccountRead(d, m)
 }
 
 func resourceUserAccountDelete(d *schema.ResourceData, m interface{}) error {
-	c := m.(*gofish.APIClient)
-	account, err := getAccount(c, d.Id())
-	if err != nil {
-		return err
-	}
-	if account == nil {
-		return fmt.Errorf("The user account does not exist")
-	}
-	payload := make(map[string]interface{})
-	payload["UserName"] = ""
-	res, err := c.Patch(account.ODataID, payload)
-	if err != nil {
-		return err
-	}
-	if res.StatusCode != 200 {
-		return fmt.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
+	c := m.([]*ClientConfig)
+	for _, v := range c {
+		account, err := getAccount(v.API, d.Get("users_id").(map[string]interface{})[v.Endpoint].(string))
+		if err != nil {
+			return err
+		}
+		if account == nil {
+			return fmt.Errorf("The user account does not exist")
+		}
+		payload := make(map[string]interface{})
+		payload["UserName"] = ""
+		res, err := v.API.Patch(account.ODataID, payload)
+		if err != nil {
+			return err
+		}
+		if res.StatusCode != 200 {
+			return fmt.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
+		}
 	}
 	d.SetId("")
 	return nil
