@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stmcginnis/gofish"
+	"github.com/stmcginnis/gofish/common"
 	"log"
 )
 
 // ClientConfig is a struct created to hold the redfish endpoint as well as the API for keeping track of the subresources created
 type ClientConfig struct {
 	Endpoint string
-	API      *gofish.APIClient
+	API      common.Client
 }
 
 // NewConfig function creates the needed gofish structs to query the redfish API

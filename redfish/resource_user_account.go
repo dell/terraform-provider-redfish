@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stmcginnis/gofish"
+	//	"github.com/stmcginnis/gofish/common"
 	"github.com/stmcginnis/gofish/redfish"
 )
 
@@ -47,7 +48,8 @@ func resourceUserAccountCreate(ctx context.Context, d *schema.ResourceData, m in
 
 	c := m.([]*ClientConfig)
 	for _, v := range c {
-		accountList, err := getAccountList(v.API)
+		client := v.API.(*gofish.APIClient)
+		accountList, err := getAccountList(client.Service)
 		if err != nil {
 			return diag.Errorf("Error when retrieving account list %v", err)
 		}
@@ -92,7 +94,12 @@ func resourceUserAccountRead(ctx context.Context, d *schema.ResourceData, m inte
 	users := d.Get("users_id").(map[string]interface{})
 	c := m.([]*ClientConfig)
 	for _, v := range c {
-		account, err := getAccount(v.API, users[v.Endpoint].(string))
+		client := v.API.(*gofish.APIClient)
+		accountList, err := getAccountList(client.Service)
+		if err != nil {
+			return diag.Errorf("Error when retrieving account list %v", err)
+		}
+		account, err := getAccount(accountList, users[v.Endpoint].(string))
 		if err != nil {
 			return diag.Errorf("Error when retrieving accounts %v", err)
 		}
@@ -114,7 +121,12 @@ func resourceUserAccountRead(ctx context.Context, d *schema.ResourceData, m inte
 func resourceUserAccountUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.([]*ClientConfig)
 	for _, v := range c {
-		account, err := getAccount(v.API, d.Get("users_id").(map[string]interface{})[v.Endpoint].(string))
+		client := v.API.(*gofish.APIClient)
+		accountList, err := getAccountList(client.Service)
+		if err != nil {
+			return diag.Errorf("Error when retrieving account list %v", err)
+		}
+		account, err := getAccount(accountList, d.Get("users_id").(map[string]interface{})[v.Endpoint].(string))
 		if err != nil {
 			return diag.Errorf("Error when retrieving accounts %v", err)
 		}
@@ -140,7 +152,12 @@ func resourceUserAccountDelete(ctx context.Context, d *schema.ResourceData, m in
 	users := d.Get("users_id").(map[string]interface{})
 	c := m.([]*ClientConfig)
 	for _, v := range c {
-		account, err := getAccount(v.API, users[v.Endpoint].(string))
+		client := v.API.(*gofish.APIClient)
+		accountList, err := getAccountList(client.Service)
+		if err != nil {
+			return diag.Errorf("Error when retrieving account list %v", err)
+		}
+		account, err := getAccount(accountList, users[v.Endpoint].(string))
 		if err != nil {
 			return diag.Errorf("Error when retrieving accounts %v", err)
 		}
@@ -161,9 +178,8 @@ func resourceUserAccountDelete(ctx context.Context, d *schema.ResourceData, m in
 	return diags
 }
 
-func getAccountList(c *gofish.APIClient) ([]*redfish.ManagerAccount, error) {
-	service := c.Service
-	accountService, err := service.AccountService()
+func getAccountList(c *gofish.Service) ([]*redfish.ManagerAccount, error) {
+	accountService, err := c.AccountService()
 	if err != nil {
 		return nil, err
 	}
@@ -174,11 +190,11 @@ func getAccountList(c *gofish.APIClient) ([]*redfish.ManagerAccount, error) {
 	return accounts, nil
 }
 
-func getAccount(c *gofish.APIClient, id string) (*redfish.ManagerAccount, error) {
-	accountList, err := getAccountList(c)
-	if err != nil {
+func getAccount(accountList []*redfish.ManagerAccount, id string) (*redfish.ManagerAccount, error) {
+	//accountList, err := getAccountList(c)
+	/*if err != nil {
 		return nil, err
-	}
+	}*/
 	for _, account := range accountList {
 		if account.ID == id && len(account.UserName) > 0 {
 			return account, nil
