@@ -6,7 +6,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stmcginnis/gofish"
 	//	"github.com/stmcginnis/gofish/common"
+	_ "fmt"
 	"github.com/stmcginnis/gofish/redfish"
+	"log"
+	//	"strings"
 )
 
 func resourceUserAccount() *schema.Resource {
@@ -15,7 +18,6 @@ func resourceUserAccount() *schema.Resource {
 		ReadContext:   resourceUserAccountRead,
 		UpdateContext: resourceUserAccountUpdate,
 		DeleteContext: resourceUserAccountDelete,
-
 		Schema: map[string]*schema.Schema{
 			"username": &schema.Schema{
 				Type:     schema.TypeString,
@@ -29,13 +31,16 @@ func resourceUserAccount() *schema.Resource {
 			"enabled": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  false,
 			},
 			"role_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "None",
 			},
 			"users_id": &schema.Schema{
 				Type:     schema.TypeMap,
+				Optional: true,
 				Computed: true,
 			},
 		},
@@ -58,7 +63,9 @@ func resourceUserAccountCreate(ctx context.Context, d *schema.ResourceData, m in
 			if len(account.UserName) == 0 && account.ID != "1" { //ID 1 is reserved
 				payload["UserName"] = d.Get("username").(string)
 				payload["Password"] = d.Get("password").(string)
-				if value, set := d.GetOk("enabled"); set {
+				payload["Enabled"] = d.Get("enabled").(bool)
+				payload["RoleId"] = d.Get("role_id").(string)
+				/*if value, set := d.GetOk("enabled"); set {
 					payload["Enabled"] = value
 				} else {
 					payload["Enabled"] = false
@@ -67,7 +74,7 @@ func resourceUserAccountCreate(ctx context.Context, d *schema.ResourceData, m in
 					payload["RoleId"] = value
 				} else {
 					payload["RoleId"] = "None"
-				}
+				}*/
 				//Ideally a go routine for each server should be done
 				res, err := v.API.Patch(account.ODataID, payload)
 				if err != nil {
@@ -77,6 +84,8 @@ func resourceUserAccountCreate(ctx context.Context, d *schema.ResourceData, m in
 					return diag.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
 				}
 				userIDs[v.Endpoint] = account.ID
+				// userIDs[v.Endpoint] = fmt.Sprintf("%s_%s_%t_%s", account.ID, payload["UserName"].(string), payload["Enabled"].(bool), payload["RoleId"].(string))
+				// log.Printf("[CreateContext] Line inserted in userIDs: %s", userIDs[v.Endpoint])
 				break //Finish the loop, don't want another user created
 			}
 		}
@@ -92,7 +101,56 @@ func resourceUserAccountCreate(ctx context.Context, d *schema.ResourceData, m in
 func resourceUserAccountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 	users := d.Get("users_id").(map[string]interface{})
+	// readUsers := make(map[string]string)
 	c := m.([]*ClientConfig)
+	for _, v := range c {
+		log.Printf("[ReadContext] Checking client with endpoint %s", v.Endpoint)
+		client := v.API.(*gofish.APIClient)
+		accountList, err := getAccountList(client.Service)
+		if err != nil {
+			return diag.Errorf("Error when retrieving account list %v", err)
+		}
+		//account, err := getAccount(accountList, strings.Split(users[v.Endpoint].(string), "_")[0])
+		account, err := getAccount(accountList, users[v.Endpoint].(string))
+		if err != nil {
+			return diag.Errorf("Error when retrieving accounts %v", err)
+		}
+		if account == nil {
+			d.Set("username", "")
+			d.Set("enabled", "")
+			d.Set("role_id", "")
+			// readUsers[v.Endpoint] = fmt.Sprintf("%s_%s_%t_%s", account.ID, account.UserName, account.Enabled, account.RoleID)
+			// log.Printf("[ReadContext] Line inserted in userIDs: %s", readUsers[v.Endpoint])
+			//If it is nil means that does not exist and we need to create it
+			return diags
+		}
+		if d.Get("username") != account.UserName || d.Get("enabled") != account.Enabled || d.Get("role_id") != account.RoleID {
+			// If something is different, even just one, we need to trigger an update and return
+			d.Set("username", account.UserName)
+			d.Set("enabled", account.Enabled)
+			d.Set("role_id", account.RoleID)
+			return diags
+		}
+		/*if account == nil {
+			delete(users, v.Endpoint) //Remove user from subresource
+			if len(users) == 0 {      //If no users are left, remove parent ID
+				d.SetId("")
+			}
+			return diags
+		}*/
+		//THIS CODE BELOW SHOULD BE DONE PER SERVER
+		/*d.Set("username", account.UserName)
+		d.Set("enabled", account.Enabled)
+		d.Set("role_id", account.RoleID)*/
+	}
+	//d.SetId("Users")
+	// d.Set("users_id", readUsers)
+	return diags
+}
+
+func resourceUserAccountUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	c := m.([]*ClientConfig)
+	users := d.Get("users_id").(map[string]interface{})
 	for _, v := range c {
 		client := v.API.(*gofish.APIClient)
 		accountList, err := getAccountList(client.Service)
@@ -103,46 +161,49 @@ func resourceUserAccountRead(ctx context.Context, d *schema.ResourceData, m inte
 		if err != nil {
 			return diag.Errorf("Error when retrieving accounts %v", err)
 		}
+		//If account does not exist or if params are not right, perform POST
 		if account == nil {
-			delete(users, v.Endpoint) //Remove user from subresource
-			if len(users) == 0 {      //If no users are left, remove parent ID
-				d.SetId("")
+			//Create a new one as we do in create
+			payload := make(map[string]interface{})
+			for _, account := range accountList {
+				if len(account.UserName) == 0 && account.ID != "1" { //ID 1 is reserved
+					payload["UserName"] = d.Get("username").(string)
+					payload["Password"] = d.Get("password").(string)
+					payload["Enabled"] = d.Get("enabled").(bool)
+					payload["RoleId"] = d.Get("role_id").(string)
+					res, err := v.API.Patch(account.ODataID, payload)
+					if err != nil {
+						return diag.Errorf("Error when contacting the redfish API %v", err)
+					}
+					if res.StatusCode != 200 {
+						return diag.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
+					}
+					users[v.Endpoint] = account.ID
+					break //Finish the loop, don't want another user created
+				}
 			}
-			return diags
-		}
-		//THIS CODE BELOW SHOULD BE DONE PER SERVER
-		/*d.Set("username", account.UserName)
-		d.Set("enabled", account.Enabled)
-		d.Set("role_id", account.RoleID)*/
-	}
-	return diags
-}
-
-func resourceUserAccountUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.([]*ClientConfig)
-	for _, v := range c {
-		client := v.API.(*gofish.APIClient)
-		accountList, err := getAccountList(client.Service)
-		if err != nil {
-			return diag.Errorf("Error when retrieving account list %v", err)
-		}
-		account, err := getAccount(accountList, d.Get("users_id").(map[string]interface{})[v.Endpoint].(string))
-		if err != nil {
-			return diag.Errorf("Error when retrieving accounts %v", err)
-		}
-		payload := make(map[string]interface{})
-		payload["UserName"] = d.Get("username")
-		payload["Password"] = d.Get("password")
-		payload["Enabled"] = d.Get("enabled")
-		payload["RoleId"] = d.Get("role_id")
-		res, err := v.API.Patch(account.ODataID, payload)
-		if err != nil {
-			return diag.Errorf("Error when contacting the redfish API %v", err)
-		}
-		if res.StatusCode != 200 {
-			return diag.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
+		} else {
+			if d.Get("username") != account.UserName || d.Get("enabled") != account.Enabled || d.Get("role_id") != account.RoleID {
+				payload := make(map[string]interface{})
+				payload["UserName"] = d.Get("username")
+				payload["Password"] = d.Get("password")
+				payload["Enabled"] = d.Get("enabled")
+				payload["RoleId"] = d.Get("role_id")
+				res, err := v.API.Patch(account.ODataID, payload) //null!!! Myabe nil scenario should be taken apart from the conditional above
+				if err != nil {
+					return diag.Errorf("Error when contacting the redfish API %v", err)
+				}
+				if res.StatusCode != 200 {
+					return diag.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
+				}
+			}
 		}
 	}
+	d.Set("username", d.Get("username"))
+	d.Set("password", d.Get("password"))
+	d.Set("enabled", d.Get("enabled"))
+	d.Set("role_id", d.Get("role_id"))
+	d.Set("users_id", users)
 	return resourceUserAccountRead(ctx, d, m)
 }
 
@@ -162,7 +223,8 @@ func resourceUserAccountDelete(ctx context.Context, d *schema.ResourceData, m in
 			return diag.Errorf("Error when retrieving accounts %v", err)
 		}
 		if account == nil {
-			return diag.Errorf("The user account does not exist")
+			//return diag.Errorf("The user account does not exist")
+			delete(users, users[v.Endpoint].(string))
 		}
 		payload := make(map[string]interface{})
 		payload["UserName"] = ""
