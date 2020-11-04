@@ -225,7 +225,6 @@ func resourceUserAccountUpdate(ctx context.Context, d *schema.ResourceData, m in
 			}
 			userResult <- UserResult{Endpoint: v.Endpoint, UserID: account.ID}
 			return
-			//}
 		}(v, userResult)
 	}
 	userIDs := make(map[string]string)
@@ -251,36 +250,56 @@ func resourceUserAccountUpdate(ctx context.Context, d *schema.ResourceData, m in
 
 func resourceUserAccountDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
+	userResult := make(chan UserResult, len(m.([]*ClientConfig)))
 	//Get subresources
 	users := d.Get("users_id").(map[string]interface{})
 	c := m.([]*ClientConfig)
 	for _, v := range c {
-		client := v.API.(*gofish.APIClient)
-		accountList, err := getAccountList(client.Service)
-		if err != nil {
-			return diag.Errorf("Error when retrieving account list %v", err)
-		}
-		//users[v.Endpoint] is nil if user is not in the map
-		// var account *redfish.ManagerAccount = nil
-		if _, ok := users[v.Endpoint]; ok {
+		go func(v *ClientConfig, userResult chan UserResult) {
+			client := v.API.(*gofish.APIClient)
+			accountList, err := getAccountList(client.Service)
+			if err != nil {
+				userResult <- UserResult{Endpoint: v.Endpoint, Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when retrieving account list %v", v.Endpoint, err)}
+				return
+			}
 			account, err := getAccount(accountList, users[v.Endpoint].(string))
 			if err != nil {
-				return diag.Errorf("Error when retrieving accounts %v", err)
+				userResult <- UserResult{Endpoint: v.Endpoint, Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when retrieving accounts %v", v.Endpoint, err)}
+				return
 			}
 			if account == nil {
-				//return diag.Errorf("The user account does not exist")
-				delete(users, users[v.Endpoint].(string))
+				userResult <- UserResult{Endpoint: v.Endpoint, UserID: ""}
+				return
 			}
 			payload := make(map[string]interface{})
 			payload["UserName"] = ""
 			res, err := v.API.Patch(account.ODataID, payload)
 			if err != nil {
-				return diag.Errorf("Error when contacting the redfish API %v", err)
+				userResult <- UserResult{Endpoint: v.Endpoint, Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when contacting the redfish API %v", v.Endpoint, err)}
+				return
 			}
 			if res.StatusCode != 200 {
-				return diag.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
+				userResult <- UserResult{Endpoint: v.Endpoint, Error: true, ErrorMsg: fmt.Sprintf("[%v] There was an issue with the APIClient. HTTP error code %d", v.Endpoint, res.StatusCode)}
+				return
 			}
+			userResult <- UserResult{Endpoint: v.Endpoint, UserID: ""}
+			return
+		}(v, userResult)
+
+	}
+	var errorMsg string
+	for i := 0; i < len(m.([]*ClientConfig)); i++ {
+		result := <-userResult
+		if result.Error {
+			errorMsg += result.ErrorMsg
+		} else {
+			delete(users, result.Endpoint)
 		}
+	}
+	close(userResult)
+	d.Set("users_id", users)
+	if len(errorMsg) > 0 {
+		return diag.Errorf(errorMsg)
 	}
 	d.SetId("")
 	return diags
