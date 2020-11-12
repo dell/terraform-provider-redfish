@@ -39,12 +39,12 @@ This comes with some challenges when it comes to develop a terraform provider, b
 The chosen approach was the second one, as .tf files are less verbose and practically the provider will be much useful. *This doesn't mean that users cannot use aliases for different kind of servers.*
 
 ## 2. Provider declaration
-The provider schema is the following:
+The provider schema is the following:  
 ![](provider/images/provider_schema.png)  
 As it can be seen, the entry *redfish_server* has been set to a *schema.TypeList*. This gives the provider the ability of accepting different *redfish_server* blocks in the .tf file.  
 Inside each *redfish_server* block, users will define the *user*, *password*, *endpoint* and *ssl_insecure* values. This means that within the same provider, different servers can be provisioned.  
   
-In terms of the .tf file, this could be an example:
+In terms of the .tf file, this could be an example:  
 ![](provider/images/provider_declaration.png)  
 As shown in the figure, the provider block *redfish* contains two *redfish_server* blocks inside it. This means that two servers will be managed using that provider instance. From now on, all resources specified for this provider will be applied to **all** redfish endpoints defined within it.
 
@@ -53,11 +53,11 @@ As shown in the figure, the provider block *redfish* contains two *redfish_serve
 Essentially, from the provider schema a slice with client information will be generated. If the provider has been spawn with three *redfish_server* block, this slice will end up with a length of three. Each element will be an struct where the redfish endpoint string will be hold, along with the actual client used for communicating with the redfish API. To see how it is currently implemented, please check [redfish/config.go](../redfish/config.go).  
 
 ### 3.2 How IDs are kept for resources
-Normally, in a terraform provider, the ID of a resource will be kept using the *schema.ResourceData.SetId()* method. For this particular case, and since several IDs need to be kept, a computed value needs to be used in each resource's schema:
+Normally, in a terraform provider, the ID of a resource will be kept using the *schema.ResourceData.SetId()* method. For this particular case, and since several IDs need to be kept, a computed value needs to be used in each resource's schema:  
 ![](provider/images/computed_value_for_id.png)  
 **/!\ - Check out the users_id value**  
 This means that the computed value will be the one actually keeping the IDs. This value will consist of a map, where the key is the **redfish endpoint** from each server and the value the **actual ID**.  
-Then, if IDs are kept in that computed value... What should be done with the ID that terraform actually recognices? Well, to solve that issue a dummy ID is set. Check the image below:
+Then, if IDs are kept in that computed value... What should be done with the ID that terraform actually recognices? Well, to solve that issue a dummy ID is set. Check the image below:  
 ![](provider/images/dummy_id.png)  
 *"Users"* will be the ID that terraform recognices (that actually tells us nothing, just a dummy value), and the computed value will keep a map (in the example that map in go is on the variable *usersIDs*) with the different endpoints and its IDs.
 
@@ -77,4 +77,51 @@ To check the insigts of each struct, please refer to the documentation [there](.
 Having that buffered channel created, the function start creating the different go-routines and also passes the channel, along with the redfish client. The main go-routine at this point is creating all the different go-routines.  
 When this finishes, it waits for reponses on the channel. When they start arriving the provider start doing whatever needs to do, according to the function being executed (CREATE, UPDATE, DELETE, READ).   
 
+### 3.4 Execution flow
+~~~
+                                       +----------------+
+    +---------------+                  |go-routines that|
+    |Main go|routine|                  |handle clients  |
+    +---------------+                  +----------------+
++-------------------------------------------------------------+
+    +----------------+
+    |Creates buffered|
+    |channel         |
+    +-------+--------+
+            |
+            v
+    For as many clients
+    as are set:
+            +
+            |                           +-----------------+
+            +-------------------------->+ Main go-routine |
+            |    Passes client and      | create new      |
+            |    channel                +--------+--------+
+            |                                    |
+            |                                    |
+            |                                    v
+            |                           +--------+----------+
+            |                           |Performs any of the|
+            |                           |CRUD operations    |
+            |                           +--------+----------+
+            v                                    |
+    +-------+---------------+                    |
+    |Waits for go-routines  |                    |
+    |to write on the channel+<-------------------+
+    +-------+---------------+         Writes on the channel
+            |                         result of the operation
+            |
+            |
+            v
+   +------------------------+
+   |Do whatever needs to do |
+   |depending on which CRUD |
+   |function is being       |
+   |executed                |
+   +------------------------+
+~~~
 
+### 3.5 How CREATE/UPDATE/DELETE function work
+TBD
+### 3.6 How READ function work
+TBD
