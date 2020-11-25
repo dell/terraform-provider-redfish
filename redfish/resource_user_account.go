@@ -38,8 +38,8 @@ func resourceUserAccount() *schema.Resource {
 				Default:  "None",
 			},
 			"users_id": &schema.Schema{
-				Type:     schema.TypeMap,
-				Optional: true,
+				Type: schema.TypeMap,
+				//Optional: true,
 				Computed: true,
 			},
 		},
@@ -52,8 +52,8 @@ func resourceUserAccountCreate(ctx context.Context, d *schema.ResourceData, m in
 	c := m.([]*ClientConfig)
 	for _, v := range c {
 		go func(v *ClientConfig, userResult chan common.ResourceResult) {
-			client := v.API.(*gofish.APIClient)
-			accountList, err := getAccountList(client.Service)
+			//client := v.API.(*gofish.APIClient)
+			accountList, err := getAccountList(v.Service)
 			if err != nil {
 				userResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when retrieving account list %v", v.Endpoint, err)}
 				return
@@ -65,7 +65,7 @@ func resourceUserAccountCreate(ctx context.Context, d *schema.ResourceData, m in
 					payload["Password"] = d.Get("password").(string)
 					payload["Enabled"] = d.Get("enabled").(bool)
 					payload["RoleId"] = d.Get("role_id").(string)
-					res, err := v.API.Patch(account.ODataID, payload)
+					res, err := v.Service.Client.Patch(account.ODataID, payload)
 					if err != nil {
 						userResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when contacting the redfish API %v", v.Endpoint, err)}
 						return
@@ -109,8 +109,8 @@ func resourceUserAccountRead(ctx context.Context, d *schema.ResourceData, m inte
 	for _, v := range c {
 		go func(v *ClientConfig, userChanged chan common.ResourceChanged, d *schema.ResourceData) {
 			log.Printf("[ReadContext] Checking client with endpoint %s", v.Endpoint)
-			client := v.API.(*gofish.APIClient)
-			accountList, err := getAccountList(client.Service)
+			//client := v.API.(*gofish.APIClient)
+			accountList, err := getAccountList(v.Service)
 			if err != nil {
 				userChanged <- common.ResourceChanged{Error: true, ErrorMessage: fmt.Sprintf("[%v] Error when retrieving account list %v", v.Endpoint, err)}
 				return
@@ -157,8 +157,8 @@ func resourceUserAccountUpdate(ctx context.Context, d *schema.ResourceData, m in
 	userResult := make(chan common.ResourceResult, len(m.([]*ClientConfig)))
 	for _, v := range c {
 		go func(v *ClientConfig, userResult chan common.ResourceResult) {
-			client := v.API.(*gofish.APIClient)
-			accountList, err := getAccountList(client.Service)
+			//client := v.API.(*gofish.APIClient)
+			accountList, err := getAccountList(v.Service)
 			if err != nil {
 				userResult <- common.ResourceResult{Endpoint: v.Endpoint, Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when retrieving account list %v", v.Endpoint, err)}
 				return
@@ -178,7 +178,7 @@ func resourceUserAccountUpdate(ctx context.Context, d *schema.ResourceData, m in
 						payload["Password"] = d.Get("password").(string)
 						payload["Enabled"] = d.Get("enabled").(bool)
 						payload["RoleId"] = d.Get("role_id").(string)
-						res, err := v.API.Patch(account.ODataID, payload)
+						res, err := v.Service.Client.Patch(account.ODataID, payload)
 						if err != nil {
 							userResult <- common.ResourceResult{Endpoint: v.Endpoint, Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when contacting the redfish API %v", v.Endpoint, err)}
 							return
@@ -201,7 +201,7 @@ func resourceUserAccountUpdate(ctx context.Context, d *schema.ResourceData, m in
 				payload["Password"] = d.Get("password")
 				payload["Enabled"] = d.Get("enabled")
 				payload["RoleId"] = d.Get("role_id")
-				res, err := v.API.Patch(account.ODataID, payload)
+				res, err := v.Service.Client.Patch(account.ODataID, payload)
 				if err != nil {
 					userResult <- common.ResourceResult{Endpoint: v.Endpoint, Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when contacting the redfish API %v", v.Endpoint, err)}
 					return
@@ -244,8 +244,8 @@ func resourceUserAccountDelete(ctx context.Context, d *schema.ResourceData, m in
 	c := m.([]*ClientConfig)
 	for _, v := range c {
 		go func(v *ClientConfig, userResult chan common.ResourceResult) {
-			client := v.API.(*gofish.APIClient)
-			accountList, err := getAccountList(client.Service)
+			//client := v.API.(*gofish.APIClient)
+			accountList, err := getAccountList(v.Service)
 			if err != nil {
 				userResult <- common.ResourceResult{Endpoint: v.Endpoint, Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when retrieving account list %v", v.Endpoint, err)}
 				return
@@ -261,7 +261,7 @@ func resourceUserAccountDelete(ctx context.Context, d *schema.ResourceData, m in
 			}
 			payload := make(map[string]interface{})
 			payload["UserName"] = ""
-			res, err := v.API.Patch(account.ODataID, payload)
+			res, err := v.Service.Client.Patch(account.ODataID, payload)
 			if err != nil {
 				userResult <- common.ResourceResult{Endpoint: v.Endpoint, Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when contacting the redfish API %v", v.Endpoint, err)}
 				return

@@ -9,17 +9,19 @@ import (
 	"github.com/stmcginnis/gofish"
 	redfishcommon "github.com/stmcginnis/gofish/common"
 	"github.com/stmcginnis/gofish/redfish"
+	_ "log"
 	"net/http"
 )
 
 const (
 	// This constants are used to avoid hardcoding the terraform input variables
-	storageControllerID string = "storage_controller_id"
-	volumeName          string = "volume_name"
-	volumeType          string = "volume_type"
-	volumeDisks         string = "volume_disks"
-	settingsApplyTime   string = "settings_apply_time"
-	biosConfigJobURI    string = "bios_config_job_uri"
+	storageControllerID   string = "storage_controller_id"
+	volumeName            string = "volume_name"
+	volumeType            string = "volume_type"
+	volumeDisks           string = "volume_disks"
+	settingsApplyTime     string = "settings_apply_time"
+	biosConfigJobURI      string = "bios_config_job_uri"
+	volumesSubresourceIDs string = "volumes_id"
 )
 
 func resourceRedfishStorageVolume() *schema.Resource {
@@ -57,8 +59,9 @@ func resourceRedfishStorageVolume() *schema.Resource {
 				Description: "Flag to make the operation either \"Immediate\" or \"OnReset\". By default value is \"Immediate\"",
 				Optional:    true,
 			},
-			biosConfigJobURI: &schema.Schema{
-				Type:     schema.TypeString,
+			volumesSubresourceIDs: &schema.Schema{
+				Type: schema.TypeMap,
+				//Optional: true,
 				Computed: true,
 			},
 			/*TODO
@@ -69,8 +72,8 @@ func resourceRedfishStorageVolume() *schema.Resource {
 
 func resourceStorageVolumeCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
-	conn := m.(*gofish.APIClient)
-	service := conn.Service
+	execResult := make(chan common.ResourceResult, len(m.([]*ClientConfig)))
+	c := m.([]*ClientConfig)
 	//Get user config
 	storageID := d.Get(storageControllerID).(string)
 	volumeType := d.Get(volumeType).(string)
@@ -81,59 +84,78 @@ func resourceStorageVolumeCreate(ctx context.Context, d *schema.ResourceData, m 
 		//If settingsApplyTime has not set, by default use Immediate
 		applyTime = "Immediate"
 	}
-
 	//Convert from []interface{} to []string for using
 	driveNames := make([]string, len(driveNamesRaw))
 	for i, raw := range driveNamesRaw {
 		driveNames[i] = raw.(string)
 	}
-	//Get storage
-	storage, err := getStorageController(service, storageID)
-	if err != nil {
-		return diag.Errorf("Issue when getting the storage struct: %s", err)
-	}
-	//Get drives
-	drives, err := getDrives(storage, driveNames)
-	if err != nil {
-		return diag.Errorf("Issue when getting the drives: %s", err)
-	}
-	//Need to figure out how to proceed with settingsApplyTime (Immediate or OnReset)
-	//func createVolume(service *gofish.Service, storageLink string, volumeType string, volumeName string, drives []*redfish.Drive, applyTime string) (jobID string, err error) {
-	//Get redfish.drives
 
-	jobID, err := createVolume(conn, storage.ODataID, volumeType, volumeName, drives, applyTime.(string))
-	if err != nil {
-		return diag.Errorf("Error when creating the virtual disk on disk controller %s - %s", storageID, err)
+	for _, v := range c {
+		go func(v *ClientConfig, execResult chan common.ResourceResult) {
+			//Get storage
+			storage, err := getStorageController(v.Service, storageID)
+			if err != nil {
+				execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when getting the storage struct: %s", v.Endpoint, err)}
+				return
+			}
+			//Get drives
+			drives, err := getDrives(storage, driveNames)
+			if err != nil {
+				execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when getting the drives: %s", v.Endpoint, err)}
+				return
+			}
+			jobID, err := createVolume(v.Service.Client, storage.ODataID, volumeType, volumeName, drives, applyTime.(string))
+			if err != nil {
+				execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when creating the virtual disk on disk controller %s - %s", v.Endpoint, storageID, err)}
+				return
+			}
+			//Need to figure out how to proceed with settingsApplyTime (Immediate or OnReset)
+			if applyTime.(string) == "Immediate" {
+				err = common.WaitForJobToFinish(v.Service.Client, jobID, common.TimeBetweenAttempts, common.Timeout)
+				if err != nil {
+					execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error, job %s wasn't able to complete", v.Endpoint, jobID)}
+					return
+				}
+				// Get new volumeID
+				storage, err := getStorageController(v.Service, storageID)
+				if err != nil {
+					execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when getting the storage struct: %s", v.Endpoint, err)}
+					return
+				}
+				volumeID, err := getVolumeID(storage, volumeName)
+				if err != nil {
+					execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error. The volume ID with volume name %s on %s controller was not found", v.Endpoint, volumeName, storageID)}
+					return
+				}
+				execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: volumeID, Error: false, ErrorMsg: ""}
+				return
+			}
+			//TODO - Implement for not Immediate scenarios
+			execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: jobID, Error: false, ErrorMsg: ""}
+			return
+		}(v, execResult)
 	}
-	if applyTime.(string) == "Immediate" {
-		err = common.WaitForJobToFinish(conn, jobID, common.TimeBetweenAttempts, common.Timeout)
-		if err != nil {
-			return diag.Errorf("Error. Job %s wasn't able to complete", jobID)
+	volumeIDs := make(map[string]string)
+	var errorMsg string
+	for i := 0; i < len(m.([]*ClientConfig)); i++ {
+		result := <-execResult
+		if result.Error {
+			errorMsg += result.ErrorMsg
 		}
-		// Get new volumeID
-		//getVolumeID(storage *redfish.Storage, volumeName string) (volumeLink string, err error)
-		storage, err := getStorageController(service, storageID)
-		if err != nil {
-			return diag.Errorf("Issue when getting the storage struct: %s", err)
-		}
-		volumeID, err := getVolumeID(storage, volumeName)
-		if err != nil {
-			return diag.Errorf("Error. The volume ID with volume name %s on %s controller was not found", volumeName, storageID)
-		}
-		d.Set(biosConfigJobURI, "")
-		d.SetId(volumeID)
-	} else {
-		//TODO - Implement for not Immediate scenarios
-		d.Set(biosConfigJobURI, jobID)
-		d.SetId(jobID)
+		volumeIDs[result.Endpoint] = result.ID
 	}
-
-	//resourceStorageVolumeRead(ctx, d, m)
+	close(execResult)
+	d.SetId("Volumes")
+	d.Set("volumes_id", volumeIDs)
+	if len(errorMsg) > 0 {
+		return diag.Errorf(errorMsg)
+	}
 	return diags
 }
 
 func resourceStorageVolumeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
+	//Check if there are volumes not created. Do not report anything else just to be safe
 	return diags
 }
 
@@ -144,61 +166,89 @@ func resourceStorageVolumeUpdate(ctx context.Context, d *schema.ResourceData, m 
 func resourceStorageVolumeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
-	conn := m.(*gofish.APIClient)
-	service := conn.Service
+	execResult := make(chan common.ResourceResult, len(m.([]*ClientConfig)))
+	c := m.([]*ClientConfig)
 	//Get user config
 	//If applyTime has been set to Immediate, the volumeID of the resource will be the ODataID of the volume just created.
 	//If applyTime is OnReset, the volumeID will be the JobID
-	volumeID := d.Id()
+	//Get subresources
+	volumes := d.Get("volumes_id").(map[string]interface{})
 	applyTime, ok := d.GetOk(settingsApplyTime)
 	if !ok {
 		//If settingsApplyTime has not set, by default use Immediate
 		applyTime = "Immediate"
 	}
-	//DELETE VOLUME
-	if applyTime.(string) == "Immediate" {
-		jobID, err := deleteVolume(conn, volumeID)
-		if err != nil {
-			return diag.Errorf("Error. There was an error when deleting volume %s", volumeID)
-		}
-		//WAIT FOR VOLUME TO DELETE
-		err = common.WaitForJobToFinish(conn, jobID, common.TimeBetweenAttempts, common.Timeout)
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		//Check if the job has been completed or not. If not, kill the job. If so, kill the volume
-		task, err := redfish.GetTask(conn, volumeID)
-		if err != nil {
-			return diag.Errorf("Issue when retrieving the tasks: %s", err)
-		}
-		if task.TaskState == redfish.CompletedTaskState {
-			//Get the actual volumeID for destroying it
-			storageID := d.Get(storageControllerID).(string)
-			volumeName := d.Get(volumeName).(string)
-			//getStorageController
-			storage, err := getStorageController(service, storageID)
-			if err != nil {
-				return diag.Errorf("Issue when getting the storage struct: %s", err)
+	for _, v := range c {
+		go func(v *ClientConfig, execResult chan common.ResourceResult) {
+			//DELETE VOLUME
+			if applyTime.(string) == "Immediate" {
+				jobID, err := deleteVolume(v.Service.Client, volumes[v.Endpoint].(string))
+				if err != nil {
+					execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error. There was an error when deleting volume %s - %s", v.Endpoint, volumes[v.Endpoint].(string), err)}
+					return
+				}
+				//WAIT FOR VOLUME TO DELETE
+				err = common.WaitForJobToFinish(v.Service.Client, jobID, common.TimeBetweenAttempts, common.Timeout)
+				if err != nil {
+					//panic(err)
+					execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error, timeout reached when waiting for job %s to finish. %s", v.Endpoint, jobID, err)}
+					return
+				}
+			} else {
+				//Check if the job has been completed or not. If not, kill the job. If so, kill the volume
+				task, err := redfish.GetTask(v.Service.Client, volumes[v.Endpoint].(string))
+				if err != nil {
+					execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when retrieving the tasks: %s", v.Endpoint, err)}
+					return
+				}
+				if task.TaskState == redfish.CompletedTaskState {
+					//Get the actual volumeID for destroying it
+					storageID := d.Get(storageControllerID).(string)
+					volumeName := d.Get(volumeName).(string)
+					//getStorageController
+					storage, err := getStorageController(v.Service, storageID)
+					if err != nil {
+						execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when getting the storage struct: %s", v.Endpoint, err)}
+						return
+					}
+					actualVolumeID, err := getVolumeID(storage, volumeName)
+					if err != nil {
+						execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when getting the actual volumeID: %s", v.Endpoint, err)}
+						return
+					}
+					//MAYBE WE NEED TO SET A JOB INSTEAD OF DELETING IT RIGHTAWAY
+					_, err = deleteVolume(v.Service.Client, actualVolumeID)
+				} else {
+					//Get rid of the Job that will create the volume
+					//IMPORTART LIMITATION. TO DELETE A TASK IN DELL EMC REDFISH IMPLEMENTATION, NEEDS TO BE DONE THROUGH ITS MANAGER/redfish/v1/Managers/iDRAC.Embedded.1/Jobs/%s
+					err := common.DeleteDellJob(v.Service.Client, task.ID)
+					if err != nil {
+						execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error  when deleting the task %s - %s", v.Endpoint, task.ID, err)}
+						return
+					}
+					execResult <- common.ResourceResult{Endpoint: v.Endpoint, Error: false, ErrorMsg: ""}
+					return
+				}
 			}
-			//getVolumeID(storage *redfish.Storage, volumeName string) (volumeLink string, err error)
-			actualVolumeID, err := getVolumeID(storage, volumeName)
-			if err != nil {
-				return diag.Errorf("Issue when getting the actual volumeID: %s", err)
-			}
-			//MAYBE WE NEED TO SET A JOB INSTEAD OF DELETING IT RIGHTAWAY
-			_, err = deleteVolume(conn, actualVolumeID)
-			d.SetId("")
+			execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: false, ErrorMsg: ""}
+			return
+		}(v, execResult)
+	}
+	var errorMsg string
+	for i := 0; i < len(m.([]*ClientConfig)); i++ {
+		result := <-execResult
+		if result.Error {
+			errorMsg += result.ErrorMsg
 		} else {
-			//Get rid of the Job that will create the volume
-			//IMPORTART LIMITATION. TO DELETE A TASK IN DELL EMC REDFISH IMPLEMENTATION, NEEDS TO BE DONE THROUGH ITS MANAGER/redfish/v1/Managers/iDRAC.Embedded.1/Jobs/%s
-			err := common.DeleteDellJob(conn, task.ID)
-			if err != nil {
-				return diag.Errorf("Issue when deleting the task: %s", err)
-			}
-			d.SetId("")
+			delete(volumes, result.Endpoint)
 		}
 	}
+	close(execResult)
+	d.Set("volumes_id", volumes)
+	if len(errorMsg) > 0 {
+		return diag.Errorf(errorMsg)
+	}
+	d.SetId("")
 	return diags
 }
 
@@ -237,10 +287,6 @@ func deleteVolume(c redfishcommon.Client, volumeURI string) (jobID string, err e
 }
 
 func getDrives(storage *redfish.Storage, driveNames []string) ([]*redfish.Drive, error) {
-	/*storage, err := getStorageController(service, diskControllerName)
-	if err != nil {
-		return nil, err
-	}*/
 	drivesToReturn := []*redfish.Drive{}
 	drives, err := storage.Drives()
 	if err != nil {
@@ -310,7 +356,6 @@ func createVolume(client redfishcommon.Client,
 }
 
 func getVolumeID(storage *redfish.Storage, volumeName string) (volumeLink string, err error) {
-	//storage, err := getStorageController(service, diskControllerName)
 	if err != nil {
 		return "", err
 	}
