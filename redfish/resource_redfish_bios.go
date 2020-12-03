@@ -66,8 +66,6 @@ func resourceRedfishBiosUpdate(ctx context.Context, d *schema.ResourceData, m in
 	log.Printf("[DEBUG] Beginning update")
 	var diags diag.Diagnostics
 
-	return diag.Errorf("JGTest: forcing error in resourceRedfishBiosUpdate")
-
 	conn := m.(*gofish.APIClient)
 
 	// check if there is already a bios config job in progress
@@ -76,12 +74,12 @@ func resourceRedfishBiosUpdate(ctx context.Context, d *schema.ResourceData, m in
 	pending := false
 	if v, ok := d.GetOk("bios_config_job_uri"); ok {
 		log.Printf("[DEBUG] %s: Bios config job uri is \"%s\"", d.Id(), v.(string))
-		taskUri, _ := v.(string)
-		if len(taskUri) > 0 {
-			task, _ := redfish.GetTask(conn, taskUri)
+		taskURI, _ := v.(string)
+		if len(taskURI) > 0 {
+			task, _ := redfish.GetTask(conn, taskURI)
 			if task != nil {
 				if task.TaskState != redfish.CompletedTaskState {
-					log.Println("[DEBUG] %s: BIOS config task state = %s", d.Id(), task.TaskState)
+					log.Printf("[DEBUG] %s: BIOS config task state = %s", d.Id(), task.TaskState)
 					pending = true
 				}
 			} else {
@@ -162,7 +160,7 @@ func resourceRedfishBiosUpdate(ctx context.Context, d *schema.ResourceData, m in
 	d.SetId(bios.ODataID)
 
 	// if settingsResetOnApply, ok := d.GetOk("reset_on_apply"); ok {
-	reboot(conn, d, redfish.ForceRestartResetType)
+	err = resetSystem(conn, d, redfish.ForceRestartResetType)
 	// }
 
 	log.Printf("[DEBUG]: Call Reset here")
@@ -173,17 +171,8 @@ func resourceRedfishBiosUpdate(ctx context.Context, d *schema.ResourceData, m in
 
 func resourceRedfishBiosRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 
-	zero := 0
-	crash := 1 / zero
-	log.Printf("%d", crash)
-
 	log.Printf("[DEBUG] %s: Beginning read", d.Id())
 	var diags diag.Diagnostics
-	diags = append(diags, diag.Diagnostic{
-		Severity: diag.Error,
-		Summary:  "JGTest",
-		Detail:   "JGTest: forcing error in resourceRedfishBiosRead",
-	})
 
 	conn := m.(*gofish.APIClient)
 
@@ -220,9 +209,6 @@ func resourceRedfishBiosDelete(ctx context.Context, d *schema.ResourceData, m in
 }
 
 func getBios(conn *gofish.APIClient) (*redfish.Bios, error) {
-	zero := 0
-	crash := 1 / zero
-	log.Printf("%d", crash)
 
 	service := conn.Service
 	systems, err := service.Systems()
@@ -245,8 +231,8 @@ func copyBiosAttributes(bios *redfish.Bios, attributes map[string]string) error 
 	// value types. So we will convert int and float values to string.
 	// copy from the BIOS attributes to the new bios attributes map
 	for key, value := range bios.Attributes {
-		if attr_val, ok := value.(string); ok {
-			attributes[key] = attr_val
+		if attrVal, ok := value.(string); ok {
+			attributes[key] = attrVal
 		} else {
 			attributes[key] = fmt.Sprintf("%v", value)
 		}
@@ -256,9 +242,6 @@ func copyBiosAttributes(bios *redfish.Bios, attributes map[string]string) error 
 }
 
 func updateBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes map[string]interface{}) error {
-	zero := 0
-	crash := 1 / zero
-	log.Printf("%d", crash)
 
 	payload := make(map[string]interface{})
 	payload["Attributes"] = attributes
@@ -283,13 +266,13 @@ func updateBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes
 		}
 	}
 
-	oDataUrl, err := url.Parse(bios.ODataID)
-	oDataUrl.Path = path.Join(oDataUrl.Path, "Settings")
-	settingsObjectURI := oDataUrl.String()
+	oDataURI, err := url.Parse(bios.ODataID)
+	oDataURI.Path = path.Join(oDataURI.Path, "Settings")
+	settingsObjectURI := oDataURI.String()
 
 	resp, err := bios.Client.Patch(settingsObjectURI, payload)
 	if err != nil {
-		log.Println("[DEBUG] error sending the patch request: %s", err)
+		log.Printf("[DEBUG] error sending the patch request: %s", err)
 		return err
 	}
 
@@ -297,9 +280,9 @@ func updateBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes
 	if location, err := resp.Location(); err == nil {
 		log.Printf("[DEBUG] BIOS configuration job uri: %s", location.String())
 
-		taskUri := location.EscapedPath()
+		taskURI := location.EscapedPath()
 
-		if err = d.Set("bios_config_job_uri", taskUri); err != nil {
+		if err = d.Set("bios_config_job_uri", taskURI); err != nil {
 			log.Printf("[DEBUG] error setting the task uri: %s", err)
 			return err
 		}
@@ -308,31 +291,41 @@ func updateBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes
 	return nil
 }
 
-func reboot(client *gofish.APIClient, d *schema.ResourceData, resetType redfish.ResetType) error {
-	service := client.Service
-	systems, err := service.Systems()
+func resetSystem(client *gofish.APIClient, d *schema.ResourceData, resetType redfish.ResetType) error {
 
+	system, err := getSystem(client)
 	if err != nil {
+		log.Printf("[ERROR]: Failed to identify system: %s", err)
 		return err
 	}
+
+	// if system.PowerState == redfish.OffPowerState {
+	// 	log.Printf("[WARN]: will not perform reset because system is Off.  Bios changes will be applied at next boot.")
+	// 	return nil
+	// }
+
+	log.Printf("[TRACE]: Attempting system.Reset. resetType=%s", resetType)
+	err = system.Reset(resetType)
+	if err != nil {
+		log.Printf("[WARN]: system.Reset returned an error: %s", err)
+		return err
+	}
+	log.Printf("[TRACE]: system.Reset successful")
+	return err
+}
+
+func getSystem(client *gofish.APIClient) (*redfish.ComputerSystem, error) {
+	systems, err := client.Service.Systems()
+
+	if err != nil {
+		return nil, err
+	}
 	if len(systems) == 0 {
-		return errors.New("No systems found")
+		return nil, errors.New("No systems found")
 	}
 	if len(systems) > 1 {
-		return errors.New("Too many systems found")
+		return nil, errors.New("Too many systems found")
 	}
 
-	system := systems[0]
-
-	var diags diag.Diagnostics
-
-	diags = append(diags, diag.Diagnostic{
-		Severity: diag.Warning,
-		Summary:  "Rebooting",
-		Detail:   "{resetType} server {ServerName} to apply bios settings",
-	})
-
-	err = system.Reset(resetType)
-
-	return err
+	return systems[0], err
 }
