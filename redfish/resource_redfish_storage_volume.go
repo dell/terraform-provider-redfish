@@ -13,17 +13,6 @@ import (
 	"net/http"
 )
 
-const (
-	// This constants are used to avoid hardcoding the terraform input variables
-	storageControllerID   string = "storage_controller_id"
-	volumeName            string = "volume_name"
-	volumeType            string = "volume_type"
-	volumeDisks           string = "volume_disks"
-	settingsApplyTime     string = "settings_apply_time"
-	biosConfigJobURI      string = "bios_config_job_uri"
-	volumesSubresourceIDs string = "volumes_id"
-)
-
 func resourceRedfishStorageVolume() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceStorageVolumeCreate,
@@ -31,22 +20,22 @@ func resourceRedfishStorageVolume() *schema.Resource {
 		UpdateContext: resourceStorageVolumeUpdate,
 		DeleteContext: resourceStorageVolumeDelete,
 		Schema: map[string]*schema.Schema{
-			storageControllerID: &schema.Schema{
+			"storage_controller_id": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "This value must be the storage controller ID the user want to manage. I.e: RAID.Integrated.1-1",
 			},
-			volumeName: &schema.Schema{
+			"volume_name": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "This value is the desired name for the volume to be given",
 			},
-			volumeType: &schema.Schema{
+			"volume_type": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "This value specifies the raid level the virtual disk is going to have. Possible values are: NonRedundant (RAID-0), Mirrored (RAID-1), StripedWithParity (RAID-5), SpannedMirrors (RAID-10) or SpannedStripesWithParity (RAID-50)",
 			},
-			volumeDisks: &schema.Schema{
+			"volume_disks": &schema.Schema{
 				Type:        schema.TypeList,
 				Required:    true,
 				Description: "This list contains the physical disks names to create the volume within a disk controller",
@@ -54,12 +43,12 @@ func resourceRedfishStorageVolume() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			settingsApplyTime: &schema.Schema{
+			"settings_apply_time": &schema.Schema{
 				Type:        schema.TypeString,
 				Description: "Flag to make the operation either \"Immediate\" or \"OnReset\". By default value is \"Immediate\"",
 				Optional:    true,
 			},
-			volumesSubresourceIDs: &schema.Schema{
+			"volumes_id": &schema.Schema{
 				Type: schema.TypeMap,
 				//Optional: true,
 				Computed: true,
@@ -75,11 +64,11 @@ func resourceStorageVolumeCreate(ctx context.Context, d *schema.ResourceData, m 
 	execResult := make(chan common.ResourceResult, len(m.([]*ClientConfig)))
 	c := m.([]*ClientConfig)
 	//Get user config
-	storageID := d.Get(storageControllerID).(string)
-	volumeType := d.Get(volumeType).(string)
-	volumeName := d.Get(volumeName).(string)
-	driveNamesRaw := d.Get(volumeDisks).([]interface{})
-	applyTime, ok := d.GetOk(settingsApplyTime)
+	storageID := d.Get("storage_controller_id").(string)
+	volumeType := d.Get("volume_type").(string)
+	volumeName := d.Get("volume_name").(string)
+	driveNamesRaw := d.Get("volume_disks").([]interface{})
+	applyTime, ok := d.GetOk("settings_apply_time")
 	if !ok {
 		//If settingsApplyTime has not set, by default use Immediate
 		applyTime = "Immediate"
@@ -173,7 +162,7 @@ func resourceStorageVolumeDelete(ctx context.Context, d *schema.ResourceData, m 
 	//If applyTime is OnReset, the volumeID will be the JobID
 	//Get subresources
 	volumes := d.Get("volumes_id").(map[string]interface{})
-	applyTime, ok := d.GetOk(settingsApplyTime)
+	applyTime, ok := d.GetOk("settings_apply_time")
 	if !ok {
 		//If settingsApplyTime has not set, by default use Immediate
 		applyTime = "Immediate"
@@ -203,8 +192,8 @@ func resourceStorageVolumeDelete(ctx context.Context, d *schema.ResourceData, m 
 				}
 				if task.TaskState == redfish.CompletedTaskState {
 					//Get the actual volumeID for destroying it
-					storageID := d.Get(storageControllerID).(string)
-					volumeName := d.Get(volumeName).(string)
+					storageID := d.Get("storage_controller_id").(string)
+					volumeName := d.Get("volume_name").(string)
 					//getStorageController
 					storage, err := getStorageController(v.Service, storageID)
 					if err != nil {
