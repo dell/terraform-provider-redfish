@@ -35,9 +35,11 @@ func resourceRedfishBios() *schema.Resource {
 			},
 
 			"settings_apply_time": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The time when the BIOS settings can be applied. Applicable values are 'OnReset', 'Immediate', 'AtMaintenanceWindowStart' and 'InMaintenanceWindowStart'.",
+				Type:     schema.TypeString,
+				Optional: true,
+				Description: "The time when the BIOS settings can be applied. Applicable values are " +
+					"'OnReset', 'Immediate', 'AtMaintenanceWindowStart' and 'InMaintenanceWindowStart'.",
+				Default: "Immediate",
 				ValidateFunc: validation.StringInSlice([]string{
 					string(common.ImmediateApplyTime),
 					string(common.OnResetApplyTime),
@@ -46,10 +48,23 @@ func resourceRedfishBios() *schema.Resource {
 				}, false),
 			},
 
-			"reset_on_apply": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "reset the server after bios changes are applied",
+			"action_after_apply": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Description: "Action to perform on the target after the BIOS settings are applied. " +
+					"Default=nil : no action after apply" +
+					"Applicable values are nil, 'On','ForceOn','ForceOff','ForceRestart','GracefulRestart'," +
+					"'GracefulShutdown','PushPowerButton','PowerCycle','Nmi'.",
+				ValidateFunc: validation.StringInSlice([]string{
+					string(redfish.OnResetType),
+					string(redfish.ForceOnResetType),
+					string(redfish.ForceOffResetType),
+					string(redfish.ForceRestartResetType),
+					string(redfish.GracefulRestartResetType),
+					string(redfish.GracefulShutdownResetType),
+					string(redfish.PushPowerButtonResetType),
+					string(redfish.PowerCycleResetType),
+				}, false),
 			},
 
 			"bios_config_job_uri": {
@@ -159,11 +174,10 @@ func resourceRedfishBiosUpdate(ctx context.Context, d *schema.ResourceData, m in
 	// Set the ID to the @odata.id
 	d.SetId(bios.ODataID)
 
-	// if settingsResetOnApply, ok := d.GetOk("reset_on_apply"); ok {
-	err = resetSystem(conn, d, redfish.ForceRestartResetType)
-	// }
-
-	log.Printf("[DEBUG]: Call Reset here")
+	actionAfterApply, exists := d.GetOk("action_after_apply")
+	if exists && actionAfterApply != nil {
+		resetSystem(conn, d, actionAfterApply.(redfish.ResetType))
+	}
 
 	log.Printf("[DEBUG] %s: Update finished successfully", d.Id())
 	return diags
@@ -293,28 +307,28 @@ func updateBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes
 
 func resetSystem(client *gofish.APIClient, d *schema.ResourceData, resetType redfish.ResetType) error {
 
-	system, err := getSystem(client)
+	system, err := getOnlySystem(client)
 	if err != nil {
 		log.Printf("[ERROR]: Failed to identify system: %s", err)
 		return err
 	}
 
-	// if system.PowerState == redfish.OffPowerState {
-	// 	log.Printf("[WARN]: will not perform reset because system is Off.  Bios changes will be applied at next boot.")
-	// 	return nil
-	// }
+	if system.PowerState == redfish.OffPowerState {
+		log.Printf("[WARN]: will not perform reset because system is Off.  Bios changes will be applied at next boot.")
+		return nil
+	}
 
-	log.Printf("[TRACE]: Attempting system.Reset. resetType=%s", resetType)
-	err = system.Reset(resetType)
-	if err != nil {
+	log.Printf("[TRACE]: Performing system.Reset(%s)", resetType)
+	if err = system.Reset(resetType); err != nil {
 		log.Printf("[WARN]: system.Reset returned an error: %s", err)
 		return err
 	}
+
 	log.Printf("[TRACE]: system.Reset successful")
 	return err
 }
 
-func getSystem(client *gofish.APIClient) (*redfish.ComputerSystem, error) {
+func getOnlySystem(client *gofish.APIClient) (*redfish.ComputerSystem, error) {
 	systems, err := client.Service.Systems()
 
 	if err != nil {
