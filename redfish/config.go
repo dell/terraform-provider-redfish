@@ -1,23 +1,37 @@
 package redfish
 
 import (
+	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stmcginnis/gofish"
+	"log"
 )
 
+// ClientConfig is a struct created to hold the redfish endpoint as well as the Service for keeping track of the subresources created
+type ClientConfig struct {
+	Endpoint string
+	Service  *gofish.Service
+}
+
 // NewConfig function creates the needed gofish structs to query the redfish API
-func NewConfig(d *schema.ResourceData) (*gofish.APIClient, error) {
-	//Check if the ssl config param has been set
-	var sslMode bool
-	if v, ok := d.GetOk("ssl_insecure"); ok {
-		sslMode = v.(bool)
+func NewConfig(d *schema.ResourceData) ([]*ClientConfig, error) {
+	//Slice where all API clients will be returned
+	var clients []*ClientConfig
+	serverConfigs := d.Get("redfish_server").([]interface{})
+	for _, v := range serverConfigs {
+		clientConfig := gofish.ClientConfig{
+			Endpoint:  v.(map[string]interface{})["endpoint"].(string),
+			Username:  v.(map[string]interface{})["user"].(string),
+			Password:  v.(map[string]interface{})["password"].(string),
+			BasicAuth: true,
+			Insecure:  v.(map[string]interface{})["ssl_insecure"].(bool),
+		}
+		api, err := gofish.Connect(clientConfig)
+		if err != nil {
+			return nil, fmt.Errorf("Error connecting to redfish API: %v", err)
+		}
+		log.Printf("Connection with the redfish endpoint %v was sucessful\n", v.(map[string]interface{})["endpoint"].(string))
+		clients = append(clients, &ClientConfig{Endpoint: v.(map[string]interface{})["endpoint"].(string), Service: api.Service})
 	}
-	clientConfig := gofish.ClientConfig{
-		Endpoint:  d.Get("redfish_endpoint").(string),
-		Username:  d.Get("user").(string),
-		Password:  d.Get("password").(string),
-		BasicAuth: true,
-		Insecure:  sslMode,
-	}
-	return gofish.Connect(clientConfig)
+	return clients, nil
 }

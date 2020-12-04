@@ -1,7 +1,7 @@
 terraform-provider-redfish
 .terraform/
 *.backup
-./*.tfstate
+terraform.tfstate
 crash.log
 tests_mike
 .vscode

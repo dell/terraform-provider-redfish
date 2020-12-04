@@ -7,39 +7,46 @@ import (
 func Provider() *schema.Provider {
 	provider := &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"user": {
-				Type:        schema.TypeString,
+			"redfish_server": {
+				Type:        schema.TypeList,
 				Required:    true,
-				Description: "This field is the user to login against the redfish API",
-			},
-			"password": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "This field is the password related to the user given",
-			},
-			"redfish_endpoint": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "This field is the endpoint where the redfish API is placed",
-			},
-			"ssl_insecure": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "This field indicates if the SSL/TLS certificate must be verified",
+				Description: "This list contains the different redfish endpoints to manage (different servers)",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"user": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "This field is the user to login against the redfish API",
+						},
+						"password": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "This field is the password related to the user given",
+						},
+						"endpoint": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "This field is the endpoint where the redfish API is placed",
+						},
+						"ssl_insecure": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "This field indicates if the SSL/TLS certificate must be verified",
+						},
+					},
+				},
 			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"redfish_user_account":   resourceUserAccount(),
-			"redfish_bios":           resourceRedfishBios(),
+			"redfish_user_account": resourceUserAccount(),
+			//	"redfish_bios":           resourceRedfishBios(),
 			"redfish_storage_volume": resourceRedfishStorageVolume(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"redfish_bios": dataSourceRedfishBios(),
+			//	"redfish_bios": dataSourceRedfishBios(),
 		},
-
-		//StopFunc: NEEDS TO BE IMPLEMENTED to revoke the redfish token
 	}
 
 	provider.ConfigureFunc = func(d *schema.ResourceData) (interface{}, error) {
