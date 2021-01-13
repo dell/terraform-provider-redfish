@@ -1,20 +1,52 @@
 package redfish
 
 import (
-	"fmt"
+	"context"
+	// "fmt"
+	// "github.com/dell/terraform-provider-redfish/common"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
+	// "log"
 )
 
 func resourceUserAccount() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceUserAccountCreate,
-		Read:   resourceUserAccountRead,
-		Update: resourceUserAccountUpdate,
-		Delete: resourceUserAccountDelete,
-
+		CreateContext: resourceUserAccountCreate,
+		ReadContext:   resourceUserAccountRead,
+		UpdateContext: resourceUserAccountUpdate,
+		DeleteContext: resourceUserAccountDelete,
 		Schema: map[string]*schema.Schema{
+			"redfish_server": {
+				Type:        schema.TypeList,
+				Required:    true,
+				Description: "This list contains the different redfish endpoints to manage (different servers)",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"user": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "This field is the user to login against the redfish API",
+						},
+						"password": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "This field is the password related to the user given",
+						},
+						"endpoint": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "This field is the endpoint where the redfish API is placed",
+						},
+						"ssl_insecure": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "This field indicates if the SSL/TLS certificate must be verified",
+						},
+					},
+				},
+			},
 			"username": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -27,115 +59,186 @@ func resourceUserAccount() *schema.Resource {
 			"enabled": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  false,
 			},
 			"role_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "None",
 			},
 		},
 	}
 }
 
-func resourceUserAccountCreate(d *schema.ResourceData, m interface{}) error {
-	c := m.(*gofish.APIClient)
-	accountList, err := getAccountList(c)
+func resourceUserAccountCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	//Connect client
+	service, err := NewConfig(d)
 	if err != nil {
-		return err
+		return diag.Errorf(err.Error())
 	}
+
+	accountList, err := getAccountList(service)
+	if err != nil {
+		return diag.Errorf("Error when retrieving account list %v", err)
+	}
+
 	payload := make(map[string]interface{})
 	for _, account := range accountList {
 		if len(account.UserName) == 0 && account.ID != "1" { //ID 1 is reserved
 			payload["UserName"] = d.Get("username").(string)
 			payload["Password"] = d.Get("password").(string)
-			if value, set := d.GetOk("enabled"); set {
-				payload["Enabled"] = value
-			} else {
-				payload["Enabled"] = false
-			}
-			if value, set := d.GetOk("role_id"); set {
-				payload["RoleId"] = value
-			} else {
-				payload["RoleId"] = "None"
-			}
-			res, err := c.Patch(account.ODataID, payload)
+			payload["Enabled"] = d.Get("enabled").(bool)
+			payload["RoleId"] = d.Get("role_id").(string)
+			//Ideally a go routine for each server should be done
+			res, err := service.Client.Patch(account.ODataID, payload)
 			if err != nil {
-				return err
+				return diag.Errorf("Error when contacting the redfish API %v", err) //This error might happen when a user was created outside terraform
 			}
 			if res.StatusCode != 200 {
-				return fmt.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
+				return diag.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
 			}
+			//Set ID to terraform state file
 			d.SetId(account.ID)
-			return resourceUserAccountRead(d, m)
+			return diags
 		}
 	}
 	//No room for new users
-	return fmt.Errorf("There are no room for new users")
+	return diag.Errorf("There are no room for new users")
 }
 
-func resourceUserAccountRead(d *schema.ResourceData, m interface{}) error {
-	c := m.(*gofish.APIClient)
-	account, err := getAccount(c, d.Id())
+func resourceUserAccountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	//Connect client
+	service, err := NewConfig(d)
 	if err != nil {
-		return err
+		return diag.Errorf(err.Error())
 	}
-	if account == nil {
+
+	accountList, err := getAccountList(service)
+	if err != nil {
+		return diag.Errorf("Error when retrieving account list %v", err)
+	}
+
+	account, err := getAccount(accountList, d.Id())
+	if err != nil {
+		return diag.Errorf("Error when retrieving accounts %v", err)
+	}
+	if account == nil { //User doesn't exist. Needs to be recreated.
+		d.Set("username", "")
+		d.Set("enabled", "")
+		d.Set("role_id", "")
+		return diags
+	}
+	if d.Get("username") != account.UserName || d.Get("enabled") != account.Enabled || d.Get("role_id") != account.RoleID {
+		// If something is different an update needs to be triggered
+		d.Set("username", account.UserName)
+		d.Set("enabled", account.Enabled)
+		d.Set("role_id", account.RoleID)
+		return diags
+	}
+
+	return diags
+}
+
+func resourceUserAccountUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	//Connect client
+	service, err := NewConfig(d)
+	if err != nil {
+		return diag.Errorf(err.Error())
+	}
+
+	accountList, err := getAccountList(service)
+	if err != nil {
+		return diag.Errorf("Error when retrieving account list %v", err)
+	}
+
+	account, err := getAccount(accountList, d.Id())
+	if err != nil {
+		return diag.Errorf("Error when retrieving accounts %v", err)
+	}
+	if account == nil { //If account does not exist or if params are not right, perform POST
+		payload := make(map[string]interface{})
+		for _, account := range accountList {
+			if len(account.UserName) == 0 && account.ID != "1" { //ID 1 is reserved
+				payload["UserName"] = d.Get("username").(string)
+				payload["Password"] = d.Get("password").(string)
+				payload["Enabled"] = d.Get("enabled").(bool)
+				payload["RoleId"] = d.Get("role_id").(string)
+				res, err := service.Client.Patch(account.ODataID, payload)
+				if err != nil {
+					return diag.Errorf("Error when contacting the redfish API %v", err)
+				}
+				if res.StatusCode != 200 {
+					return diag.Errorf("There was an issue with the server. HTTP error code %d", res.StatusCode)
+				}
+				d.SetId(account.ID)
+				return resourceUserAccountRead(ctx, d, m)
+			}
+		}
+		//No room for new users
+		return diag.Errorf("There are no room for new users")
+	}
+	//If we reach here means the user exists and might have attributes that need to be changed
+	if d.Get("username") != account.UserName || d.Get("enabled") != account.Enabled || d.Get("role_id") != account.RoleID {
+		payload := make(map[string]interface{})
+		payload["UserName"] = d.Get("username")
+		payload["Password"] = d.Get("password")
+		payload["Enabled"] = d.Get("enabled")
+		payload["RoleId"] = d.Get("role_id")
+		res, err := service.Client.Patch(account.ODataID, payload) //null!!! Myabe nil scenario should be taken apart from the conditional above
+		if err != nil {
+			return diag.Errorf("Error when contacting the redfish API %v", err)
+		}
+		if res.StatusCode != 200 {
+			return diag.Errorf("There was an issue with the server. HTTP error code %d", res.StatusCode)
+		}
+	}
+	return resourceUserAccountRead(ctx, d, m)
+}
+
+func resourceUserAccountDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	//Connect client
+	service, err := NewConfig(d)
+	if err != nil {
+		return diag.Errorf(err.Error())
+	}
+
+	accountList, err := getAccountList(service)
+	if err != nil {
+		return diag.Errorf("Error when retrieving account list %v", err)
+	}
+
+	account, err := getAccount(accountList, d.Id())
+	if err != nil {
+		return diag.Errorf("Error when retrieving accounts %v", err)
+	}
+
+	if account == nil { //If user doesn't exist, delete it from state file rightaway
 		d.SetId("")
-		return nil
+		return diags
 	}
-	d.Set("username", account.UserName)
-	//d.Set("password", account.Password)
-	d.Set("enabled", account.Enabled)
-	d.Set("role_id", account.RoleID)
-	return nil
-}
 
-func resourceUserAccountUpdate(d *schema.ResourceData, m interface{}) error {
-	c := m.(*gofish.APIClient)
-	account, err := getAccount(c, d.Id())
-	if err != nil {
-		return err
-	}
-	payload := make(map[string]interface{})
-	payload["UserName"] = d.Get("username")
-	payload["Password"] = d.Get("password")
-	payload["Enabled"] = d.Get("enabled")
-	payload["RoleId"] = d.Get("role_id")
-	res, err := c.Patch(account.ODataID, payload)
-	if err != nil {
-		return err
-	}
-	if res.StatusCode != 200 {
-		return fmt.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
-	}
-	return resourceUserAccountRead(d, m)
-}
-
-func resourceUserAccountDelete(d *schema.ResourceData, m interface{}) error {
-	c := m.(*gofish.APIClient)
-	account, err := getAccount(c, d.Id())
-	if err != nil {
-		return err
-	}
-	if account == nil {
-		return fmt.Errorf("The user account does not exist")
-	}
 	payload := make(map[string]interface{})
 	payload["UserName"] = ""
-	res, err := c.Patch(account.ODataID, payload)
+	res, err := service.Client.Patch(account.ODataID, payload)
 	if err != nil {
-		return err
+		return diag.Errorf("Error when contacting the redfish API %v", err)
 	}
 	if res.StatusCode != 200 {
-		return fmt.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
+		return diag.Errorf("There was an issue with the server. HTTP error code %d", res.StatusCode)
 	}
-	d.SetId("")
-	return nil
 
+	d.SetId("")
+	return diags
 }
 
-func getAccountList(c *gofish.APIClient) ([]*redfish.ManagerAccount, error) {
-	service := c.Service
-	accountService, err := service.AccountService()
+func getAccountList(c *gofish.Service) ([]*redfish.ManagerAccount, error) {
+	accountService, err := c.AccountService()
 	if err != nil {
 		return nil, err
 	}
@@ -146,11 +249,7 @@ func getAccountList(c *gofish.APIClient) ([]*redfish.ManagerAccount, error) {
 	return accounts, nil
 }
 
-func getAccount(c *gofish.APIClient, id string) (*redfish.ManagerAccount, error) {
-	accountList, err := getAccountList(c)
-	if err != nil {
-		return nil, err
-	}
+func getAccount(accountList []*redfish.ManagerAccount, id string) (*redfish.ManagerAccount, error) {
 	for _, account := range accountList {
 		if account.ID == id && len(account.UserName) > 0 {
 			return account, nil

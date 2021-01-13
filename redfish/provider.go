@@ -10,36 +10,34 @@ func Provider() *schema.Provider {
 			"user": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "This field is the user to login against the redfish API",
+				Description: "Default value. This field is the user to login against the redfish API",
 			},
 			"password": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "This field is the password related to the user given",
+				Description: "Default value. This field is the password related to the user given",
 			},
-			"redfish_endpoint": {
+			"endpoint": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "This field is the endpoint where the redfish API is placed",
+				Description: "Default value. This field is the endpoint where the redfish API is placed",
 			},
 			"ssl_insecure": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "This field indicates if the SSL/TLS certificate must be verified",
+				Description: "Default value. This field indicates if the SSL/TLS certificate must be verified",
 			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"redfish_user_account":   resourceUserAccount(),
-			"redfish_bios":           resourceRedfishBios(),
-			"redfish_storage_volume": resourceRedfishStorageVolume(),
+			"redfish_user_account": resourceUserAccount(),
+			//	"redfish_bios":           resourceRedfishBios(),
+			// "redfish_storage_volume": resourceRedfishStorageVolume(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"redfish_bios": dataSourceRedfishBios(),
+			//	"redfish_bios": dataSourceRedfishBios(),
 		},
-
-		//StopFunc: NEEDS TO BE IMPLEMENTED to revoke the redfish token
 	}
 
 	provider.ConfigureFunc = func(d *schema.ResourceData) (interface{}, error) {
@@ -60,9 +58,5 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	At the moment, the terraform SDK (Provider.StopFunc) is not implemented. To follow up, please refer to this pull request:
 	https://github.com/hashicorp/terraform-plugin-sdk/pull/377
 	*/
-	c, err := NewConfig(d)
-	if err != nil {
-		return nil, err
-	}
-	return c, nil
+	return nil, nil
 }
