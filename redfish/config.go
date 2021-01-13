@@ -7,31 +7,21 @@ import (
 	"log"
 )
 
-// ClientConfig is a struct created to hold the redfish endpoint as well as the Service for keeping track of the subresources created
-type ClientConfig struct {
-	Endpoint string
-	Service  *gofish.Service
-}
-
 // NewConfig function creates the needed gofish structs to query the redfish API
-func NewConfig(d *schema.ResourceData) ([]*ClientConfig, error) {
+func NewConfig(d *schema.ResourceData) (*gofish.Service, error) {
 	//Slice where all API clients will be returned
-	var clients []*ClientConfig
-	serverConfigs := d.Get("redfish_server").([]interface{})
-	for _, v := range serverConfigs {
-		clientConfig := gofish.ClientConfig{
-			Endpoint:  v.(map[string]interface{})["endpoint"].(string),
-			Username:  v.(map[string]interface{})["user"].(string),
-			Password:  v.(map[string]interface{})["password"].(string),
-			BasicAuth: true,
-			Insecure:  v.(map[string]interface{})["ssl_insecure"].(bool),
-		}
-		api, err := gofish.Connect(clientConfig)
-		if err != nil {
-			return nil, fmt.Errorf("Error connecting to redfish API: %v", err)
-		}
-		log.Printf("Connection with the redfish endpoint %v was sucessful\n", v.(map[string]interface{})["endpoint"].(string))
-		clients = append(clients, &ClientConfig{Endpoint: v.(map[string]interface{})["endpoint"].(string), Service: api.Service})
+	serverConfig := d.Get("redfish_server").([]interface{}) //It must be just one element
+	clientConfig := gofish.ClientConfig{
+		Endpoint:  serverConfig[0].(map[string]interface{})["endpoint"].(string),
+		Username:  serverConfig[0].(map[string]interface{})["user"].(string),
+		Password:  serverConfig[0].(map[string]interface{})["password"].(string),
+		BasicAuth: true,
+		Insecure:  serverConfig[0].(map[string]interface{})["ssl_insecure"].(bool),
 	}
-	return clients, nil
+	api, err := gofish.Connect(clientConfig)
+	if err != nil {
+		return nil, fmt.Errorf("Error connecting to redfish API: %v", err)
+	}
+	log.Printf("Connection with the redfish endpoint %v was sucessful\n", serverConfig[0].(map[string]interface{})["endpoint"].(string))
+	return api.Service, nil
 }

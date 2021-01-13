@@ -1,19 +1,20 @@
 provider "redfish" {
-  redfish_server { 
-        endpoint = "https://localhost:5007"
-        user = "root"
-        password = "calvin"
-        ssl_insecure = true
-  }
-  redfish_server { 
-        endpoint = "https://localhost:5008"
-        user = "root"
-        password = "calvin"
-        ssl_insecure = true
-  }
+      user = ""
+      password = ""
+      endpoint = ""
+      ssl_insecure = true
 }
 
-resource "redfish_user_account" "users" {
+resource "redfish_user_account" "rr" {
+    for_each = var.rack1
+
+    redfish_server {
+        user = each.value.user
+        password = each.value.password
+        endpoint = each.value.endpoint
+        ssl_insecure = each.value.ssl_insecure
+    }      
+
     username = "mike"
     password = "test1234"
     enabled = true
