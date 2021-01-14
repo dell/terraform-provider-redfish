@@ -17,55 +17,59 @@ func resourceUserAccount() *schema.Resource {
 		ReadContext:   resourceUserAccountRead,
 		UpdateContext: resourceUserAccountUpdate,
 		DeleteContext: resourceUserAccountDelete,
-		Schema: map[string]*schema.Schema{
-			"redfish_server": {
-				Type:        schema.TypeList,
-				Required:    true,
-				Description: "This list contains the different redfish endpoints to manage (different servers)",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"user": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Description: "This field is the user to login against the redfish API",
-						},
-						"password": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Description: "This field is the password related to the user given",
-						},
-						"endpoint": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "This field is the endpoint where the redfish API is placed",
-						},
-						"ssl_insecure": {
-							Type:        schema.TypeBool,
-							Optional:    true,
-							Description: "This field indicates if the SSL/TLS certificate must be verified",
-						},
+		Schema:        getResourceUserAccountSchema(),
+	}
+}
+
+func getResourceUserAccountSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"redfish_server": {
+			Type:        schema.TypeList,
+			Required:    true,
+			Description: "This list contains the different redfish endpoints to manage (different servers)",
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"user": {
+						Type:        schema.TypeString,
+						Optional:    true,
+						Description: "This field is the user to login against the redfish API",
+					},
+					"password": {
+						Type:        schema.TypeString,
+						Optional:    true,
+						Description: "This field is the password related to the user given",
+					},
+					"endpoint": {
+						Type:        schema.TypeString,
+						Required:    true,
+						Description: "This field is the endpoint where the redfish API is placed",
+					},
+					"ssl_insecure": {
+						Type:        schema.TypeBool,
+						Optional:    true,
+						Description: "This field indicates if the SSL/TLS certificate must be verified",
 					},
 				},
 			},
-			"username": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"password": &schema.Schema{
-				Type:      schema.TypeString,
-				Required:  true,
-				Sensitive: true,
-			},
-			"enabled": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-			},
-			"role_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "None",
-			},
+		},
+		"username": &schema.Schema{
+			Type:     schema.TypeString,
+			Required: true,
+		},
+		"password": &schema.Schema{
+			Type:      schema.TypeString,
+			Required:  true,
+			Sensitive: true,
+		},
+		"enabled": &schema.Schema{
+			Type:     schema.TypeBool,
+			Optional: true,
+			Default:  false,
+		},
+		"role_id": &schema.Schema{
+			Type:     schema.TypeString,
+			Optional: true,
+			Default:  "None",
 		},
 	}
 }
