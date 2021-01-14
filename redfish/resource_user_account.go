@@ -26,12 +26,12 @@ func resourceUserAccount() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"user": {
 							Type:        schema.TypeString,
-							Required:    true,
+							Optional:    true,
 							Description: "This field is the user to login against the redfish API",
 						},
 						"password": {
 							Type:        schema.TypeString,
-							Required:    true,
+							Optional:    true,
 							Description: "This field is the password related to the user given",
 						},
 						"endpoint": {
@@ -71,14 +71,42 @@ func resourceUserAccount() *schema.Resource {
 }
 
 func resourceUserAccountCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
 	//Connect client
-	service, err := NewConfig(d)
+	service, err := NewConfig(m.(*schema.ResourceData), d)
 	if err != nil {
 		return diag.Errorf(err.Error())
 	}
+	return createRedfishUserAccount(ctx, service, d, m)
+}
 
+func resourceUserAccountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	//Connect client
+	service, err := NewConfig(m.(*schema.ResourceData), d)
+	if err != nil {
+		return diag.Errorf(err.Error())
+	}
+	return readRedfishUserAccount(service, d)
+}
+
+func resourceUserAccountUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	//Connect client
+	service, err := NewConfig(m.(*schema.ResourceData), d)
+	if err != nil {
+		return diag.Errorf(err.Error())
+	}
+	return updateRedfishUserAccount(ctx, service, d, m)
+}
+
+func resourceUserAccountDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	//Connect client
+	service, err := NewConfig(m.(*schema.ResourceData), d)
+	if err != nil {
+		return diag.Errorf(err.Error())
+	}
+	return deleteRedfishUserAccount(service, d)
+}
+
+func createRedfishUserAccount(ctx context.Context, service *gofish.Service, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	accountList, err := getAccountList(service)
 	if err != nil {
 		return diag.Errorf("Error when retrieving account list %v", err)
@@ -101,21 +129,16 @@ func resourceUserAccountCreate(ctx context.Context, d *schema.ResourceData, m in
 			}
 			//Set ID to terraform state file
 			d.SetId(account.ID)
-			return diags
+			//return diags
+			return resourceUserAccountRead(ctx, d, m)
 		}
 	}
 	//No room for new users
 	return diag.Errorf("There are no room for new users")
 }
 
-func resourceUserAccountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func readRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
 	var diags diag.Diagnostics
-
-	//Connect client
-	service, err := NewConfig(d)
-	if err != nil {
-		return diag.Errorf(err.Error())
-	}
 
 	accountList, err := getAccountList(service)
 	if err != nil {
@@ -143,13 +166,7 @@ func resourceUserAccountRead(ctx context.Context, d *schema.ResourceData, m inte
 	return diags
 }
 
-func resourceUserAccountUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	//Connect client
-	service, err := NewConfig(d)
-	if err != nil {
-		return diag.Errorf(err.Error())
-	}
-
+func updateRedfishUserAccount(ctx context.Context, service *gofish.Service, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	accountList, err := getAccountList(service)
 	if err != nil {
 		return diag.Errorf("Error when retrieving account list %v", err)
@@ -199,15 +216,8 @@ func resourceUserAccountUpdate(ctx context.Context, d *schema.ResourceData, m in
 	return resourceUserAccountRead(ctx, d, m)
 }
 
-func resourceUserAccountDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func deleteRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
 	var diags diag.Diagnostics
-
-	//Connect client
-	service, err := NewConfig(d)
-	if err != nil {
-		return diag.Errorf(err.Error())
-	}
-
 	accountList, err := getAccountList(service)
 	if err != nil {
 		return diag.Errorf("Error when retrieving account list %v", err)

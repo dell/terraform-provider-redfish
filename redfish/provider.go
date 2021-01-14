@@ -9,23 +9,13 @@ func Provider() *schema.Provider {
 		Schema: map[string]*schema.Schema{
 			"user": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				Description: "Default value. This field is the user to login against the redfish API",
 			},
 			"password": {
 				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Default value. This field is the password related to the user given",
-			},
-			"endpoint": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Default value. This field is the endpoint where the redfish API is placed",
-			},
-			"ssl_insecure": {
-				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Default value. This field indicates if the SSL/TLS certificate must be verified",
+				Description: "Default value. This field is the password related to the user given",
 			},
 		},
 
@@ -58,5 +48,6 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	At the moment, the terraform SDK (Provider.StopFunc) is not implemented. To follow up, please refer to this pull request:
 	https://github.com/hashicorp/terraform-plugin-sdk/pull/377
 	*/
-	return nil, nil
+
+	return d, nil
 }
