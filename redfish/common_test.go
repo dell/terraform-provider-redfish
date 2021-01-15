@@ -58,7 +58,10 @@ var (
 
 	managerAccount1 = "{     \"@odata.context\": \"/redfish/v1/$metadata#ManagerAccount.ManagerAccount\",     \"@odata.id\": \"/redfish/v1/AccountService/Accounts/1\",     \"@odata.type\": \"#ManagerAccount.v1_5_0.ManagerAccount\",     \"AccountTypes\": [         \"Redfish\",         \"SNMP\",         \"OEM\"     ],     \"Description\": \"User Account\",     \"Enabled\": false,     \"Id\": \"1\",     \"Links\": {         \"Role\": {             \"@odata.id\": \"/redfish/v1/AccountService/Roles/None\"         }     },     \"Locked\": false,     \"Name\": \"User Account\",     \"OEMAccountTypes\": [         \"IPMI\",         \"SOL\",         \"WSMAN\",         \"UI\",         \"RACADM\"     ],     \"Password\": null,     \"PasswordChangeRequired\": false,     \"RoleId\": \"None\",     \"SNMP\": {         \"AuthenticationKey\": null,         \"AuthenticationKeySet\": false,         \"AuthenticationProtocol\": \"HMAC_SHA96\",         \"EncryptionKey\": null,         \"EncryptionKeySet\": false,         \"EncryptionProtocol\": \"CFB128_AES128\"     },     \"UserName\": \"\" }"
 	managerAccount2 = "{     \"@odata.context\": \"/redfish/v1/$metadata#ManagerAccount.ManagerAccount\",     \"@odata.id\": \"/redfish/v1/AccountService/Accounts/2\",     \"@odata.type\": \"#ManagerAccount.v1_5_0.ManagerAccount\",     \"AccountTypes\": [         \"Redfish\",         \"SNMP\",         \"OEM\"     ],     \"Description\": \"User Account\",     \"Enabled\": true,     \"Id\": \"2\",     \"Links\": {         \"Role\": {             \"@odata.id\": \"/redfish/v1/AccountService/Roles/Administrator\"         }     },     \"Locked\": false,     \"Name\": \"User Account\",     \"OEMAccountTypes\": [         \"IPMI\",         \"SOL\",         \"WSMAN\",         \"UI\",         \"RACADM\"     ],     \"Password\": null,     \"PasswordChangeRequired\": false,     \"RoleId\": \"Administrator\",     \"SNMP\": {         \"AuthenticationKey\": null,         \"AuthenticationKeySet\": true,         \"AuthenticationProtocol\": \"HMAC_SHA96\",         \"EncryptionKey\": null,         \"EncryptionKeySet\": false,         \"EncryptionProtocol\": \"CFB128_AES128\"     },     \"UserName\": \"root\" }"
-	managerAccount3 = "{     \"@odata.context\": \"/redfish/v1/$metadata#ManagerAccount.ManagerAccount\",     \"@odata.id\": \"/redfish/v1/AccountService/Accounts/3\",     \"@odata.type\": \"#ManagerAccount.v1_5_0.ManagerAccount\",     \"AccountTypes\": [         \"Redfish\",         \"SNMP\",         \"OEM\"     ],     \"Description\": \"User Account\",     \"Enabled\": false,     \"Id\": \"3\",     \"Links\": {         \"Role\": {             \"@odata.id\": \"/redfish/v1/AccountService/Roles/None\"         }     },     \"Locked\": false,     \"Name\": \"User Account\",     \"OEMAccountTypes\": [         \"IPMI\",         \"SOL\",         \"WSMAN\",         \"UI\",         \"RACADM\"     ],     \"Password\": null,     \"PasswordChangeRequired\": false,     \"RoleId\": \"None\",     \"SNMP\": {         \"AuthenticationKey\": null,         \"AuthenticationKeySet\": false,         \"AuthenticationProtocol\": \"HMAC_SHA96\",         \"EncryptionKey\": null,         \"EncryptionKeySet\": false,         \"EncryptionProtocol\": \"CFB128_AES128\"     },     \"UserName\": \"\" }"
+	//managerAccount3 is an empty one
+	managerAccountEmpty = "{     \"@odata.context\": \"/redfish/v1/$metadata#ManagerAccount.ManagerAccount\",     \"@odata.id\": \"/redfish/v1/AccountService/Accounts/3\",     \"@odata.type\": \"#ManagerAccount.v1_5_0.ManagerAccount\",     \"AccountTypes\": [         \"Redfish\",         \"SNMP\",         \"OEM\"     ],     \"Description\": \"User Account\",     \"Enabled\": false,     \"Id\": \"3\",     \"Links\": {         \"Role\": {             \"@odata.id\": \"/redfish/v1/AccountService/Roles/None\"         }     },     \"Locked\": false,     \"Name\": \"User Account\",     \"OEMAccountTypes\": [         \"IPMI\",         \"SOL\",         \"WSMAN\",         \"UI\",         \"RACADM\"     ],     \"Password\": null,     \"PasswordChangeRequired\": false,     \"RoleId\": \"None\",     \"SNMP\": {         \"AuthenticationKey\": null,         \"AuthenticationKeySet\": false,         \"AuthenticationProtocol\": \"HMAC_SHA96\",         \"EncryptionKey\": null,         \"EncryptionKeySet\": false,         \"EncryptionProtocol\": \"CFB128_AES128\"     },     \"UserName\": \"\" }"
+	//managerAccountTest is one with UserName=test
+	managerAccountTest = "{     \"@odata.context\": \"/redfish/v1/$metadata#ManagerAccount.ManagerAccount\",     \"@odata.id\": \"/redfish/v1/AccountService/Accounts/3\",     \"@odata.type\": \"#ManagerAccount.v1_5_0.ManagerAccount\",     \"AccountTypes\": [         \"Redfish\",         \"SNMP\",         \"OEM\"     ],     \"Description\": \"User Account\",     \"Enabled\": false,     \"Id\": \"3\",     \"Links\": {         \"Role\": {             \"@odata.id\": \"/redfish/v1/AccountService/Roles/None\"         }     },     \"Locked\": false,     \"Name\": \"User Account\",     \"OEMAccountTypes\": [         \"IPMI\",         \"SOL\",         \"WSMAN\",         \"UI\",         \"RACADM\"     ],     \"Password\": null,     \"PasswordChangeRequired\": false,     \"RoleId\": \"None\",     \"SNMP\": {         \"AuthenticationKey\": null,         \"AuthenticationKeySet\": false,         \"AuthenticationProtocol\": \"HMAC_SHA96\",         \"EncryptionKey\": null,         \"EncryptionKeySet\": false,         \"EncryptionProtocol\": \"CFB128_AES128\"     },     \"UserName\": \"test\" }"
 )
 
 /*
@@ -164,46 +167,16 @@ func setStorageMockedClient(collection string, options string) (interface{}, err
 	return nil, fmt.Errorf("No matches for building the test client")
 }
 
-func setUserAccountMockedClient() (*gofish.Service, error) {
-	testClient := &common.TestClient{}
-	responseBuilder := &responseBuilder{}
-	testClient.CustomReturnForActions = make(map[string][]interface{})
-
-	//Add rootResponse to map
-	rootResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(rootRedfishJSON).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &rootResponse)
-
-	//Get mocked service
-	service, err := gofish.ServiceRoot(testClient)
-	if err != nil {
-		return nil, err
-	}
-
-	//Add accountServiceResponse
-	accountServiceResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(accountServiceRedfishJSON).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &accountServiceResponse)
-
-	//Add managerAccountCollection
-	managerAccountResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(managerAccountCollection).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &managerAccountResponse)
-
-	//Add mocked accounts (I need to create several scenario where the user exist, doesnt exist, and no space for new)
-	managerAccount1 := responseBuilder.Status("200 OK").StatusCode(200).Body(managerAccount1).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &managerAccount1)
-	managerAccount2 := responseBuilder.Status("200 OK").StatusCode(200).Body(managerAccount2).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &managerAccount2)
-	managerAccount3 := responseBuilder.Status("200 OK").StatusCode(200).Body(managerAccount3).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &managerAccount3)
-
-	return service, nil
-}
-
 func getReader(s string) io.ReadCloser {
 	return ioutil.NopCloser(strings.NewReader(s))
 }
 
 type responseBuilder struct {
 	response http.Response
+}
+
+func NewResponseBuilder() *responseBuilder {
+	return &responseBuilder{response: http.Response{}}
 }
 
 func (r *responseBuilder) Build() http.Response {
