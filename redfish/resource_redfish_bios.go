@@ -4,15 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"net/url"
+	"path"
+	"strconv"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/common"
 	"github.com/stmcginnis/gofish/redfish"
-	"log"
-	"strconv"
-	"strings"
 )
 
 func resourceRedfishBios() *schema.Resource {
@@ -32,14 +35,35 @@ func resourceRedfishBios() *schema.Resource {
 			},
 
 			"settings_apply_time": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The time when the BIOS settings can be applied. Applicable values are 'OnReset', 'Immediate', 'AtMaintenanceWindowStart' and 'InMaintenanceWindowStart'.",
+				Type:     schema.TypeString,
+				Optional: true,
+				Description: "The time when the BIOS settings can be applied. Applicable values are " +
+					"'OnReset', 'Immediate', 'AtMaintenanceWindowStart' and 'InMaintenanceWindowStart'.",
+				Default: "Immediate",
 				ValidateFunc: validation.StringInSlice([]string{
 					string(common.ImmediateApplyTime),
 					string(common.OnResetApplyTime),
 					string(common.AtMaintenanceWindowStartApplyTime),
 					string(common.InMaintenanceWindowOnResetApplyTime),
+				}, false),
+			},
+
+			"action_after_apply": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Description: "Action to perform on the target after the BIOS settings are applied. " +
+					"Default=nil : no action after apply" +
+					"Applicable values are nil, 'On','ForceOn','ForceOff','ForceRestart','GracefulRestart'," +
+					"'GracefulShutdown','PushPowerButton','PowerCycle','Nmi'.",
+				ValidateFunc: validation.StringInSlice([]string{
+					string(redfish.OnResetType),
+					string(redfish.ForceOnResetType),
+					string(redfish.ForceOffResetType),
+					string(redfish.ForceRestartResetType),
+					string(redfish.GracefulRestartResetType),
+					string(redfish.GracefulShutdownResetType),
+					string(redfish.PushPowerButtonResetType),
+					string(redfish.PowerCycleResetType),
 				}, false),
 			},
 
@@ -65,12 +89,12 @@ func resourceRedfishBiosUpdate(ctx context.Context, d *schema.ResourceData, m in
 	pending := false
 	if v, ok := d.GetOk("bios_config_job_uri"); ok {
 		log.Printf("[DEBUG] %s: Bios config job uri is \"%s\"", d.Id(), v.(string))
-		taskUri, _ := v.(string)
-		if len(taskUri) > 0 {
-			task, _ := redfish.GetTask(conn, taskUri)
+		taskURI, _ := v.(string)
+		if len(taskURI) > 0 {
+			task, _ := redfish.GetTask(conn, taskURI)
 			if task != nil {
 				if task.TaskState != redfish.CompletedTaskState {
-					log.Println("[DEBUG] %s: BIOS config task state = %s", d.Id(), task.TaskState)
+					log.Printf("[DEBUG] %s: BIOS config task state = %s", d.Id(), task.TaskState)
 					pending = true
 				}
 			} else {
@@ -135,8 +159,8 @@ func resourceRedfishBiosUpdate(ctx context.Context, d *schema.ResourceData, m in
 			log.Printf("[DEBUG] Not updating the attributes as a previous BIOS job is pending")
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Warning,
-				Summary: "Unable to update bios attributes",
-				Detail: "Unable to update bios attributes as a previous BIOS job is pending",
+				Summary:  "Unable to update bios attributes",
+				Detail:   "Unable to update bios attributes as a previous BIOS job is pending",
 			})
 		}
 	} else {
@@ -149,6 +173,11 @@ func resourceRedfishBiosUpdate(ctx context.Context, d *schema.ResourceData, m in
 
 	// Set the ID to the @odata.id
 	d.SetId(bios.ODataID)
+
+	actionAfterApply, exists := d.GetOk("action_after_apply")
+	if exists && actionAfterApply != nil {
+		resetSystem(conn, d, actionAfterApply.(redfish.ResetType))
+	}
 
 	log.Printf("[DEBUG] %s: Update finished successfully", d.Id())
 	return diags
@@ -216,8 +245,8 @@ func copyBiosAttributes(bios *redfish.Bios, attributes map[string]string) error 
 	// value types. So we will convert int and float values to string.
 	// copy from the BIOS attributes to the new bios attributes map
 	for key, value := range bios.Attributes {
-		if attr_val, ok := value.(string); ok {
-			attributes[key] = attr_val
+		if attrVal, ok := value.(string); ok {
+			attributes[key] = attrVal
 		} else {
 			attributes[key] = fmt.Sprintf("%v", value)
 		}
@@ -251,25 +280,66 @@ func updateBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes
 		}
 	}
 
-	settingsObjectURI := bios.ODataID + "/Settings"
+	oDataURI, err := url.Parse(bios.ODataID)
+	oDataURI.Path = path.Join(oDataURI.Path, "Settings")
+	settingsObjectURI := oDataURI.String()
 
 	resp, err := bios.Client.Patch(settingsObjectURI, payload)
 	if err != nil {
-		log.Println("[DEBUG] error sending the patch request: %s", err)
+		log.Printf("[DEBUG] error sending the patch request: %s", err)
 		return err
 	}
 
 	// check if location is present in the response header
 	if location, err := resp.Location(); err == nil {
-		log.Printf("[DEBUG] BIOS configuration job uri:", location.String())
+		log.Printf("[DEBUG] BIOS configuration job uri: %s", location.String())
 
-		taskUri := location.EscapedPath()
+		taskURI := location.EscapedPath()
 
-		if err = d.Set("bios_config_job_uri", taskUri); err != nil {
+		if err = d.Set("bios_config_job_uri", taskURI); err != nil {
 			log.Printf("[DEBUG] error setting the task uri: %s", err)
 			return err
 		}
 	}
 
 	return nil
+}
+
+func resetSystem(client *gofish.APIClient, d *schema.ResourceData, resetType redfish.ResetType) error {
+
+	system, err := getOnlySystem(client)
+	if err != nil {
+		log.Printf("[ERROR]: Failed to identify system: %s", err)
+		return err
+	}
+
+	if system.PowerState == redfish.OffPowerState {
+		log.Printf("[WARN]: will not perform reset because system is Off.  Bios changes will be applied at next boot.")
+		return nil
+	}
+
+	log.Printf("[TRACE]: Performing system.Reset(%s)", resetType)
+	if err = system.Reset(resetType); err != nil {
+		log.Printf("[WARN]: system.Reset returned an error: %s", err)
+		return err
+	}
+
+	log.Printf("[TRACE]: system.Reset successful")
+	return err
+}
+
+func getOnlySystem(client *gofish.APIClient) (*redfish.ComputerSystem, error) {
+	systems, err := client.Service.Systems()
+
+	if err != nil {
+		return nil, err
+	}
+	if len(systems) == 0 {
+		return nil, errors.New("No systems found")
+	}
+	if len(systems) > 1 {
+		return nil, errors.New("Too many systems found")
+	}
+
+	return systems[0], err
 }
