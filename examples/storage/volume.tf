@@ -1,19 +1,15 @@
-provider "redfish" {
-  redfish_server { 
-        endpoint = "192.168.1.1"
-        user = "root"
-        password = "calvin"
-        ssl_insecure = true
-  }
-  redfish_server { 
-        endpoint = "192.168.1.2"
-        user = "root"
-        password = "calvin"
-        ssl_insecure = true
-  }
-}
+provider "redfish" {}
 
 resource "redfish_storage_volume" "volume" {
+    for_each = var.rack1
+
+    redfish_server {
+        user = each.value.user
+        password = each.value.password
+        endpoint = each.value.endpoint
+        ssl_insecure = each.value.ssl_insecure
+    } 
+    
     storage_controller_id = "RAID.Integrated.1-1"
     volume_name = "TerraformVol"
     volume_type = "Mirrored"

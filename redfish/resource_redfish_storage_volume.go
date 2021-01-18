@@ -81,10 +81,10 @@ func getResourceStorageVolumeSchema() map[string]*schema.Schema {
 			Description: "Flag to make the operation either \"Immediate\" or \"OnReset\". By default value is \"Immediate\"",
 			Optional:    true,
 		},
-		"volumes_id": &schema.Schema{
-			Type: schema.TypeMap,
-			//Optional: true,
-			Computed: true,
+		"job_id": &schema.Schema{
+			Type:        schema.TypeString,
+			Description: "This parameter will return the jobID from the job that will carry out the operation if \"settings_apply_time\" is different from \"Immediate\".",
+			Computed:    true,
 		},
 	}
 }
@@ -156,6 +156,7 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 	if err != nil {
 		return diag.Errorf("Error when creating the virtual disk on disk controller %s - %s", storageID, err)
 	}
+
 	//Need to figure out how to proceed with settingsApplyTime (Immediate or OnReset)
 	switch applyTime.(string) {
 	case "Immediate":
@@ -163,15 +164,12 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 		if err != nil {
 			return diag.Errorf("Error, job %s wasn't able to complete", jobID)
 		}
-		// Get new volumeID
-		storage, err := getStorageController(service, storageID)
-		if err != nil {
-			return diag.Errorf("Error when getting the storage struct: %s", err)
-		}
+
 		volumeID, err := getVolumeID(storage, volumeName)
 		if err != nil {
 			return diag.Errorf("Error. The volume ID with volume name %s on %s controller was not found", volumeName, storageID)
 		}
+		d.Set("job_id", "")
 		d.SetId(volumeID)
 		return diags
 	case "OnReset":
@@ -181,99 +179,41 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 }
 
 func readRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
+	var diags diag.Diagnostics
+	/*
+		Here we gotta check:
+			- If the volume exists
+			- If it has jobID, if finished, get the volumeID
 
+		Also never EVER trigger an update regarding disk properties for safety reasons
+	*/
+	return diags
 }
 
 func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-
+	var diags diag.Diagnostics
+	/*
+		Since we are dealing with storage, betten not to try to update anything
+	*/
+	return diags
 }
 
 func deleteRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
-	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
-	execResult := make(chan common.ResourceResult, len(m.([]*ClientConfig)))
-	c := m.([]*ClientConfig)
-	//Get user config
-	//If applyTime has been set to Immediate, the volumeID of the resource will be the ODataID of the volume just created.
-	//If applyTime is OnReset, the volumeID will be the JobID
-	//Get subresources
-	volumes := d.Get("volumes_id").(map[string]interface{})
-	applyTime, ok := d.GetOk("settings_apply_time")
-	if !ok {
-		//If settingsApplyTime has not set, by default use Immediate
-		applyTime = "Immediate"
-	}
-	for _, v := range c {
-		go func(v *ClientConfig, execResult chan common.ResourceResult) {
-			//DELETE VOLUME
-			if applyTime.(string) == "Immediate" {
-				jobID, err := deleteVolume(v.Service.Client, volumes[v.Endpoint].(string))
-				if err != nil {
-					execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error. There was an error when deleting volume %s - %s", v.Endpoint, volumes[v.Endpoint].(string), err)}
-					return
-				}
-				//WAIT FOR VOLUME TO DELETE
-				err = common.WaitForJobToFinish(v.Service.Client, jobID, common.TimeBetweenAttempts, common.Timeout)
-				if err != nil {
-					//panic(err)
-					execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error, timeout reached when waiting for job %s to finish. %s", v.Endpoint, jobID, err)}
-					return
-				}
-			} else {
-				//Check if the job has been completed or not. If not, kill the job. If so, kill the volume
-				task, err := redfish.GetTask(v.Service.Client, volumes[v.Endpoint].(string))
-				if err != nil {
-					execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when retrieving the tasks: %s", v.Endpoint, err)}
-					return
-				}
-				if task.TaskState == redfish.CompletedTaskState {
-					//Get the actual volumeID for destroying it
-					storageID := d.Get("storage_controller_id").(string)
-					volumeName := d.Get("volume_name").(string)
-					//getStorageController
-					storage, err := getStorageController(v.Service, storageID)
-					if err != nil {
-						execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when getting the storage struct: %s", v.Endpoint, err)}
-						return
-					}
-					actualVolumeID, err := getVolumeID(storage, volumeName)
-					if err != nil {
-						execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when getting the actual volumeID: %s", v.Endpoint, err)}
-						return
-					}
-					//MAYBE WE NEED TO SET A JOB INSTEAD OF DELETING IT RIGHTAWAY
-					_, err = deleteVolume(v.Service.Client, actualVolumeID)
-				} else {
-					//Get rid of the Job that will create the volume
-					//IMPORTART LIMITATION. TO DELETE A TASK IN DELL EMC REDFISH IMPLEMENTATION, NEEDS TO BE DONE THROUGH ITS MANAGER/redfish/v1/Managers/iDRAC.Embedded.1/Jobs/%s
-					err := common.DeleteDellJob(v.Service.Client, task.ID)
-					if err != nil {
-						execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error  when deleting the task %s - %s", v.Endpoint, task.ID, err)}
-						return
-					}
-					execResult <- common.ResourceResult{Endpoint: v.Endpoint, Error: false, ErrorMsg: ""}
-					return
-				}
-			}
-			execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: false, ErrorMsg: ""}
-			return
-		}(v, execResult)
-	}
-	var errorMsg string
-	for i := 0; i < len(m.([]*ClientConfig)); i++ {
-		result := <-execResult
-		if result.Error {
-			errorMsg += result.ErrorMsg
-		} else {
-			delete(volumes, result.Endpoint)
+	switch l := len(d.Get("job_id").(string)); l {
+	case 0: //This case means job_id has not been set, meaning a volume is in place.
+		jobID, err := deleteVolume(service, d.Id())
+		if err != nil {
+			return diag.Errorf("Error. There was an error when deleting volume %s - %s", d.Id(), err)
 		}
+		//WAIT FOR VOLUME TO DELETE
+		err = common.WaitForJobToFinish(service, jobID, common.TimeBetweenAttempts, common.Timeout)
+		if err != nil {
+			return diag.Errorf("Error, timeout reached when waiting for job %s to finish. %s", jobID, err)
+		}
+	default: //This case means job_id has been set.
+		//Looks like now it's possible to use HTTP DELETE against the taskID on iDRAC 4.40.00.00
 	}
-	close(execResult)
-	d.Set("volumes_id", volumes)
-	if len(errorMsg) > 0 {
-		return diag.Errorf(errorMsg)
-	}
-	d.SetId("")
 	return diags
 }
 
