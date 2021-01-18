@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stmcginnis/gofish"
-	redfishcommon "github.com/stmcginnis/gofish/common"
 	"github.com/stmcginnis/gofish/redfish"
 	_ "log"
 	"net/http"
@@ -19,50 +18,114 @@ func resourceRedfishStorageVolume() *schema.Resource {
 		ReadContext:   resourceStorageVolumeRead,
 		UpdateContext: resourceStorageVolumeUpdate,
 		DeleteContext: resourceStorageVolumeDelete,
-		Schema: map[string]*schema.Schema{
-			"storage_controller_id": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "This value must be the storage controller ID the user want to manage. I.e: RAID.Integrated.1-1",
-			},
-			"volume_name": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "This value is the desired name for the volume to be given",
-			},
-			"volume_type": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "This value specifies the raid level the virtual disk is going to have. Possible values are: NonRedundant (RAID-0), Mirrored (RAID-1), StripedWithParity (RAID-5), SpannedMirrors (RAID-10) or SpannedStripesWithParity (RAID-50)",
-			},
-			"volume_disks": &schema.Schema{
-				Type:        schema.TypeList,
-				Required:    true,
-				Description: "This list contains the physical disks names to create the volume within a disk controller",
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
+		Schema:        getResourceStorageVolumeSchema(),
+	}
+}
+
+func getResourceStorageVolumeSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"redfish_server": {
+			Type:        schema.TypeList,
+			Required:    true,
+			Description: "This list contains the different redfish endpoints to manage (different servers)",
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"user": {
+						Type:        schema.TypeString,
+						Optional:    true,
+						Description: "This field is the user to login against the redfish API",
+					},
+					"password": {
+						Type:        schema.TypeString,
+						Optional:    true,
+						Description: "This field is the password related to the user given",
+					},
+					"endpoint": {
+						Type:        schema.TypeString,
+						Required:    true,
+						Description: "This field is the endpoint where the redfish API is placed",
+					},
+					"ssl_insecure": {
+						Type:        schema.TypeBool,
+						Optional:    true,
+						Description: "This field indicates if the SSL/TLS certificate must be verified",
+					},
 				},
 			},
-			"settings_apply_time": &schema.Schema{
-				Type:        schema.TypeString,
-				Description: "Flag to make the operation either \"Immediate\" or \"OnReset\". By default value is \"Immediate\"",
-				Optional:    true,
+		},
+		"storage_controller_id": &schema.Schema{
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "This value must be the storage controller ID the user want to manage. I.e: RAID.Integrated.1-1",
+		},
+		"volume_name": &schema.Schema{
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "This value is the desired name for the volume to be given",
+		},
+		"volume_type": &schema.Schema{
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "This value specifies the raid level the virtual disk is going to have. Possible values are: NonRedundant (RAID-0), Mirrored (RAID-1), StripedWithParity (RAID-5), SpannedMirrors (RAID-10) or SpannedStripesWithParity (RAID-50)",
+		},
+		"volume_disks": &schema.Schema{
+			Type:        schema.TypeList,
+			Required:    true,
+			Description: "This list contains the physical disks names to create the volume within a disk controller",
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
 			},
-			"volumes_id": &schema.Schema{
-				Type: schema.TypeMap,
-				//Optional: true,
-				Computed: true,
-			},
-			/*TODO
-			Implement validate function with redfish.GetOperationApplyTimeValues()*/
+		},
+		"settings_apply_time": &schema.Schema{
+			Type:        schema.TypeString,
+			Description: "Flag to make the operation either \"Immediate\" or \"OnReset\". By default value is \"Immediate\"",
+			Optional:    true,
+		},
+		"volumes_id": &schema.Schema{
+			Type: schema.TypeMap,
+			//Optional: true,
+			Computed: true,
 		},
 	}
 }
 
 func resourceStorageVolumeCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	service, err := NewConfig(m.(*schema.ResourceData), d)
+	if err != nil {
+		return diag.Errorf(err.Error())
+	}
+	return createRedfishStorageVolume(service, d)
+}
+
+func resourceStorageVolumeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	service, err := NewConfig(m.(*schema.ResourceData), d)
+	if err != nil {
+		return diag.Errorf(err.Error())
+	}
+	return readRedfishStorageVolume(service, d)
+}
+
+func resourceStorageVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	service, err := NewConfig(m.(*schema.ResourceData), d)
+	if err != nil {
+		return diag.Errorf(err.Error())
+	}
+	if diags := updateRedfishStorageVolume(ctx, service, d, m); diags.HasError() {
+		return diags
+	}
+	return resourceStorageVolumeRead(ctx, d, m)
+}
+
+func resourceStorageVolumeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	service, err := NewConfig(m.(*schema.ResourceData), d)
+	if err != nil {
+		return diag.Errorf(err.Error())
+	}
+	return deleteRedfishStorageVolume(service, d)
+}
+
+func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
 	var diags diag.Diagnostics
-	execResult := make(chan common.ResourceResult, len(m.([]*ClientConfig)))
-	c := m.([]*ClientConfig)
 	//Get user config
 	storageID := d.Get("storage_controller_id").(string)
 	volumeType := d.Get("volume_type").(string)
@@ -79,80 +142,53 @@ func resourceStorageVolumeCreate(ctx context.Context, d *schema.ResourceData, m 
 		driveNames[i] = raw.(string)
 	}
 
-	for _, v := range c {
-		go func(v *ClientConfig, execResult chan common.ResourceResult) {
-			//Get storage
-			storage, err := getStorageController(v.Service, storageID)
-			if err != nil {
-				execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when getting the storage struct: %s", v.Endpoint, err)}
-				return
-			}
-			//Get drives
-			drives, err := getDrives(storage, driveNames)
-			if err != nil {
-				execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when getting the drives: %s", v.Endpoint, err)}
-				return
-			}
-			jobID, err := createVolume(v.Service.Client, storage.ODataID, volumeType, volumeName, drives, applyTime.(string))
-			if err != nil {
-				execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when creating the virtual disk on disk controller %s - %s", v.Endpoint, storageID, err)}
-				return
-			}
-			//Need to figure out how to proceed with settingsApplyTime (Immediate or OnReset)
-			if applyTime.(string) == "Immediate" {
-				err = common.WaitForJobToFinish(v.Service.Client, jobID, common.TimeBetweenAttempts, common.Timeout)
-				if err != nil {
-					execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error, job %s wasn't able to complete", v.Endpoint, jobID)}
-					return
-				}
-				// Get new volumeID
-				storage, err := getStorageController(v.Service, storageID)
-				if err != nil {
-					execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when getting the storage struct: %s", v.Endpoint, err)}
-					return
-				}
-				volumeID, err := getVolumeID(storage, volumeName)
-				if err != nil {
-					execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error. The volume ID with volume name %s on %s controller was not found", v.Endpoint, volumeName, storageID)}
-					return
-				}
-				execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: volumeID, Error: false, ErrorMsg: ""}
-				return
-			}
-			//TODO - Implement for not Immediate scenarios
-			execResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: jobID, Error: false, ErrorMsg: ""}
-			return
-		}(v, execResult)
+	//Get storage
+	storage, err := getStorageController(service, storageID)
+	if err != nil {
+		return diag.Errorf("Error when getting the storage struct: %s", err)
 	}
-	volumeIDs := make(map[string]string)
-	var errorMsg string
-	for i := 0; i < len(m.([]*ClientConfig)); i++ {
-		result := <-execResult
-		if result.Error {
-			errorMsg += result.ErrorMsg
+	//Get drives
+	drives, err := getDrives(storage, driveNames)
+	if err != nil {
+		return diag.Errorf("Error when getting the drives: %s", err)
+	}
+	jobID, err := createVolume(service, storage.ODataID, volumeType, volumeName, drives, applyTime.(string))
+	if err != nil {
+		return diag.Errorf("Error when creating the virtual disk on disk controller %s - %s", storageID, err)
+	}
+	//Need to figure out how to proceed with settingsApplyTime (Immediate or OnReset)
+	switch applyTime.(string) {
+	case "Immediate":
+		err = common.WaitForJobToFinish(service, jobID, common.TimeBetweenAttempts, common.Timeout)
+		if err != nil {
+			return diag.Errorf("Error, job %s wasn't able to complete", jobID)
 		}
-		volumeIDs[result.Endpoint] = result.ID
+		// Get new volumeID
+		storage, err := getStorageController(service, storageID)
+		if err != nil {
+			return diag.Errorf("Error when getting the storage struct: %s", err)
+		}
+		volumeID, err := getVolumeID(storage, volumeName)
+		if err != nil {
+			return diag.Errorf("Error. The volume ID with volume name %s on %s controller was not found", volumeName, storageID)
+		}
+		d.SetId(volumeID)
+		return diags
+	case "OnReset":
+		//TODO - Implement for not Immediate scenarios
 	}
-	close(execResult)
-	d.SetId("Volumes")
-	d.Set("volumes_id", volumeIDs)
-	if len(errorMsg) > 0 {
-		return diag.Errorf(errorMsg)
-	}
-	return diags
+	return diag.Errorf("Error. The \"settingsApplyTime\" you chose doesn't exist")
 }
 
-func resourceStorageVolumeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-	//Check if there are volumes not created. Do not report anything else just to be safe
-	return diags
+func readRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
+
 }
 
-func resourceStorageVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	return resourceStorageVolumeRead(ctx, d, m)
+func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+
 }
 
-func resourceStorageVolumeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func deleteRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 	execResult := make(chan common.ResourceResult, len(m.([]*ClientConfig)))
@@ -258,9 +294,9 @@ func getStorageController(service *gofish.Service, diskControllerID string) (*re
 	return nil, fmt.Errorf("Error. Didn't find the storage controller %v", diskControllerID)
 }
 
-func deleteVolume(c redfishcommon.Client, volumeURI string) (jobID string, err error) {
+func deleteVolume(service *gofish.Service, volumeURI string) (jobID string, err error) {
 	//TODO - Check if we can delete immediately or if we need to schedule a job
-	res, err := c.Delete(volumeURI)
+	res, err := service.Client.Delete(volumeURI)
 	if err != nil {
 		return "", fmt.Errorf("Error while deleting the volume %s", volumeURI)
 	}
@@ -310,7 +346,7 @@ Parameters:
 	volumeName -> Name for the volume
 	driveNames -> Drives to use for the raid configuration
 */
-func createVolume(client redfishcommon.Client,
+func createVolume(service *gofish.Service,
 	storageLink string,
 	volumeType string,
 	volumeName string,
@@ -329,7 +365,7 @@ func createVolume(client redfishcommon.Client,
 	}
 	newVolume["Drives"] = listDrives
 	volumesURL := fmt.Sprintf("%v/Volumes", storageLink)
-	res, err := client.Post(volumesURL, newVolume)
+	res, err := service.Client.Post(volumesURL, newVolume)
 	if err != nil {
 		return "", err
 	}
