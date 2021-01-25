@@ -1,9 +1,6 @@
 package redfish
 
 import (
-	"fmt"
-	"github.com/stmcginnis/gofish"
-	"github.com/stmcginnis/gofish/common"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -62,110 +59,10 @@ var (
 	managerAccountEmpty = "{     \"@odata.context\": \"/redfish/v1/$metadata#ManagerAccount.ManagerAccount\",     \"@odata.id\": \"/redfish/v1/AccountService/Accounts/3\",     \"@odata.type\": \"#ManagerAccount.v1_5_0.ManagerAccount\",     \"AccountTypes\": [         \"Redfish\",         \"SNMP\",         \"OEM\"     ],     \"Description\": \"User Account\",     \"Enabled\": false,     \"Id\": \"3\",     \"Links\": {         \"Role\": {             \"@odata.id\": \"/redfish/v1/AccountService/Roles/None\"         }     },     \"Locked\": false,     \"Name\": \"User Account\",     \"OEMAccountTypes\": [         \"IPMI\",         \"SOL\",         \"WSMAN\",         \"UI\",         \"RACADM\"     ],     \"Password\": null,     \"PasswordChangeRequired\": false,     \"RoleId\": \"None\",     \"SNMP\": {         \"AuthenticationKey\": null,         \"AuthenticationKeySet\": false,         \"AuthenticationProtocol\": \"HMAC_SHA96\",         \"EncryptionKey\": null,         \"EncryptionKeySet\": false,         \"EncryptionProtocol\": \"CFB128_AES128\"     },     \"UserName\": \"\" }"
 	//managerAccountTest is one with UserName=test
 	managerAccountTest = "{     \"@odata.context\": \"/redfish/v1/$metadata#ManagerAccount.ManagerAccount\",     \"@odata.id\": \"/redfish/v1/AccountService/Accounts/3\",     \"@odata.type\": \"#ManagerAccount.v1_5_0.ManagerAccount\",     \"AccountTypes\": [         \"Redfish\",         \"SNMP\",         \"OEM\"     ],     \"Description\": \"User Account\",     \"Enabled\": false,     \"Id\": \"3\",     \"Links\": {         \"Role\": {             \"@odata.id\": \"/redfish/v1/AccountService/Roles/None\"         }     },     \"Locked\": false,     \"Name\": \"User Account\",     \"OEMAccountTypes\": [         \"IPMI\",         \"SOL\",         \"WSMAN\",         \"UI\",         \"RACADM\"     ],     \"Password\": null,     \"PasswordChangeRequired\": false,     \"RoleId\": \"None\",     \"SNMP\": {         \"AuthenticationKey\": null,         \"AuthenticationKeySet\": false,         \"AuthenticationProtocol\": \"HMAC_SHA96\",         \"EncryptionKey\": null,         \"EncryptionKeySet\": false,         \"EncryptionProtocol\": \"CFB128_AES128\"     },     \"UserName\": \"test\" }"
+
+	// --- TASKS RELATED MOCKED RESPONSES ---
+	successfulTask = "{\"@odata.context\":\"/redfish/v1/$metadata#Task.Task\",\"@odata.id\":\"/redfish/v1/TaskService/Tasks/OSDeployment\",\"@odata.type\":\"#Task.v1_4_3.Task\",\"Description\":\"Server Configuration and other Tasks running on iDRAC are listed here\",\"EndTime\":\"\",\"Id\":\"OSDeployment\",\"Messages\":[{\"Message\":\"The command was successful.\",\"MessageArgs\":[],\"MessageArgs@odata.count\":0,\"MessageId\":\"OSD1\"}],\"Messages@odata.count\":1,\"Name\":\"BootToNetworkISO\",\"PercentComplete\":null,\"TaskState\":\"Completed\",\"TaskStatus\":\"OK\"}"
 )
-
-/*
-Calls path
-service---------systems---------embeddedSystem---------storage(collection)-----o---drives
-	\																		    \--volumes (might have volumes or not)
-	 \-------AccountService------Accounts------o---- Account1
-												 \-- Account2
-												  \- Account N
-*/
-
-/*
-setStorageMockedClient's mission is to return an storage struct that's needed for the tests
-	and the mocked responses to the GET requests, for drives or volumes
-	Params:
-		- Collection: struct to return with next GET calls ready (i.e. service, storage, storage:drives, storage:volumes, etc). Use semicolons to access subcollections
-		- options: string that can be used to set special cases:
-			- if storageSubCollection is set to volumes:
-				- "empty": means volumes empty collection
-				- "included": means at lest there is one volume
-	Returns:
-		- interface{}: struct wanted by the user (i.e. gofish.Service, redfish.Storage)
-		- error: errors when executing the function
-*/
-func setStorageMockedClient(collection string, options string) (interface{}, error) {
-	testClient := &common.TestClient{}
-	responseBuilder := &responseBuilder{}
-	testClient.CustomReturnForActions = make(map[string][]interface{})
-
-	rootResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(rootRedfishJSON).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &rootResponse)
-	service, err := gofish.ServiceRoot(testClient)
-	if err != nil {
-		return nil, fmt.Errorf("Something went wrong with the mocked client: %s", err)
-	}
-
-	//service.Systems() will make 1 + N GET calls (where N is the number of systems, normally just one).
-	//	- First one to get the system collection
-	//	- The N following correspond to the number of systems embedded (Normally just one)
-	systemsResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(systemsRedfishJSON).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &systemsResponse)
-	embeddedSystemResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(systemEmbeddedRedfishJSON).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &embeddedSystemResponse)
-
-	/*embedded, err := service.Systems()
-	if err != nil {
-		return nil, fmt.Errorf("Something went wrong with the mocked client: %s", err)
-	}*/
-
-	//embedded[0].Storage() will make 1 + N calls, (where N is the number of storage controllers)
-	//	- First one to get the storage collection
-	//	- The N following correspond to the number of storage controllers (The example collection has 3 controllers)
-	storageResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(storageRedfishJSON).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &storageResponse)
-	firstStorageResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(storage1RedfishJSON).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &firstStorageResponse)
-	secondStorageResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(storage2RedfishJSON).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &secondStorageResponse)
-	thirdStorageResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(storage3RedfishJSON).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &thirdStorageResponse)
-
-	if collection == "service" {
-		return service, nil
-	}
-
-	embedded, err := service.Systems()
-	if err != nil {
-		return nil, fmt.Errorf("Something went wrong with the mocked client: %s", err)
-	}
-	/*Split parameters from collection*/
-	collections := strings.Split(collection, ":")
-
-	switch collections[0] {
-	case "storage":
-		storage, err := embedded[0].Storage()
-		if err != nil {
-			return nil, fmt.Errorf("Something went wrong with the mocked client: %s", err)
-		}
-
-		switch collections[1] {
-		case "drives":
-			firstDiskResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(drive1RedfishJSON).Build()
-			testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &firstDiskResponse)
-			secondDiskResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(drive2RedfishJSON).Build()
-			testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &secondDiskResponse)
-			return storage[0], nil
-		case "volumes":
-			switch options {
-			case "empty":
-				volumesResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(noVolumesRedfishJSON).Build()
-				testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &volumesResponse)
-				return storage[0], nil
-			case "included":
-				volumesResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(volumesRedfishJSON).Build()
-				testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &volumesResponse)
-				volumeResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(volumeRedfishJSON).Build()
-				testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &volumeResponse)
-				return storage[0], nil
-			}
-
-		}
-	}
-	return nil, fmt.Errorf("No matches for building the test client")
-}
 
 func getReader(s string) io.ReadCloser {
 	return ioutil.NopCloser(strings.NewReader(s))
