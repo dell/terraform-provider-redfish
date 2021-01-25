@@ -7,8 +7,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stmcginnis/gofish"
+	redfishcommon "github.com/stmcginnis/gofish/common"
 	"github.com/stmcginnis/gofish/redfish"
-	_ "log"
+	"log"
 	"net/http"
 )
 
@@ -147,6 +148,13 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 	if err != nil {
 		return diag.Errorf("Error when getting the storage struct: %s", err)
 	}
+
+	//Check if settings_apply_time is doable on this controller
+	operationApplyTimes, err := storage.GetOperationApplyTimeValues()
+	if !checkOperationApplyTimes(applyTime.(string), operationApplyTimes) {
+		return diag.Errorf("Storage controller %s does not support settings_apply_time: %s", storageID, applyTime)
+	}
+
 	//Get drives
 	drives, err := getDrives(storage, driveNames)
 	if err != nil {
@@ -162,7 +170,7 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 	case "Immediate":
 		err = common.WaitForJobToFinish(service, jobID, common.TimeBetweenAttempts, common.Timeout)
 		if err != nil {
-			return diag.Errorf("Error, job %s wasn't able to complete", jobID)
+			return diag.Errorf("Error, job %s wasn't able to complete: %s", jobID, err)
 		}
 
 		volumeID, err := getVolumeID(storage, volumeName)
@@ -180,20 +188,34 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 
 func readRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
 	var diags diag.Diagnostics
-	/*
-		Here we gotta check:
-			- If the volume exists
-			- If it has jobID, if finished, get the volumeID
 
+	//Check if the volume exists
+	_, err := redfish.GetVolume(service.Client, d.Id())
+	if err != nil {
+		e, ok := err.(*redfishcommon.Error)
+		if !ok {
+			return diag.Errorf("There was an error with the API: %s", err)
+		}
+		if e.HTTPReturnedStatusCode == http.StatusNotFound {
+			log.Printf("Volume %s doesn't exist", d.Id())
+			d.SetId("")
+			return diags
+		}
+		return diag.Errorf("Status code %d - %s", e.HTTPReturnedStatusCode, e.Error())
+	}
+
+	/*
+		- If it has jobID, if finished, get the volumeID
 		Also never EVER trigger an update regarding disk properties for safety reasons
 	*/
+
 	return diags
 }
 
 func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 	/*
-		Since we are dealing with storage, betten not to try to update anything
+		Since we are dealing with storage, better not to try to update anything
 	*/
 	return diags
 }
@@ -336,4 +358,13 @@ func getVolumeID(storage *redfish.Storage, volumeName string) (volumeLink string
 		}
 	}
 	return "", fmt.Errorf("Couldn't find a volume with the provided name")
+}
+
+func checkOperationApplyTimes(optionToCheck string, storageOperationApplyTimes []redfishcommon.OperationApplyTime) (result bool) {
+	for _, v := range storageOperationApplyTimes {
+		if optionToCheck == string(v) {
+			return true
+		}
+	}
+	return false
 }
