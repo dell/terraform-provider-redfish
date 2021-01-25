@@ -5,7 +5,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/common"
-	_ "github.com/stmcginnis/gofish/redfish"
 	"net/http"
 	"testing"
 )
@@ -92,6 +91,53 @@ func TestCreateRedfishStorageVolume(t *testing.T) {
 		t.Errorf("FAILED - Second test - Create a volume with volume_type NOT INCLUDED in controller OperationApplyTime")
 	}
 }
+
+func TestReadRedfishStorageVolume(t *testing.T) {
+	var testClient *common.TestClient
+	var responseBuilder *responseBuilder
+
+	//First test - Read a volume that actually exists
+	d := schema.TestResourceDataRaw(t, getResourceStorageVolumeSchema(), map[string]interface{}{})
+	testClient = &common.TestClient{
+		CustomReturnForActions: make(map[string][]interface{}),
+	}
+	responseBuilder = NewResponseBuilder()
+
+	service := &gofish.Service{}
+	service.SetClient(testClient)
+
+	specificVolume := responseBuilder.Status("200 OK").StatusCode(200).Body(volumeRedfishJSON).Build()
+	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &specificVolume)
+
+	d.SetId("/redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/Disk.Virtual.0:RAID.Integrated.1-1")
+	diags := readRedfishStorageVolume(service, d)
+	if diags.HasError() || len(d.Id()) == 0 {
+		t.Errorf("FAILED - First test - Read a volume that actually exists")
+	}
+
+	//Second test - Read a volume that doesn't exist
+	d = schema.TestResourceDataRaw(t, getResourceStorageVolumeSchema(), map[string]interface{}{})
+	testClient = &common.TestClient{
+		CustomReturnForActions: make(map[string][]interface{}),
+	}
+	responseBuilder = NewResponseBuilder()
+
+	service = &gofish.Service{}
+	service.SetClient(testClient)
+
+	specificVolume = responseBuilder.Status("404 NOT FOUND").StatusCode(404).Body(resourceNotFound).Build()
+	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &specificVolume)
+
+	d.SetId("/redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/Disk.Virtual.0:RAID.Integrated.9-9") //This volumes doesn't exist
+	diags = readRedfishStorageVolume(service, d)
+	if diags.HasError() || len(d.Id()) > 0 {
+		t.Errorf("FAILED - Second test - Read a volume that doesn't exist")
+	}
+}
+
+func TestUpdateRedfishStorageVolume(t *testing.T) {}
+
+func TestDeleteRedfishStorageVolume(t *testing.T) {}
 
 func setStorageMockedClient(testClient *common.TestClient, responseBuilder *responseBuilder) (*gofish.Service, error) {
 	testClient.CustomReturnForActions = make(map[string][]interface{})

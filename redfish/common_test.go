@@ -62,6 +62,9 @@ var (
 
 	// --- TASKS RELATED MOCKED RESPONSES ---
 	successfulTask = "{\"@odata.context\":\"/redfish/v1/$metadata#Task.Task\",\"@odata.id\":\"/redfish/v1/TaskService/Tasks/OSDeployment\",\"@odata.type\":\"#Task.v1_4_3.Task\",\"Description\":\"Server Configuration and other Tasks running on iDRAC are listed here\",\"EndTime\":\"\",\"Id\":\"OSDeployment\",\"Messages\":[{\"Message\":\"The command was successful.\",\"MessageArgs\":[],\"MessageArgs@odata.count\":0,\"MessageId\":\"OSD1\"}],\"Messages@odata.count\":1,\"Name\":\"BootToNetworkISO\",\"PercentComplete\":null,\"TaskState\":\"Completed\",\"TaskStatus\":\"OK\"}"
+
+	// --- GENERIC MESSAGES ---
+	resourceNotFound = "{\"error\":{\"@Message.ExtendedInfo\":[{\"Message\":\"Unable to complete the operation because the resource /redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/test entered is not found.\",\"MessageArgs\":[\"/redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/test\"],\"MessageArgs@odata.count\":1,\"MessageId\":\"IDRAC.2.2.SYS403\",\"RelatedProperties\":[],\"RelatedProperties@odata.count\":0,\"Resolution\":\"Enter the correct resource and retry the operation. For information about valid resource, see the Redfish Users Guide available on the support site.\",\"Severity\":\"Critical\"},{\"Message\":\"The resource at the URI /redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/test was not found.\",\"MessageArgs\":[\"/redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/test\"],\"MessageArgs@odata.count\":1,\"MessageId\":\"Base.1.7.ResourceMissingAtURI\",\"RelatedProperties\":[],\"RelatedProperties@odata.count\":0,\"Resolution\":\"Place a valid resource at the URI or correct the URI and resubmit the request.\",\"Severity\":\"Critical\"}],\"code\":\"Base.1.7.GeneralError\",\"message\":\"A general error has occurred. See ExtendedInfo for more information\"}}"
 )
 
 func getReader(s string) io.ReadCloser {

@@ -2,13 +2,10 @@ package redfish
 
 import (
 	"context"
-	// "fmt"
-	// "github.com/dell/terraform-provider-redfish/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
-	// "log"
 )
 
 func resourceUserAccount() *schema.Resource {
