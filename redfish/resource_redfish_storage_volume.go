@@ -235,6 +235,7 @@ func deleteRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 		}
 	default: //This case means job_id has been set.
 		//Looks like now it's possible to use HTTP DELETE against the taskID on iDRAC 4.40.00.00
+		//TBD
 	}
 	return diags
 }

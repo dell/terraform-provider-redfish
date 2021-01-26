@@ -137,7 +137,34 @@ func TestReadRedfishStorageVolume(t *testing.T) {
 
 func TestUpdateRedfishStorageVolume(t *testing.T) {}
 
-func TestDeleteRedfishStorageVolume(t *testing.T) {}
+func TestDeleteRedfishStorageVolume(t *testing.T) {
+	var testClient *common.TestClient
+	var responseBuilder *responseBuilder
+
+	//First test - Delete a volume
+	d := schema.TestResourceDataRaw(t, getResourceStorageVolumeSchema(), map[string]interface{}{})
+	testClient = &common.TestClient{
+		CustomReturnForActions: make(map[string][]interface{}),
+	}
+	responseBuilder = NewResponseBuilder()
+
+	service := &gofish.Service{}
+	service.SetClient(testClient)
+
+	deleteReturnedHeaders := map[string]string{"Location": "/redfish/v1/TaskService/Tasks/JID_1234567890"}
+	deleteResponse := responseBuilder.Status("202 ACCEPTED").StatusCode(http.StatusAccepted).Body("").Headers(deleteReturnedHeaders).Build()
+	testClient.CustomReturnForActions[http.MethodDelete] = append(testClient.CustomReturnForActions[http.MethodGet], &deleteResponse)
+
+	//Set mocked response for GetTask()
+	sucessfulTask := responseBuilder.Status("200 OK").StatusCode(200).Body(successfulTask).Build()
+	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &sucessfulTask)
+
+	d.SetId("/redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/Disk.Virtual.0:RAID.Integrated.1-1")
+	diags := deleteRedfishStorageVolume(service, d)
+	if diags.HasError() {
+		t.Errorf("FAILED - Second test - Read a volume that doesn't exist")
+	}
+}
 
 func setStorageMockedClient(testClient *common.TestClient, responseBuilder *responseBuilder) (*gofish.Service, error) {
 	testClient.CustomReturnForActions = make(map[string][]interface{})
