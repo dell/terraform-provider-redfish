@@ -179,8 +179,6 @@ github.com/hashicorp/terraform-plugin-sdk/v2 v2.0.1 h1:qG6EdnW2UrftQI4mBdIsWP4YW
 github.com/hashicorp/terraform-plugin-sdk/v2 v2.0.1/go.mod h1:BRz6UtYmksQJU0eMfahQR8fcJf8tIe77gn7YVm6rGD4=
 github.com/hashicorp/terraform-plugin-sdk/v2 v2.0.3 h1:X7VmKpcIxq+rIbuqe5TPN27KLzbO9aXQcjG4c5iC3tk=
 github.com/hashicorp/terraform-plugin-sdk/v2 v2.0.4 h1:GYkUL3zjrZgig9Gm+/61+YglzESJxXRDMp7qhJsh4j0=
-github.com/hashicorp/terraform-plugin-sdk/v2 v2.1.0 h1:Z5K9y5UGVQO7gvLFk6NMA/v1JZW/HLzJ/TTSoLkqQyY=
-github.com/hashicorp/terraform-plugin-sdk/v2 v2.2.0 h1:2m4uKA97R8ijHGLwhHdpSJyI8Op1FpS/ozpoF21jK7s=
 github.com/hashicorp/terraform-plugin-sdk/v2 v2.3.0 h1:Egv+R1tOOjPNz643KBTx3tLT6RdFGGYJcZlyLvrPcEU=
 github.com/hashicorp/terraform-plugin-sdk/v2 v2.4.0 h1:2c+vG46celrDCsfYEIzaXxvBaAXCqlVG77LwtFz8cfs=
 github.com/hashicorp/terraform-plugin-sdk/v2 v2.4.1 h1:k2rpom9wG2cdi5iLRH80EdQB7UX/E6UzYzUfzgsNLuU=
@@ -248,6 +246,7 @@ github.com/spf13/afero v1.2.2 h1:5jhuqJyZCZf2JRofRvN/nIFgIWNzPa3/Vz8mYylgbWc=
 github.com/spf13/afero v1.2.2/go.mod h1:9ZxEEn6pIJ8Rxe320qSDBk6AsU0r9pR7Q4OcevTdifk=
 github.com/spf13/pflag v1.0.2/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
 github.com/spf13/pflag v1.0.3/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
+github.com/stmcginnis/gofish vadd0/go.mod h1:t0RUeoOLznx9vExQOeLZUrjU0u3yy0wL4iVMQviUl+k=
 github.com/stmcginnis/gofish v0.5.0 h1:hD8ji0I6G6wFEe59l03Bk1u8izgj4agR0S+Hvnp4wws=
 github.com/stmcginnis/gofish v0.5.0/go.mod h1:t0RUeoOLznx9vExQOeLZUrjU0u3yy0wL4iVMQviUl+k=
 github.com/stmcginnis/gofish v0.5.1-0.20200820193452-a93a78ebb0cf h1:dHVrsvDC2PIKJeb1gI6W88rfMkxIV/91W97CKxHgCsM=
