@@ -261,6 +261,8 @@ github.com/stmcginnis/gofish v0.7.1-0.20210116161848-20eeed20881f h1:ZYl4IqKCIQa
 github.com/stmcginnis/gofish v0.7.1-0.20210116161848-20eeed20881f/go.mod h1:BGtQsY16q48M2K6KDAs38QXtNoHrkXaY/WZ/mmyMgNc=
 github.com/stmcginnis/gofish v0.7.1-0.20210124202014-bc31b7b03576 h1:7AHWngAkpGLc3epwH2t++EGYfz3ApgZxrMT82BNowWs=
 github.com/stmcginnis/gofish v0.7.1-0.20210124202014-bc31b7b03576/go.mod h1:BGtQsY16q48M2K6KDAs38QXtNoHrkXaY/WZ/mmyMgNc=
+github.com/stmcginnis/gofish v0.8.0 h1:lGMKmyHQr8rG6SHKL9SU8BuA4bV/r3Pj/8J+DkuT0gY=
+github.com/stmcginnis/gofish v0.8.0/go.mod h1:BGtQsY16q48M2K6KDAs38QXtNoHrkXaY/WZ/mmyMgNc=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
