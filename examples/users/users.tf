@@ -1,8 +1,6 @@
 provider "redfish" {
-      user = ""
-      password = ""
-      endpoint = ""
-      ssl_insecure = true
+    //user = "root"
+    //password = "calvin"
 }
 
 resource "redfish_user_account" "rr" {
