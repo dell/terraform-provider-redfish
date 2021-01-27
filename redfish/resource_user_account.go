@@ -2,13 +2,10 @@ package redfish
 
 import (
 	"context"
-	"fmt"
-	"github.com/dell/terraform-provider-redfish/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
-	"log"
 )
 
 func resourceUserAccount() *schema.Resource {
@@ -17,278 +14,206 @@ func resourceUserAccount() *schema.Resource {
 		ReadContext:   resourceUserAccountRead,
 		UpdateContext: resourceUserAccountUpdate,
 		DeleteContext: resourceUserAccountDelete,
-		Schema: map[string]*schema.Schema{
-			"username": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+		Schema:        getResourceUserAccountSchema(),
+	}
+}
+
+func getResourceUserAccountSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"redfish_server": {
+			Type:        schema.TypeList,
+			Required:    true,
+			Description: "This list contains the different redfish endpoints to manage (different servers)",
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"user": {
+						Type:        schema.TypeString,
+						Optional:    true,
+						Description: "This field is the user to login against the redfish API",
+					},
+					"password": {
+						Type:        schema.TypeString,
+						Optional:    true,
+						Description: "This field is the password related to the user given",
+					},
+					"endpoint": {
+						Type:        schema.TypeString,
+						Required:    true,
+						Description: "This field is the endpoint where the redfish API is placed",
+					},
+					"ssl_insecure": {
+						Type:        schema.TypeBool,
+						Optional:    true,
+						Description: "This field indicates if the SSL/TLS certificate must be verified",
+					},
+				},
 			},
-			"password": &schema.Schema{
-				Type:      schema.TypeString,
-				Required:  true,
-				Sensitive: true,
-			},
-			"enabled": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-			},
-			"role_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "None",
-			},
-			"users_id": &schema.Schema{
-				Type: schema.TypeMap,
-				//Optional: true,
-				Computed: true,
-			},
+		},
+		"username": &schema.Schema{
+			Type:     schema.TypeString,
+			Required: true,
+		},
+		"password": &schema.Schema{
+			Type:      schema.TypeString,
+			Required:  true,
+			Sensitive: true,
+		},
+		"enabled": &schema.Schema{
+			Type:     schema.TypeBool,
+			Optional: true,
+			Default:  false,
+		},
+		"role_id": &schema.Schema{
+			Type:     schema.TypeString,
+			Optional: true,
+			Default:  "None",
 		},
 	}
 }
 
 func resourceUserAccountCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-	userResult := make(chan common.ResourceResult, len(m.([]*ClientConfig)))
-	c := m.([]*ClientConfig)
-	for _, v := range c {
-		go func(v *ClientConfig, userResult chan common.ResourceResult) {
-			//client := v.API.(*gofish.APIClient)
-			accountList, err := getAccountList(v.Service)
-			if err != nil {
-				userResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when retrieving account list %v", v.Endpoint, err)}
-				return
-			}
-			payload := make(map[string]interface{})
-			for _, account := range accountList {
-				if len(account.UserName) == 0 && account.ID != "1" { //ID 1 is reserved
-					payload["UserName"] = d.Get("username").(string)
-					payload["Password"] = d.Get("password").(string)
-					payload["Enabled"] = d.Get("enabled").(bool)
-					payload["RoleId"] = d.Get("role_id").(string)
-					res, err := v.Service.Client.Patch(account.ODataID, payload)
-					if err != nil {
-						userResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when contacting the redfish API %v", v.Endpoint, err)}
-						return
-					}
-					if res.StatusCode != 200 {
-						userResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] There was an issue with the APIClient. HTTP error code %d", v.Endpoint, res.StatusCode)}
-						return
-					}
-					userResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: account.ID, Error: false, ErrorMsg: ""}
-					return //Finish the loop, don't want another user created
-				}
-			}
-			//No room for new users
-			userResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: "", Error: true, ErrorMsg: fmt.Sprintf("[%v] No room for new users", v.Endpoint)}
-		}(v, userResult)
+	service, err := NewConfig(m.(*schema.ResourceData), d)
+	if err != nil {
+		return diag.Errorf(err.Error())
 	}
-	userIDs := make(map[string]string)
-	var errorMsg string
-	for i := 0; i < len(m.([]*ClientConfig)); i++ {
-		result := <-userResult
-		if result.Error {
-			errorMsg += result.ErrorMsg
-		}
-		userIDs[result.Endpoint] = result.ID
-	}
-	close(userResult)
-	d.SetId("Users")
-	d.Set("users_id", userIDs)
-	if len(errorMsg) > 0 {
-		return diag.Errorf(errorMsg)
-	}
-	return diags
-
+	return createRedfishUserAccount(service, d)
 }
 
 func resourceUserAccountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-	userChanged := make(chan common.ResourceChanged, len(m.([]*ClientConfig)))
-	users := d.Get("users_id").(map[string]interface{})
-	c := m.([]*ClientConfig)
-	for _, v := range c {
-		go func(v *ClientConfig, userChanged chan common.ResourceChanged, d *schema.ResourceData) {
-			log.Printf("[ReadContext] Checking client with endpoint %s", v.Endpoint)
-			//client := v.API.(*gofish.APIClient)
-			accountList, err := getAccountList(v.Service)
-			if err != nil {
-				userChanged <- common.ResourceChanged{Error: true, ErrorMessage: fmt.Sprintf("[%v] Error when retrieving account list %v", v.Endpoint, err)}
-				return
-			}
-			account, err := getAccount(accountList, users[v.Endpoint].(string))
-			if err != nil {
-				userChanged <- common.ResourceChanged{Error: true, ErrorMessage: fmt.Sprintf("[%v] Error when retrieving accounts %v", v.Endpoint, err)}
-				return
-			}
-			if account == nil || d.Get("username") != account.UserName || d.Get("enabled") != account.Enabled || d.Get("role_id") != account.RoleID {
-				// If something is different, even just one, we need to trigger an update and return
-				log.Printf("[ReadContext] Need to update users on client %s", v.Endpoint)
-				userChanged <- common.ResourceChanged{HasChanged: true}
-				return
-			}
-			userChanged <- common.ResourceChanged{HasChanged: false}
-			log.Printf("[ReadContext] Nothing to update regarding users on client %s", v.Endpoint)
-		}(v, userChanged, d)
+	service, err := NewConfig(m.(*schema.ResourceData), d)
+	if err != nil {
+		return diag.Errorf(err.Error())
 	}
-	var errorMsg string
-	for i := 0; i < len(m.([]*ClientConfig)); i++ {
-		changed := <-userChanged
-		if changed.Error {
-			errorMsg += changed.ErrorMessage
-		} else {
-			if changed.HasChanged { //If needs update
-				d.Set("username", "")
-				d.Set("enabled", "")
-				d.Set("role_id", "")
-				break
-			}
-		}
-	}
-	close(userChanged)
-	if len(errorMsg) > 0 {
-		return diag.Errorf(errorMsg)
-	}
-	return diags
+	return readRedfishUserAccount(service, d)
 }
 
 func resourceUserAccountUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.([]*ClientConfig)
-	users := d.Get("users_id").(map[string]interface{})
-	userResult := make(chan common.ResourceResult, len(m.([]*ClientConfig)))
-	for _, v := range c {
-		go func(v *ClientConfig, userResult chan common.ResourceResult) {
-			//client := v.API.(*gofish.APIClient)
-			accountList, err := getAccountList(v.Service)
-			if err != nil {
-				userResult <- common.ResourceResult{Endpoint: v.Endpoint, Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when retrieving account list %v", v.Endpoint, err)}
-				return
-			}
-			account, err := getAccount(accountList, users[v.Endpoint].(string))
-			if err != nil {
-				userResult <- common.ResourceResult{Endpoint: v.Endpoint, Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when retrieving accounts %v", v.Endpoint, err)}
-				return
-			}
-			//If account does not exist or if params are not right, perform POST
-			if account == nil {
-				//Create a new one as we do in create
-				payload := make(map[string]interface{})
-				for _, account := range accountList {
-					if len(account.UserName) == 0 && account.ID != "1" { //ID 1 is reserved
-						payload["UserName"] = d.Get("username").(string)
-						payload["Password"] = d.Get("password").(string)
-						payload["Enabled"] = d.Get("enabled").(bool)
-						payload["RoleId"] = d.Get("role_id").(string)
-						res, err := v.Service.Client.Patch(account.ODataID, payload)
-						if err != nil {
-							userResult <- common.ResourceResult{Endpoint: v.Endpoint, Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when contacting the redfish API %v", v.Endpoint, err)}
-							return
-						}
-						if res.StatusCode != 200 {
-							userResult <- common.ResourceResult{Endpoint: v.Endpoint, Error: true, ErrorMsg: fmt.Sprintf("[%v] There was an issue with the APIClient. HTTP error code %d", v.Endpoint, res.StatusCode)}
-							return
-						}
-						userResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: account.ID}
-						return
-					}
-				}
-				// No more room for users
-				userResult <- common.ResourceResult{Endpoint: v.Endpoint, Error: true, ErrorMsg: fmt.Sprintf("[%v] No room for new users", v.Endpoint)}
-				return
-			}
-			if d.Get("username") != account.UserName || d.Get("enabled") != account.Enabled || d.Get("role_id") != account.RoleID {
-				payload := make(map[string]interface{})
-				payload["UserName"] = d.Get("username")
-				payload["Password"] = d.Get("password")
-				payload["Enabled"] = d.Get("enabled")
-				payload["RoleId"] = d.Get("role_id")
-				res, err := v.Service.Client.Patch(account.ODataID, payload)
-				if err != nil {
-					userResult <- common.ResourceResult{Endpoint: v.Endpoint, Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when contacting the redfish API %v", v.Endpoint, err)}
-					return
-				}
-				if res.StatusCode != 200 {
-					userResult <- common.ResourceResult{Endpoint: v.Endpoint, Error: true, ErrorMsg: fmt.Sprintf("[%v] There was an issue with the APIClient. HTTP error code %d", v.Endpoint, res.StatusCode)}
-					return
-				}
-			}
-			userResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: account.ID}
-			return
-		}(v, userResult)
+	service, err := NewConfig(m.(*schema.ResourceData), d)
+	if err != nil {
+		return diag.Errorf(err.Error())
 	}
-	userIDs := make(map[string]string)
-	var errorMsg string
-	for i := 0; i < len(m.([]*ClientConfig)); i++ {
-		result := <-userResult
-		if result.Error {
-			errorMsg += result.ErrorMsg
-		}
-		userIDs[result.Endpoint] = result.ID
+	if diags := updateRedfishUserAccount(ctx, service, d, m); diags.HasError() {
+		return diags
 	}
-	close(userResult)
-	if len(errorMsg) > 0 {
-		return diag.Errorf(errorMsg)
-	}
-	d.Set("username", d.Get("username"))
-	d.Set("password", d.Get("password"))
-	d.Set("enabled", d.Get("enabled"))
-	d.Set("role_id", d.Get("role_id"))
-	d.Set("users_id", users)
 	return resourceUserAccountRead(ctx, d, m)
 }
 
 func resourceUserAccountDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	service, err := NewConfig(m.(*schema.ResourceData), d)
+	if err != nil {
+		return diag.Errorf(err.Error())
+	}
+	return deleteRedfishUserAccount(service, d)
+}
+
+func createRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
 	var diags diag.Diagnostics
-	userResult := make(chan common.ResourceResult, len(m.([]*ClientConfig)))
-	//Get subresources
-	users := d.Get("users_id").(map[string]interface{})
-	c := m.([]*ClientConfig)
-	for _, v := range c {
-		go func(v *ClientConfig, userResult chan common.ResourceResult) {
-			//client := v.API.(*gofish.APIClient)
-			accountList, err := getAccountList(v.Service)
+	accountList, err := getAccountList(service)
+	if err != nil {
+		return diag.Errorf("Error when retrieving account list %v", err)
+	}
+
+	payload := make(map[string]interface{})
+	for _, account := range accountList {
+		if len(account.UserName) == 0 && account.ID != "1" { //ID 1 is reserved
+			payload["UserName"] = d.Get("username").(string)
+			payload["Password"] = d.Get("password").(string)
+			payload["Enabled"] = d.Get("enabled").(bool)
+			payload["RoleId"] = d.Get("role_id").(string)
+			//Ideally a go routine for each server should be done
+			res, err := service.Client.Patch(account.ODataID, payload)
 			if err != nil {
-				userResult <- common.ResourceResult{Endpoint: v.Endpoint, Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when retrieving account list %v", v.Endpoint, err)}
-				return
-			}
-			account, err := getAccount(accountList, users[v.Endpoint].(string))
-			if err != nil {
-				userResult <- common.ResourceResult{Endpoint: v.Endpoint, Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when retrieving accounts %v", v.Endpoint, err)}
-				return
-			}
-			if account == nil {
-				userResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: ""}
-				return
-			}
-			payload := make(map[string]interface{})
-			payload["UserName"] = ""
-			res, err := v.Service.Client.Patch(account.ODataID, payload)
-			if err != nil {
-				userResult <- common.ResourceResult{Endpoint: v.Endpoint, Error: true, ErrorMsg: fmt.Sprintf("[%v] Error when contacting the redfish API %v", v.Endpoint, err)}
-				return
+				return diag.Errorf("Error when contacting the redfish API %v", err) //This error might happen when a user was created outside terraform
 			}
 			if res.StatusCode != 200 {
-				userResult <- common.ResourceResult{Endpoint: v.Endpoint, Error: true, ErrorMsg: fmt.Sprintf("[%v] There was an issue with the APIClient. HTTP error code %d", v.Endpoint, res.StatusCode)}
-				return
+				return diag.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
 			}
-			userResult <- common.ResourceResult{Endpoint: v.Endpoint, ID: ""}
-			return
-		}(v, userResult)
-
-	}
-	var errorMsg string
-	for i := 0; i < len(m.([]*ClientConfig)); i++ {
-		result := <-userResult
-		if result.Error {
-			errorMsg += result.ErrorMsg
-		} else {
-			delete(users, result.Endpoint)
+			//Set ID to terraform state file
+			d.SetId(account.ID)
+			return diags
 		}
 	}
-	close(userResult)
-	d.Set("users_id", users)
-	if len(errorMsg) > 0 {
-		return diag.Errorf(errorMsg)
+	//No room for new users
+	return diag.Errorf("There are no room for new users")
+}
+
+func readRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	accountList, err := getAccountList(service)
+	if err != nil {
+		return diag.Errorf("Error when retrieving account list %v", err)
 	}
+
+	account, err := getAccount(accountList, d.Id())
+	if err != nil {
+		return diag.Errorf("Error when retrieving accounts %v", err)
+	}
+	if account == nil { //User doesn't exist. Needs to be recreated.
+		d.SetId("")
+		return diags
+	}
+	if d.Get("username") != account.UserName || d.Get("enabled") != account.Enabled || d.Get("role_id") != account.RoleID {
+		// If something is different an update needs to be triggered
+		d.Set("username", account.UserName)
+		d.Set("enabled", account.Enabled)
+		d.Set("role_id", account.RoleID)
+		return diags
+	}
+
+	return diags
+}
+
+func updateRedfishUserAccount(ctx context.Context, service *gofish.Service, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+	accountList, err := getAccountList(service)
+	if err != nil {
+		return diag.Errorf("Error when retrieving account list %v", err)
+	}
+
+	account, err := getAccount(accountList, d.Id())
+	if err != nil {
+		return diag.Errorf("Error when retrieving accounts %v", err)
+	}
+	if d.Get("username") != account.UserName || d.Get("enabled") != account.Enabled || d.Get("role_id") != account.RoleID {
+		payload := make(map[string]interface{})
+		payload["UserName"] = d.Get("username")
+		payload["Password"] = d.Get("password")
+		payload["Enabled"] = d.Get("enabled")
+		payload["RoleId"] = d.Get("role_id")
+		res, err := service.Client.Patch(account.ODataID, payload)
+		if err != nil {
+			return diag.Errorf("Error when contacting the redfish API %v", err)
+		}
+		if res.StatusCode != 200 {
+			return diag.Errorf("There was an issue with the server. HTTP error code %d", res.StatusCode)
+		}
+	}
+	return diags
+}
+
+func deleteRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
+	var diags diag.Diagnostics
+	accountList, err := getAccountList(service)
+	if err != nil {
+		return diag.Errorf("Error when retrieving account list %v", err)
+	}
+
+	account, err := getAccount(accountList, d.Id())
+	if err != nil {
+		return diag.Errorf("Error when retrieving accounts %v", err)
+	}
+
+	payload := make(map[string]interface{})
+	payload["UserName"] = ""
+	res, err := service.Client.Patch(account.ODataID, payload)
+	if err != nil {
+		return diag.Errorf("Error when contacting the redfish API %v", err)
+	}
+	if res.StatusCode != 200 {
+		return diag.Errorf("There was an issue with the server. HTTP error code %d", res.StatusCode)
+	}
+
 	d.SetId("")
 	return diags
 }

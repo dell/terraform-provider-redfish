@@ -1,9 +1,6 @@
 package redfish
 
 import (
-	"fmt"
-	"github.com/stmcginnis/gofish"
-	"github.com/stmcginnis/gofish/common"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -50,107 +47,25 @@ var (
 	volumesRedfishJSON = "{\"@Redfish.OperationApplyTimeSupport\":{\"@odata.type\":\"#Settings.v1_2_2.OperationApplyTimeSupport\",\"SupportedValues\":[\"Immediate\",\"OnReset\"]},\"@odata.context\":\"/redfish/v1/$metadata#VolumeCollection.VolumeCollection\",\"@odata.id\":\"/redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/\",\"@odata.type\":\"#VolumeCollection.VolumeCollection\",\"Description\":\"Collection Of Volume\",\"Members\":[{\"@odata.id\":\"/redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/Disk.Virtual.0:RAID.Integrated.1-1\"}],\"Members@odata.count\":1,\"Name\":\"Volume Collection\"}"
 	//Specific volume info
 	volumeRedfishJSON = "{\"@Redfish.Settings\":{\"@odata.context\":\"/redfish/v1/$metadata#Settings.Settings\",\"@odata.type\":\"#Settings.v1_2_2.Settings\",\"SettingsObject\":{\"@odata.id\":\"/redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/Disk.Virtual.0:RAID.Integrated.1-1/Settings\"},\"SupportedApplyTimes\":[\"Immediate\",\"OnReset\",\"AtMaintenanceWindowStart\",\"InMaintenanceWindowOnReset\"]},\"@odata.context\":\"/redfish/v1/$metadata#Volume.Volume\",\"@odata.id\":\"/redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/Disk.Virtual.0:RAID.Integrated.1-1\",\"@odata.type\":\"#Volume.v1_4_0.Volume\",\"Actions\":{\"#Volume.CheckConsistency\":{\"@Redfish.OperationApplyTimeSupport\":{\"@odata.type\":\"#Settings.v1_2_2.OperationApplyTimeSupport\",\"SupportedValues\":[\"Immediate\",\"OnReset\"]},\"target\":\"/redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/Disk.Virtual.0:RAID.Integrated.1-1/Actions/Volume.CheckConsistency\"},\"#Volume.Initialize\":{\"@Redfish.OperationApplyTimeSupport\":{\"@odata.type\":\"#Settings.v1_2_2.OperationApplyTimeSupport\",\"SupportedValues\":[\"Immediate\",\"OnReset\"]},\"InitializeType@Redfish.AllowableValues\":[\"Fast\",\"Slow\"],\"target\":\"/redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/Disk.Virtual.0:RAID.Integrated.1-1/Actions/Volume.Initialize\"}},\"BlockSizeBytes\":512,\"CapacityBytes\":999653638144,\"Description\":\"MyVol\",\"Encrypted\":false,\"EncryptionTypes\":[\"NativeDriveEncryption\"],\"EncryptionTypes@odata.count\":1,\"Id\":\"Disk.Virtual.0:RAID.Integrated.1-1\",\"Identifiers\":[],\"Identifiers@odata.count\":0,\"Links\":{\"Drives\":[{\"@odata.id\":\"/redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Drives/Disk.Bay.0:Enclosure.Internal.0-1:RAID.Integrated.1-1\"},{\"@odata.id\":\"/redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Drives/Disk.Bay.1:Enclosure.Internal.0-1:RAID.Integrated.1-1\"}],\"Drives@odata.count\":2},\"Name\":\"MyVol\",\"Oem\":{\"Dell\":{\"DellVirtualDisk\":{\"@odata.context\":\"/redfish/v1/$metadata#DellVirtualDisk.DellVirtualDisk\",\"@odata.id\":\"/redfish/v1/Dell/Systems/System.Embedded.1/Storage/Volumes/DellVirtualDisk/Disk.Virtual.0:RAID.Integrated.1-1\",\"@odata.type\":\"#DellVirtualDisk.v1_1_0.DellVirtualDisk\",\"BusProtocol\":\"SAS\",\"Cachecade\":\"NonCachecadeVD\",\"DiskCachePolicy\":\"Disabled\",\"LastSystemInventoryTime\":\"2020-10-15T13:44:07+00:00\",\"LastUpdateTime\":\"2020-10-14T20:32:01+00:00\",\"LockStatus\":\"Unlocked\",\"MediaType\":\"HardDiskDrive\",\"ObjectStatus\":\"Current\",\"OperationName\":\"Background Initialization\",\"OperationPercentComplete\":3,\"PrimaryStatus\":\"OK\",\"RaidStatus\":\"Online\",\"ReadCachePolicy\":\"ReadAhead\",\"RemainingRedundancy\":1,\"SpanDepth\":1,\"SpanLength\":2,\"StartingLBAinBlocks\":0,\"StripeSize\":\"256KB\",\"T10PIStatus\":\"Disabled\",\"VirtualDiskTargetID\":0,\"WriteCachePolicy\":\"WriteBack\"}}},\"Operations\":[{\"OperationName\":\"Background Initialization\",\"PercentageComplete\":3}],\"Operations@odata.count\":1,\"OptimumIOSizeBytes\":262144,\"Status\":{\"Health\":\"OK\",\"HealthRollup\":\"OK\",\"State\":\"Enabled\"},\"VolumeType\":\"Mirrored\"}"
+
+	// --- ACCOUNT SERVICES RELATED MOCKED RESPONSES ---
+	accountServiceRedfishJSON = "{     \"@odata.context\": \"/redfish/v1/$metadata#AccountService.AccountService\",     \"@odata.type\": \"#AccountService.v1_7_0.AccountService\",     \"@odata.id\": \"/redfish/v1/AccountService\",     \"@odata.etag\": \"78912304253\",     \"AccountLockoutCounterResetAfter\": 0,     \"AccountLockoutDuration\": 0,     \"AccountLockoutThreshold\": 0,     \"Accounts\": {         \"@odata.id\": \"/redfish/v1/AccountService/Accounts\"     },     \"ActiveDirectory\": {         \"Certificates\": {             \"@odata.id\": \"/redfish/v1/AccountService/ActiveDirectory/Certificates\"         },         \"AccountProviderType\": \"ActiveDirectoryService\",         \"Authentication\": {             \"AuthenticationType\": \"UsernameAndPassword\",             \"KerberosKeytab\": null         },         \"RemoteRoleMapping\": [             {                 \"RemoteGroup\": \"\",                 \"LocalRole\": \"None\"             },             {                 \"RemoteGroup\": \"\",                 \"LocalRole\": \"None\"             },             {                 \"RemoteGroup\": \"\",                 \"LocalRole\": \"None\"             },             {                 \"RemoteGroup\": \"\",                 \"LocalRole\": \"None\"             },             {                 \"RemoteGroup\": \"\",                 \"LocalRole\": \"None\"             },             {                 \"RemoteGroup\": \"\",                 \"LocalRole\": \"None\"             },             {                 \"RemoteGroup\": \"\",                 \"LocalRole\": \"None\"             },             {                 \"RemoteGroup\": \"\",                 \"LocalRole\": \"None\"             },             {                 \"RemoteGroup\": \"\",                 \"LocalRole\": \"None\"             },             {                 \"RemoteGroup\": \"\",                 \"LocalRole\": \"None\"             },             {                 \"RemoteGroup\": \"\",                 \"LocalRole\": \"None\"             },             {                 \"RemoteGroup\": \"\",                 \"LocalRole\": \"None\"             },             {                 \"RemoteGroup\": \"\",                 \"LocalRole\": \"None\"             },             {                 \"RemoteGroup\": \"\",                 \"LocalRole\": \"None\"             },             {                 \"RemoteGroup\": \"\",                 \"LocalRole\": \"None\"             }         ],         \"RemoteRoleMapping@odata.count\": 15,         \"ServiceAddresses\": [             \"\",             \"\",             \"\"         ],         \"ServiceAddresses@odata.count\": 3,         \"ServiceEnabled\": true     },     \"AdditionalExternalAccountProviders\": {         \"@odata.id\": \"/redfish/v1/AccountService/ExternalAccountProviders\"     },     \"AuthFailureLoggingThreshold\": 2,     \"Description\": \"BMC User Accounts\",     \"Id\": \"RemoteAccountService\",     \"LDAP\": {         \"Certificates\": {             \"@odata.id\": \"/redfish/v1/AccountService/LDAP/Certificates\"         },         \"AccountProviderType\": \"LDAPService\",         \"Authentication\": {             \"AuthenticationType\": \"UsernameAndPassword\"         },         \"LDAPService\": {             \"SearchSettings\": {                 \"BaseDistinguishedNames\": [                     \"\"                 ],                 \"BaseDistinguishedNames@odata.count\": 1,                 \"GroupNameAttribute\": \"\",                 \"UsernameAttribute\": \"\"             }         },         \"RemoteRoleMapping\": [             {                 \"RemoteGroup\": \"\",                 \"LocalRole\": \"None\"             },             {                 \"RemoteGroup\": \"\",                 \"LocalRole\": \"None\"             },             {                 \"RemoteGroup\": \"\",                 \"LocalRole\": \"None\"             },             {                 \"RemoteGroup\": \"\",                 \"LocalRole\": \"None\"             },             {                 \"RemoteGroup\": \"\",                 \"LocalRole\": \"None\"             }         ],         \"RemoteRoleMapping@odata.count\": 5,         \"ServiceAddresses\": [             \"\"         ],         \"ServiceAddresses@odata.count\": 1,         \"ServiceEnabled\": false     },     \"LocalAccountAuth\": \"Fallback\",     \"MaxPasswordLength\": 40,     \"MinPasswordLength\": 1,     \"Name\": \"Account Service\",     \"PrivilegeMap\": {         \"@odata.id\": \"/redfish/v1/Managers/iDRAC.Embedded.1/PrivilegeRegistry\"     },     \"Roles\": {         \"@odata.id\": \"/redfish/v1/AccountService/Roles\"     },     \"ServiceEnabled\": true,     \"Status\": {         \"Health\": \"OK\",         \"State\": \"Enabled\"     } }"
+
+	managerAccountCollection = "{ 	\"@odata.context\": \"/redfish/v1/$metadata#ManagerAccountCollection.ManagerAccountCollection\", 	\"@odata.id\": \"/redfish/v1/AccountService/Accounts\", 	\"@odata.type\": \"#ManagerAccountCollection.ManagerAccountCollection\", 	\"Description\": \"BMC User Accounts Collection\", 	\"Members\": [ 		{ 			\"@odata.id\": \"/redfish/v1/AccountService/Accounts/1\" 		}, 		{ 			\"@odata.id\": \"/redfish/v1/AccountService/Accounts/2\" 		}, 		{ 			\"@odata.id\": \"/redfish/v1/AccountService/Accounts/3\" 		} 	], 	\"Members@odata.count\": 3, 	\"Name\": \"Accounts Collection\" }"
+
+	managerAccount1 = "{     \"@odata.context\": \"/redfish/v1/$metadata#ManagerAccount.ManagerAccount\",     \"@odata.id\": \"/redfish/v1/AccountService/Accounts/1\",     \"@odata.type\": \"#ManagerAccount.v1_5_0.ManagerAccount\",     \"AccountTypes\": [         \"Redfish\",         \"SNMP\",         \"OEM\"     ],     \"Description\": \"User Account\",     \"Enabled\": false,     \"Id\": \"1\",     \"Links\": {         \"Role\": {             \"@odata.id\": \"/redfish/v1/AccountService/Roles/None\"         }     },     \"Locked\": false,     \"Name\": \"User Account\",     \"OEMAccountTypes\": [         \"IPMI\",         \"SOL\",         \"WSMAN\",         \"UI\",         \"RACADM\"     ],     \"Password\": null,     \"PasswordChangeRequired\": false,     \"RoleId\": \"None\",     \"SNMP\": {         \"AuthenticationKey\": null,         \"AuthenticationKeySet\": false,         \"AuthenticationProtocol\": \"HMAC_SHA96\",         \"EncryptionKey\": null,         \"EncryptionKeySet\": false,         \"EncryptionProtocol\": \"CFB128_AES128\"     },     \"UserName\": \"\" }"
+	managerAccount2 = "{     \"@odata.context\": \"/redfish/v1/$metadata#ManagerAccount.ManagerAccount\",     \"@odata.id\": \"/redfish/v1/AccountService/Accounts/2\",     \"@odata.type\": \"#ManagerAccount.v1_5_0.ManagerAccount\",     \"AccountTypes\": [         \"Redfish\",         \"SNMP\",         \"OEM\"     ],     \"Description\": \"User Account\",     \"Enabled\": true,     \"Id\": \"2\",     \"Links\": {         \"Role\": {             \"@odata.id\": \"/redfish/v1/AccountService/Roles/Administrator\"         }     },     \"Locked\": false,     \"Name\": \"User Account\",     \"OEMAccountTypes\": [         \"IPMI\",         \"SOL\",         \"WSMAN\",         \"UI\",         \"RACADM\"     ],     \"Password\": null,     \"PasswordChangeRequired\": false,     \"RoleId\": \"Administrator\",     \"SNMP\": {         \"AuthenticationKey\": null,         \"AuthenticationKeySet\": true,         \"AuthenticationProtocol\": \"HMAC_SHA96\",         \"EncryptionKey\": null,         \"EncryptionKeySet\": false,         \"EncryptionProtocol\": \"CFB128_AES128\"     },     \"UserName\": \"root\" }"
+	//managerAccount3 is an empty one
+	managerAccountEmpty = "{     \"@odata.context\": \"/redfish/v1/$metadata#ManagerAccount.ManagerAccount\",     \"@odata.id\": \"/redfish/v1/AccountService/Accounts/3\",     \"@odata.type\": \"#ManagerAccount.v1_5_0.ManagerAccount\",     \"AccountTypes\": [         \"Redfish\",         \"SNMP\",         \"OEM\"     ],     \"Description\": \"User Account\",     \"Enabled\": false,     \"Id\": \"3\",     \"Links\": {         \"Role\": {             \"@odata.id\": \"/redfish/v1/AccountService/Roles/None\"         }     },     \"Locked\": false,     \"Name\": \"User Account\",     \"OEMAccountTypes\": [         \"IPMI\",         \"SOL\",         \"WSMAN\",         \"UI\",         \"RACADM\"     ],     \"Password\": null,     \"PasswordChangeRequired\": false,     \"RoleId\": \"None\",     \"SNMP\": {         \"AuthenticationKey\": null,         \"AuthenticationKeySet\": false,         \"AuthenticationProtocol\": \"HMAC_SHA96\",         \"EncryptionKey\": null,         \"EncryptionKeySet\": false,         \"EncryptionProtocol\": \"CFB128_AES128\"     },     \"UserName\": \"\" }"
+	//managerAccountTest is one with UserName=test
+	managerAccountTest = "{     \"@odata.context\": \"/redfish/v1/$metadata#ManagerAccount.ManagerAccount\",     \"@odata.id\": \"/redfish/v1/AccountService/Accounts/3\",     \"@odata.type\": \"#ManagerAccount.v1_5_0.ManagerAccount\",     \"AccountTypes\": [         \"Redfish\",         \"SNMP\",         \"OEM\"     ],     \"Description\": \"User Account\",     \"Enabled\": false,     \"Id\": \"3\",     \"Links\": {         \"Role\": {             \"@odata.id\": \"/redfish/v1/AccountService/Roles/None\"         }     },     \"Locked\": false,     \"Name\": \"User Account\",     \"OEMAccountTypes\": [         \"IPMI\",         \"SOL\",         \"WSMAN\",         \"UI\",         \"RACADM\"     ],     \"Password\": null,     \"PasswordChangeRequired\": false,     \"RoleId\": \"None\",     \"SNMP\": {         \"AuthenticationKey\": null,         \"AuthenticationKeySet\": false,         \"AuthenticationProtocol\": \"HMAC_SHA96\",         \"EncryptionKey\": null,         \"EncryptionKeySet\": false,         \"EncryptionProtocol\": \"CFB128_AES128\"     },     \"UserName\": \"test\" }"
+
+	// --- TASKS RELATED MOCKED RESPONSES ---
+	successfulTask = "{\"@odata.context\":\"/redfish/v1/$metadata#Task.Task\",\"@odata.id\":\"/redfish/v1/TaskService/Tasks/OSDeployment\",\"@odata.type\":\"#Task.v1_4_3.Task\",\"Description\":\"Server Configuration and other Tasks running on iDRAC are listed here\",\"EndTime\":\"\",\"Id\":\"OSDeployment\",\"Messages\":[{\"Message\":\"The command was successful.\",\"MessageArgs\":[],\"MessageArgs@odata.count\":0,\"MessageId\":\"OSD1\"}],\"Messages@odata.count\":1,\"Name\":\"BootToNetworkISO\",\"PercentComplete\":null,\"TaskState\":\"Completed\",\"TaskStatus\":\"OK\"}"
+
+	// --- GENERIC MESSAGES ---
+	resourceNotFound = "{\"error\":{\"@Message.ExtendedInfo\":[{\"Message\":\"Unable to complete the operation because the resource /redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/test entered is not found.\",\"MessageArgs\":[\"/redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/test\"],\"MessageArgs@odata.count\":1,\"MessageId\":\"IDRAC.2.2.SYS403\",\"RelatedProperties\":[],\"RelatedProperties@odata.count\":0,\"Resolution\":\"Enter the correct resource and retry the operation. For information about valid resource, see the Redfish Users Guide available on the support site.\",\"Severity\":\"Critical\"},{\"Message\":\"The resource at the URI /redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/test was not found.\",\"MessageArgs\":[\"/redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/test\"],\"MessageArgs@odata.count\":1,\"MessageId\":\"Base.1.7.ResourceMissingAtURI\",\"RelatedProperties\":[],\"RelatedProperties@odata.count\":0,\"Resolution\":\"Place a valid resource at the URI or correct the URI and resubmit the request.\",\"Severity\":\"Critical\"}],\"code\":\"Base.1.7.GeneralError\",\"message\":\"A general error has occurred. See ExtendedInfo for more information\"}}"
 )
-
-/*
-Calls path
-service---------systems---------embeddedSystem---------storage(collection)-----o---drives
-																			    \--volumes (might have volumes or not)
-*/
-
-/*
-setStorageMockedClient's mission is to return an storage struct that's needed for the tests
-	and the mocked responses to the GET requests, for drives or volumes
-	Params:
-		- Collection: struct to return with next GET calls ready (i.e. service, storage, storage:drives, storage:volumes, etc). Use semicolons to access subcollections
-		- options: string that can be used to set special cases:
-			- if storageSubCollection is set to volumes:
-				- "empty": means volumes empty collection
-				- "included": means at lest there is one volume
-	Returns:
-		- interface{}: struct wanted by the user (i.e. gofish.Service, redfish.Storage)
-		- error: errors when executing the function
-*/
-func setStorageMockedClient(collection string, options string) (interface{}, error) {
-	testClient := &common.TestClient{}
-	responseBuilder := &responseBuilder{}
-	testClient.CustomReturnForActions = make(map[string][]interface{})
-
-	rootResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(rootRedfishJSON).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &rootResponse)
-	service, err := gofish.ServiceRoot(testClient)
-	if err != nil {
-		return nil, fmt.Errorf("Something went wrong with the mocked client: %s", err)
-	}
-
-	//service.Systems() will make 1 + N GET calls (where N is the number of systems, normally just one).
-	//	- First one to get the system collection
-	//	- The N following correspond to the number of systems embedded (Normally just one)
-	systemsResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(systemsRedfishJSON).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &systemsResponse)
-	embeddedSystemResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(systemEmbeddedRedfishJSON).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &embeddedSystemResponse)
-
-	/*embedded, err := service.Systems()
-	if err != nil {
-		return nil, fmt.Errorf("Something went wrong with the mocked client: %s", err)
-	}*/
-
-	//embedded[0].Storage() will make 1 + N calls, (where N is the number of storage controllers)
-	//	- First one to get the storage collection
-	//	- The N following correspond to the number of storage controllers (The example collection has 3 controllers)
-	storageResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(storageRedfishJSON).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &storageResponse)
-	firstStorageResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(storage1RedfishJSON).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &firstStorageResponse)
-	secondStorageResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(storage2RedfishJSON).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &secondStorageResponse)
-	thirdStorageResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(storage3RedfishJSON).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &thirdStorageResponse)
-
-	if collection == "service" {
-		return service, nil
-	}
-
-	embedded, err := service.Systems()
-	if err != nil {
-		return nil, fmt.Errorf("Something went wrong with the mocked client: %s", err)
-	}
-	/*Split parameters from collection*/
-	collections := strings.Split(collection, ":")
-
-	switch collections[0] {
-	case "storage":
-		storage, err := embedded[0].Storage()
-		if err != nil {
-			return nil, fmt.Errorf("Something went wrong with the mocked client: %s", err)
-		}
-
-		switch collections[1] {
-		case "drives":
-			firstDiskResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(drive1RedfishJSON).Build()
-			testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &firstDiskResponse)
-			secondDiskResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(drive2RedfishJSON).Build()
-			testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &secondDiskResponse)
-			return storage[0], nil
-		case "volumes":
-			switch options {
-			case "empty":
-				volumesResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(noVolumesRedfishJSON).Build()
-				testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &volumesResponse)
-				return storage[0], nil
-			case "included":
-				volumesResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(volumesRedfishJSON).Build()
-				testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &volumesResponse)
-				volumeResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(volumeRedfishJSON).Build()
-				testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &volumeResponse)
-				return storage[0], nil
-			}
-
-		}
-	}
-	return nil, fmt.Errorf("No matches for building the test client")
-}
 
 func getReader(s string) io.ReadCloser {
 	return ioutil.NopCloser(strings.NewReader(s))
@@ -158,6 +73,10 @@ func getReader(s string) io.ReadCloser {
 
 type responseBuilder struct {
 	response http.Response
+}
+
+func NewResponseBuilder() *responseBuilder {
+	return &responseBuilder{response: http.Response{}}
 }
 
 func (r *responseBuilder) Build() http.Response {
