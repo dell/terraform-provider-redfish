@@ -6,6 +6,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stmcginnis/gofish"
 	"log"
+	"strconv"
+	"time"
 )
 
 func dataSourceRedfishVirtualMedia() *schema.Resource {
@@ -101,7 +103,7 @@ func readRedfishVirtualMediaCollection(service *gofish.Service, d *schema.Resour
 		vms = append(vms, vmToAdd)
 	}
 	d.Set("virtual_media", vms)
-	d.SetId("1")
+	d.SetId(strconv.FormatInt(time.Now().Unix(), 10))
 
 	return diags
 }
