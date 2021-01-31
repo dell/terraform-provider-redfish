@@ -32,5 +32,5 @@ data "redfish_bios" "bios" {
 }
 
 output "bios_attributes" {
-  value = "${data.redfish_bios.bios.attributes}"
+  value = data.redfish_bios.bios
 }
