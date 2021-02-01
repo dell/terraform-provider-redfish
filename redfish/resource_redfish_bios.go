@@ -170,36 +170,9 @@ func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) 
 		return diag.Errorf("error fetching bios attributes: %s", err)
 	}
 
-	attrsToPatch := make(map[string]interface{})
-	if v, ok := d.GetOk("attributes"); ok {
-		attrsToPatch = v.(map[string]interface{})
-	}
-
-	attrsPayload := make(map[string]interface{})
-
-	for key, val := range attrsToPatch {
-		if oldVal, ok := attributes[key]; ok {
-			// check if the original value is an integer
-			// if yes, then we need to convert accordingly
-			if intOldVal, err := strconv.Atoi(attributes[key]); err == nil {
-				intVal, err := strconv.Atoi(val.(string))
-				if err != nil {
-					return diag.Errorf("Failed typecast to int for bios attribute: %s", key)
-				}
-
-				// Add to payload if attribute value has changed
-				if intVal != intOldVal {
-					attrsPayload[key] = intVal
-				}
-			} else {
-				if val != oldVal {
-					attrsPayload[key] = val
-				}
-			}
-
-		} else {
-			return diag.Errorf("BIOS attribute %s not found", key)
-		}
+	attrsPayload, err := getBiosAttrsToPatch(d, attributes)
+	if err != nil {
+		return diag.Errorf("error getting BIOS attributes to patch: %s", err)
 	}
 
 	if len(attrsPayload) != 0 {
@@ -254,8 +227,16 @@ func readRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) di
 		return diag.Errorf("error fetching BIOS attributes: %s", err)
 	}
 
-	if err := d.Set("attributes", attributes); err != nil {
-		return diag.Errorf("error setting bios attributes: %s", err)
+	attrsToPatch, err := getBiosAttrsToPatch(d, attributes)
+	if err != nil {
+		return diag.Errorf("error getting BIOS attributes to patch: %s", err)
+	}
+
+	if len(attrsToPatch) != 0 {
+		log.Printf("[DEBUG] BIOS attributes to be patched: %v", attrsToPatch)
+		if err := d.Set("attributes", attributes); err != nil {
+			return diag.Errorf("error setting bios attributes: %s", err)
+		}
 	}
 
 	log.Printf("[DEBUG] %s: Read finished successfully", d.Id())
@@ -383,4 +364,42 @@ func getSystemResource(service *gofish.Service) (*redfish.ComputerSystem, error)
 	}
 
 	return systems[0], err
+}
+
+func getBiosAttrsToPatch(d *schema.ResourceData, attributes map[string]string) (map[string]interface{}, error) {
+
+	attrs := make(map[string]interface{})
+	attrsToPatch := make(map[string]interface{})
+
+        if v, ok := d.GetOk("attributes"); ok {
+                attrs = v.(map[string]interface{})
+        }
+
+        for key, newVal := range attrs {
+                if oldVal, ok := attributes[key]; ok {
+                        // check if the original value is an integer
+                        // if yes, then we need to convert accordingly
+                        if intOldVal, err := strconv.Atoi(attributes[key]); err == nil {
+                                intNewVal, err := strconv.Atoi(newVal.(string))
+                                if err != nil {
+                                        return attrsToPatch, err
+                                }
+
+                                // Add to patch list if attribute value has changed
+                                if intNewVal != intOldVal {
+                                        attrsToPatch[key] = intNewVal
+                                }
+                        } else {
+                                if newVal != oldVal {
+                                        attrsToPatch[key] = newVal
+                                }
+                        }
+
+                } else {
+			err := fmt.Errorf("BIOS attribute %s not found", key)
+			return attrsToPatch, err
+                }
+        }
+
+	return attrsToPatch, nil
 }
