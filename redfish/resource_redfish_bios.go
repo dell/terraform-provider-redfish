@@ -197,10 +197,8 @@ func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) 
 		return diag.Errorf("error setting bios attributes: %s", err)
 	}
 
-	// Set the ID to the server endpoint + @odata.id
-	serverConfig := d.Get("redfish_server").([]interface{})
-	endpoint := serverConfig[0].(map[string]interface{})["endpoint"].(string)
-	d.SetId(endpoint + bios.ODataID)
+	// Set the ID to @odata.id
+	d.SetId(bios.ODataID)
 
 	actionAfterApply, ok := d.GetOk("action_after_apply")
 	if ok && actionAfterApply != nil {
@@ -227,16 +225,8 @@ func readRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) di
 		return diag.Errorf("error fetching BIOS attributes: %s", err)
 	}
 
-	attrsToPatch, err := getBiosAttrsToPatch(d, attributes)
-	if err != nil {
-		return diag.Errorf("error getting BIOS attributes to patch: %s", err)
-	}
-
-	if len(attrsToPatch) != 0 {
-		log.Printf("[DEBUG] BIOS attributes to be patched: %v", attrsToPatch)
-		if err := d.Set("attributes", attributes); err != nil {
-			return diag.Errorf("error setting bios attributes: %s", err)
-		}
+	if err := d.Set("attributes", attributes); err != nil {
+		return diag.Errorf("error setting bios attributes: %s", err)
 	}
 
 	log.Printf("[DEBUG] %s: Read finished successfully", d.Id())
