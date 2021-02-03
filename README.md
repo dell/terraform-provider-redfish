@@ -31,7 +31,7 @@ $ $GOPATH/bin/terraform-provider-redfish
 ```
 
 ## Documentation
-The documentation for the provider can found here - Coming soon
+The documentation for the provider can found [here](https://github.com/dell/terraform-provider-redfish/blob/master/docs/PROVIDER.md)
 
 ## Roadmap
 Our roadmap for Terraform provider for Redfish resources can be found [here](ROADMAP.md)
