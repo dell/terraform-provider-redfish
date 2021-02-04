@@ -24,74 +24,127 @@ func resourceRedfishBios() *schema.Resource {
 		ReadContext:   resourceRedfishBiosRead,
 		UpdateContext: resourceRedfishBiosUpdate,
 		DeleteContext: resourceRedfishBiosDelete,
-		Schema: map[string]*schema.Schema{
-			"attributes": {
-				Type:        schema.TypeMap,
-				Optional:    true,
-				Description: "Bios attributes",
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
+		Schema: getResourceRedfishBiosSchema(),
+	}
+}
+
+func getResourceRedfishBiosSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"redfish_server": {
+			Type: schema.TypeList,
+			Required: true,
+			Description: "List of server BMCs and their respective user credentials",
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"user": {
+                                                Type: schema.TypeString,
+                                                Optional: true,
+                                                Description: "User name for login",
+                                        },
+					"password": {
+                                                Type: schema.TypeString,
+                                                Optional: true,
+                                                Description: "User password for login",
+                                                Sensitive: true,
+                                        },
+                                        "endpoint": {
+                                                Type: schema.TypeString,
+                                                Required: true,
+                                                Description: "Server BMC IP address or hostname",
+                                        },
+					"ssl_insecure": {
+                                                Type: schema.TypeBool,
+                                                Optional: true,
+                                                Description: "This field indicates whether the SSL/TLS certificate must be verified or not",
+                                        },
 				},
 			},
-
-			"settings_apply_time": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Description: "The time when the BIOS settings can be applied. Applicable values are " +
-					"'OnReset', 'Immediate', 'AtMaintenanceWindowStart' and 'InMaintenanceWindowStart'.",
-				Default: "Immediate",
-				ValidateFunc: validation.StringInSlice([]string{
-					string(common.ImmediateApplyTime),
-					string(common.OnResetApplyTime),
-					string(common.AtMaintenanceWindowStartApplyTime),
-					string(common.InMaintenanceWindowOnResetApplyTime),
-				}, false),
+		},
+		"attributes": {
+			Type: schema.TypeMap,
+			Optional: true,
+			Description: "Bios attributes",
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
 			},
-
-			"action_after_apply": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Description: "Action to perform on the target after the BIOS settings are applied. " +
-					"Default=nil : no action after apply" +
-					"Applicable values are nil, 'On','ForceOn','ForceOff','ForceRestart','GracefulRestart'," +
-					"'GracefulShutdown','PushPowerButton','PowerCycle','Nmi'.",
-				ValidateFunc: validation.StringInSlice([]string{
-					string(redfish.OnResetType),
-					string(redfish.ForceOnResetType),
-					string(redfish.ForceOffResetType),
-					string(redfish.ForceRestartResetType),
-					string(redfish.GracefulRestartResetType),
-					string(redfish.GracefulShutdownResetType),
-					string(redfish.PushPowerButtonResetType),
-					string(redfish.PowerCycleResetType),
-				}, false),
-			},
-
-			"bios_config_job_uri": {
-				Type:        schema.TypeString,
-				Description: "BIOS configuration job uri",
-				Computed:    true,
-			},
+		},
+		"settings_apply_time": {
+			Type:     schema.TypeString,
+			Optional: true,
+			Description: "The time when the BIOS settings can be applied. Applicable values are " +
+			"'OnReset', 'Immediate', 'AtMaintenanceWindowStart' and 'InMaintenanceWindowStart'. " +
+			"Default is \"\" which will not create a BIOS configuration job.",
+			ValidateFunc: validation.StringInSlice([]string{
+				string(common.ImmediateApplyTime),
+				string(common.OnResetApplyTime),
+				string(common.AtMaintenanceWindowStartApplyTime),
+				string(common.InMaintenanceWindowOnResetApplyTime),
+			}, false),
+		},
+		"action_after_apply": {
+			Type:     schema.TypeString,
+			Optional: true,
+			Description: "Action to perform on the target after the BIOS settings are applied. " +
+			"Default=nil : no action after apply" +
+			"Applicable values are nil, 'On','ForceOn','ForceOff','ForceRestart','GracefulRestart'," +
+			"'GracefulShutdown','PushPowerButton','PowerCycle','Nmi'.",
+			ValidateFunc: validation.StringInSlice([]string{
+				string(redfish.OnResetType),
+				string(redfish.ForceOnResetType),
+				string(redfish.ForceOffResetType),
+				string(redfish.ForceRestartResetType),
+				string(redfish.GracefulRestartResetType),
+				string(redfish.GracefulShutdownResetType),
+				string(redfish.PushPowerButtonResetType),
+				string(redfish.PowerCycleResetType),
+			}, false),
+		},
+		"task_monitor_uri": {
+			Type:        schema.TypeString,
+			Description: "URI of the BIOS configuration task monitor",
+			Computed:    true,
 		},
 	}
 }
 
-func resourceRedfishBiosUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRedfishBiosRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	service, err := NewConfig(m.(*schema.ResourceData), d)
+	if err != nil {
+		return diag.Errorf(err.Error())
+	}
+	return readRedfishBiosResource(service, d)
+}
 
+func resourceRedfishBiosUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	service, err := NewConfig(m.(*schema.ResourceData), d)
+	if err != nil {
+		return diag.Errorf(err.Error())
+	}
+	return updateRedfishBiosResource(service, d)
+}
+
+func resourceRedfishBiosDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+
+        var diags diag.Diagnostics
+
+        d.SetId("")
+
+        return diags
+}
+
+func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
 	log.Printf("[DEBUG] Beginning update")
 	var diags diag.Diagnostics
-
-	conn := m.(*gofish.APIClient)
 
 	// check if there is already a bios config job in progress
 	// if yes, then check the current status of the job. If it
 	// has not completed yet, then don't perform another operation
 	pending := false
-	if v, ok := d.GetOk("bios_config_job_uri"); ok {
-		log.Printf("[DEBUG] %s: Bios config job uri is \"%s\"", d.Id(), v.(string))
+	if v, ok := d.GetOk("task_monitor_uri"); ok {
+		log.Printf("[DEBUG] %s: Bios config task monitor uri is \"%s\"", d.Id(), v.(string))
 		taskURI, _ := v.(string)
 		if len(taskURI) > 0 {
-			task, _ := redfish.GetTask(conn, taskURI)
+			task, _ := redfish.GetTask(service.Client, taskURI)
 			if task != nil {
 				if task.TaskState != redfish.CompletedTaskState {
 					log.Printf("[DEBUG] %s: BIOS config task state = %s", d.Id(), task.TaskState)
@@ -99,14 +152,14 @@ func resourceRedfishBiosUpdate(ctx context.Context, d *schema.ResourceData, m in
 				}
 			} else {
 				// Task does not exist or there was an error
-				if err := d.Set("bios_config_job_uri", ""); err != nil {
-					return diag.Errorf("error updating bios_config_job_uri: %s", err)
+				if err := d.Set("task_monitor_uri", ""); err != nil {
+					return diag.Errorf("error updating task_monitor_uri: %s", err)
 				}
 			}
 		}
 	}
 
-	bios, err := getBios(conn)
+	bios, err := getBiosResource(service)
 	if err != nil {
 		return diag.Errorf("error fetching bios resource: %s", err)
 	}
@@ -117,50 +170,23 @@ func resourceRedfishBiosUpdate(ctx context.Context, d *schema.ResourceData, m in
 		return diag.Errorf("error fetching bios attributes: %s", err)
 	}
 
-	attrsToPatch := make(map[string]interface{})
-	if v, ok := d.GetOk("attributes"); ok {
-		attrsToPatch = v.(map[string]interface{})
-	}
-
-	attrsPayload := make(map[string]interface{})
-
-	for key, val := range attrsToPatch {
-		if oldVal, ok := attributes[key]; ok {
-			// check if the original value is an integer
-			// if yes, then we need to convert accordingly
-			if intOldVal, err := strconv.Atoi(attributes[key]); err == nil {
-				intVal, err := strconv.Atoi(val.(string))
-				if err != nil {
-					return diag.Errorf("Failed typecast to int for bios attribute: %s", key)
-				}
-
-				// Add to payload if attribute value has changed
-				if intVal != intOldVal {
-					attrsPayload[key] = intVal
-				}
-			} else {
-				if val != oldVal {
-					attrsPayload[key] = val
-				}
-			}
-
-		} else {
-			return diag.Errorf("BIOS attribute %s not found", key)
-		}
+	attrsPayload, err := getBiosAttrsToPatch(d, attributes)
+	if err != nil {
+		return diag.Errorf("error getting BIOS attributes to patch: %s", err)
 	}
 
 	if len(attrsPayload) != 0 {
 		if !pending {
-			err = updateBiosAttributes(d, bios, attrsPayload)
+			err = patchBiosAttributes(d, bios, attrsPayload)
 			if err != nil {
 				return diag.Errorf("error updating bios attributes: %s", err)
 			}
 		} else {
-			log.Printf("[DEBUG] Not updating the attributes as a previous BIOS job is pending")
+			log.Printf("[DEBUG] Not updating the attributes as a previous BIOS job is already scheduled")
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Warning,
-				Summary:  "Unable to update bios attributes",
-				Detail:   "Unable to update bios attributes as a previous BIOS job is pending",
+				Summary: "Unable to update bios attributes",
+				Detail: "Unable to update bios attributes as a previous BIOS job is already scheduled.",
 			})
 		}
 	} else {
@@ -171,26 +197,24 @@ func resourceRedfishBiosUpdate(ctx context.Context, d *schema.ResourceData, m in
 		return diag.Errorf("error setting bios attributes: %s", err)
 	}
 
-	// Set the ID to the @odata.id
+	// Set the ID to @odata.id
 	d.SetId(bios.ODataID)
 
-	actionAfterApply, exists := d.GetOk("action_after_apply")
-	if exists && actionAfterApply != nil {
-		resetSystem(conn, d, actionAfterApply.(redfish.ResetType))
+	actionAfterApply, ok := d.GetOk("action_after_apply")
+	if ok && actionAfterApply != nil {
+		resetSystem(service, d, (redfish.ResetType)(actionAfterApply.(string)))
 	}
 
 	log.Printf("[DEBUG] %s: Update finished successfully", d.Id())
 	return diags
 }
 
-func resourceRedfishBiosRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func readRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
 
 	log.Printf("[DEBUG] %s: Beginning read", d.Id())
 	var diags diag.Diagnostics
 
-	conn := m.(*gofish.APIClient)
-
-	bios, err := getBios(conn)
+	bios, err := getBiosResource(service)
 	if err != nil {
 		return diag.Errorf("error fetching BIOS resource: %s", err)
 	}
@@ -205,37 +229,9 @@ func resourceRedfishBiosRead(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.Errorf("error setting bios attributes: %s", err)
 	}
 
-	// Set the ID to the @odata.id
-	d.SetId(bios.ODataID)
-
 	log.Printf("[DEBUG] %s: Read finished successfully", d.Id())
 
 	return diags
-}
-
-func resourceRedfishBiosDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-
-	var diags diag.Diagnostics
-
-	d.SetId("")
-
-	return diags
-}
-
-func getBios(conn *gofish.APIClient) (*redfish.Bios, error) {
-
-	service := conn.Service
-	systems, err := service.Systems()
-	if err != nil {
-		return nil, err
-	}
-
-	bios, err := systems[0].Bios()
-	if err != nil {
-		return nil, err
-	}
-
-	return bios, nil
 }
 
 func copyBiosAttributes(bios *redfish.Bios, attributes map[string]string) error {
@@ -255,7 +251,7 @@ func copyBiosAttributes(bios *redfish.Bios, attributes map[string]string) error 
 	return nil
 }
 
-func updateBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes map[string]interface{}) error {
+func patchBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes map[string]interface{}) error {
 
 	payload := make(map[string]interface{})
 	payload["Attributes"] = attributes
@@ -266,6 +262,7 @@ func updateBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes
 		for i := range allowedValues {
 			if strings.TrimSpace(settingsApplyTime.(string)) == (string)(allowedValues[i]) {
 				allowed = true
+				break
 			}
 		}
 
@@ -296,7 +293,7 @@ func updateBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes
 
 		taskURI := location.EscapedPath()
 
-		if err = d.Set("bios_config_job_uri", taskURI); err != nil {
+		if err = d.Set("task_monitor_uri", taskURI); err != nil {
 			log.Printf("[DEBUG] error setting the task uri: %s", err)
 			return err
 		}
@@ -305,9 +302,9 @@ func updateBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes
 	return nil
 }
 
-func resetSystem(client *gofish.APIClient, d *schema.ResourceData, resetType redfish.ResetType) error {
+func resetSystem(service *gofish.Service, d *schema.ResourceData, resetType redfish.ResetType) error {
 
-	system, err := getOnlySystem(client)
+	system, err := getSystemResource(service)
 	if err != nil {
 		log.Printf("[ERROR]: Failed to identify system: %s", err)
 		return err
@@ -328,18 +325,71 @@ func resetSystem(client *gofish.APIClient, d *schema.ResourceData, resetType red
 	return err
 }
 
-func getOnlySystem(client *gofish.APIClient) (*redfish.ComputerSystem, error) {
-	systems, err := client.Service.Systems()
+func getBiosResource(service *gofish.Service) (*redfish.Bios, error) {
+
+        system, err := getSystemResource(service)
+        if err != nil {
+                log.Printf("[ERROR]: Failed to get system resource: %s", err)
+                return nil, err
+        }
+
+        bios, err := system.Bios()
+        if err != nil {
+                log.Printf("[ERROR]: Failed to get Bios resource: %s", err)
+                return nil, err
+        }
+
+        return bios, nil
+}
+
+func getSystemResource(service *gofish.Service) (*redfish.ComputerSystem, error) {
+
+	systems, err := service.Systems()
 
 	if err != nil {
 		return nil, err
 	}
 	if len(systems) == 0 {
-		return nil, errors.New("No systems found")
-	}
-	if len(systems) > 1 {
-		return nil, errors.New("Too many systems found")
+		return nil, errors.New("No computer systems found")
 	}
 
 	return systems[0], err
+}
+
+func getBiosAttrsToPatch(d *schema.ResourceData, attributes map[string]string) (map[string]interface{}, error) {
+
+	attrs := make(map[string]interface{})
+	attrsToPatch := make(map[string]interface{})
+
+        if v, ok := d.GetOk("attributes"); ok {
+                attrs = v.(map[string]interface{})
+        }
+
+        for key, newVal := range attrs {
+                if oldVal, ok := attributes[key]; ok {
+                        // check if the original value is an integer
+                        // if yes, then we need to convert accordingly
+                        if intOldVal, err := strconv.Atoi(attributes[key]); err == nil {
+                                intNewVal, err := strconv.Atoi(newVal.(string))
+                                if err != nil {
+                                        return attrsToPatch, err
+                                }
+
+                                // Add to patch list if attribute value has changed
+                                if intNewVal != intOldVal {
+                                        attrsToPatch[key] = intNewVal
+                                }
+                        } else {
+                                if newVal != oldVal {
+                                        attrsToPatch[key] = newVal
+                                }
+                        }
+
+                } else {
+			err := fmt.Errorf("BIOS attribute %s not found", key)
+			return attrsToPatch, err
+                }
+        }
+
+	return attrsToPatch, nil
 }
