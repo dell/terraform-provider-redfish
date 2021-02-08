@@ -3,14 +3,15 @@ package redfish
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/dell/terraform-provider-redfish/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stmcginnis/gofish"
 	redfishcommon "github.com/stmcginnis/gofish/common"
 	"github.com/stmcginnis/gofish/redfish"
-	"log"
-	"net/http"
 )
 
 func resourceRedfishStorageVolume() *schema.Resource {
@@ -54,22 +55,22 @@ func getResourceStorageVolumeSchema() map[string]*schema.Schema {
 				},
 			},
 		},
-		"storage_controller_id": &schema.Schema{
+		"storage_controller_id": {
 			Type:        schema.TypeString,
 			Required:    true,
 			Description: "This value must be the storage controller ID the user want to manage. I.e: RAID.Integrated.1-1",
 		},
-		"volume_name": &schema.Schema{
+		"volume_name": {
 			Type:        schema.TypeString,
 			Required:    true,
 			Description: "This value is the desired name for the volume to be given",
 		},
-		"volume_type": &schema.Schema{
+		"volume_type": {
 			Type:        schema.TypeString,
 			Required:    true,
 			Description: "This value specifies the raid level the virtual disk is going to have. Possible values are: NonRedundant (RAID-0), Mirrored (RAID-1), StripedWithParity (RAID-5), SpannedMirrors (RAID-10) or SpannedStripesWithParity (RAID-50)",
 		},
-		"volume_disks": &schema.Schema{
+		"volume_disks": {
 			Type:        schema.TypeList,
 			Required:    true,
 			Description: "This list contains the physical disks names to create the volume within a disk controller",
@@ -77,12 +78,12 @@ func getResourceStorageVolumeSchema() map[string]*schema.Schema {
 				Type: schema.TypeString,
 			},
 		},
-		"settings_apply_time": &schema.Schema{
+		"settings_apply_time": {
 			Type:        schema.TypeString,
 			Description: "Flag to make the operation either \"Immediate\" or \"OnReset\". By default value is \"Immediate\"",
 			Optional:    true,
 		},
-		"job_id": &schema.Schema{
+		"job_id": {
 			Type:        schema.TypeString,
 			Description: "This parameter will return the jobID from the job that will carry out the operation if \"settings_apply_time\" is different from \"Immediate\".",
 			Computed:    true,

@@ -2,6 +2,7 @@ package redfish
 
 import (
 	"context"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stmcginnis/gofish"
@@ -49,21 +50,21 @@ func getResourceUserAccountSchema() map[string]*schema.Schema {
 				},
 			},
 		},
-		"username": &schema.Schema{
+		"username": {
 			Type:     schema.TypeString,
 			Required: true,
 		},
-		"password": &schema.Schema{
+		"password": {
 			Type:      schema.TypeString,
 			Required:  true,
 			Sensitive: true,
 		},
-		"enabled": &schema.Schema{
+		"enabled": {
 			Type:     schema.TypeBool,
 			Optional: true,
 			Default:  false,
 		},
-		"role_id": &schema.Schema{
+		"role_id": {
 			Type:     schema.TypeString,
 			Optional: true,
 			Default:  "None",
