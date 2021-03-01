@@ -24,7 +24,7 @@ func NewConfig(provider *schema.ResourceData, resource *schema.ResourceData) (*g
 
 	resourceServerConfig := resource.Get("redfish_server").([]interface{}) //It must be just one element
 
-	//Overwride parameters (just user and password for client connection)
+	//Overwrite parameters (just user and password for client connection)
 	//Get redfish username at resource level over provider level
 	var redfishClientUser, redfishClientPass string
 	if len(resourceServerConfig[0].(map[string]interface{})["user"].(string)) > 0 {
