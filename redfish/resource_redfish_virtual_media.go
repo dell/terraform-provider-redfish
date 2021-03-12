@@ -180,7 +180,7 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 	//Get specific virtual media
 	virtualMedia, err := getVirtualMedia(virtualMediaID, virtualMediaCollection)
 	if err != nil {
-		return diag.Errorf("%s", err)
+		return diag.Errorf("Virtual Media selected doesn't exist: %s", err)
 	}
 
 	virtualMediaConfig := redfish.VirtualMediaConfig{
@@ -210,7 +210,7 @@ func readRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) di
 		return diag.Errorf("Virtual Media doesn't exist: %s", err) //This error won't be triggered ever
 	}
 
-	if virtualMedia.Image == "null" { //Nothing is mounted here
+	if len(virtualMedia.Image) == 0 { //Nothing is mounted here
 		d.SetId("")
 		return diags
 	}

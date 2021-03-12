@@ -11,5 +11,5 @@ resource "redfish_virtual_media" "vm" {
     }
 
     virtual_media_id = "CD"
-    image = "http://isos.svd-miguel02.dell-atc.lan/centos/7.6.1810/image.iso"
+    image = "http://web.svd-miguel02.dell-atc.lan/centos/7.6.1810/image.iso"
 }
