@@ -8,7 +8,7 @@ import (
 	"github.com/stmcginnis/gofish/common"
 )
 
-func TestReadRedfishStorageVolumeCollection(t *testing.T) {
+func TestReadRedfishStorageCollection(t *testing.T) {
 	//FIRST TEST - Read Storage Volume collection
 	resultStorageMap := map[string]string{
 		"RAID.Integrated.1-1": "",
@@ -18,7 +18,7 @@ func TestReadRedfishStorageVolumeCollection(t *testing.T) {
 		"Physical Disk 0:1:1": "",
 	}
 	configMap := map[string]interface{}{} //Empty map
-	d := schema.TestResourceDataRaw(t, getDataSourceRedfishStorageVolumeSchema(), configMap)
+	d := schema.TestResourceDataRaw(t, getDataSourceRedfishStorageSchema(), configMap)
 	testClient := &common.TestClient{}
 	responseBuilder := NewResponseBuilder()
 
@@ -34,7 +34,7 @@ func TestReadRedfishStorageVolumeCollection(t *testing.T) {
 	secondDiskResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(drive2RedfishJSON).Build()
 	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &secondDiskResponse)
 
-	diags := readRedfishStorageVolumeCollection(service, d)
+	diags := readRedfishStorageCollection(service, d)
 	if diags.HasError() {
 		t.Errorf("FIRST TEST - Read Storage Volume collection failed")
 	}
@@ -48,7 +48,7 @@ func TestReadRedfishStorageVolumeCollection(t *testing.T) {
 			t.Errorf("FIRST TEST - Read Storage Volume collection failed. Got storage different than expected")
 		}
 		//Check disks
-		disks := w["volume_disks"].([]interface{})
+		disks := w["drives"].([]interface{})
 		for _, d := range disks {
 			disk := d.(string)
 			if _, e := resultDisksMap[disk]; !e {

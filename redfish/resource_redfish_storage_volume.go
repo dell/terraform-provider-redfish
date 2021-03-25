@@ -70,7 +70,7 @@ func getResourceStorageVolumeSchema() map[string]*schema.Schema {
 			Required:    true,
 			Description: "This value specifies the raid level the virtual disk is going to have. Possible values are: NonRedundant (RAID-0), Mirrored (RAID-1), StripedWithParity (RAID-5), SpannedMirrors (RAID-10) or SpannedStripesWithParity (RAID-50)",
 		},
-		"volume_disks": {
+		"drives": {
 			Type:        schema.TypeList,
 			Required:    true,
 			Description: "This list contains the physical disks names to create the volume within a disk controller",
@@ -132,7 +132,7 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 	storageID := d.Get("storage_controller_id").(string)
 	volumeType := d.Get("volume_type").(string)
 	volumeName := d.Get("volume_name").(string)
-	driveNamesRaw := d.Get("volume_disks").([]interface{})
+	driveNamesRaw := d.Get("drives").([]interface{})
 	applyTime, ok := d.GetOk("settings_apply_time")
 	if !ok {
 		//If settingsApplyTime has not set, by default use Immediate

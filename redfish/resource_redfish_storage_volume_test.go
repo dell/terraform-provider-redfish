@@ -19,7 +19,7 @@ func TestCreateRedfishStorageVolume(t *testing.T) {
 		"storage_controller_id": "RAID.Integrated.1-1",
 		"volume_name":           "MyVol",
 		"volume_type":           "Mirrored",
-		"volume_disks":          []interface{}{"Physical Disk 0:1:0", "Physical Disk 0:1:1"},
+		"drives":                []interface{}{"Physical Disk 0:1:0", "Physical Disk 0:1:1"},
 		"settings_apply_time":   "Immediate",
 	}
 
@@ -69,7 +69,7 @@ func TestCreateRedfishStorageVolume(t *testing.T) {
 		"storage_controller_id": "RAID.Integrated.1-1",
 		"volume_name":           "MyVol",
 		"volume_type":           "Mirrored",
-		"volume_disks":          []interface{}{"Physical Disk 0:1:0", "Physical Disk 0:1:1"},
+		"drives":                []interface{}{"Physical Disk 0:1:0", "Physical Disk 0:1:1"},
 		"settings_apply_time":   "MadeUpSettingApplyTime",
 	}
 

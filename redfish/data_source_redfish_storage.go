@@ -10,14 +10,14 @@ import (
 	"github.com/stmcginnis/gofish"
 )
 
-func dataSourceRedfishStorageVolume() *schema.Resource {
+func dataSourceRedfishStorage() *schema.Resource {
 	return &schema.Resource{
-		ReadContext: dataSourceRedfishStorageVolumeRead,
-		Schema:      getDataSourceRedfishStorageVolumeSchema(),
+		ReadContext: dataSourceRedfishStorageRead,
+		Schema:      getDataSourceRedfishStorageSchema(),
 	}
 }
 
-func getDataSourceRedfishStorageVolumeSchema() map[string]*schema.Schema {
+func getDataSourceRedfishStorageSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"redfish_server": {
 			Type:        schema.TypeList,
@@ -60,7 +60,7 @@ func getDataSourceRedfishStorageVolumeSchema() map[string]*schema.Schema {
 						Computed:    true,
 						Type:        schema.TypeString,
 					},
-					"volume_disks": {
+					"drives": {
 						Type:        schema.TypeList,
 						Description: "Disks attached to the storage resource",
 						Computed:    true,
@@ -74,15 +74,15 @@ func getDataSourceRedfishStorageVolumeSchema() map[string]*schema.Schema {
 	}
 }
 
-func dataSourceRedfishStorageVolumeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceRedfishStorageRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	service, err := NewConfig(m.(*schema.ResourceData), d)
 	if err != nil {
 		return diag.Errorf(err.Error())
 	}
-	return readRedfishStorageVolumeCollection(service, d)
+	return readRedfishStorageCollection(service, d)
 }
 
-func readRedfishStorageVolumeCollection(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
+func readRedfishStorageCollection(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
 	var diags diag.Diagnostics
 	m := make([]map[string]interface{}, 0) //List where all storage controller will be held
 
@@ -108,7 +108,7 @@ func readRedfishStorageVolumeCollection(service *gofish.Service, d *schema.Resou
 		for _, d := range drives {
 			driveNames = append(driveNames, d.Name)
 		}
-		mToAdd["volume_disks"] = driveNames
+		mToAdd["drives"] = driveNames
 		m = append(m, mToAdd) //Insert controller into list
 	}
 
