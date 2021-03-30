@@ -49,9 +49,9 @@ func getDataSourceRedfishStorageSchema() map[string]*schema.Schema {
 				},
 			},
 		},
-		"storage_volume": {
+		"storage": {
 			Type:        schema.TypeList,
-			Description: "List of storage volumes available on this instance",
+			Description: "List of storage and disks attached available on this instance",
 			Computed:    true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
@@ -112,7 +112,7 @@ func readRedfishStorageCollection(service *gofish.Service, d *schema.ResourceDat
 		m = append(m, mToAdd) //Insert controller into list
 	}
 
-	d.Set("storage_volume", m)
+	d.Set("storage", m)
 	d.SetId(strconv.FormatInt(time.Now().Unix(), 10))
 
 	return diags

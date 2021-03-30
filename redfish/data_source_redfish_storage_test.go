@@ -40,7 +40,7 @@ func TestReadRedfishStorageCollection(t *testing.T) {
 	}
 
 	//Check result
-	storage := d.Get("storage_volume").([]interface{})
+	storage := d.Get("storage").([]interface{})
 	for _, v := range storage {
 		w := v.(map[string]interface{})
 		//Check controller
