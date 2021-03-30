@@ -2,11 +2,12 @@ package redfish
 
 import (
 	_ "context"
+	"net/http"
+	"testing"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/common"
-	"net/http"
-	"testing"
 )
 
 func TestCreateRedfishStorageVolume(t *testing.T) {
@@ -18,7 +19,7 @@ func TestCreateRedfishStorageVolume(t *testing.T) {
 		"storage_controller_id": "RAID.Integrated.1-1",
 		"volume_name":           "MyVol",
 		"volume_type":           "Mirrored",
-		"volume_disks":          []interface{}{"Physical Disk 0:1:0", "Physical Disk 0:1:1"},
+		"drives":                []interface{}{"Physical Disk 0:1:0", "Physical Disk 0:1:1"},
 		"settings_apply_time":   "Immediate",
 	}
 
@@ -68,7 +69,7 @@ func TestCreateRedfishStorageVolume(t *testing.T) {
 		"storage_controller_id": "RAID.Integrated.1-1",
 		"volume_name":           "MyVol",
 		"volume_type":           "Mirrored",
-		"volume_disks":          []interface{}{"Physical Disk 0:1:0", "Physical Disk 0:1:1"},
+		"drives":                []interface{}{"Physical Disk 0:1:0", "Physical Disk 0:1:1"},
 		"settings_apply_time":   "MadeUpSettingApplyTime",
 	}
 
@@ -193,12 +194,6 @@ func setStorageMockedClient(testClient *common.TestClient, responseBuilder *resp
 
 	firstStorageResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(storage1RedfishJSON).Build()
 	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &firstStorageResponse)
-
-	secondStorageResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(storage2RedfishJSON).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &secondStorageResponse)
-
-	thirdStorageResponse := responseBuilder.Status("200 OK").StatusCode(200).Body(storage3RedfishJSON).Build()
-	testClient.CustomReturnForActions[http.MethodGet] = append(testClient.CustomReturnForActions[http.MethodGet], &thirdStorageResponse)
 
 	return service, nil
 }

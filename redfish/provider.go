@@ -20,13 +20,16 @@ func Provider() *schema.Provider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"redfish_user_account": resourceUserAccount(),
-			"redfish_bios": resourceRedfishBios(),
+			"redfish_user_account":   resourceUserAccount(),
+			"redfish_bios":           resourceRedfishBios(),
 			"redfish_storage_volume": resourceRedfishStorageVolume(),
+			"redfish_virtual_media":  resourceRedfishVirtualMedia(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"redfish_bios": dataSourceRedfishBios(),
+			"redfish_bios":          dataSourceRedfishBios(),
+			"redfish_virtual_media": dataSourceRedfishVirtualMedia(),
+			"redfish_storage":       dataSourceRedfishStorage(),
 		},
 	}
 
