@@ -24,6 +24,7 @@ func Provider() *schema.Provider {
 			"redfish_bios":           resourceRedfishBios(),
 			"redfish_storage_volume": resourceRedfishStorageVolume(),
 			"redfish_virtual_media":  resourceRedfishVirtualMedia(),
+			"redfish_power":          resourceRedFishPower(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{

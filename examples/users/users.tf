@@ -3,6 +3,14 @@ provider "redfish" {
     //password = "calvin"
 }
 
+terraform {
+    required_providers {
+        redfish = {
+            source = "dell/redfish"
+        }
+    }
+}
+
 resource "redfish_user_account" "rr" {
     for_each = var.rack1
 

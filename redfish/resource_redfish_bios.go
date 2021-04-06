@@ -24,45 +24,45 @@ func resourceRedfishBios() *schema.Resource {
 		ReadContext:   resourceRedfishBiosRead,
 		UpdateContext: resourceRedfishBiosUpdate,
 		DeleteContext: resourceRedfishBiosDelete,
-		Schema: getResourceRedfishBiosSchema(),
+		Schema:        getResourceRedfishBiosSchema(),
 	}
 }
 
 func getResourceRedfishBiosSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"redfish_server": {
-			Type: schema.TypeList,
-			Required: true,
+			Type:        schema.TypeList,
+			Required:    true,
 			Description: "List of server BMCs and their respective user credentials",
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"user": {
-                                                Type: schema.TypeString,
-                                                Optional: true,
-                                                Description: "User name for login",
-                                        },
+						Type:        schema.TypeString,
+						Optional:    true,
+						Description: "User name for login",
+					},
 					"password": {
-                                                Type: schema.TypeString,
-                                                Optional: true,
-                                                Description: "User password for login",
-                                                Sensitive: true,
-                                        },
-                                        "endpoint": {
-                                                Type: schema.TypeString,
-                                                Required: true,
-                                                Description: "Server BMC IP address or hostname",
-                                        },
+						Type:        schema.TypeString,
+						Optional:    true,
+						Description: "User password for login",
+						Sensitive:   true,
+					},
+					"endpoint": {
+						Type:        schema.TypeString,
+						Required:    true,
+						Description: "Server BMC IP address or hostname",
+					},
 					"ssl_insecure": {
-                                                Type: schema.TypeBool,
-                                                Optional: true,
-                                                Description: "This field indicates whether the SSL/TLS certificate must be verified or not",
-                                        },
+						Type:        schema.TypeBool,
+						Optional:    true,
+						Description: "This field indicates whether the SSL/TLS certificate must be verified or not",
+					},
 				},
 			},
 		},
 		"attributes": {
-			Type: schema.TypeMap,
-			Optional: true,
+			Type:        schema.TypeMap,
+			Optional:    true,
 			Description: "Bios attributes",
 			Elem: &schema.Schema{
 				Type: schema.TypeString,
@@ -72,8 +72,8 @@ func getResourceRedfishBiosSchema() map[string]*schema.Schema {
 			Type:     schema.TypeString,
 			Optional: true,
 			Description: "The time when the BIOS settings can be applied. Applicable values are " +
-			"'OnReset', 'Immediate', 'AtMaintenanceWindowStart' and 'InMaintenanceWindowStart'. " +
-			"Default is \"\" which will not create a BIOS configuration job.",
+				"'OnReset', 'Immediate', 'AtMaintenanceWindowStart' and 'InMaintenanceWindowStart'. " +
+				"Default is \"\" which will not create a BIOS configuration job.",
 			ValidateFunc: validation.StringInSlice([]string{
 				string(common.ImmediateApplyTime),
 				string(common.OnResetApplyTime),
@@ -85,9 +85,9 @@ func getResourceRedfishBiosSchema() map[string]*schema.Schema {
 			Type:     schema.TypeString,
 			Optional: true,
 			Description: "Action to perform on the target after the BIOS settings are applied. " +
-			"Default=nil : no action after apply" +
-			"Applicable values are nil, 'On','ForceOn','ForceOff','ForceRestart','GracefulRestart'," +
-			"'GracefulShutdown','PushPowerButton','PowerCycle','Nmi'.",
+				"Default=nil : no action after apply" +
+				"Applicable values are nil, 'On','ForceOn','ForceOff','ForceRestart','GracefulRestart'," +
+				"'GracefulShutdown','PushPowerButton','PowerCycle','Nmi'.",
 			ValidateFunc: validation.StringInSlice([]string{
 				string(redfish.OnResetType),
 				string(redfish.ForceOnResetType),
@@ -125,11 +125,11 @@ func resourceRedfishBiosUpdate(ctx context.Context, d *schema.ResourceData, m in
 
 func resourceRedfishBiosDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 
-        var diags diag.Diagnostics
+	var diags diag.Diagnostics
 
-        d.SetId("")
+	d.SetId("")
 
-        return diags
+	return diags
 }
 
 func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
@@ -185,8 +185,8 @@ func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) 
 			log.Printf("[DEBUG] Not updating the attributes as a previous BIOS job is already scheduled")
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Warning,
-				Summary: "Unable to update bios attributes",
-				Detail: "Unable to update bios attributes as a previous BIOS job is already scheduled.",
+				Summary:  "Unable to update bios attributes",
+				Detail:   "Unable to update bios attributes as a previous BIOS job is already scheduled.",
 			})
 		}
 	} else {
@@ -327,33 +327,19 @@ func resetSystem(service *gofish.Service, d *schema.ResourceData, resetType redf
 
 func getBiosResource(service *gofish.Service) (*redfish.Bios, error) {
 
-        system, err := getSystemResource(service)
-        if err != nil {
-                log.Printf("[ERROR]: Failed to get system resource: %s", err)
-                return nil, err
-        }
-
-        bios, err := system.Bios()
-        if err != nil {
-                log.Printf("[ERROR]: Failed to get Bios resource: %s", err)
-                return nil, err
-        }
-
-        return bios, nil
-}
-
-func getSystemResource(service *gofish.Service) (*redfish.ComputerSystem, error) {
-
-	systems, err := service.Systems()
-
+	system, err := getSystemResource(service)
 	if err != nil {
+		log.Printf("[ERROR]: Failed to get system resource: %s", err)
 		return nil, err
 	}
-	if len(systems) == 0 {
-		return nil, errors.New("No computer systems found")
+
+	bios, err := system.Bios()
+	if err != nil {
+		log.Printf("[ERROR]: Failed to get Bios resource: %s", err)
+		return nil, err
 	}
 
-	return systems[0], err
+	return bios, nil
 }
 
 func getBiosAttrsToPatch(d *schema.ResourceData, attributes map[string]string) (map[string]interface{}, error) {
@@ -361,35 +347,35 @@ func getBiosAttrsToPatch(d *schema.ResourceData, attributes map[string]string) (
 	attrs := make(map[string]interface{})
 	attrsToPatch := make(map[string]interface{})
 
-        if v, ok := d.GetOk("attributes"); ok {
-                attrs = v.(map[string]interface{})
-        }
+	if v, ok := d.GetOk("attributes"); ok {
+		attrs = v.(map[string]interface{})
+	}
 
-        for key, newVal := range attrs {
-                if oldVal, ok := attributes[key]; ok {
-                        // check if the original value is an integer
-                        // if yes, then we need to convert accordingly
-                        if intOldVal, err := strconv.Atoi(attributes[key]); err == nil {
-                                intNewVal, err := strconv.Atoi(newVal.(string))
-                                if err != nil {
-                                        return attrsToPatch, err
-                                }
+	for key, newVal := range attrs {
+		if oldVal, ok := attributes[key]; ok {
+			// check if the original value is an integer
+			// if yes, then we need to convert accordingly
+			if intOldVal, err := strconv.Atoi(attributes[key]); err == nil {
+				intNewVal, err := strconv.Atoi(newVal.(string))
+				if err != nil {
+					return attrsToPatch, err
+				}
 
-                                // Add to patch list if attribute value has changed
-                                if intNewVal != intOldVal {
-                                        attrsToPatch[key] = intNewVal
-                                }
-                        } else {
-                                if newVal != oldVal {
-                                        attrsToPatch[key] = newVal
-                                }
-                        }
+				// Add to patch list if attribute value has changed
+				if intNewVal != intOldVal {
+					attrsToPatch[key] = intNewVal
+				}
+			} else {
+				if newVal != oldVal {
+					attrsToPatch[key] = newVal
+				}
+			}
 
-                } else {
+		} else {
 			err := fmt.Errorf("BIOS attribute %s not found", key)
 			return attrsToPatch, err
-                }
-        }
+		}
+	}
 
 	return attrsToPatch, nil
 }
