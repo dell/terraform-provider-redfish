@@ -1,5 +1,13 @@
 provider "redfish" {}
 
+terraform {
+    required_providers {
+        redfish = {
+            source = "dell/redfish"
+        }
+    }
+}
+
 resource "redfish_virtual_media" "vm" {
     for_each = var.rack1
 

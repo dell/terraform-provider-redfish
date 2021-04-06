@@ -11,60 +11,60 @@ import (
 func dataSourceRedfishBios() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceRedfishBiosRead,
-		Schema: getDataSourceRedfishBiosSchema(),
+		Schema:      getDataSourceRedfishBiosSchema(),
 	}
 }
 
 func getDataSourceRedfishBiosSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"redfish_server": {
-			Type: schema.TypeList,
-			Required: true,
+			Type:        schema.TypeList,
+			Required:    true,
 			Description: "List of server BMCs and their respective user credentials",
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"user": {
-						Type: schema.TypeString,
-						Optional: true,
+						Type:        schema.TypeString,
+						Optional:    true,
 						Description: "User name for login",
 					},
 					"password": {
-						Type: schema.TypeString,
-						Optional: true,
+						Type:        schema.TypeString,
+						Optional:    true,
 						Description: "User password for login",
-						Sensitive: true,
+						Sensitive:   true,
 					},
 					"endpoint": {
-						Type: schema.TypeString,
-						Required: true,
+						Type:        schema.TypeString,
+						Required:    true,
 						Description: "Server BMC IP address or hostname",
 					},
 					"ssl_insecure": {
-						Type: schema.TypeBool,
-						Optional: true,
+						Type:        schema.TypeBool,
+						Optional:    true,
 						Description: "This field indicates whether the SSL/TLS certificate must be verified or not",
 					},
 				},
 			},
 		},
 		"odata_id": {
-			Type: schema.TypeString,
+			Type:        schema.TypeString,
 			Description: "OData ID for the Bios resource",
-			Computed: true,
+			Computed:    true,
 		},
 		"attributes": {
-			Type: schema.TypeMap,
+			Type:        schema.TypeMap,
 			Description: "Bios attributes",
 			Elem: &schema.Schema{
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			Computed: true,
 		},
 		"id": {
-			Type: schema.TypeString,
+			Type:        schema.TypeString,
 			Description: "Id",
-			Computed: true,
+			Computed:    true,
 		},
 	}
 }
@@ -110,12 +110,12 @@ func readRedfishBios(service *gofish.Service, d *schema.ResourceData) diag.Diagn
 	}
 
 	if err := d.Set("id", bios.ID); err != nil {
-                return diag.Errorf("error setting bios ID: %s", err)
-        }
+		return diag.Errorf("error setting bios ID: %s", err)
+	}
 
 	if err := d.Set("attributes", attributes); err != nil {
-                return diag.Errorf("error setting bios attributes: %s", err)
-        }
+		return diag.Errorf("error setting bios attributes: %s", err)
+	}
 
 	// Set the ID to the redfish endpoint + bios @odata.id
 	serverConfig := d.Get("redfish_server").([]interface{})

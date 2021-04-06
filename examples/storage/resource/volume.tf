@@ -1,4 +1,10 @@
-provider "redfish" {}
+terraform {
+    required_providers {
+        redfish = {
+            source = "dell/redfish"
+        }
+    }
+}
 
 resource "redfish_storage_volume" "volume" {
     for_each = var.rack1

@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    redfish = {
+      source = "dell/redfish"
+    }
+  }
+}
+
 provider "redfish" {
     //user = "admin"
     //password = "passw0rd"
