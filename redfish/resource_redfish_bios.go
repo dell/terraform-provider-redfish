@@ -108,11 +108,20 @@ func getResourceRedfishBiosSchema() map[string]*schema.Schema {
 }
 
 func resourceRedfishBiosRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	service, err := NewConfig(m.(*schema.ResourceData), d)
-	if err != nil {
-		return diag.Errorf(err.Error())
+
+	log.Printf("[DEBUG] %s: Beginning read", d.Id())
+	var diags diag.Diagnostics
+
+	attributes, ok := d.GetOk("desired_power_action")
+
+	if !ok || attributes == nil {
+		log.Printf("[ERROR]: There was a problem getting the attributes!")
+		return nil
 	}
-	return readRedfishBiosResource(service, d)
+
+	log.Printf("[DEBUG] %s: Read finished successfully", d.Id())
+
+	return diags
 }
 
 func resourceRedfishBiosUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -120,19 +129,7 @@ func resourceRedfishBiosUpdate(ctx context.Context, d *schema.ResourceData, m in
 	if err != nil {
 		return diag.Errorf(err.Error())
 	}
-	return updateRedfishBiosResource(service, d)
-}
 
-func resourceRedfishBiosDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-
-        var diags diag.Diagnostics
-
-        d.SetId("")
-
-        return diags
-}
-
-func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
 	log.Printf("[DEBUG] Beginning update")
 	var diags diag.Diagnostics
 
@@ -165,10 +162,8 @@ func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) 
 	}
 
 	attributes := make(map[string]string)
-	err = copyBiosAttributes(bios, attributes)
-	if err != nil {
-		return diag.Errorf("error fetching bios attributes: %s", err)
-	}
+
+	copyBiosAttributes(bios, attributes)
 
 	attrsPayload, err := getBiosAttrsToPatch(d, attributes)
 	if err != nil {
@@ -209,37 +204,21 @@ func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) 
 	return diags
 }
 
-func readRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
+func resourceRedfishBiosDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 
-	log.Printf("[DEBUG] %s: Beginning read", d.Id())
 	var diags diag.Diagnostics
 
-	bios, err := getBiosResource(service)
-	if err != nil {
-		return diag.Errorf("error fetching BIOS resource: %s", err)
-	}
-
-	attributes := make(map[string]string)
-	err = copyBiosAttributes(bios, attributes)
-	if err != nil {
-		return diag.Errorf("error fetching BIOS attributes: %s", err)
-	}
-
-	if err := d.Set("attributes", attributes); err != nil {
-		return diag.Errorf("error setting bios attributes: %s", err)
-	}
-
-	log.Printf("[DEBUG] %s: Read finished successfully", d.Id())
+	d.SetId("")
 
 	return diags
 }
 
-func copyBiosAttributes(bios *redfish.Bios, attributes map[string]string) error {
+func copyBiosAttributes(bios *redfish.Bios, attributes map[string]string) {
 
-	// TODO: BIOS Attributes' values might be any of several types.
+	// BIOS attributes values might be any of several types.
 	// terraform-sdk currently does not support a map with different
-	// value types. So we will convert int and float values to string.
-	// copy from the BIOS attributes to the new bios attributes map
+	// value types. So we will convert int and float values to string
+	// See https://stackoverflow.com/questions/66991765/terraform-sdk-custom-provider-how-to-accept-json-input-in-data-source
 	for key, value := range bios.Attributes {
 		if attrVal, ok := value.(string); ok {
 			attributes[key] = attrVal
@@ -247,8 +226,6 @@ func copyBiosAttributes(bios *redfish.Bios, attributes map[string]string) error 
 			attributes[key] = fmt.Sprintf("%v", value)
 		}
 	}
-
-	return nil
 }
 
 func patchBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes map[string]interface{}) error {
@@ -325,6 +302,7 @@ func resetSystem(service *gofish.Service, d *schema.ResourceData, resetType redf
 	return err
 }
 
+// getBiosResource Retrieves the current settings for all BIOS on the target device
 func getBiosResource(service *gofish.Service) (*redfish.Bios, error) {
 
         system, err := getSystemResource(service)
@@ -356,6 +334,8 @@ func getSystemResource(service *gofish.Service) (*redfish.ComputerSystem, error)
 	return systems[0], err
 }
 
+// getBiosAttrsToPatch Compares the values that are currently present on the device, gets a list of settings the user
+// would like to change, and then updates them
 func getBiosAttrsToPatch(d *schema.ResourceData, attributes map[string]string) (map[string]interface{}, error) {
 
 	attrs := make(map[string]interface{})
