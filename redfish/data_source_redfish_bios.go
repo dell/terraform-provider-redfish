@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/stmcginnis/gofish"
 )
 
 func dataSourceRedfishBios() *schema.Resource {
@@ -74,16 +73,12 @@ func dataSourceRedfishBiosRead(ctx context.Context, d *schema.ResourceData, m in
 	if err != nil {
 		return diag.Errorf(err.Error())
 	}
-	return readRedfishBios(service, d)
-}
 
-func readRedfishBios(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	systems, err := service.Systems()
 	if err != nil {
 		return diag.Errorf("error fetching computer systems collection: %s", err)
-
 	}
 
 	bios, err := systems[0].Bios()
@@ -91,9 +86,10 @@ func readRedfishBios(service *gofish.Service, d *schema.ResourceData) diag.Diagn
 		return diag.Errorf("error fetching bios: %s", err)
 	}
 
-	// TODO: BIOS Attributes' values might be any of several types.
+	// BIOS attributes values might be any of several types.
 	// terraform-sdk currently does not support a map with different
 	// value types. So we will convert int and float values to string
+	// See https://stackoverflow.com/questions/66991765/terraform-sdk-custom-provider-how-to-accept-json-input-in-data-source
 	attributes := make(map[string]string)
 
 	// copy from the BIOS attributes to the new bios attributes map
@@ -125,3 +121,4 @@ func readRedfishBios(service *gofish.Service, d *schema.ResourceData) diag.Diagn
 
 	return diags
 }
+
