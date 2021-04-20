@@ -27,6 +27,7 @@ func resourceRedfishBios() *schema.Resource {
 		UpdateContext: resourceRedfishBiosUpdate,
 		DeleteContext: resourceRedfishBiosDelete,
 		Schema:        getResourceRedfishBiosSchema(),
+		CustomizeDiff: resourceRedfishBiosCustomizeDiff,
 	}
 }
 
@@ -65,6 +66,7 @@ func getResourceRedfishBiosSchema() map[string]*schema.Schema {
 		"attributes": {
 			Type:        schema.TypeMap,
 			Optional:    true,
+			Computed:    true,
 			Description: "Bios attributes",
 			Elem: &schema.Schema{
 				Type: schema.TypeString,
@@ -109,6 +111,36 @@ func getResourceRedfishBiosSchema() map[string]*schema.Schema {
 	}
 }
 
+func resourceRedfishBiosCustomizeDiff(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
+	if diff.Id() == "" {
+		return nil
+	}
+
+	if diff.HasChange("attributes") {
+		o, n := diff.GetChange("attributes")
+		oldAttribs := o.(map[string]interface{})
+		newAttribs := n.(map[string]interface{})
+
+		sameAttribs := biosAttributesMatch(oldAttribs, newAttribs)
+
+		if sameAttribs {
+			log.Printf("[DEBUG] Bios attributes have not changed. clearing diff")
+			return diff.Clear("attributes")
+		} else {
+			// Update the attributes value pairs
+			for k, v := range newAttribs {
+				oldAttribs[k] = v
+			}
+
+			if err := diff.SetNew("attributes", oldAttribs); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func resourceRedfishBiosRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	service, err := NewConfig(m.(*schema.ResourceData), d)
 	if err != nil {
@@ -126,11 +158,8 @@ func resourceRedfishBiosUpdate(ctx context.Context, d *schema.ResourceData, m in
 }
 
 func resourceRedfishBiosDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-
 	var diags diag.Diagnostics
-
 	d.SetId("")
-
 	return diags
 }
 
@@ -142,24 +171,9 @@ func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) 
 	// if yes, then check the current status of the job. If it
 	// has not completed yet, then don't perform another operation
 	pending := false
-	var taskURI string
-	if v, ok := d.GetOk("task_monitor_uri"); ok {
-		log.Printf("[DEBUG] %s: Bios config task monitor uri is \"%s\"", d.Id(), v.(string))
-		taskURI, _ = v.(string)
-		if len(taskURI) > 0 {
-			task, _ := redfish.GetTask(service.Client, taskURI)
-			if task != nil {
-				if task.TaskState != redfish.CompletedTaskState {
-					log.Printf("[DEBUG] %s: BIOS config task state = %s", d.Id(), task.TaskState)
-					pending = true
-				}
-			} else {
-				// Task does not exist or there was an error
-				if err := d.Set("task_monitor_uri", ""); err != nil {
-					return diag.Errorf("error updating task_monitor_uri: %s", err)
-				}
-			}
-		}
+	taskCompleted, _ := biosConfigTaskCompleted(service, d)
+	if !taskCompleted {
+		pending = true
 	}
 
 	bios, err := getBiosResource(service)
@@ -185,12 +199,13 @@ func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) 
 				return diag.Errorf("error updating bios attributes: %s", err)
 			}
 		} else {
-			log.Printf("[DEBUG] Not updating the attributes as a previous BIOS job is already scheduled")
+			log.Printf("[DEBUG] Not updating the attributes as a previous BIOS job is already scheduled or in progress")
 			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Warning,
+				Severity: diag.Error,
 				Summary:  "Unable to update bios attributes",
-				Detail:   "Unable to update bios attributes as a previous BIOS job is already scheduled.",
+				Detail:   "Unable to update bios attributes as a previous BIOS configuration job is already scheduled or in progress.",
 			})
+			return diags
 		}
 	} else {
 		log.Printf("[DEBUG] BIOS attributes are already set")
@@ -264,6 +279,13 @@ func readRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) di
 
 	if err := d.Set("attributes", attributes); err != nil {
 		return diag.Errorf("error setting bios attributes: %s", err)
+	}
+
+	taskCompleted, _ := biosConfigTaskCompleted(service, d)
+	if taskCompleted {
+		if err := d.Set("task_monitor_uri", ""); err != nil {
+			return diag.Errorf("error setting task monitor: %s", err)
+		}
 	}
 
 	log.Printf("[DEBUG] %s: Read finished successfully", d.Id())
@@ -415,4 +437,68 @@ func getBiosAttrsToPatch(d *schema.ResourceData, attributes map[string]string) (
 	}
 
 	return attrsToPatch, nil
+}
+
+func biosAttributesMatch(oldAttribs, newAttribs map[string]interface{}) bool {
+	log.Printf("[DEBUG] Begin biosAttributesMatch")
+
+	for key, newVal := range newAttribs {
+		log.Printf("[DEBUG] attribute: %v, newVal: %v", key, newVal)
+		if oldVal, ok := oldAttribs[key]; ok {
+			log.Printf("[DEBUG] found attribute: %v, oldVal: %v", key, oldVal)
+			// check if the original value is an integer
+			// if yes, then we need to convert accordingly
+			if intOldVal, err := strconv.Atoi(oldVal.(string)); err == nil {
+				intNewVal, err := strconv.Atoi(newVal.(string))
+				if err != nil {
+					return false
+				}
+
+				if intNewVal != intOldVal {
+					return false
+				}
+			} else {
+				if newVal != oldVal {
+					return false
+				}
+			}
+		} else {
+			// attribute not found in the current state
+			log.Printf("[DEBUG] attribute %v not found in the current state", key)
+			return false
+		}
+	}
+	return true
+}
+
+func biosConfigTaskCompleted(service *gofish.Service, d *schema.ResourceData) (bool, error) {
+	log.Printf("[DEBUG] %s: Beginning biosConfigTaskCompleted", d.Id())
+	if v, ok := d.GetOk("task_monitor_uri"); ok {
+		log.Printf("[DEBUG] %s: Bios config task monitor uri is \"%s\"", d.Id(), v.(string))
+		taskURI := v.(string)
+		if len(taskURI) > 0 {
+			task, err := redfish.GetTask(service.Client, taskURI)
+			log.Printf("[DEBUG] %s taskURI > 0", d.Id())
+			if err != nil {
+				log.Printf("[DEBUG] %s: failed to get task details for %s. Error = %s", d.Id(), taskURI, err)
+				// set the task status as completed
+				return true, err
+			}
+
+			log.Printf("[DEBUG] %s: Task state is %v", d.Id(), task.TaskState)
+			switch task.TaskState {
+			case redfish.CompletedTaskState,
+			redfish.KilledTaskState,
+			redfish.ExceptionTaskState,
+			redfish.CancelledTaskState:
+				return true, nil
+			default:
+				return false, nil
+			}
+		} else {
+			log.Printf("[DEBUG] %s: task monitor URI is not set", d.Id())
+		}
+	}
+
+	return true, nil
 }
