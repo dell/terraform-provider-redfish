@@ -3,9 +3,9 @@ terraform-provider-redfish
 *.backup
 terraform.tfstate
 crash.log
-tests_mike
 .vscode
 vendor/
 .idea/
 *.terraform.lock.hcl
 *.exe
+*.EXE
