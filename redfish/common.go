@@ -3,12 +3,13 @@ package redfish
 import (
 	"errors"
 	"fmt"
+	"log"
+	"time"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
-	"log"
-	"time"
 )
 
 // Based on an instance of Service from the gofish library, retrieve a concrete system on which we can take action
