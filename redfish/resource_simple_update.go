@@ -18,9 +18,9 @@ import (
 )
 
 const (
-	defaultResetTimeout           int = 120
-	defaultSimpleUpdateJobTimeout int = 1200
-	intervalCheckTime             int = 10
+	defaultSimpleUpdateResetTimeout  int = 120
+	defaultSimpleUpdateJobTimeout    int = 1200
+	intervalSimpleUpdateJobCheckTime int = 10
 )
 
 func resourceRedfishSimpleUpdate() *schema.Resource {
@@ -186,7 +186,7 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 	resetType := d.Get("reset_type").(string)
 	resetTimeout, ok := d.GetOk("reset_timeout")
 	if !ok {
-		resetTimeout = defaultResetTimeout
+		resetTimeout = defaultSimpleUpdateResetTimeout
 	}
 	simpleUpdateJobTimeout, ok := d.GetOk("simple_update_job_timeout")
 	if !ok {
@@ -277,14 +277,14 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 		jobID := response.Header.Get("Location")
 
 		// Reboot the server
-		_, diags := PowerOperation(resetType, resetTimeout.(int), intervalCheckTime, service)
+		_, diags := PowerOperation(resetType, resetTimeout.(int), intervalSimpleUpdateJobCheckTime, service)
 		if diags.HasError() {
 			// Delete uploaded package - TBD
 			return diag.Errorf("there was an issue when restarting the server")
 		}
 
 		// Check JID
-		err = common.WaitForJobToFinish(service, jobID, intervalCheckTime, simpleUpdateJobTimeout.(int))
+		err = common.WaitForJobToFinish(service, jobID, intervalSimpleUpdateJobCheckTime, simpleUpdateJobTimeout.(int))
 		if err != nil {
 			// Delete uploaded package - TBD
 			return diag.Errorf("there was an issue when waiting for the job to complete - %s", err)
