@@ -9,10 +9,12 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/common"
 	"github.com/stmcginnis/gofish/redfish"
@@ -140,9 +142,10 @@ func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) 
 	// if yes, then check the current status of the job. If it
 	// has not completed yet, then don't perform another operation
 	pending := false
+	var taskURI string
 	if v, ok := d.GetOk("task_monitor_uri"); ok {
 		log.Printf("[DEBUG] %s: Bios config task monitor uri is \"%s\"", d.Id(), v.(string))
-		taskURI, _ := v.(string)
+		taskURI, _ = v.(string)
 		if len(taskURI) > 0 {
 			task, _ := redfish.GetTask(service.Client, taskURI)
 			if task != nil {
@@ -192,18 +195,52 @@ func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) 
 	} else {
 		log.Printf("[DEBUG] BIOS attributes are already set")
 	}
-
 	if err := d.Set("attributes", attributes); err != nil {
 		return diag.Errorf("error setting bios attributes: %s", err)
 	}
-
 	// Set the ID to @odata.id
 	d.SetId(bios.ODataID)
-
 	actionAfterApply, ok := d.GetOk("action_after_apply")
+
 	if ok && actionAfterApply != nil {
 		resetSystem(service, d, (redfish.ResetType)(actionAfterApply.(string)))
+
+		if v, ok := d.GetOk("task_monitor_uri"); ok {
+			log.Printf("[DEBUG] %s: Bios config task monitor uri is \"%s\"", d.Id(), v.(string))
+			taskURI, _ = v.(string)
+			if len(taskURI) > 0 {
+				createStateConf := &resource.StateChangeConf{
+					Pending: []string{
+						string(redfish.NewTaskState),
+						string(redfish.StartingTaskState),
+						string(redfish.RunningTaskState),
+						string(redfish.PendingTaskState),
+						string(redfish.StoppingTaskState),
+						string(redfish.CancellingTaskState),
+					},
+					Target: []string{
+						string(redfish.CompletedTaskState),
+					},
+					Refresh: func() (interface{}, string, error) {
+						resp, err := redfish.GetTask(service.Client, taskURI)
+						if err != nil {
+							return 0, "", err
+						}
+						return resp, string(resp.TaskState), nil
+					},
+					Timeout:    d.Timeout(schema.TimeoutCreate),
+					Delay:      10 * time.Second,
+					MinTimeout: 5 * time.Second,
+					ContinuousTargetOccurence: 5,
+				}
+				_, err = createStateConf.WaitForState()
+				if err != nil {
+					return diag.Errorf("Error waiting for Bios config monitor task (%s) to be completed: %s", d.Id(), err)
+				}
+			}
+		}
 	}
+
 
 	log.Printf("[DEBUG] %s: Update finished successfully", d.Id())
 	return diags
