@@ -222,7 +222,7 @@ func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) 
 
 		if v, ok := d.GetOk("task_monitor_uri"); ok {
 			log.Printf("[DEBUG] %s: Bios config task monitor uri is \"%s\"", d.Id(), v.(string))
-			taskURI, _ = v.(string)
+			taskURI, _ := v.(string)
 			if len(taskURI) > 0 {
 				createStateConf := &resource.StateChangeConf{
 					Pending: []string{
