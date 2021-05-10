@@ -9,3 +9,5 @@ vendor/
 *.terraform.lock.hcl
 *.exe
 *.EXE
+*.zip
+go.sum

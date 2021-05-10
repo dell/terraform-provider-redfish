@@ -98,7 +98,7 @@ func getResourceRedfishPowerSchema() map[string]*schema.Schema {
 			Type:     schema.TypeString,
 			Computed: true,
 			Description: "Desired power setting. Applicable values 'On','ForceOn','ForceOff','ForceRestart'," +
-				"'GracefulRestart','GracefulShutdown','PushPowerButton','PowerCycle','Nmi'.",
+				"'GracefulRestart','GracefulShutdown','PowerCycle'.",
 		},
 	}
 }
