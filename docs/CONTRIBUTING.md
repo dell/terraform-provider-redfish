@@ -148,3 +148,14 @@ If you see this error:
       needs to be recompiled to support the latest protocol.
 
 it means you forgot to set the command line environment from step 8.
+
+## How to Run Acceptance Tests
+
+1. Build with `go build -o terraform-provider-redfish.exe -gcflags="all=-N -l"` (this will include debugging - you 
+   can remove the `gcflags` argument if you want a production binary)
+2. Next you have to tell the acceptance tester where to find the terraform binary. You do this by setting the 
+   `TF_ACC_TERRAFORM_PATH` environment variable. Ex: `set 
+   TF_ACC_TERRAFORM_PATH=C:\Users\grant\Documents\terraform-provider-redfish\terraform.exe`. If it is in path this 
+   is not necessary.
+3. To confirm you want to run acceptance tests you have to set the environment variable `TF_ACC` to true. Ex: `set TF_ACC=true`
+4. Finally, change directory to the "redfish" directory and run `go test`
