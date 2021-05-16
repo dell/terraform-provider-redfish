@@ -9,15 +9,20 @@ import (
 	"path"
 	"strconv"
 	"strings"
-	"time"
 
+	"github.com/dell/terraform-provider-redfish/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/stmcginnis/gofish"
-	"github.com/stmcginnis/gofish/common"
+	redfishcommon "github.com/stmcginnis/gofish/common"
 	"github.com/stmcginnis/gofish/redfish"
+)
+
+const (
+	defaultBiosConfigServerResetTimeout int = 120
+	defaultBiosConfigJobTimeout         int = 1200
+	intervalBiosConfigJobCheckTime      int = 10
 )
 
 func resourceRedfishBios() *schema.Resource {
@@ -75,38 +80,27 @@ func getResourceRedfishBiosSchema() map[string]*schema.Schema {
 		"settings_apply_time": {
 			Type:     schema.TypeString,
 			Optional: true,
-			Description: "The time when the BIOS settings can be applied. Applicable values are " +
-				"'OnReset', 'Immediate', 'AtMaintenanceWindowStart' and 'InMaintenanceWindowStart'. " +
-				"Default is \"\" which will not create a BIOS configuration job.",
+			Description: "The time when the BIOS settings can be applied. Applicable values are 'OnReset', and 'Immediate'. " +
+				"Default is \"OnReset\".",
 			ValidateFunc: validation.StringInSlice([]string{
-				string(common.ImmediateApplyTime),
-				string(common.OnResetApplyTime),
-				string(common.AtMaintenanceWindowStartApplyTime),
-				string(common.InMaintenanceWindowOnResetApplyTime),
+				string(redfishcommon.ImmediateApplyTime),
+				string(redfishcommon.OnResetApplyTime),
 			}, false),
+			Default:  string(redfishcommon.OnResetApplyTime),
 		},
-		"action_after_apply": {
+		"reset_type": {
 			Type:     schema.TypeString,
 			Optional: true,
-			Description: "Action to perform on the target after the BIOS settings are applied. " +
-				"Default=nil : no action after apply" +
-				"Applicable values are nil, 'On','ForceOn','ForceOff','ForceRestart','GracefulRestart'," +
-				"'GracefulShutdown','PushPowerButton','PowerCycle','Nmi'.",
+			Description: "Reset type to apply on the computer system after the BIOS settings are applied. " +
+				"Applicable values are 'ForceRestart', " +
+				"'GracefulRestart', and 'PowerCycle'." +
+				"Default = \"GracefulRestart\". ",
 			ValidateFunc: validation.StringInSlice([]string{
-				string(redfish.OnResetType),
-				string(redfish.ForceOnResetType),
-				string(redfish.ForceOffResetType),
 				string(redfish.ForceRestartResetType),
 				string(redfish.GracefulRestartResetType),
-				string(redfish.GracefulShutdownResetType),
-				string(redfish.PushPowerButtonResetType),
 				string(redfish.PowerCycleResetType),
 			}, false),
-		},
-		"task_monitor_uri": {
-			Type:        schema.TypeString,
-			Description: "URI of the BIOS configuration task monitor",
-			Computed:    true,
+			Default:  string(redfish.GracefulRestartResetType),
 		},
 	}
 }
@@ -125,7 +119,9 @@ func resourceRedfishBiosCustomizeDiff(_ context.Context, diff *schema.ResourceDi
 
 		if sameAttribs {
 			log.Printf("[DEBUG] Bios attributes have not changed. clearing diff")
-			return diff.Clear("attributes")
+			if err := diff.Clear("attributes"); err != nil {
+				return err
+			}
 		} else {
 			// Update the attributes value pairs
 			for k, v := range newAttribs {
@@ -167,14 +163,7 @@ func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) 
 	log.Printf("[DEBUG] Beginning update")
 	var diags diag.Diagnostics
 
-	// check if there is already a bios config job in progress
-	// if yes, then check the current status of the job. If it
-	// has not completed yet, then don't perform another operation
-	pending := false
-	taskCompleted, _ := biosConfigTaskCompleted(service, d)
-	if !taskCompleted {
-		pending = true
-	}
+	resetType := d.Get("reset_type")
 
 	bios, err := getBiosResource(service)
 	if err != nil {
@@ -192,70 +181,37 @@ func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) 
 		return diag.Errorf("error getting BIOS attributes to patch: %s", err)
 	}
 
+	var biosTaskURI string
 	if len(attrsPayload) != 0 {
-		if !pending {
-			err = patchBiosAttributes(d, bios, attrsPayload)
-			if err != nil {
-				return diag.Errorf("error updating bios attributes: %s", err)
-			}
-		} else {
-			log.Printf("[DEBUG] Not updating the attributes as a previous BIOS job is already scheduled or in progress")
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Unable to update bios attributes",
-				Detail:   "Unable to update bios attributes as a previous BIOS configuration job is already scheduled or in progress.",
-			})
-			return diags
+		biosTaskURI, err = patchBiosAttributes(d, bios, attrsPayload)
+		if err != nil {
+			return diag.Errorf("error updating bios attributes: %s", err)
 		}
+
+		// reboot the server
+                _, diags := PowerOperation(resetType.(string), defaultBiosConfigServerResetTimeout, intervalBiosConfigJobCheckTime, service)
+                if diags.HasError() {
+                        // TODO: handle this scenario
+                        return diag.Errorf("There was an issue restarting the server")
+                }
+
+		// wait for the bios config job to finish
+                err = common.WaitForJobToFinish(service, biosTaskURI, intervalBiosConfigJobCheckTime, defaultBiosConfigJobTimeout)
+                if err != nil {
+			return diag.Errorf("Error waiting for Bios config monitor task (%s) to be completed: %s", biosTaskURI, err)
+                }
+
 	} else {
 		log.Printf("[DEBUG] BIOS attributes are already set")
 	}
-	if err := d.Set("attributes", attributes); err != nil {
-		return diag.Errorf("error setting bios attributes: %s", err)
-	}
+
+
+	if err = d.Set("attributes", attributes); err != nil {
+                return diag.Errorf("error setting bios attributes: %s", err)
+        }
+
 	// Set the ID to @odata.id
-	d.SetId(bios.ODataID)
-	actionAfterApply, ok := d.GetOk("action_after_apply")
-
-	if ok && actionAfterApply != nil {
-		resetSystem(service, d, (redfish.ResetType)(actionAfterApply.(string)))
-
-		if v, ok := d.GetOk("task_monitor_uri"); ok {
-			log.Printf("[DEBUG] %s: Bios config task monitor uri is \"%s\"", d.Id(), v.(string))
-			taskURI, _ := v.(string)
-			if len(taskURI) > 0 {
-				createStateConf := &resource.StateChangeConf{
-					Pending: []string{
-						string(redfish.NewTaskState),
-						string(redfish.StartingTaskState),
-						string(redfish.RunningTaskState),
-						string(redfish.PendingTaskState),
-						string(redfish.StoppingTaskState),
-						string(redfish.CancellingTaskState),
-					},
-					Target: []string{
-						string(redfish.CompletedTaskState),
-					},
-					Refresh: func() (interface{}, string, error) {
-						resp, err := redfish.GetTask(service.Client, taskURI)
-						if err != nil {
-							return 0, "", err
-						}
-						return resp, string(resp.TaskState), nil
-					},
-					Timeout:    d.Timeout(schema.TimeoutCreate),
-					Delay:      10 * time.Second,
-					MinTimeout: 5 * time.Second,
-					ContinuousTargetOccurence: 5,
-				}
-				_, err = createStateConf.WaitForState()
-				if err != nil {
-					return diag.Errorf("Error waiting for Bios config monitor task (%s) to be completed: %s", d.Id(), err)
-				}
-			}
-		}
-	}
-
+        d.SetId(bios.ODataID)
 
 	log.Printf("[DEBUG] %s: Update finished successfully", d.Id())
 	return diags
@@ -281,13 +237,6 @@ func readRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) di
 		return diag.Errorf("error setting bios attributes: %s", err)
 	}
 
-	taskCompleted, _ := biosConfigTaskCompleted(service, d)
-	if taskCompleted {
-		if err := d.Set("task_monitor_uri", ""); err != nil {
-			return diag.Errorf("error setting task monitor: %s", err)
-		}
-	}
-
 	log.Printf("[DEBUG] %s: Read finished successfully", d.Id())
 
 	return diags
@@ -310,7 +259,7 @@ func copyBiosAttributes(bios *redfish.Bios, attributes map[string]string) error 
 	return nil
 }
 
-func patchBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes map[string]interface{}) error {
+func patchBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes map[string]interface{}) (biosTaskURI string, err error) {
 
 	payload := make(map[string]interface{})
 	payload["Attributes"] = attributes
@@ -328,7 +277,7 @@ func patchBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes 
 		if !allowed {
 			errTxt := fmt.Sprintf("\"%s\" is not allowed as settings apply time", settingsApplyTime)
 			err := errors.New(errTxt)
-			return err
+			return "", err
 		}
 
 		payload["@Redfish.SettingsApplyTime"] = map[string]interface{}{
@@ -343,7 +292,7 @@ func patchBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes 
 	resp, err := bios.Client.Patch(settingsObjectURI, payload)
 	if err != nil {
 		log.Printf("[DEBUG] error sending the patch request: %s", err)
-		return err
+		return "", err
 	}
 
 	// check if location is present in the response header
@@ -351,37 +300,11 @@ func patchBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes 
 		log.Printf("[DEBUG] BIOS configuration job uri: %s", location.String())
 
 		taskURI := location.EscapedPath()
+		return taskURI, nil
 
-		if err = d.Set("task_monitor_uri", taskURI); err != nil {
-			log.Printf("[DEBUG] error setting the task uri: %s", err)
-			return err
-		}
 	}
 
-	return nil
-}
-
-func resetSystem(service *gofish.Service, d *schema.ResourceData, resetType redfish.ResetType) error {
-
-	system, err := getSystemResource(service)
-	if err != nil {
-		log.Printf("[ERROR]: Failed to identify system: %s", err)
-		return err
-	}
-
-	if system.PowerState == redfish.OffPowerState {
-		log.Printf("[WARN]: will not perform reset because system is Off.  Bios changes will be applied at next boot.")
-		return nil
-	}
-
-	log.Printf("[TRACE]: Performing system.Reset(%s)", resetType)
-	if err = system.Reset(resetType); err != nil {
-		log.Printf("[WARN]: system.Reset returned an error: %s", err)
-		return err
-	}
-
-	log.Printf("[TRACE]: system.Reset successful")
-	return err
+	return "", nil
 }
 
 func getBiosResource(service *gofish.Service) (*redfish.Bios, error) {
@@ -469,36 +392,4 @@ func biosAttributesMatch(oldAttribs, newAttribs map[string]interface{}) bool {
 		}
 	}
 	return true
-}
-
-func biosConfigTaskCompleted(service *gofish.Service, d *schema.ResourceData) (bool, error) {
-	log.Printf("[DEBUG] %s: Beginning biosConfigTaskCompleted", d.Id())
-	if v, ok := d.GetOk("task_monitor_uri"); ok {
-		log.Printf("[DEBUG] %s: Bios config task monitor uri is \"%s\"", d.Id(), v.(string))
-		taskURI := v.(string)
-		if len(taskURI) > 0 {
-			task, err := redfish.GetTask(service.Client, taskURI)
-			log.Printf("[DEBUG] %s taskURI > 0", d.Id())
-			if err != nil {
-				log.Printf("[DEBUG] %s: failed to get task details for %s. Error = %s", d.Id(), taskURI, err)
-				// set the task status as completed
-				return true, err
-			}
-
-			log.Printf("[DEBUG] %s: Task state is %v", d.Id(), task.TaskState)
-			switch task.TaskState {
-			case redfish.CompletedTaskState,
-			redfish.KilledTaskState,
-			redfish.ExceptionTaskState,
-			redfish.CancelledTaskState:
-				return true, nil
-			default:
-				return false, nil
-			}
-		} else {
-			log.Printf("[DEBUG] %s: task monitor URI is not set", d.Id())
-		}
-	}
-
-	return true, nil
 }
