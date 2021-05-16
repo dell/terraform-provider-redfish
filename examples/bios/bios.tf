@@ -25,7 +25,7 @@ resource "redfish_bios" "bios" {
     "NumLock" = "On"
   }
   settings_apply_time = "OnReset"
-  //action_after_apply = "ForceRestart"
+  reset_type = "ForceRestart"
 }
 
 data "redfish_bios" "bios" {
