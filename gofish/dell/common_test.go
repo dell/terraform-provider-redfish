@@ -16,6 +16,20 @@ func assertField(t testing.TB, got, want string) {
 	}
 }
 
+func assertBool(t testing.TB, got, want bool) {
+	t.Helper()
+	if got != want {
+		t.Errorf("got %t, want %t", got, want)
+	}
+}
+
+func assertInt(t testing.TB, got, want int) {
+	t.Helper()
+	if got != want {
+		t.Errorf("got %d, want %d", got, want)
+	}
+}
+
 func assertArray(t testing.TB, got, want []string) {
 	t.Helper()
 	if !reflect.DeepEqual(got, want) {
