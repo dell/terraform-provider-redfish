@@ -25,19 +25,21 @@ func Provider() *schema.Provider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"redfish_user_account":   resourceRedfishUserAccount(),
-			"redfish_bios":           resourceRedfishBios(),
-			"redfish_storage_volume": resourceRedfishStorageVolume(),
-			"redfish_virtual_media":  resourceRedfishVirtualMedia(),
-			"redfish_power":          resourceRedFishPower(),
-			"redfish_simple_update":  resourceRedfishSimpleUpdate(),
+			"redfish_user_account":          resourceRedfishUserAccount(),
+			"redfish_bios":                  resourceRedfishBios(),
+			"redfish_storage_volume":        resourceRedfishStorageVolume(),
+			"redfish_virtual_media":         resourceRedfishVirtualMedia(),
+			"redfish_power":                 resourceRedFishPower(),
+			"redfish_simple_update":         resourceRedfishSimpleUpdate(),
+			"redfish_dell_idrac_attributes": resourceRedfishDellIdracAttributes(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"redfish_bios":               dataSourceRedfishBios(),
-			"redfish_virtual_media":      dataSourceRedfishVirtualMedia(),
-			"redfish_storage":            dataSourceRedfishStorage(),
-			"redfish_firmware_inventory": dataSourceRedfishFirmwareInventory(),
+			"redfish_bios":                  dataSourceRedfishBios(),
+			"redfish_virtual_media":         dataSourceRedfishVirtualMedia(),
+			"redfish_storage":               dataSourceRedfishStorage(),
+			"redfish_firmware_inventory":    dataSourceRedfishFirmwareInventory(),
+			"redfish_dell_idrac_attributes": dataSourceRedfishDellIdracAttributes(),
 		},
 	}
 
