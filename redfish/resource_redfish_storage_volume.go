@@ -165,6 +165,10 @@ func resourceRedfishStorageVolumeDelete(ctx context.Context, d *schema.ResourceD
 func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
 	var diags diag.Diagnostics
 
+	// Lock the mutex to avoid race conditions with other resources
+	redfishMutexKV.Lock(getRedfishServerEndpoint(d))
+	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
+
 	// Get user config
 	storageID := d.Get("storage_controller_id").(string)
 	volumeType := d.Get("volume_type").(string)
@@ -205,6 +209,9 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 
 	// Check if settings_apply_time is doable on this controller
 	operationApplyTimes, err := storage.GetOperationApplyTimeValues()
+	if err != nil {
+		return diag.Errorf("couldn't retrieve operationApplyTimes from %s controller", storage.Name)
+	}
 	if !checkOperationApplyTimes(applyTime.(string), operationApplyTimes) {
 		return diag.Errorf("Storage controller %s does not support settings_apply_time: %s", storageID, applyTime)
 	}
@@ -305,6 +312,10 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 func deleteRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
 	var diags diag.Diagnostics
 
+	// Lock the mutex to avoid race conditions with other resources
+	redfishMutexKV.Lock(getRedfishServerEndpoint(d))
+	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
+
 	// Get vars from schema
 	applyTime, ok := d.GetOk("settings_apply_time")
 	if !ok {
@@ -356,22 +367,22 @@ func getStorageController(storageControllers []*redfish.Storage, diskControllerI
 			return storage, nil
 		}
 	}
-	return nil, fmt.Errorf("Error. Didn't find the storage controller %v", diskControllerID)
+	return nil, fmt.Errorf("error. Didn't find the storage controller %v", diskControllerID)
 }
 
 func deleteVolume(service *gofish.Service, volumeURI string) (jobID string, err error) {
 	//TODO - Check if we can delete immediately or if we need to schedule a job
 	res, err := service.Client.Delete(volumeURI)
 	if err != nil {
-		return "", fmt.Errorf("Error while deleting the volume %s", volumeURI)
+		return "", fmt.Errorf("error while deleting the volume %s", volumeURI)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusAccepted {
-		return "", fmt.Errorf("The operation was not successful. Return code was different from 202 ACCEPTED")
+		return "", fmt.Errorf("the operation was not successful. Return code was different from 202 ACCEPTED")
 	}
 	jobID = res.Header.Get("Location")
 	if len(jobID) == 0 {
-		return "", fmt.Errorf("There was some error when retreiving the jobID")
+		return "", fmt.Errorf("there was some error when retreiving the jobID")
 	}
 	return jobID, nil
 }
@@ -386,7 +397,7 @@ func getDrives(drives []*redfish.Drive, driveNames []string) ([]*redfish.Drive, 
 		}
 	}
 	if len(driveNames) != len(drivesToReturn) {
-		return nil, fmt.Errorf("Any of the drives you inserted doesn't exist")
+		return nil, fmt.Errorf("any of the drives you inserted doesn't exist")
 	}
 	return drivesToReturn, nil
 }
@@ -432,11 +443,11 @@ func createVolume(service *gofish.Service,
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusAccepted {
-		return "", fmt.Errorf("The query was unsucessfull")
+		return "", fmt.Errorf("the query was unsucessfull")
 	}
 	jobID = res.Header.Get("Location")
 	if len(jobID) == 0 {
-		return "", fmt.Errorf("There was some error when retreiving the jobID")
+		return "", fmt.Errorf("there was some error when retreiving the jobID")
 	}
 	return jobID, nil
 }
@@ -448,7 +459,7 @@ func getVolumeID(volumes []*redfish.Volume, volumeName string) (volumeLink strin
 			return volumeLink, nil
 		}
 	}
-	return "", fmt.Errorf("Couldn't find a volume with the provided name")
+	return "", fmt.Errorf("couldn't find a volume with the provided name")
 }
 
 func checkOperationApplyTimes(optionToCheck string, storageOperationApplyTimes []redfishcommon.OperationApplyTime) (result bool) {

@@ -1,8 +1,13 @@
 package redfish
 
 import (
+	"github.com/dell/terraform-provider-redfish/mutexkv"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+// This is a global MutexKV for use within this plugin
+var redfishMutexKV = mutexkv.NewMutexKV()
 
 func Provider() *schema.Provider {
 	provider := &schema.Provider{

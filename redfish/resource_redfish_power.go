@@ -2,9 +2,10 @@ package redfish
 
 import (
 	"context"
+	"log"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"log"
 )
 
 func resourceRedFishPower() *schema.Resource {
@@ -140,6 +141,10 @@ func resourceRedfishPowerRead(ctx context.Context, d *schema.ResourceData, m int
 func resourceRedfishPowerUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 
 	var diags diag.Diagnostics
+
+	// Lock the mutex to avoid race conditions with other resources
+	redfishMutexKV.Lock(getRedfishServerEndpoint(d))
+	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
 
 	resetType, ok := d.GetOk("desired_power_action")
 

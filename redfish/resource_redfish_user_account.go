@@ -109,6 +109,11 @@ func resourceRedfishUserAccountDelete(ctx context.Context, d *schema.ResourceDat
 
 func createRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
 	var diags diag.Diagnostics
+
+	// Lock the mutex to avoid race conditions with other resources
+	redfishMutexKV.Lock(getRedfishServerEndpoint(d))
+	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
+
 	accountList, err := getAccountList(service)
 	if err != nil {
 		return diag.Errorf("Error when retrieving account list %v", err)
@@ -167,6 +172,11 @@ func readRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) dia
 
 func updateRedfishUserAccount(ctx context.Context, service *gofish.Service, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
+
+	// Lock the mutex to avoid race conditions with other resources
+	redfishMutexKV.Lock(getRedfishServerEndpoint(d))
+	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
+
 	accountList, err := getAccountList(service)
 	if err != nil {
 		return diag.Errorf("Error when retrieving account list %v", err)
@@ -195,6 +205,11 @@ func updateRedfishUserAccount(ctx context.Context, service *gofish.Service, d *s
 
 func deleteRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
 	var diags diag.Diagnostics
+
+	// Lock the mutex to avoid race conditions with other resources
+	redfishMutexKV.Lock(getRedfishServerEndpoint(d))
+	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
+
 	accountList, err := getAccountList(service)
 	if err != nil {
 		return diag.Errorf("Error when retrieving account list %v", err)

@@ -86,7 +86,7 @@ func getResourceRedfishBiosSchema() map[string]*schema.Schema {
 				string(redfishcommon.ImmediateApplyTime),
 				string(redfishcommon.OnResetApplyTime),
 			}, false),
-			Default:  string(redfishcommon.OnResetApplyTime),
+			Default: string(redfishcommon.OnResetApplyTime),
 		},
 		"reset_type": {
 			Type:     schema.TypeString,
@@ -100,7 +100,7 @@ func getResourceRedfishBiosSchema() map[string]*schema.Schema {
 				string(redfish.GracefulRestartResetType),
 				string(redfish.PowerCycleResetType),
 			}, false),
-			Default:  string(redfish.GracefulRestartResetType),
+			Default: string(redfish.GracefulRestartResetType),
 		},
 	}
 }
@@ -163,6 +163,10 @@ func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) 
 	log.Printf("[DEBUG] Beginning update")
 	var diags diag.Diagnostics
 
+	// Lock the mutex to avoid race conditions with other resources
+	redfishMutexKV.Lock(getRedfishServerEndpoint(d))
+	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
+
 	resetType := d.Get("reset_type")
 
 	bios, err := getBiosResource(service)
@@ -189,29 +193,28 @@ func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) 
 		}
 
 		// reboot the server
-                _, diags := PowerOperation(resetType.(string), defaultBiosConfigServerResetTimeout, intervalBiosConfigJobCheckTime, service)
-                if diags.HasError() {
-                        // TODO: handle this scenario
-                        return diag.Errorf("There was an issue restarting the server")
-                }
+		_, diags := PowerOperation(resetType.(string), defaultBiosConfigServerResetTimeout, intervalBiosConfigJobCheckTime, service)
+		if diags.HasError() {
+			// TODO: handle this scenario
+			return diag.Errorf("There was an issue restarting the server")
+		}
 
 		// wait for the bios config job to finish
-                err = common.WaitForJobToFinish(service, biosTaskURI, intervalBiosConfigJobCheckTime, defaultBiosConfigJobTimeout)
-                if err != nil {
+		err = common.WaitForJobToFinish(service, biosTaskURI, intervalBiosConfigJobCheckTime, defaultBiosConfigJobTimeout)
+		if err != nil {
 			return diag.Errorf("Error waiting for Bios config monitor task (%s) to be completed: %s", biosTaskURI, err)
-                }
+		}
 
 	} else {
 		log.Printf("[DEBUG] BIOS attributes are already set")
 	}
 
-
 	if err = d.Set("attributes", attributes); err != nil {
-                return diag.Errorf("error setting bios attributes: %s", err)
-        }
+		return diag.Errorf("error setting bios attributes: %s", err)
+	}
 
 	// Set the ID to @odata.id
-        d.SetId(bios.ODataID)
+	d.SetId(bios.ODataID)
 
 	log.Printf("[DEBUG] %s: Update finished successfully", d.Id())
 	return diags
