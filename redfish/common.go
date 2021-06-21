@@ -3,12 +3,13 @@ package redfish
 import (
 	"errors"
 	"fmt"
+	"log"
+	"time"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
-	"log"
-	"time"
 )
 
 // Based on an instance of Service from the gofish library, retrieve a concrete system on which we can take action
@@ -158,4 +159,12 @@ func PowerOperation(resetType string, maximumWaitTime int, checkInterval int, se
 	log.Printf("[ERROR]: The system failed to correctly update the system power!")
 	return system.PowerState, diags
 
+}
+
+// getRedfishServerEndpoint returns the endpoint from an schema. This might be useful
+// when using MutexKV, since we need a way to differentiate mutex operations
+// across servers
+func getRedfishServerEndpoint(resource *schema.ResourceData) string {
+	resourceServerConfig := resource.Get("redfish_server").([]interface{})
+	return resourceServerConfig[0].(map[string]interface{})["endpoint"].(string)
 }

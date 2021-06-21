@@ -180,6 +180,10 @@ func readRedfishSimpleUpdate(service *gofish.Service, d *schema.ResourceData) di
 func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
+	// Lock the mutex to avoid race conditions with other resources
+	redfishMutexKV.Lock(getRedfishServerEndpoint(d))
+	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
+
 	transferProtocol := d.Get("transfer_protocol").(string)
 	targetFirmwareImage := d.Get("target_firmware_image").(string)
 	resetType := d.Get("reset_type").(string)
