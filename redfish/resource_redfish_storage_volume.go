@@ -23,15 +23,15 @@ const (
 
 func resourceRedfishStorageVolume() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceStorageVolumeCreate,
-		ReadContext:   resourceStorageVolumeRead,
-		UpdateContext: resourceStorageVolumeUpdate,
-		DeleteContext: resourceStorageVolumeDelete,
-		Schema:        getResourceStorageVolumeSchema(),
+		CreateContext: resourceRedfishStorageVolumeCreate,
+		ReadContext:   resourceRedfishStorageVolumeRead,
+		UpdateContext: resourceRedfishStorageVolumeUpdate,
+		DeleteContext: resourceRedfishStorageVolumeDelete,
+		Schema:        getResourceRedfishStorageVolumeSchema(),
 	}
 }
 
-func getResourceStorageVolumeSchema() map[string]*schema.Schema {
+func getResourceRedfishStorageVolumeSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"redfish_server": {
 			Type:        schema.TypeList,
@@ -127,7 +127,7 @@ func getResourceStorageVolumeSchema() map[string]*schema.Schema {
 	}
 }
 
-func resourceStorageVolumeCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRedfishStorageVolumeCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	service, err := NewConfig(m.(*schema.ResourceData), d)
 	if err != nil {
 		return diag.Errorf(err.Error())
@@ -135,7 +135,7 @@ func resourceStorageVolumeCreate(ctx context.Context, d *schema.ResourceData, m 
 	return createRedfishStorageVolume(service, d)
 }
 
-func resourceStorageVolumeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRedfishStorageVolumeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	service, err := NewConfig(m.(*schema.ResourceData), d)
 	if err != nil {
 		return diag.Errorf(err.Error())
@@ -143,7 +143,7 @@ func resourceStorageVolumeRead(ctx context.Context, d *schema.ResourceData, m in
 	return readRedfishStorageVolume(service, d)
 }
 
-func resourceStorageVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRedfishStorageVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	service, err := NewConfig(m.(*schema.ResourceData), d)
 	if err != nil {
 		return diag.Errorf(err.Error())
@@ -151,10 +151,10 @@ func resourceStorageVolumeUpdate(ctx context.Context, d *schema.ResourceData, m 
 	if diags := updateRedfishStorageVolume(ctx, service, d, m); diags.HasError() {
 		return diags
 	}
-	return resourceStorageVolumeRead(ctx, d, m)
+	return resourceRedfishStorageVolumeRead(ctx, d, m)
 }
 
-func resourceStorageVolumeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRedfishStorageVolumeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	service, err := NewConfig(m.(*schema.ResourceData), d)
 	if err != nil {
 		return diag.Errorf(err.Error())

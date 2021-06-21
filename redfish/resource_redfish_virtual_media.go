@@ -13,10 +13,10 @@ import (
 
 func resourceRedfishVirtualMedia() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceVirtualMediaCreate,
-		ReadContext:   resourceVirtualMediaRead,
-		UpdateContext: resourceVirtualMediaUpdate,
-		DeleteContext: resourceVirtualMediaDelete,
+		CreateContext: resourceRedfishVirtualMediaCreate,
+		ReadContext:   resourceRedfishVirtualMediaRead,
+		UpdateContext: resourceRedfishVirtualMediaUpdate,
+		DeleteContext: resourceRedfishVirtualMediaDelete,
 		Schema:        getResourceRedfishVirtualMediaSchema(),
 	}
 }
@@ -96,7 +96,7 @@ func getResourceRedfishVirtualMediaSchema() map[string]*schema.Schema {
 	}
 }
 
-func resourceVirtualMediaCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRedfishVirtualMediaCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	service, err := NewConfig(m.(*schema.ResourceData), d)
 	if err != nil {
 		return diag.Errorf(err.Error())
@@ -104,7 +104,7 @@ func resourceVirtualMediaCreate(ctx context.Context, d *schema.ResourceData, m i
 	return createRedfishVirtualMedia(service, d)
 }
 
-func resourceVirtualMediaRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRedfishVirtualMediaRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	service, err := NewConfig(m.(*schema.ResourceData), d)
 	if err != nil {
 		return diag.Errorf(err.Error())
@@ -112,7 +112,7 @@ func resourceVirtualMediaRead(ctx context.Context, d *schema.ResourceData, m int
 	return readRedfishVirtualMedia(service, d)
 }
 
-func resourceVirtualMediaUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRedfishVirtualMediaUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	service, err := NewConfig(m.(*schema.ResourceData), d)
 	if err != nil {
 		return diag.Errorf(err.Error())
@@ -120,10 +120,10 @@ func resourceVirtualMediaUpdate(ctx context.Context, d *schema.ResourceData, m i
 	if diags := updateRedfishVirtualMedia(ctx, service, d, m); diags.HasError() {
 		return diags
 	}
-	return resourceVirtualMediaRead(ctx, d, m)
+	return resourceRedfishVirtualMediaRead(ctx, d, m)
 }
 
-func resourceVirtualMediaDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRedfishVirtualMediaDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	service, err := NewConfig(m.(*schema.ResourceData), d)
 	if err != nil {
 		return diag.Errorf(err.Error())

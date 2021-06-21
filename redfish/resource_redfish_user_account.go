@@ -9,17 +9,17 @@ import (
 	"github.com/stmcginnis/gofish/redfish"
 )
 
-func resourceUserAccount() *schema.Resource {
+func resourceRedfishUserAccount() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceUserAccountCreate,
-		ReadContext:   resourceUserAccountRead,
-		UpdateContext: resourceUserAccountUpdate,
-		DeleteContext: resourceUserAccountDelete,
-		Schema:        getResourceUserAccountSchema(),
+		CreateContext: resourceRedfishUserAccountCreate,
+		ReadContext:   resourceRedfishUserAccountRead,
+		UpdateContext: resourceRedfishUserAccountUpdate,
+		DeleteContext: resourceRedfishUserAccountDelete,
+		Schema:        getResourceRedfishUserAccountSchema(),
 	}
 }
 
-func getResourceUserAccountSchema() map[string]*schema.Schema {
+func getResourceRedfishUserAccountSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"redfish_server": {
 			Type:        schema.TypeList,
@@ -72,7 +72,7 @@ func getResourceUserAccountSchema() map[string]*schema.Schema {
 	}
 }
 
-func resourceUserAccountCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRedfishUserAccountCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	service, err := NewConfig(m.(*schema.ResourceData), d)
 	if err != nil {
 		return diag.Errorf(err.Error())
@@ -80,7 +80,7 @@ func resourceUserAccountCreate(ctx context.Context, d *schema.ResourceData, m in
 	return createRedfishUserAccount(service, d)
 }
 
-func resourceUserAccountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRedfishUserAccountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	service, err := NewConfig(m.(*schema.ResourceData), d)
 	if err != nil {
 		return diag.Errorf(err.Error())
@@ -88,7 +88,7 @@ func resourceUserAccountRead(ctx context.Context, d *schema.ResourceData, m inte
 	return readRedfishUserAccount(service, d)
 }
 
-func resourceUserAccountUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRedfishUserAccountUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	service, err := NewConfig(m.(*schema.ResourceData), d)
 	if err != nil {
 		return diag.Errorf(err.Error())
@@ -96,10 +96,10 @@ func resourceUserAccountUpdate(ctx context.Context, d *schema.ResourceData, m in
 	if diags := updateRedfishUserAccount(ctx, service, d, m); diags.HasError() {
 		return diags
 	}
-	return resourceUserAccountRead(ctx, d, m)
+	return resourceRedfishUserAccountRead(ctx, d, m)
 }
 
-func resourceUserAccountDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRedfishUserAccountDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	service, err := NewConfig(m.(*schema.ResourceData), d)
 	if err != nil {
 		return diag.Errorf(err.Error())

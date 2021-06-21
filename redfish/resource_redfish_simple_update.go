@@ -25,10 +25,10 @@ const (
 
 func resourceRedfishSimpleUpdate() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceSimpleUpdateCreate,
-		ReadContext:   resourceSimpleUpdateRead,
-		UpdateContext: resourceSimpleUpdateUpdate,
-		DeleteContext: resourceSimpleUpdateDelete,
+		CreateContext: resourceRedfishSimpleUpdateCreate,
+		ReadContext:   resourceRedfishSimpleUpdateRead,
+		UpdateContext: resourceRedfishSimpleUpdateUpdate,
+		DeleteContext: resourceRedfishSimpleUpdateDelete,
 		Schema:        getResourceRedfishSimpleUpdateSchema(),
 	}
 }
@@ -125,16 +125,15 @@ func getResourceRedfishSimpleUpdateSchema() map[string]*schema.Schema {
 	}
 }
 
-func resourceSimpleUpdateCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRedfishSimpleUpdateCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	service, err := NewConfig(m.(*schema.ResourceData), d)
 	if err != nil {
 		return diag.Errorf(err.Error())
 	}
-	// return createRedfishSimpleUpdate(service, d)
 	return updateRedfishSimpleUpdate(ctx, service, d, m)
 }
 
-func resourceSimpleUpdateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRedfishSimpleUpdateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	service, err := NewConfig(m.(*schema.ResourceData), d)
 	if err != nil {
 		return diag.Errorf(err.Error())
@@ -142,7 +141,7 @@ func resourceSimpleUpdateRead(ctx context.Context, d *schema.ResourceData, m int
 	return readRedfishSimpleUpdate(service, d)
 }
 
-func resourceSimpleUpdateUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRedfishSimpleUpdateUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	service, err := NewConfig(m.(*schema.ResourceData), d)
 	if err != nil {
 		return diag.Errorf(err.Error())
@@ -150,10 +149,10 @@ func resourceSimpleUpdateUpdate(ctx context.Context, d *schema.ResourceData, m i
 	if diags := updateRedfishSimpleUpdate(ctx, service, d, m); diags.HasError() {
 		return diags
 	}
-	return resourceSimpleUpdateRead(ctx, d, m)
+	return resourceRedfishSimpleUpdateRead(ctx, d, m)
 }
 
-func resourceSimpleUpdateDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRedfishSimpleUpdateDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	service, err := NewConfig(m.(*schema.ResourceData), d)
 	if err != nil {
 		return diag.Errorf(err.Error())
