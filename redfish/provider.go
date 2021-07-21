@@ -40,6 +40,7 @@ func Provider() *schema.Provider {
 			"redfish_storage":               dataSourceRedfishStorage(),
 			"redfish_firmware_inventory":    dataSourceRedfishFirmwareInventory(),
 			"redfish_dell_idrac_attributes": dataSourceRedfishDellIdracAttributes(),
+			"redfish_system_boot":           dataSourceRedfishSystemBoot(),
 		},
 	}
 
