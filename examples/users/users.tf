@@ -1,14 +1,15 @@
-provider "redfish" {
-    //user = "root"
-    //password = "calvin"
-}
-
 terraform {
     required_providers {
         redfish = {
-            source = "dell/redfish"
+            version = "~> 0.2.0"
+            source = "dell.com/dell/redfish"
         }
     }
+}
+
+provider "redfish" {
+    //user = "root"
+    //password = "calvin"
 }
 
 resource "redfish_user_account" "rr" {
@@ -23,5 +24,6 @@ resource "redfish_user_account" "rr" {
 
     username = "mike"
     password = "test1234"
+    role_id = "Operator"
     enabled = true
 }

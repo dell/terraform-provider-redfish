@@ -8,7 +8,7 @@ For general information about Terraform, visit the [official website][tf-website
 [tf-github]: https://github.com/hashicorp/terraform
 
 ## Requirements
--	[Terraform](https://www.terraform.io/downloads.html) 0.12.x
+-	[Terraform](https://www.terraform.io/downloads.html) 1.x.x
 -	[Go](https://golang.org/doc/install) 1.13.x (to build the provider plugin)
 
 ## Installation
@@ -24,11 +24,16 @@ $ git clone https://github.com/dell/terraform-provider-redfish.git
 ...
 ```
 
-Enter the provider directory and run `go build`. This will build the provider and put the provider in the `$GOPATH/bin` directory.
+Enter the provider directory and run `make install`. This will build the provider and put the provider in your user plugin directory (by default, it is `/.terraform.d/plugins/dell.com/dell/redfish//${VERSION}/linux_amd64`.).
 ```sh
-$ go build
+$ make install
+```
+
+if you want to copy the provider binary to a custom terraform plugin directory, then you can enter the provider directory and run `make build`. This will build the provider. You can then move the binary to your custom plugin directory.
+```sh
+$ make build
 ...
-$ $GOPATH/bin/terraform-provider-redfish
+$ mv terraform-provider-redfish <YOUR-CUSTOM-PLUGIN-DIRECTORY>
 ...
 ```
 
@@ -43,10 +48,10 @@ Navigate to your top level directory (terraform-provider-redfish) and run:
 For more information on Terraform's new directory structure for local providers see [these patch notes](https://www.terraform.io/upgrade-guides/0-13.html#new-filesystem-layout-for-local-copies-of-providers).
 
 ```powershell
-mkdir %appdata%\terraform.d\plugins\registry.terraform.io\dell\redfish\1.0\windows_amd64
+mkdir %appdata%\terraform.d\plugins\registry.terraform.io\dell.com\dell\redfish\0.2.0\windows_amd64
 go mod vendor
 go build -o terraform-provider-redfish.exe
-move .\terraform-provider-redfish.exe %appdata%\terraform.d\plugins\registry.terraform.io\dell\redfish\1.0\windows_amd64
+move .\terraform-provider-redfish.exe %appdata%\terraform.d\plugins\registry.terraform.io\dell.com\dell\redfish\0.2.0\windows_amd64
 ```
 
 Now change directories to the folder where you placed `terraform.exe` and run `terraform init`.

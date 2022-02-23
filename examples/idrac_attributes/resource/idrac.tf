@@ -1,7 +1,8 @@
 terraform {
   required_providers {
     redfish = {
-      source = "dell/redfish"
+      version = "~> 0.2.0"
+      source = "dell.com/dell/redfish"
     }
   }
 }
