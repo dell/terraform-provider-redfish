@@ -1,15 +1,15 @@
 terraform {
   required_providers {
     redfish = {
-      source = "dellemc/redfish"
+      source = "dell.com/dell/redfish"
       version = "~> 0.2.0"
     }
   }
 }
 
 provider "redfish" {
-    //user = "admin"
-    //password = "passw0rd"
+  //user = "admin"
+  //password = "passw0rd"
 }
 
 data "redfish_system_boot" "system_boot" {

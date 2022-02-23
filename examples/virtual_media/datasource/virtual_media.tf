@@ -1,3 +1,12 @@
+terraform {
+    required_providers {
+        redfish = {
+            version = "~> 0.2.0"
+            source = "dell.com/dell/redfish"
+        }
+    }
+}
+
 provider "redfish" {}
 
 data "redfish_virtual_media" "vm" {

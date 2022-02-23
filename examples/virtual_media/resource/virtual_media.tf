@@ -1,12 +1,13 @@
-provider "redfish" {}
-
 terraform {
     required_providers {
         redfish = {
-            source = "dell/redfish"
+            version = "~> 0.2.0"
+            source = "dell.com/dell/redfish"
         }
     }
 }
+
+provider "redfish" {}
 
 resource "redfish_virtual_media" "vm" {
     for_each = var.rack1

@@ -1,10 +1,13 @@
 terraform {
     required_providers {
         redfish = {
-            source = "dell/redfish"
+            version = "~> 0.2.0"
+            source = "dell.com/dell/redfish"
         }
     }
 }
+
+provider "redfish" {}
 
 resource "redfish_simple_update" "update" {
     for_each = var.rack1
