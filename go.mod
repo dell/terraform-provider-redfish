@@ -1,10 +1,9 @@
 module github.com/dell/terraform-provider-redfish
 
-go 1.14
+go 1.15
 
 require (
-	github.com/hashicorp/go-multierror v1.0.0 // indirect
-	github.com/hashicorp/terraform-plugin-go v0.3.0 // indirect
-	github.com/hashicorp/terraform-plugin-sdk/v2 v2.6.1
-	github.com/stmcginnis/gofish v0.11.0
+	github.com/hashicorp/terraform-plugin-sdk/v2 v2.16.0
+	github.com/mattn/go-colorable v0.1.12 // indirect
+	github.com/stmcginnis/gofish v0.13.0
 )
