@@ -24,7 +24,7 @@ $ git clone https://github.com/dell/terraform-provider-redfish.git
 ...
 ```
 
-Enter the provider directory and run `make install`. This will build the provider and put the provider in your user plugin directory (by default, it is `/.terraform.d/plugins/dell.com/dell/redfish//${VERSION}/linux_amd64`.).
+Enter the provider directory and run `make install`. This will build the provider and put the provider in your user plugin directory (by default, it is `/.terraform.d/plugins/registry.terraform.io/dell/redfish//${VERSION}/linux_amd64`.).
 ```sh
 $ make install
 ```
@@ -41,7 +41,7 @@ $ mv terraform-provider-redfish <YOUR-CUSTOM-PLUGIN-DIRECTORY>
 
 Download the Terraform binary from [Terraform's website](https://www.terraform.io/downloads.html). For Windows it is a standalone binary. If you already have an existing Terraform configuration, you can put it in the same directory is that configuration. If you just want to run one of our examples, place it in the appropriate examples folder. For example:
 
-![Terraform Placement](docs/images/terraform_placement.png)
+![Terraform Placement](.github/images/terraform_placement.png)
 
 Navigate to your top level directory (terraform-provider-redfish) and run:
 
@@ -88,7 +88,7 @@ this means that your directory structure has issues. Go back and make sure your 
 
 
 ## Documentation
-The documentation for the provider can found [here](https://github.com/dell/terraform-provider-redfish/blob/master/docs/PROVIDER.md)
+The documentation for the provider can found [here](https://github.com/dell/terraform-provider-redfish/blob/master/PROVIDER.md)
 
 ## Roadmap
 Our roadmap for Terraform provider for Redfish resources can be found [here](ROADMAP.md)
@@ -98,4 +98,4 @@ The code is provided AS-IS and not supported by Dell EMC.
 
 ## Contributing
 The Terrafrom Redfish provider is open-source and community supported. We appreciate your help!
-To contribute, please read the [contribution guidelines](docs/CONTRIBUTING.md). You may also [report an issue](https://github.com/dell/terraform-provider-redfish/issues/new/choose). Once you've filed an issue, it will follow the [issue lifecycle](docs/ISSUES.md).
+To contribute, please read the [contribution guidelines](https://github.com/dell/terraform-provider-redfish/blob/master/CONTRIBUTING.md). You may also [report an issue](https://github.com/dell/terraform-provider-redfish/issues/new/choose). Once you've filed an issue, it will follow the [issue lifecycle](https://github.com/dell/terraform-provider-redfish/tree/master/.github/contributing/issue-reporting-and-lifecycle.md).

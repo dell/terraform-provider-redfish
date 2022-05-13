@@ -6,19 +6,18 @@ import (
 	"testing"
 )
 
-
 // redfish.Power represents a concrete Go type that represents an API resource
 func TestAccRedfishPower_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		Providers:    testAccProviders,
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourcePowerConfig(
-				  creds,
-				 "On",
-				  120,
-						10),
+					creds,
+					"On",
+					120,
+					10),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_power.system_power", "power_state", "On"),
 				),
@@ -50,7 +49,7 @@ func TestAccRedfishPower_basic(t *testing.T) {
 					120,
 					10),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_power.system_power", "power_state","Reset_On"),
+					resource.TestCheckResourceAttr("redfish_power.system_power", "power_state", "Reset_On"),
 				),
 				ExpectNonEmptyPlan: true,
 			},
@@ -80,9 +79,9 @@ func TestAccRedfishPower_basic(t *testing.T) {
 }
 
 func testAccRedfishResourcePowerConfig(testingInfo TestingServerCredentials,
-									   desiredPowerAction string,
-									   maximumWaitTime int,
-									   checkInterval int) string {
+	desiredPowerAction string,
+	maximumWaitTime int,
+	checkInterval int) string {
 	return fmt.Sprintf(`
 		
 		resource "redfish_power" "system_power" {

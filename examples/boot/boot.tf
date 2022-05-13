@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     redfish = {
-      source = "dell.com/dell/redfish"
+      source  = "registry.terraform.io/dell/redfish"
       version = "~> 0.2.0"
     }
   }
@@ -16,9 +16,9 @@ data "redfish_system_boot" "system_boot" {
   for_each = var.rack1
 
   redfish_server {
-    user = each.value.user
-    password = each.value.password
-    endpoint = each.value.endpoint
+    user         = each.value.user
+    password     = each.value.password
+    endpoint     = each.value.endpoint
     ssl_insecure = each.value.ssl_insecure
   }
 
@@ -28,6 +28,6 @@ data "redfish_system_boot" "system_boot" {
 }
 
 output "system_boot" {
-  value = data.redfish_system_boot.system_boot
+  value     = data.redfish_system_boot.system_boot
   sensitive = true
 }
