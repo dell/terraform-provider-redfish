@@ -7,6 +7,7 @@ terraform.tfstate
 crash.log
 .vscode
 bin/
+dist/
 vendor/
 .idea/
 *.terraform.lock.hcl
