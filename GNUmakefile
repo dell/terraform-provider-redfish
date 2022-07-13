@@ -1,5 +1,5 @@
 PKG_NAME=redfish
-VERSION=0.2.0
+VERSION=0.2.1
 TEST?=$$(go list ./... | grep -v 'vendor')
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 WEBSITE_REPO=github.com/hashicorp/terraform-website
@@ -8,14 +8,12 @@ NAMESPACE=dell
 BINARY=terraform-provider-${PKG_NAME}
 OS_ARCH=linux_amd64
 
-export GOOS=$(shell go env GOOS)
-
 default: build
 
 build: fmtcheck
 	go mod vendor
 	go install
-	GOOS=linux GOARCH=amd64 go build -o ./bin/linux_amd64/${BINARY}_v$(VERSION)
+	GOOS=linux GOARCH=amd64 go build -o $(CURDIR)/bin/${OS_ARCH}/${BINARY}_v$(VERSION)
 
 # formats all .go files
 fmt:
@@ -24,11 +22,14 @@ fmt:
 
 # runs a Go format check
 fmtcheck:
-	@sh -c "'scripts/gofmtcheck.sh'"
+	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
+
+errcheck:
+	@sh -c "'$(CURDIR)/scripts/errcheck.sh'"
 
 lint:
 	@echo "==> Checking source code against linters..."
-	tfproviderlint ./intersight
+	tfproviderlint ./redfish
 	golangci-lint run ./...
 
 # vets all .go files
@@ -42,22 +43,11 @@ vet:
 	fi
 
 release:
-	GOOS=darwin GOARCH=amd64 go build -o ./bin/${BINARY}_${VERSION}_darwin_amd64
-	GOOS=freebsd GOARCH=386 go build -o ./bin/${BINARY}_${VERSION}_freebsd_386
-	GOOS=freebsd GOARCH=amd64 go build -o ./bin/${BINARY}_${VERSION}_freebsd_amd64
-	GOOS=freebsd GOARCH=arm go build -o ./bin/${BINARY}_${VERSION}_freebsd_arm
-	GOOS=linux GOARCH=386 go build -o ./bin/${BINARY}_${VERSION}_linux_386
-	GOOS=linux GOARCH=amd64 go build -o ./bin/${BINARY}_${VERSION}_linux_amd64
-	GOOS=linux GOARCH=arm go build -o ./bin/${BINARY}_${VERSION}_linux_arm
-	GOOS=openbsd GOARCH=386 go build -o ./bin/${BINARY}_${VERSION}_openbsd_386
-	GOOS=openbsd GOARCH=amd64 go build -o ./bin/${BINARY}_${VERSION}_openbsd_amd64
-	GOOS=solaris GOARCH=amd64 go build -o ./bin/${BINARY}_${VERSION}_solaris_amd64
-	GOOS=windows GOARCH=386 go build -o ./bin/${BINARY}_${VERSION}_windows_386
-	GOOS=windows GOARCH=amd64 go build -o ./bin/${BINARY}_${VERSION}_windows_amd64
+	goreleaser release --rm-dist --snapshot --skip-publish  --skip-sign
 
 install: build
 	mkdir -p ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${PKG_NAME}/${VERSION}/${OS_ARCH}
-	mv ./bin/linux_amd64/${BINARY}_v$(VERSION) ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${PKG_NAME}/${VERSION}/${OS_ARCH}
+	mv $(CURDIR)/bin/${OS_ARCH}/${BINARY}_v$(VERSION) ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${PKG_NAME}/${VERSION}/${OS_ARCH}
 
 test:
 	go test -i $(TEST) || exit 1
@@ -84,4 +74,8 @@ ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
-.PHONY: build test testacc vet fmt fmtcheck lint tools test-compile website website-lint website-test
+clean:
+	go clean --cache
+	rm -rf vendor bin
+
+.PHONY: build test testacc vet fmt fmtcheck errcheck lint tools test-compile website website-lint website-test
