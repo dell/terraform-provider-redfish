@@ -158,7 +158,7 @@ func updateRedfishDellIdracAttributes(ctx context.Context, service *gofish.Servi
 
 	response, err := service.Client.Patch(idracAttributes.ODataID, patchBody)
 	if err != nil {
-		return diag.Errorf("there was an issue when creating/updating idrac attributes - %s")
+		return diag.Errorf("there was an issue when creating/updating idrac attributes - %s", err)
 	}
 	response.Body.Close()
 
