@@ -41,6 +41,7 @@ func Provider() *schema.Provider {
 			"redfish_firmware_inventory":    dataSourceRedfishFirmwareInventory(),
 			"redfish_dell_idrac_attributes": dataSourceRedfishDellIdracAttributes(),
 			"redfish_system_boot":           dataSourceRedfishSystemBoot(),
+			"redfish_network_interface":     dataSourceRedfishNetworkInterface(),
 		},
 	}
 
