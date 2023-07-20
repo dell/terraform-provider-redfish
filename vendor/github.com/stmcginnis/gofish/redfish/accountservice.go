@@ -276,8 +276,8 @@ func (accountservice *AccountService) UnmarshalJSON(b []byte) error {
 	*accountservice = AccountService(t.temp)
 
 	// Extract the links to other entities for later
-	accountservice.accounts = string(t.Links.Accounts)
-	accountservice.roles = string(t.Links.Roles)
+	accountservice.accounts = t.Links.Accounts.String()
+	accountservice.roles = t.Links.Roles.String()
 
 	// This is a read/write object, so we need to save the raw object data for later
 	accountservice.rawData = b
@@ -314,20 +314,8 @@ func (accountservice *AccountService) Update() error {
 // GetAccountService will get the AccountService instance from the Redfish
 // service.
 func GetAccountService(c common.Client, uri string) (*AccountService, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var t AccountService
-	err = json.NewDecoder(resp.Body).Decode(&t)
-	if err != nil {
-		return nil, err
-	}
-
-	t.SetClient(c)
-	return &t, nil
+	var accountService AccountService
+	return &accountService, accountService.Get(c, uri, &accountService)
 }
 
 // Accounts get the accounts from the account service

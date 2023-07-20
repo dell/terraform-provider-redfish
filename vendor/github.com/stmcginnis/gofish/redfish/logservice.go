@@ -109,7 +109,7 @@ func (logservice *LogService) UnmarshalJSON(b []byte) error {
 
 	// Extract the links to other entities for later
 	*logservice = LogService(t.temp)
-	logservice.entries = string(t.Entries)
+	logservice.entries = t.Entries.String()
 	logservice.clearLogTarget = t.Actions.ClearLog.Target
 
 	// This is a read/write object, so we need to save the raw object data for later
@@ -142,20 +142,8 @@ func (logservice *LogService) Update() error {
 
 // GetLogService will get a LogService instance from the service.
 func GetLogService(c common.Client, uri string) (*LogService, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var logservice LogService
-	err = json.NewDecoder(resp.Body).Decode(&logservice)
-	if err != nil {
-		return nil, err
-	}
-
-	logservice.SetClient(c)
-	return &logservice, nil
+	var logService LogService
+	return &logService, logService.Get(c, uri, &logService)
 }
 
 // ListReferencedLogServices gets the collection of LogService from a provided reference.
@@ -165,18 +153,32 @@ func ListReferencedLogServices(c common.Client, link string) ([]*LogService, err
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *LogService
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, logserviceLink := range links.ItemLinks {
-		logservice, err := GetLogService(c, logserviceLink)
+	get := func(link string) {
+		logservice, err := GetLogService(c, link)
+		ch <- GetResult{Item: logservice, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[logserviceLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, logservice)
+			result = append(result, r.Item)
 		}
 	}
 
@@ -195,13 +197,11 @@ func (logservice *LogService) Entries() ([]*LogEntry, error) {
 // ClearLog shall delete all entries found in the Entries collection for this
 // Log Service.
 func (logservice *LogService) ClearLog() error {
-	type temp struct {
+	t := struct {
 		Action string
-	}
-	t := temp{
+	}{
 		Action: "LogService.ClearLog",
 	}
 
-	_, err := logservice.Client.Post(logservice.clearLogTarget, t)
-	return err
+	return logservice.Post(logservice.clearLogTarget, t)
 }

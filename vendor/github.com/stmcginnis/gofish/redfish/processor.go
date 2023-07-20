@@ -321,7 +321,7 @@ type Processor struct {
 	Status common.Status
 	// SubProcessors shall be a link to a
 	// collection of type ProcessorCollection.
-	SubProcessors string
+	subProcessors string
 	// TDPWatts shall be the nominal Thermal
 	// Design Power (TDP) in watts.
 	TDPWatts int
@@ -376,6 +376,7 @@ func (processor *Processor) UnmarshalJSON(b []byte) error {
 		AccelerationFunctions common.Link
 		Assembly              common.Link
 		Metrics               common.Link
+		SubProcessors         common.Link
 		ProcessorMemory       common.Links
 		Links                 struct {
 			Chassis                  common.Link
@@ -410,7 +411,7 @@ func (processor *Processor) UnmarshalJSON(b []byte) error {
 		if t2.MaxSpeedMHz != "" {
 			bitSize := 32
 			mhz, err := strconv.ParseFloat(t2.MaxSpeedMHz, bitSize)
-			if err != nil {
+			if err == nil {
 				t.MaxSpeedMHz = float32(mhz)
 			}
 		}
@@ -419,55 +420,62 @@ func (processor *Processor) UnmarshalJSON(b []byte) error {
 	*processor = Processor(t.temp)
 
 	// Extract the links to other entities for later
-	processor.accelerationFunctions = string(t.AccelerationFunctions)
-	processor.assembly = string(t.Assembly)
-	processor.chassis = string(t.Links.Chassis)
+	processor.accelerationFunctions = t.AccelerationFunctions.String()
+	processor.assembly = t.Assembly.String()
+	processor.chassis = t.Links.Chassis.String()
 	processor.processorMemory = t.ProcessorMemory.ToStrings()
 	processor.connectedProcessors = t.Links.ConnectedProcessors.ToStrings()
 	processor.ConnectedProcessorsCount = t.Links.ConnectedProcessorsCount
 	processor.endpoints = t.Links.Endpoints.ToStrings()
 	processor.EndpointsCount = t.Links.EndpointsCount
-	processor.pcieDevice = string(t.Links.PCIeDevice)
+	processor.pcieDevice = t.Links.PCIeDevice.String()
 	processor.pcieFunctions = t.Links.PCIeFunctions.ToStrings()
 	processor.PCIeFunctionsCount = t.Links.PCIeFunctionsCount
-	processor.metrics = string(t.Metrics)
+	processor.metrics = t.Metrics.String()
+	processor.subProcessors = t.SubProcessors.String()
 
 	return nil
 }
 
 // GetProcessor will get a Processor instance from the system
 func GetProcessor(c common.Client, uri string) (*Processor, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var processor Processor
-	err = json.NewDecoder(resp.Body).Decode(&processor)
-	if err != nil {
-		return nil, err
-	}
-
-	processor.SetClient(c)
-	return &processor, nil
+	return &processor, processor.Get(c, uri, &processor)
 }
 
 // ListReferencedProcessors gets the collection of Processor from a provided reference.
-func ListReferencedProcessors(c common.Client, link string) ([]*Processor, error) {
+func ListReferencedProcessors(c common.Client, link string) ([]*Processor, error) { //nolint:dupl
 	var result []*Processor
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	if link == "" {
+		return result, nil
 	}
 
+	type GetResult struct {
+		Item  *Processor
+		Link  string
+		Error error
+	}
+
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, processorLink := range links.ItemLinks {
-		processor, err := GetProcessor(c, processorLink)
+	get := func(link string) {
+		processor, err := GetProcessor(c, link)
+		ch <- GetResult{Item: processor, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[processorLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, processor)
+			result = append(result, r.Item)
 		}
 	}
 

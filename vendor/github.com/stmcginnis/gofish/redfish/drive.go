@@ -272,8 +272,8 @@ func (drive *Drive) UnmarshalJSON(b []byte) error {
 
 	// Extract the links to other entities for later
 	*drive = Drive(t.temp)
-	drive.assembly = string(t.Assembly)
-	drive.chassis = string(t.Links.Chassis)
+	drive.assembly = t.Assembly.String()
+	drive.chassis = t.Links.Chassis.String()
 	drive.endpoints = t.Links.Endpoints.ToStrings()
 	drive.EndpointsCount = t.Links.EndpointCount
 	drive.volumes = t.Links.Volumes.ToStrings()
@@ -314,20 +314,8 @@ func (drive *Drive) Update() error {
 
 // GetDrive will get a Drive instance from the service.
 func GetDrive(c common.Client, uri string) (*Drive, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var drive Drive
-	err = json.NewDecoder(resp.Body).Decode(&drive)
-	if err != nil {
-		return nil, err
-	}
-
-	drive.SetClient(c)
-	return &drive, nil
+	return &drive, drive.Get(c, uri, &drive)
 }
 
 // ListReferencedDrives gets the collection of Drives from a provided reference.
@@ -337,18 +325,32 @@ func ListReferencedDrives(c common.Client, link string) ([]*Drive, error) { //no
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *Drive
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, driveLink := range links.ItemLinks {
-		drive, err := GetDrive(c, driveLink)
+	get := func(link string) {
+		drive, err := GetDrive(c, link)
+		ch <- GetResult{Item: drive, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[driveLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, drive)
+			result = append(result, r.Item)
 		}
 	}
 
@@ -457,6 +459,5 @@ func (drive *Drive) PCIeFunctions() ([]*PCIeFunction, error) {
 
 // SecureErase shall perform a secure erase of the drive.
 func (drive *Drive) SecureErase() error {
-	_, err := drive.Client.Post(drive.secureEraseTarget, nil)
-	return err
+	return drive.Post(drive.secureEraseTarget, nil)
 }

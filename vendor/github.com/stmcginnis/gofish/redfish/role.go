@@ -107,20 +107,8 @@ func (role *Role) Update() error {
 
 // GetRole will get a Role instance from the service.
 func GetRole(c common.Client, uri string) (*Role, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var role Role
-	err = json.NewDecoder(resp.Body).Decode(&role)
-	if err != nil {
-		return nil, err
-	}
-
-	role.SetClient(c)
-	return &role, nil
+	return &role, role.Get(c, uri, &role)
 }
 
 // ListReferencedRoles gets the collection of Role from
@@ -131,18 +119,32 @@ func ListReferencedRoles(c common.Client, link string) ([]*Role, error) { //noli
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *Role
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, roleLink := range links.ItemLinks {
-		role, err := GetRole(c, roleLink)
+	get := func(link string) {
+		role, err := GetRole(c, link)
+		ch <- GetResult{Item: role, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[roleLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, role)
+			result = append(result, r.Item)
 		}
 	}
 

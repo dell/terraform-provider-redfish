@@ -73,27 +73,15 @@ func (simplestorage *SimpleStorage) UnmarshalJSON(b []byte) error {
 
 	// Extract the links to other entities for later
 	*simplestorage = SimpleStorage(t.temp)
-	simplestorage.chassis = string(t.Links.Chassis)
+	simplestorage.chassis = t.Links.Chassis.String()
 
 	return nil
 }
 
 // GetSimpleStorage will get a SimpleStorage instance from the service.
 func GetSimpleStorage(c common.Client, uri string) (*SimpleStorage, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var simplestorage SimpleStorage
-	err = json.NewDecoder(resp.Body).Decode(&simplestorage)
-	if err != nil {
-		return nil, err
-	}
-
-	simplestorage.SetClient(c)
-	return &simplestorage, nil
+	var simpleStorage SimpleStorage
+	return &simpleStorage, simpleStorage.Get(c, uri, &simpleStorage)
 }
 
 // ListReferencedSimpleStorages gets the collection of SimpleStorage from
@@ -104,18 +92,32 @@ func ListReferencedSimpleStorages(c common.Client, link string) ([]*SimpleStorag
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *SimpleStorage
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, simplestorageLink := range links.ItemLinks {
-		simplestorage, err := GetSimpleStorage(c, simplestorageLink)
+	get := func(link string) {
+		simplestorage, err := GetSimpleStorage(c, link)
+		ch <- GetResult{Item: simplestorage, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[simplestorageLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, simplestorage)
+			result = append(result, r.Item)
 		}
 	}
 

@@ -226,9 +226,12 @@ type Chassis struct {
 	thermal         string
 	power           string
 	networkAdapters string
+	// logServices shall be a link to a collection of type LogServiceCollection.
+	logServices     string
 	computerSystems []string
 	resourceBlocks  []string
 	managedBy       []string
+	assembly        string
 	// resetTarget is the internal URL to send reset actions to.
 	resetTarget string
 	// SupportedResetTypes, if provided, is the reset types this chassis supports.
@@ -256,10 +259,12 @@ func (chassis *Chassis) UnmarshalJSON(b []byte) error {
 
 	var t struct {
 		temp
+		Assembly        common.Link
 		Drives          common.Link
 		Thermal         common.Link
 		Power           common.Link
 		NetworkAdapters common.Link
+		LogServices     common.Link
 		Links           linkReference
 		Actions         Actions
 	}
@@ -272,14 +277,16 @@ func (chassis *Chassis) UnmarshalJSON(b []byte) error {
 	*chassis = Chassis(t.temp)
 
 	// Extract the links to other entities for later
-	chassis.drives = string(t.Drives)
+	chassis.assembly = t.Assembly.String()
+	chassis.drives = t.Drives.String()
 	chassis.linkedDrives = t.Links.Drives.ToStrings()
 	if chassis.DrivesCount == 0 && t.Links.DrivesCount > 0 {
 		chassis.DrivesCount = t.Links.DrivesCount
 	}
-	chassis.thermal = string(t.Thermal)
-	chassis.power = string(t.Power)
-	chassis.networkAdapters = string(t.NetworkAdapters)
+	chassis.thermal = t.Thermal.String()
+	chassis.power = t.Power.String()
+	chassis.networkAdapters = t.NetworkAdapters.String()
+	chassis.logServices = t.LogServices.String()
 	chassis.computerSystems = t.Links.ComputerSystems.ToStrings()
 	chassis.resourceBlocks = t.Links.ResourceBlocks.ToStrings()
 	chassis.managedBy = t.Links.ManagedBy.ToStrings()
@@ -315,37 +322,43 @@ func (chassis *Chassis) Update() error {
 
 // GetChassis will get a Chassis instance from the Redfish service.
 func GetChassis(c common.Client, uri string) (*Chassis, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var chassis Chassis
-	err = json.NewDecoder(resp.Body).Decode(&chassis)
-	if err != nil {
-		return nil, err
-	}
-
-	chassis.SetClient(c)
-	return &chassis, nil
+	return &chassis, chassis.Get(c, uri, &chassis)
 }
 
 // ListReferencedChassis gets the collection of Chassis from a provided reference.
-func ListReferencedChassis(c common.Client, link string) ([]*Chassis, error) {
+func ListReferencedChassis(c common.Client, link string) ([]*Chassis, error) { //nolint:dupl
 	var result []*Chassis
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	if link == "" {
+		return result, nil
 	}
 
+	type GetResult struct {
+		Item  *Chassis
+		Link  string
+		Error error
+	}
+
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, chassisLink := range links.ItemLinks {
-		chassis, err := GetChassis(c, chassisLink)
+	get := func(link string) {
+		chassis, err := GetChassis(c, link)
+		ch <- GetResult{Item: chassis, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[chassisLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, chassis)
+			result = append(result, r.Item)
 		}
 	}
 
@@ -367,22 +380,40 @@ func (chassis *Chassis) Drives() ([]*Drive, error) {
 	// In version v1.2.0 of the spec, Drives were added to the Chassis.Links
 	// property. But in v1.14.0 of the spec, Chassis.Drives was added as a
 	// direct property.
+	// TODO: Update this to use the concurrent collection method
+	collectionError := common.NewCollectionError()
 	driveLinks := chassis.linkedDrives
 	if chassis.drives != "" {
 		drives, err := common.GetCollection(chassis.Client, chassis.drives)
 		if err != nil {
-			return nil, err
+			collectionError.Failures[chassis.drives] = err
+			return nil, collectionError
 		}
 		driveLinks = drives.ItemLinks
 	}
 
-	collectionError := common.NewCollectionError()
-	for _, driveLink := range driveLinks {
-		drive, err := GetDrive(chassis.Client, driveLink)
-		if err != nil {
-			collectionError.Failures[driveLink] = err
+	type GetResult struct {
+		Item  *Drive
+		Link  string
+		Error error
+	}
+
+	ch := make(chan GetResult)
+	get := func(link string) {
+		drive, err := GetDrive(chassis.Client, link)
+		ch <- GetResult{Item: drive, Link: link, Error: err}
+	}
+
+	go func() {
+		common.CollectCollection(get, chassis.Client, driveLinks)
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, drive)
+			result = append(result, r.Item)
 		}
 	}
 
@@ -399,12 +430,7 @@ func (chassis *Chassis) Thermal() (*Thermal, error) {
 		return nil, nil
 	}
 
-	thermal, err := GetThermal(chassis.Client, chassis.thermal)
-	if err != nil {
-		return nil, err
-	}
-
-	return thermal, nil
+	return GetThermal(chassis.Client, chassis.thermal)
 }
 
 // Power gets the power information for the chassis
@@ -413,12 +439,7 @@ func (chassis *Chassis) Power() (*Power, error) {
 		return nil, nil
 	}
 
-	power, err := GetPower(chassis.Client, chassis.power)
-	if err != nil {
-		return nil, err
-	}
-
-	return power, nil
+	return GetPower(chassis.Client, chassis.power)
 }
 
 // ComputerSystems returns the collection of systems from this chassis
@@ -468,6 +489,18 @@ func (chassis *Chassis) NetworkAdapters() ([]*NetworkAdapter, error) {
 	return ListReferencedNetworkAdapter(chassis.Client, chassis.networkAdapters)
 }
 
+// LogServices get this chassis's log services.
+func (chassis *Chassis) LogServices() ([]*LogService, error) {
+	return ListReferencedLogServices(chassis.Client, chassis.logServices)
+}
+
+// The Assembly schema defines an assembly.
+// Assembly information contains details about a device, such as part number, serial number, manufacturer, and production date.
+// It also provides access to the original data for the assembly.
+func (chassis *Chassis) Assembly() (*Assembly, error) {
+	return GetAssembly(chassis.Client, chassis.assembly)
+}
+
 // Reset shall reset the chassis. This action shall not reset Systems or other
 // contained resource, although side effects may occur which affect those resources.
 func (chassis *Chassis) Reset(resetType ResetType) error {
@@ -490,13 +523,8 @@ func (chassis *Chassis) Reset(resetType ResetType) error {
 			resetType)
 	}
 
-	type temp struct {
+	t := struct {
 		ResetType ResetType
-	}
-	t := temp{
-		ResetType: resetType,
-	}
-
-	_, err := chassis.Client.Post(chassis.resetTarget, t)
-	return err
+	}{ResetType: resetType}
+	return chassis.Post(chassis.resetTarget, t)
 }

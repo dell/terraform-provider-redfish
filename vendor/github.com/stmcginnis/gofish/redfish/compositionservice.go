@@ -57,8 +57,8 @@ func (compositionservice *CompositionService) UnmarshalJSON(b []byte) error {
 
 	// Extract the links to other entities for later
 	*compositionservice = CompositionService(t.temp)
-	compositionservice.resourceBlocks = string(t.ResourceBlocks)
-	compositionservice.resourceZones = string(t.ResourceZones)
+	compositionservice.resourceBlocks = t.ResourceBlocks.String()
+	compositionservice.resourceZones = t.ResourceZones.String()
 
 	// This is a read/write object, so we need to save the raw object data for later
 	compositionservice.rawData = b
@@ -89,20 +89,8 @@ func (compositionservice *CompositionService) Update() error {
 
 // GetCompositionService will get a CompositionService instance from the service.
 func GetCompositionService(c common.Client, uri string) (*CompositionService, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var compositionservice CompositionService
-	err = json.NewDecoder(resp.Body).Decode(&compositionservice)
-	if err != nil {
-		return nil, err
-	}
-
-	compositionservice.SetClient(c)
-	return &compositionservice, nil
+	return &compositionservice, compositionservice.Get(c, uri, &compositionservice)
 }
 
 // ListReferencedCompositionServices gets the collection of CompositionService from
@@ -113,18 +101,32 @@ func ListReferencedCompositionServices(c common.Client, link string) ([]*Composi
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *CompositionService
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, compositionserviceLink := range links.ItemLinks {
-		compositionservice, err := GetCompositionService(c, compositionserviceLink)
+	get := func(link string) {
+		compositionservice, err := GetCompositionService(c, link)
+		ch <- GetResult{Item: compositionservice, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[compositionserviceLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, compositionservice)
+			result = append(result, r.Item)
 		}
 	}
 

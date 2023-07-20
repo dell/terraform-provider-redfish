@@ -197,6 +197,8 @@ type Manager struct {
 	// hostInterfaces shall be a link to a collection of type
 	// HostInterfaceCollection.
 	hostInterfaces string
+	// LastResetTime last BMC reset time
+	LastResetTime string `json:"LastResetTime,omitempty"`
 	// logServices shall contain a reference to a collection of type
 	// LogServiceCollection which are for the use of this manager.
 	logServices string
@@ -335,23 +337,23 @@ func (manager *Manager) UnmarshalJSON(b []byte) error {
 
 	// Extract the links to other entities
 	*manager = Manager(t.temp)
-	manager.ethernetInterfaces = string(t.EthernetInterfaces)
-	manager.hostInterfaces = string(t.HostInterfaces)
-	manager.logServices = string(t.LogServices)
-	manager.networkProtocol = string(t.NetworkProtocol)
+	manager.ethernetInterfaces = t.EthernetInterfaces.String()
+	manager.hostInterfaces = t.HostInterfaces.String()
+	manager.logServices = t.LogServices.String()
+	manager.networkProtocol = t.NetworkProtocol.String()
 	manager.OemActions = t.Actions.Oem
 	manager.Oem = t.Oem
 	manager.OemLinks = t.Links.Oem
-	manager.remoteAccountService = string(t.RemoteAccountService)
-	manager.serialInterfaces = string(t.SerialInterfaces)
-	manager.virtualMedia = string(t.VirtualMedia)
+	manager.remoteAccountService = t.RemoteAccountService.String()
+	manager.serialInterfaces = t.SerialInterfaces.String()
+	manager.virtualMedia = t.VirtualMedia.String()
 	manager.managerForServers = t.Links.ManagerForServers.ToStrings()
 	manager.ManagerForServersCount = t.Links.ManagerForServersCount
 	manager.managerForChassis = t.Links.ManagerForChassis.ToStrings()
 	manager.ManagerForChassisCount = t.Links.ManagerForChassisCount
 	manager.ManagerForSwitchesCount = t.Links.ManagerForSwitchesCount
 	manager.managerForSwitches = t.Links.ManagerForSwitches.ToStrings()
-	manager.managerInChassis = string(t.Links.ManagerInChassis)
+	manager.managerInChassis = t.Links.ManagerInChassis.String()
 	manager.SupportedResetTypes = t.Actions.Reset.AllowedResetTypes
 	manager.resetTarget = t.Actions.Reset.Target
 
@@ -385,37 +387,43 @@ func (manager *Manager) Update() error {
 
 // GetManager will get a Manager instance from the Swordfish service.
 func GetManager(c common.Client, uri string) (*Manager, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var manager Manager
-	err = json.NewDecoder(resp.Body).Decode(&manager)
-	if err != nil {
-		return nil, err
-	}
-
-	manager.SetClient(c)
-	return &manager, nil
+	return &manager, manager.Get(c, uri, &manager)
 }
 
 // ListReferencedManagers gets the collection of Managers
-func ListReferencedManagers(c common.Client, link string) ([]*Manager, error) {
+func ListReferencedManagers(c common.Client, link string) ([]*Manager, error) { //nolint:dupl
 	var result []*Manager
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	if link == "" {
+		return result, nil
 	}
 
+	type GetResult struct {
+		Item  *Manager
+		Link  string
+		Error error
+	}
+
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, managerLink := range links.ItemLinks {
-		manager, err := GetManager(c, managerLink)
+	get := func(link string) {
+		manager, err := GetManager(c, link)
+		ch <- GetResult{Item: manager, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[managerLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, manager)
+			result = append(result, r.Item)
 		}
 	}
 
@@ -430,15 +438,10 @@ func ListReferencedManagers(c common.Client, link string) ([]*Manager, error) {
 func (manager *Manager) Reset(resetType ResetType) error {
 	if len(manager.SupportedResetTypes) == 0 {
 		// reset directly without reset type. HPE server has the behavior
-		type temp struct {
+		t := struct {
 			Action string
-		}
-		t := temp{
-			Action: "Manager.Reset",
-		}
-
-		_, err := manager.Client.Post(manager.resetTarget, t)
-		return err
+		}{Action: "Manager.Reset"}
+		return manager.Post(manager.resetTarget, t)
 	}
 	// Make sure the requested reset type is supported by the manager.
 	valid := false
@@ -454,15 +457,10 @@ func (manager *Manager) Reset(resetType ResetType) error {
 			resetType)
 	}
 
-	type temp struct {
+	t := struct {
 		ResetType ResetType
-	}
-	t := temp{
-		ResetType: resetType,
-	}
-
-	_, err := manager.Client.Post(manager.resetTarget, t)
-	return err
+	}{ResetType: resetType}
+	return manager.Post(manager.resetTarget, t)
 }
 
 // EthernetInterfaces get this system's ethernet interfaces.

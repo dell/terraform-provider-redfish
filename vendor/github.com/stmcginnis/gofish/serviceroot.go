@@ -178,7 +178,6 @@ func (serviceroot *Service) UnmarshalJSON(b []byte) error {
 		Links              struct {
 			Sessions common.Link
 		}
-		Oem json.RawMessage // OEM message will be stored here
 	}
 
 	err := json.Unmarshal(b, &t)
@@ -188,26 +187,25 @@ func (serviceroot *Service) UnmarshalJSON(b []byte) error {
 
 	// Extract the links to other entities for later
 	*serviceroot = Service(t.temp)
-	serviceroot.certificateService = string(t.CertificateService)
-	serviceroot.chassis = string(t.Chassis)
-	serviceroot.managers = string(t.Managers)
-	serviceroot.tasks = string(t.Tasks)
-	serviceroot.sessions = string(t.Links.Sessions)
-	serviceroot.storageServices = string(t.StorageServices)
-	serviceroot.storageSystems = string(t.StorageSystems)
-	serviceroot.accountService = string(t.AccountService)
-	serviceroot.eventService = string(t.EventService)
-	serviceroot.registries = string(t.Registries)
-	serviceroot.systems = string(t.Systems)
-	serviceroot.compositionService = string(t.CompositionService)
-	serviceroot.fabrics = string(t.Fabrics)
-	serviceroot.jobService = string(t.JobService)
-	serviceroot.jsonSchemas = string(t.JSONSchemas)
-	serviceroot.resourceBlocks = string(t.ResourceBlocks)
-	serviceroot.sessionService = string(t.SessionService)
-	serviceroot.telemetryService = string(t.TelemetryService)
-	serviceroot.updateService = string(t.UpdateService)
-	serviceroot.Oem = t.Oem
+	serviceroot.certificateService = t.CertificateService.String()
+	serviceroot.chassis = t.Chassis.String()
+	serviceroot.managers = t.Managers.String()
+	serviceroot.tasks = t.Tasks.String()
+	serviceroot.sessions = t.Links.Sessions.String()
+	serviceroot.storageServices = t.StorageServices.String()
+	serviceroot.storageSystems = t.StorageSystems.String()
+	serviceroot.accountService = t.AccountService.String()
+	serviceroot.eventService = t.EventService.String()
+	serviceroot.registries = t.Registries.String()
+	serviceroot.systems = t.Systems.String()
+	serviceroot.compositionService = t.CompositionService.String()
+	serviceroot.fabrics = t.Fabrics.String()
+	serviceroot.jobService = t.JobService.String()
+	serviceroot.jsonSchemas = t.JSONSchemas.String()
+	serviceroot.resourceBlocks = t.ResourceBlocks.String()
+	serviceroot.sessionService = t.SessionService.String()
+	serviceroot.telemetryService = t.TelemetryService.String()
+	serviceroot.updateService = t.UpdateService.String()
 
 	return nil
 }
@@ -253,6 +251,11 @@ func (serviceroot *Service) StorageServices() ([]*swordfish.StorageService, erro
 // Tasks gets the system's tasks
 func (serviceroot *Service) Tasks() ([]*redfish.Task, error) {
 	return redfish.ListReferencedTasks(serviceroot.Client, serviceroot.tasks)
+}
+
+// TaskService gets the task service instance
+func (serviceroot *Service) TaskService() (*redfish.TaskService, error) {
+	return redfish.GetTaskService(serviceroot.Client, serviceroot.tasks)
 }
 
 // CreateSession creates a new session and returns the token and id
@@ -313,10 +316,12 @@ func (serviceroot *Service) MessageRegistryByLanguage(registry, language string)
 
 // MessageByLanguage tries to find and get the message in the correct language from the informed messageID.
 // messageID is the key used to find the registry, version and message, for example: "Alert.1.0.LanDisconnect"
-//  - The segment before the 1st period is the Registry Name (Registry Prefix): Alert
-//  - The segment between the 1st and 2nd period is the major version: 1
-//  - The segment between the 2nd and 3rd period is the minor version: 0
-//  - The segment after the 3rd period is the Message Identifier in the Registry: LanDisconnect
+//
+//   - The segment before the 1st period is the Registry Name (Registry Prefix): Alert
+//   - The segment between the 1st and 2nd period is the major version: 1
+//   - The segment between the 2nd and 3rd period is the minor version: 0
+//   - The segment after the 3rd period is the Message Identifier in the Registry: LanDisconnect
+//
 // language is the RFC5646-conformant language code for the message registry, for example: "en".
 func (serviceroot *Service) MessageByLanguage(messageID, language string) (*redfish.MessageRegistryMessage, error) {
 	return redfish.GetMessageFromMessageRegistryByLanguage(serviceroot.Client, serviceroot.registries, messageID, language)

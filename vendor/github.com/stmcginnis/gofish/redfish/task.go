@@ -153,20 +153,8 @@ func (task *Task) UnmarshalJSON(b []byte) error {
 
 // GetTask will get a Task instance from the service.
 func GetTask(c common.Client, uri string) (*Task, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var task Task
-	err = json.NewDecoder(resp.Body).Decode(&task)
-	if err != nil {
-		return nil, err
-	}
-
-	task.SetClient(c)
-	return &task, nil
+	return &task, task.Get(c, uri, &task)
 }
 
 // ListReferencedTasks gets the collection of Task from
@@ -177,18 +165,32 @@ func ListReferencedTasks(c common.Client, link string) ([]*Task, error) { //noli
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *Task
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, taskLink := range links.ItemLinks {
-		task, err := GetTask(c, taskLink)
+	get := func(link string) {
+		task, err := GetTask(c, link)
+		ch <- GetResult{Item: task, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[taskLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, task)
+			result = append(result, r.Item)
 		}
 	}
 

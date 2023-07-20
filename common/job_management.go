@@ -17,9 +17,9 @@ const (
 
 // WaitForJobToFinish waits for a redfish job to finish.
 // Parameters:
-// 	- jobURI -> URI for the job to check.
-// 	- timeBetweenAttempts -> time to wait between attempts. I.e. 30 means 30 seconds.
-//	- timeout -> maximun time to wait until job is considered failed.
+//   - jobURI -> URI for the job to check.
+//   - timeBetweenAttempts -> time to wait between attempts. I.e. 30 means 30 seconds.
+//   - timeout -> maximun time to wait until job is considered failed.
 func WaitForJobToFinish(service *gofish.Service, jobURI string, timeBetweenAttempts int, timeout int) error {
 	// Create tickers
 	attemptTick := time.NewTicker(time.Duration(timeBetweenAttempts) * time.Second)
@@ -50,8 +50,9 @@ func WaitForJobToFinish(service *gofish.Service, jobURI string, timeBetweenAttem
 
 // DeleteDellJob is intended to delete a task schedules in a Dell system.
 // This function is only a workaround until HTTP DELETE is supported under each task o taskmonitor
-//		Parameters:
-//		- taskID: Id of the tasks to delete
+//
+//	Parameters:
+//	- taskID: Id of the tasks to delete
 func DeleteDellJob(service *gofish.Service, taskID string) error {
 	url := "/redfish/v1/Managers/iDRAC.Embedded.1/Jobs/"
 	resp, err := service.Client.Delete(fmt.Sprintf("%s%s", url, taskID))

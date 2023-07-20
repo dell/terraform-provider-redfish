@@ -8,9 +8,8 @@ import (
 	"encoding/json"
 	"reflect"
 
-	"github.com/stmcginnis/gofish/redfish"
-
 	"github.com/stmcginnis/gofish/common"
+	"github.com/stmcginnis/gofish/redfish"
 )
 
 // StoragePool is a container of data storage capable of providing
@@ -130,11 +129,11 @@ func (storagepool *StoragePool) UnmarshalJSON(b []byte) error {
 	storagepool.DedicatedSpareDrivesCount = t.Links.DedicatedSpareDrivesCount
 	storagepool.spareResourceSets = t.Links.SpareResourceSets.ToStrings()
 	storagepool.SpareResourceSetsCount = t.Links.SpareResourceSetsCount
-	storagepool.allocatedPools = string(t.AllocatedPools)
-	storagepool.allocatedVolumes = string(t.AllocatedVolumes)
+	storagepool.allocatedPools = t.AllocatedPools.String()
+	storagepool.allocatedVolumes = t.AllocatedVolumes.String()
 	storagepool.capacitySources = t.CapacitySource.ToStrings()
-	storagepool.classesOfService = string(t.ClassesOfService)
-	storagepool.defaultClassOfService = string(t.DefaultClassOfService)
+	storagepool.classesOfService = t.ClassesOfService.String()
+	storagepool.defaultClassOfService = t.DefaultClassOfService.String()
 
 	// This is a read/write object, so we need to save the raw object data for later
 	storagepool.rawData = b
@@ -172,20 +171,8 @@ func (storagepool *StoragePool) Update() error {
 
 // GetStoragePool will get a StoragePool instance from the service.
 func GetStoragePool(c common.Client, uri string) (*StoragePool, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var storagepool StoragePool
-	err = json.NewDecoder(resp.Body).Decode(&storagepool)
-	if err != nil {
-		return nil, err
-	}
-
-	storagepool.SetClient(c)
-	return &storagepool, nil
+	var storagePool StoragePool
+	return &storagePool, storagePool.Get(c, uri, &storagePool)
 }
 
 // ListReferencedStoragePools gets the collection of StoragePool from
@@ -196,18 +183,32 @@ func ListReferencedStoragePools(c common.Client, link string) ([]*StoragePool, e
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *StoragePool
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, storagepoolLink := range links.ItemLinks {
-		storagepool, err := GetStoragePool(c, storagepoolLink)
+	get := func(link string) {
+		storagepool, err := GetStoragePool(c, link)
+		ch <- GetResult{Item: storagepool, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[storagepoolLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, storagepool)
+			result = append(result, r.Item)
 		}
 	}
 

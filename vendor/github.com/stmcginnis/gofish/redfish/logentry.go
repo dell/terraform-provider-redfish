@@ -411,27 +411,15 @@ func (logentry *LogEntry) UnmarshalJSON(b []byte) error {
 
 	// Extract the links to other entities for later
 	*logentry = LogEntry(t.temp)
-	logentry.originOfCondition = string(t.Links.OriginOfCondition)
+	logentry.originOfCondition = t.Links.OriginOfCondition.String()
 
 	return nil
 }
 
 // GetLogEntry will get a LogEntry instance from the service.
 func GetLogEntry(c common.Client, uri string) (*LogEntry, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var logentry LogEntry
-	err = json.NewDecoder(resp.Body).Decode(&logentry)
-	if err != nil {
-		return nil, err
-	}
-
-	logentry.SetClient(c)
-	return &logentry, nil
+	var logEntry LogEntry
+	return &logEntry, logEntry.Get(c, uri, &logEntry)
 }
 
 // ListReferencedLogEntrys gets the collection of LogEntry from
@@ -442,18 +430,32 @@ func ListReferencedLogEntrys(c common.Client, link string) ([]*LogEntry, error) 
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *LogEntry
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, logentryLink := range links.ItemLinks {
-		logentry, err := GetLogEntry(c, logentryLink)
+	get := func(link string) {
+		logentry, err := GetLogEntry(c, link)
+		ch <- GetResult{Item: logentry, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[logentryLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, logentry)
+			result = append(result, r.Item)
 		}
 	}
 

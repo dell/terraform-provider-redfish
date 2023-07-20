@@ -170,7 +170,7 @@ func (storagegroup *StorageGroup) UnmarshalJSON(b []byte) error {
 	*storagegroup = StorageGroup(t.temp)
 	storagegroup.childStorageGroups = t.Links.ChildStorageGroups.ToStrings()
 	storagegroup.ChildStorageGroupsCount = t.Links.ChildStorageGroupsCount
-	storagegroup.classOfService = string(t.Links.ClassOfService)
+	storagegroup.classOfService = t.Links.ClassOfService.String()
 	storagegroup.parentStorageGroups = t.Links.ParentStorageGroups.ToStrings()
 	storagegroup.ParentStorageGroupsCount = t.Links.ParentStorageGroupsCount
 	storagegroup.exposeVolumesTarget = t.Actions.ExposeVolumes.Target
@@ -208,20 +208,8 @@ func (storagegroup *StorageGroup) Update() error {
 
 // GetStorageGroup will get a StorageGroup instance from the service.
 func GetStorageGroup(c common.Client, uri string) (*StorageGroup, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var storagegroup StorageGroup
-	err = json.NewDecoder(resp.Body).Decode(&storagegroup)
-	if err != nil {
-		return nil, err
-	}
-
-	storagegroup.SetClient(c)
-	return &storagegroup, nil
+	var storageGroup StorageGroup
+	return &storageGroup, storageGroup.Get(c, uri, &storageGroup)
 }
 
 // ListReferencedStorageGroups gets the collection of StorageGroup from
@@ -232,18 +220,32 @@ func ListReferencedStorageGroups(c common.Client, link string) ([]*StorageGroup,
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *StorageGroup
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, storagegroupLink := range links.ItemLinks {
-		storagegroup, err := GetStorageGroup(c, storagegroupLink)
+	get := func(link string) {
+		storagegroup, err := GetStorageGroup(c, link)
+		ch <- GetResult{Item: storagegroup, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[storagegroupLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, storagegroup)
+			result = append(result, r.Item)
 		}
 	}
 
@@ -318,7 +320,7 @@ type MappedVolume struct {
 // ClientEndpointGroups.  The property VolumesAreExposed shall be set to true
 // when this action is completed.
 func (storagegroup *StorageGroup) ExposeVolumes() error {
-	_, err := storagegroup.Client.Post(storagegroup.exposeVolumesTarget, nil)
+	err := storagegroup.Post(storagegroup.exposeVolumesTarget, nil)
 	if err == nil {
 		// Only set to exposed if no error. Calling expose when already exposed
 		// could fail so we don't want to indicate they are not exposed.
@@ -331,7 +333,7 @@ func (storagegroup *StorageGroup) ExposeVolumes() error {
 // named in the ClientEndpointGroups. The property VolumesAreExposed shall be
 // set to false when this action is completed.
 func (storagegroup *StorageGroup) HideVolumes() error {
-	_, err := storagegroup.Client.Post(storagegroup.hideVolumesTarget, nil)
+	err := storagegroup.Post(storagegroup.hideVolumesTarget, nil)
 	if err == nil {
 		storagegroup.VolumesAreExposed = false
 	}

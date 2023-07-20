@@ -82,20 +82,8 @@ func (vlannetworkinterface *VLanNetworkInterface) Update() error {
 
 // GetVLanNetworkInterface will get a VLanNetworkInterface instance from the service.
 func GetVLanNetworkInterface(c common.Client, uri string) (*VLanNetworkInterface, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var vlannetworkinterface VLanNetworkInterface
-	err = json.NewDecoder(resp.Body).Decode(&vlannetworkinterface)
-	if err != nil {
-		return nil, err
-	}
-
-	vlannetworkinterface.SetClient(c)
-	return &vlannetworkinterface, nil
+	var vLanNetworkInterface VLanNetworkInterface
+	return &vLanNetworkInterface, vLanNetworkInterface.Get(c, uri, &vLanNetworkInterface)
 }
 
 // ListReferencedVLanNetworkInterfaces gets the collection of VLanNetworkInterface from
@@ -106,18 +94,32 @@ func ListReferencedVLanNetworkInterfaces(c common.Client, link string) ([]*VLanN
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *VLanNetworkInterface
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, vlannetworkinterfaceLink := range links.ItemLinks {
-		vlannetworkinterface, err := GetVLanNetworkInterface(c, vlannetworkinterfaceLink)
+	get := func(link string) {
+		vlannetworkinterface, err := GetVLanNetworkInterface(c, link)
+		ch <- GetResult{Item: vlannetworkinterface, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[vlannetworkinterfaceLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, vlannetworkinterface)
+			result = append(result, r.Item)
 		}
 	}
 

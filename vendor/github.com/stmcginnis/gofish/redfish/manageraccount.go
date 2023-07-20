@@ -108,8 +108,8 @@ func (manageraccount *ManagerAccount) UnmarshalJSON(b []byte) error {
 	*manageraccount = ManagerAccount(t.temp)
 
 	// Extract the links to other entities for later
-	manageraccount.role = string(t.Links.Role)
-	manageraccount.certificates = string(t.Certificates)
+	manageraccount.role = t.Links.Role.String()
+	manageraccount.certificates = t.Certificates.String()
 
 	// This is a read/write object, so we need to save the raw object data for later
 	manageraccount.rawData = b
@@ -147,20 +147,8 @@ func (manageraccount *ManagerAccount) Update() error {
 
 // GetManagerAccount will get a ManagerAccount instance from the service.
 func GetManagerAccount(c common.Client, uri string) (*ManagerAccount, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var manageraccount ManagerAccount
-	err = json.NewDecoder(resp.Body).Decode(&manageraccount)
-	if err != nil {
-		return nil, err
-	}
-
-	manageraccount.SetClient(c)
-	return &manageraccount, nil
+	var managerAccount ManagerAccount
+	return &managerAccount, managerAccount.Get(c, uri, &managerAccount)
 }
 
 // ListReferencedManagerAccounts gets the collection of ManagerAccount from
@@ -171,18 +159,32 @@ func ListReferencedManagerAccounts(c common.Client, link string) ([]*ManagerAcco
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *ManagerAccount
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, manageraccountLink := range links.ItemLinks {
-		manageraccount, err := GetManagerAccount(c, manageraccountLink)
+	get := func(link string) {
+		manageraccount, err := GetManagerAccount(c, link)
+		ch <- GetResult{Item: manageraccount, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[manageraccountLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, manageraccount)
+			result = append(result, r.Item)
 		}
 	}
 

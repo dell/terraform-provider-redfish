@@ -73,20 +73,8 @@ func (assembly *Assembly) Update() error {
 
 // GetAssembly will get a Assembly instance from the service.
 func GetAssembly(c common.Client, uri string) (*Assembly, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var assembly Assembly
-	err = json.NewDecoder(resp.Body).Decode(&assembly)
-	if err != nil {
-		return nil, err
-	}
-
-	assembly.SetClient(c)
-	return &assembly, nil
+	return &assembly, assembly.Get(c, uri, &assembly)
 }
 
 // ListReferencedAssemblys gets the collection of Assembly from
@@ -97,18 +85,32 @@ func ListReferencedAssemblys(c common.Client, link string) ([]*Assembly, error) 
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *Assembly
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, assemblyLink := range links.ItemLinks {
-		assembly, err := GetAssembly(c, assemblyLink)
+	get := func(link string) {
+		assembly, err := GetAssembly(c, link)
+		ch <- GetResult{Item: assembly, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[assemblyLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, assembly)
+			result = append(result, r.Item)
 		}
 	}
 

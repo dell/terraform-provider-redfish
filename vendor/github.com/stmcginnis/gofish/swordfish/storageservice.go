@@ -137,24 +137,24 @@ func (storageservice *StorageService) UnmarshalJSON(b []byte) error {
 
 	// Extract the links to other entities for later
 	*storageservice = StorageService(t.temp)
-	storageservice.classesOfService = string(t.ClassesOfService)
-	storageservice.dataProtectionLoSCapabilities = string(t.DataProtectionLoSCapabilities)
-	storageservice.dataSecurityLoSCapabilities = string(t.DataSecurityLoSCapabilities)
-	storageservice.dataStorageLoSCapabilities = string(t.DataStorageLoSCapabilities)
-	storageservice.defaultClassOfService = string(t.DefaultClassOfService)
-	storageservice.drives = string(t.Drives)
-	storageservice.endpointGroups = string(t.EndpointGroups)
-	storageservice.endpoints = string(t.Endpoints)
-	storageservice.fileSystems = string(t.FileSystems)
-	storageservice.ioConnectivityLoSCapabilities = string(t.IOConnectivityLoSCapabilities)
-	storageservice.ioPerformanceLoSCapabilities = string(t.IOPerformanceLoSCapabilities)
+	storageservice.classesOfService = t.ClassesOfService.String()
+	storageservice.dataProtectionLoSCapabilities = t.DataProtectionLoSCapabilities.String()
+	storageservice.dataSecurityLoSCapabilities = t.DataSecurityLoSCapabilities.String()
+	storageservice.dataStorageLoSCapabilities = t.DataStorageLoSCapabilities.String()
+	storageservice.defaultClassOfService = t.DefaultClassOfService.String()
+	storageservice.drives = t.Drives.String()
+	storageservice.endpointGroups = t.EndpointGroups.String()
+	storageservice.endpoints = t.Endpoints.String()
+	storageservice.fileSystems = t.FileSystems.String()
+	storageservice.ioConnectivityLoSCapabilities = t.IOConnectivityLoSCapabilities.String()
+	storageservice.ioPerformanceLoSCapabilities = t.IOPerformanceLoSCapabilities.String()
 	storageservice.redundancy = t.Redundancy.ToStrings()
 	storageservice.spareResourceSets = t.SpareResourceSets.ToStrings()
-	storageservice.storageGroups = string(t.StorageGroups)
-	storageservice.storagePools = string(t.StoragePools)
-	storageservice.storageSubsystems = string(t.StorageSubsystems)
-	storageservice.hostingSystem = string(t.Links.HostingSystem)
-	storageservice.volumes = string(t.Volumes)
+	storageservice.storageGroups = t.StorageGroups.String()
+	storageservice.storagePools = t.StoragePools.String()
+	storageservice.storageSubsystems = t.StorageSubsystems.String()
+	storageservice.hostingSystem = t.Links.HostingSystem.String()
+	storageservice.volumes = t.Volumes.String()
 	storageservice.setEncryptionKeyTarget = t.Actions.SetEncryptionKey.Target
 
 	return nil
@@ -162,38 +162,44 @@ func (storageservice *StorageService) UnmarshalJSON(b []byte) error {
 
 // GetStorageService will get a StorageService instance from the service.
 func GetStorageService(c common.Client, uri string) (*StorageService, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var storageservice StorageService
-	err = json.NewDecoder(resp.Body).Decode(&storageservice)
-	if err != nil {
-		return nil, err
-	}
-
-	storageservice.SetClient(c)
-	return &storageservice, nil
+	var storageService StorageService
+	return &storageService, storageService.Get(c, uri, &storageService)
 }
 
 // ListReferencedStorageServices gets the collection of StorageService from
 // a provided reference.
-func ListReferencedStorageServices(c common.Client, link string) ([]*StorageService, error) {
+func ListReferencedStorageServices(c common.Client, link string) ([]*StorageService, error) { //nolint:dupl
 	var result []*StorageService
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	if link == "" {
+		return result, nil
 	}
 
+	type GetResult struct {
+		Item  *StorageService
+		Link  string
+		Error error
+	}
+
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, storageserviceLink := range links.ItemLinks {
-		storageservice, err := GetStorageService(c, storageserviceLink)
+	get := func(link string) {
+		storageservice, err := GetStorageService(c, link)
+		ch <- GetResult{Item: storageservice, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[storageserviceLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, storageservice)
+			result = append(result, r.Item)
 		}
 	}
 
@@ -351,11 +357,9 @@ func (storageservice *StorageService) Volumes() ([]*Volume, error) {
 
 // SetEncryptionKey shall set the encryption key for the storage subsystem.
 func (storageservice *StorageService) SetEncryptionKey(key string) error {
-	type temp struct {
+	t := struct {
 		EncryptionKey string
-	}
-	t := temp{EncryptionKey: key}
+	}{EncryptionKey: key}
 
-	_, err := storageservice.Client.Post(storageservice.setEncryptionKeyTarget, t)
-	return err
+	return storageservice.Post(storageservice.setEncryptionKeyTarget, t)
 }

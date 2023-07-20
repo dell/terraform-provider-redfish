@@ -85,9 +85,7 @@ type PCIeDevice struct {
 	ChassisCount int
 	// PCIeFunctions shall be a reference to the resources that this device
 	// exposes and shall reference a resource of type PCIeFunction.
-	pcieFunctions []string
-	// PCIeFunctionsCount is the number of PCIeFunctions.
-	PCIeFunctionsCount int
+	pcieFunctions string
 	// rawData holds the original serialized JSON so we can compare updates.
 	rawData []byte
 }
@@ -96,15 +94,14 @@ type PCIeDevice struct {
 func (pciedevice *PCIeDevice) UnmarshalJSON(b []byte) error {
 	type temp PCIeDevice
 	type links struct {
-		Chassis            common.Links
-		ChassisCount       int `json:"Chassis@odata.count"`
-		PCIeFunctions      common.Links
-		PCIeFunctionsCount int `json:"PCIeFunctions@odata.count"`
+		Chassis      common.Links
+		ChassisCount int `json:"Chassis@odata.count"`
 	}
 	var t struct {
 		temp
-		Assembly common.Link
-		Links    links
+		Assembly      common.Link
+		PCIeFunctions common.Link
+		Links         links
 	}
 
 	err := json.Unmarshal(b, &t)
@@ -115,11 +112,10 @@ func (pciedevice *PCIeDevice) UnmarshalJSON(b []byte) error {
 	*pciedevice = PCIeDevice(t.temp)
 
 	// Extract the links to other entities for later
-	pciedevice.assembly = string(t.Assembly)
+	pciedevice.assembly = t.Assembly.String()
 	pciedevice.chassis = t.Links.Chassis.ToStrings()
 	pciedevice.ChassisCount = t.Links.ChassisCount
-	pciedevice.pcieFunctions = t.Links.PCIeFunctions.ToStrings()
-	pciedevice.PCIeFunctionsCount = t.Links.PCIeFunctionsCount
+	pciedevice.pcieFunctions = t.PCIeFunctions.String()
 
 	// This is a read/write object, so we need to save the raw object data for later
 	pciedevice.rawData = b
@@ -149,20 +145,8 @@ func (pciedevice *PCIeDevice) Update() error {
 
 // GetPCIeDevice will get a PCIeDevice instance from the service.
 func GetPCIeDevice(c common.Client, uri string) (*PCIeDevice, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var pciedevice PCIeDevice
-	err = json.NewDecoder(resp.Body).Decode(&pciedevice)
-	if err != nil {
-		return nil, err
-	}
-
-	pciedevice.SetClient(c)
-	return &pciedevice, nil
+	var pcieDevice PCIeDevice
+	return &pcieDevice, pcieDevice.Get(c, uri, &pcieDevice)
 }
 
 // ListReferencedPCIeDevices gets the collection of PCIeDevice from
@@ -173,18 +157,32 @@ func ListReferencedPCIeDevices(c common.Client, link string) ([]*PCIeDevice, err
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *PCIeDevice
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, pciedeviceLink := range links.ItemLinks {
-		pciedevice, err := GetPCIeDevice(c, pciedeviceLink)
+	get := func(link string) {
+		pciedevice, err := GetPCIeDevice(c, link)
+		ch <- GetResult{Item: pciedevice, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[pciedeviceLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, pciedevice)
+			result = append(result, r.Item)
 		}
 	}
 
@@ -239,22 +237,6 @@ func (pciedevice *PCIeDevice) Chassis() ([]*Chassis, error) {
 }
 
 // PCIeFunctions get the PCIe functions that this device exposes.
-func (pciedevice *PCIeDevice) PCIeFunctions() ([]*PCIeDevice, error) {
-	var result []*PCIeDevice
-
-	collectionError := common.NewCollectionError()
-	for _, funcLink := range pciedevice.pcieFunctions {
-		pciFunction, err := GetPCIeDevice(pciedevice.Client, funcLink)
-		if err != nil {
-			collectionError.Failures[funcLink] = err
-		} else {
-			result = append(result, pciFunction)
-		}
-	}
-
-	if collectionError.Empty() {
-		return result, nil
-	}
-
-	return result, collectionError
+func (pciedevice *PCIeDevice) PCIeFunctions() ([]*PCIeFunction, error) {
+	return ListReferencedPCIeFunctions(pciedevice.Client, pciedevice.pcieFunctions)
 }

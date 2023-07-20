@@ -147,20 +147,8 @@ type Power struct {
 
 // GetPower will get a Power instance from the service.
 func GetPower(c common.Client, uri string) (*Power, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var power Power
-	err = json.NewDecoder(resp.Body).Decode(&power)
-	if err != nil {
-		return nil, err
-	}
-
-	power.SetClient(c)
-	return &power, nil
+	return &power, power.Get(c, uri, &power)
 }
 
 // ListReferencedPowers gets the collection of Power from
@@ -171,18 +159,32 @@ func ListReferencedPowers(c common.Client, link string) ([]*Power, error) { //no
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *Power
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, powerLink := range links.ItemLinks {
-		power, err := GetPower(c, powerLink)
+	get := func(link string) {
+		power, err := GetPower(c, link)
+		ch <- GetResult{Item: power, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[powerLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, power)
+			result = append(result, r.Item)
 		}
 	}
 
@@ -233,7 +235,7 @@ type PowerControl struct {
 }
 
 // UnmarshalJSON unmarshals a PowerControl object from the raw JSON.
-func (powercontrol *PowerControl) UnmarshalJSON(b []byte) error { // nolint:dupl
+func (powercontrol *PowerControl) UnmarshalJSON(b []byte) error { //nolint:dupl
 	type temp PowerControl
 	type t1 struct {
 		temp
@@ -409,7 +411,7 @@ func (powersupply *PowerSupply) UnmarshalJSON(b []byte) error {
 
 	// Extract the links to other entities for later
 	*powersupply = PowerSupply(t.temp)
-	powersupply.assembly = string(t.Assembly)
+	powersupply.assembly = t.Assembly.String()
 
 	// This is a read/write object, so we need to save the raw object data for later
 	powersupply.rawData = b
@@ -493,7 +495,7 @@ type Voltage struct {
 }
 
 // UnmarshalJSON unmarshals a Voltage object from the raw JSON.
-func (voltage *Voltage) UnmarshalJSON(b []byte) error { // nolint:dupl
+func (voltage *Voltage) UnmarshalJSON(b []byte) error { //nolint:dupl
 	type temp Voltage
 	type t1 struct {
 		temp

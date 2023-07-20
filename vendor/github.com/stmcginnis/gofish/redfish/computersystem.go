@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/stmcginnis/gofish/common"
 )
@@ -267,10 +268,13 @@ const (
 
 // Boot contains properties which describe boot information for a system.
 type Boot struct {
+
 	// AliasBootOrder shall be an ordered array
 	// of boot source aliases (of type BootSource) representing the
 	// persistent Boot Order of this computer system.
-	AliasBootOrder []string `json:",omitempty"`
+	AliasBootOrder         []string `json:",omitempty"`
+	AutomaticRetryAttempts int      `json:",omitempty"`
+	AutomaticRetryConfig   string   `json:",omitempty"`
 	// BootNext shall be the
 	// BootOptionReference of the UEFI Boot Option for one time boot, as
 	// defined by the UEFI Specification. The valid values for this property
@@ -278,8 +282,8 @@ type Boot struct {
 	// BootSourceOverrideEnabled = Continuous is not supported for UEFI
 	// BootNext as this setting is defined in UEFI as a one-time boot only.
 	BootNext string `json:",omitempty"`
-	// BootOptions shall be a link to a
-	// collection of type BootOptionCollection.
+	// bootOptions is a link to the collection of the UEFI boot options
+	// associated with this computer system.
 	bootOptions string
 	// BootOrder shall be an ordered array of
 	// BootOptionReference strings representing the persistent Boot Order of
@@ -340,9 +344,42 @@ func (boot *Boot) UnmarshalJSON(b []byte) error {
 	*boot = Boot(t.temp)
 
 	// Extract the links to other entities for later
-	boot.bootOptions = string(t.BootOptions)
+	boot.bootOptions = t.BootOptions.String()
 
 	return nil
+}
+
+// BootOption represents the properties of a bootable device available in the
+// system.
+type BootOption struct {
+	common.Entity
+
+	// ODataContext is the odata context.
+	ODataContext string `json:"@odata.context"`
+	// ODataType is the odata type.
+	ODataType string `json:"@odata.type"`
+	// Alias is the alias of this boot source if one exists.
+	Alias BootSourceOverrideTarget
+	// BootOptionEnabled is an indication of whether the boot option is
+	// enabled. If true , it is enabled. If false, the boot option that the
+	// boot order array on the computer system contains is skipped. In the
+	// UEFI context, this property shall influence the load option active
+	// flag for the boot option.
+	BootOptionEnabled bool
+	// BootOptionReference is the unique identifier seen in Boot.BootOrder.
+	BootOptionReference string
+	// DisplayName is the user-readable display name of the boot option
+	// that appears in the boot order list in the user interface.
+	DisplayName string
+	// UefiDevicePath is the UEFI device path to access this UEFI boot
+	// option.
+	UefiDevicePath string
+}
+
+// GetBootOption will get a BootOption instance from the service.
+func GetBootOption(c common.Client, uri string) (*BootOption, error) {
+	var bootoption BootOption
+	return &bootoption, bootoption.Get(c, uri, &bootoption)
 }
 
 // ResetType describe the type off reset to be issue by the resource
@@ -505,6 +542,10 @@ type ComputerSystem struct {
 	SupportedResetTypes []ResetType
 	// setDefaultBootOrderTarget is the URL to send SetDefaultBootOrder actions to.
 	setDefaultBootOrderTarget string
+	settingsTarget            string
+	// settingsApplyTimes is a set of allowed settings update apply times. If none
+	// are specified, then the system does not provide that information.
+	settingsApplyTimes []common.ApplyTime
 	// ManagedBy An array of references to the Managers responsible for this system.
 	// This is temporary until a proper method can be implemented to actually
 	// retrieve those objects directly.
@@ -542,6 +583,7 @@ func (computersystem *ComputerSystem) UnmarshalJSON(b []byte) error {
 		PCIeDevices        common.Links
 		PCIeFunctions      common.Links
 		Links              CSLinks
+		Settings           common.Settings `json:"@Redfish.Settings"`
 	}
 
 	err := json.Unmarshal(b, &t)
@@ -552,16 +594,16 @@ func (computersystem *ComputerSystem) UnmarshalJSON(b []byte) error {
 	*computersystem = ComputerSystem(t.temp)
 
 	// Extract the links to other entities for later
-	computersystem.bios = string(t.Bios)
-	computersystem.processors = string(t.Processors)
-	computersystem.memory = string(t.Memory)
-	computersystem.ethernetInterfaces = string(t.EthernetInterfaces)
-	computersystem.simpleStorage = string(t.SimpleStorage)
-	computersystem.networkInterfaces = string(t.NetworkInterfaces)
-	computersystem.secureBoot = string(t.SecureBoot)
-	computersystem.storage = string(t.Storage)
-	computersystem.logServices = string(t.LogServices)
-	computersystem.memoryDomains = string(t.MemoryDomains)
+	computersystem.bios = t.Bios.String()
+	computersystem.processors = t.Processors.String()
+	computersystem.memory = t.Memory.String()
+	computersystem.ethernetInterfaces = t.EthernetInterfaces.String()
+	computersystem.simpleStorage = t.SimpleStorage.String()
+	computersystem.networkInterfaces = t.NetworkInterfaces.String()
+	computersystem.secureBoot = t.SecureBoot.String()
+	computersystem.storage = t.Storage.String()
+	computersystem.logServices = t.LogServices.String()
+	computersystem.memoryDomains = t.MemoryDomains.String()
 	computersystem.pcieDevices = t.PCIeDevices.ToStrings()
 	computersystem.pcieFunctions = t.PCIeFunctions.ToStrings()
 	computersystem.chassis = t.Links.Chassis.ToStrings()
@@ -569,6 +611,14 @@ func (computersystem *ComputerSystem) UnmarshalJSON(b []byte) error {
 	computersystem.SupportedResetTypes = t.Actions.ComputerSystemReset.AllowedResetTypes
 	computersystem.setDefaultBootOrderTarget = t.Actions.SetDefaultBootOrder.Target
 	computersystem.ManagedBy = t.Links.ManagedBy.ToStrings()
+	computersystem.settingsApplyTimes = t.Settings.SupportedApplyTimes
+
+	// Some implementations use a @Redfish.Settings object to direct settings updates to a
+	// different URL than the object being updated. Others don't, so handle both.
+	computersystem.settingsTarget = t.Settings.SettingsObject.String()
+	if computersystem.settingsTarget == "" {
+		computersystem.settingsTarget = computersystem.ODataID
+	}
 
 	// This is a read/write object, so we need to save the raw object data for later
 	computersystem.rawData = b
@@ -601,38 +651,44 @@ func (computersystem *ComputerSystem) Update() error {
 
 // GetComputerSystem will get a ComputerSystem instance from the service.
 func GetComputerSystem(c common.Client, uri string) (*ComputerSystem, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var computersystem ComputerSystem
-	err = json.NewDecoder(resp.Body).Decode(&computersystem)
-	if err != nil {
-		return nil, err
-	}
-
-	computersystem.SetClient(c)
-	return &computersystem, nil
+	return &computersystem, computersystem.Get(c, uri, &computersystem)
 }
 
 // ListReferencedComputerSystems gets the collection of ComputerSystem from
 // a provided reference.
-func ListReferencedComputerSystems(c common.Client, link string) ([]*ComputerSystem, error) {
+func ListReferencedComputerSystems(c common.Client, link string) ([]*ComputerSystem, error) { //nolint:dupl
 	var result []*ComputerSystem
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	if link == "" {
+		return result, nil
 	}
 
+	type GetResult struct {
+		Item  *ComputerSystem
+		Link  string
+		Error error
+	}
+
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, computersystemLink := range links.ItemLinks {
-		computersystem, err := GetComputerSystem(c, computersystemLink)
+	get := func(link string) {
+		computersystem, err := GetComputerSystem(c, link)
+		ch <- GetResult{Item: computersystem, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[computersystemLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, computersystem)
+			result = append(result, r.Item)
 		}
 	}
 
@@ -650,6 +706,50 @@ func (computersystem *ComputerSystem) Bios() (*Bios, error) {
 	}
 
 	return GetBios(computersystem.Client, computersystem.bios)
+}
+
+// BootOptions gets all BootOption items for this system.
+func (computersystem *ComputerSystem) BootOptions() ([]*BootOption, error) {
+	var result []*BootOption
+	if computersystem.Boot.bootOptions == "" {
+		return result, nil
+	}
+	c := computersystem.Client
+
+	type GetResult struct {
+		Item  *BootOption
+		Link  string
+		Error error
+	}
+
+	ch := make(chan GetResult)
+	collectionError := common.NewCollectionError()
+	get := func(link string) {
+		bootoption, err := GetBootOption(c, link)
+		ch <- GetResult{Item: bootoption, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, computersystem.Boot.bootOptions)
+		if err != nil {
+			collectionError.Failures[computersystem.Boot.bootOptions] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
+		} else {
+			result = append(result, r.Item)
+		}
+	}
+
+	if collectionError.Empty() {
+		return result, nil
+	}
+
+	return result, collectionError
 }
 
 // EthernetInterfaces get this system's ethernet interfaces.
@@ -734,16 +834,11 @@ func (computersystem *ComputerSystem) SecureBoot() (*SecureBoot, error) {
 }
 
 // SetBoot set a boot object based on a payload request
-func (computersystem *ComputerSystem) SetBoot(b Boot) error { // nolint
-	type temp struct {
+func (computersystem *ComputerSystem) SetBoot(b Boot) error { //nolint
+	t := struct {
 		Boot Boot
-	}
-	t := temp{
-		Boot: b,
-	}
-
-	_, err := computersystem.Client.Patch(computersystem.ODataID, t)
-	return err
+	}{Boot: b}
+	return computersystem.Patch(computersystem.ODataID, t)
 }
 
 // Reset shall perform a reset of the ComputerSystem. For systems which implement
@@ -772,26 +867,74 @@ func (computersystem *ComputerSystem) Reset(resetType ResetType) error {
 			resetType)
 	}
 
-	type temp struct {
+	t := struct {
 		ResetType ResetType
-	}
-	t := temp{
-		ResetType: resetType,
+	}{ResetType: resetType}
+
+	return computersystem.Post(computersystem.resetTarget, t)
+}
+
+// UpdateBootAttributesApplyAt is used to update attribute values and set apply time together
+func (computersystem *ComputerSystem) UpdateBootAttributesApplyAt(attrs SettingsAttributes, applyTime common.ApplyTime) error { //nolint:dupl
+	payload := make(map[string]interface{})
+
+	// Get a representation of the object's original state so we can find what
+	// to update.
+	original := new(Bios)
+	err := original.UnmarshalJSON(computersystem.rawData)
+	if err != nil {
+		return err
 	}
 
-	_, err := computersystem.Client.Post(computersystem.resetTarget, t)
-	return err
+	for key := range attrs {
+		if strings.HasPrefix(key, "BootTypeOrder") ||
+			original.Attributes[key] != attrs[key] {
+			payload[key] = attrs[key]
+		}
+	}
+
+	resp, err := computersystem.Client.Get(computersystem.settingsTarget)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// If there are any allowed updates, try to send updates to the system and
+	// return the result.
+	if len(payload) > 0 {
+		data := map[string]interface{}{"Boot": payload}
+		if applyTime != "" {
+			data["@Redfish.SettingsApplyTime"] = map[string]string{"ApplyTime": string(applyTime)}
+		}
+
+		var header = make(map[string]string)
+		if resp.Header["Etag"] != nil {
+			header["If-Match"] = resp.Header["Etag"][0]
+		}
+
+		resp, err = computersystem.Client.PatchWithHeaders(computersystem.settingsTarget, data, header)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+	}
+
+	return nil
+}
+
+// UpdateBootAttributes is used to update attribute values.
+func (computersystem *ComputerSystem) UpdateBootAttributes(attrs SettingsAttributes) error {
+	return computersystem.UpdateBootAttributesApplyAt(attrs, "")
 }
 
 // SetDefaultBootOrder shall set the BootOrder array to the default settings.
 func (computersystem *ComputerSystem) SetDefaultBootOrder() error {
 	// This action wasn't added until 1.5.0, make sure this is supported.
 	if computersystem.setDefaultBootOrderTarget == "" {
-		return fmt.Errorf("SetDefaultBootOrder is not supported by this system") // nolint:golint
+		return fmt.Errorf("SetDefaultBootOrder is not supported by this system") //nolint:golint
 	}
 
-	_, err := computersystem.Client.Post(computersystem.setDefaultBootOrderTarget, nil)
-	return err
+	return computersystem.Post(computersystem.setDefaultBootOrderTarget, nil)
 }
 
 // SimpleStorages gets all simple storage services of this system.

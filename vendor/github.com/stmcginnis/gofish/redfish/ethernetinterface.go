@@ -237,11 +237,11 @@ func (ethernetinterface *EthernetInterface) UnmarshalJSON(b []byte) error {
 	*ethernetinterface = EthernetInterface(t.temp)
 
 	// Extract the links to other entities for later
-	ethernetinterface.chassis = string(t.Links.Chassis)
+	ethernetinterface.chassis = t.Links.Chassis.String()
 	ethernetinterface.endpoints = t.Links.Endpoints.ToStrings()
 	ethernetinterface.EndpointsCount = t.Links.EndpointsCount
-	ethernetinterface.hostInterface = string(t.Links.HostInterface)
-	ethernetinterface.vlans = string(t.VLANs)
+	ethernetinterface.hostInterface = t.Links.HostInterface.String()
+	ethernetinterface.vlans = t.VLANs.String()
 
 	// This is a read/write object, so we need to save the raw object data for later
 	ethernetinterface.rawData = b
@@ -279,20 +279,8 @@ func (ethernetinterface *EthernetInterface) Update() error {
 
 // GetEthernetInterface will get a EthernetInterface instance from the service.
 func GetEthernetInterface(c common.Client, uri string) (*EthernetInterface, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var ethernetinterface EthernetInterface
-	err = json.NewDecoder(resp.Body).Decode(&ethernetinterface)
-	if err != nil {
-		return nil, err
-	}
-
-	ethernetinterface.SetClient(c)
-	return &ethernetinterface, nil
+	var ethernetInterface EthernetInterface
+	return &ethernetInterface, ethernetInterface.Get(c, uri, &ethernetInterface)
 }
 
 // ListReferencedEthernetInterfaces gets the collection of EthernetInterface from
@@ -303,18 +291,32 @@ func ListReferencedEthernetInterfaces(c common.Client, link string) ([]*Ethernet
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *EthernetInterface
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, ethernetinterfaceLink := range links.ItemLinks {
-		ethernetinterface, err := GetEthernetInterface(c, ethernetinterfaceLink)
+	get := func(link string) {
+		ethernetinterface, err := GetEthernetInterface(c, link)
+		ch <- GetResult{Item: ethernetinterface, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[ethernetinterfaceLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, ethernetinterface)
+			result = append(result, r.Item)
 		}
 	}
 

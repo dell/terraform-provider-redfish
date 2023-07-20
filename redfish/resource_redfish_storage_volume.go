@@ -405,6 +405,7 @@ func getDrives(drives []*redfish.Drive, driveNames []string) ([]*redfish.Drive, 
 /*
 createVolume creates a virtualdisk on a disk controller by using the redfish API
 Parameters:
+
 	c -> client API
 	service -> Service struct from gofish
 	storageLink -> ODataID of the storage object (i.e. /redfish/v1/.../RAID.Integrated.1-1)

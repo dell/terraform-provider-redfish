@@ -75,7 +75,7 @@ func (spareresourceset *SpareResourceSet) UnmarshalJSON(b []byte) error {
 	spareresourceset.OnHandSparesCount = t.OnHandSparesCount
 	spareresourceset.onHandSpares = t.Links.OnHandSpares.ToStrings()
 	spareresourceset.ReplacementSpareSetsCount = t.ReplacementSpareSetsCount
-	spareresourceset.replacementSpareSets = string(t.Links.ReplacementSpareSets)
+	spareresourceset.replacementSpareSets = t.Links.ReplacementSpareSets.String()
 
 	// This is a read/write object, so we need to save the raw object data for later
 	spareresourceset.rawData = b
@@ -108,20 +108,8 @@ func (spareresourceset *SpareResourceSet) Update() error {
 
 // GetSpareResourceSet will get a SpareResourceSet instance from the service.
 func GetSpareResourceSet(c common.Client, uri string) (*SpareResourceSet, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var spareresourceset SpareResourceSet
-	err = json.NewDecoder(resp.Body).Decode(&spareresourceset)
-	if err != nil {
-		return nil, err
-	}
-
-	spareresourceset.SetClient(c)
-	return &spareresourceset, nil
+	var spareResourceSet SpareResourceSet
+	return &spareResourceSet, spareResourceSet.Get(c, uri, &spareResourceSet)
 }
 
 // ListReferencedSpareResourceSets gets the collection of SpareResourceSet from
@@ -132,18 +120,32 @@ func ListReferencedSpareResourceSets(c common.Client, link string) ([]*SpareReso
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *SpareResourceSet
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, spareresourcesetLink := range links.ItemLinks {
-		spareresourceset, err := GetSpareResourceSet(c, spareresourcesetLink)
+	get := func(link string) {
+		spareresourceset, err := GetSpareResourceSet(c, link)
+		ch <- GetResult{Item: spareresourceset, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[spareresourcesetLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, spareresourceset)
+			result = append(result, r.Item)
 		}
 	}
 

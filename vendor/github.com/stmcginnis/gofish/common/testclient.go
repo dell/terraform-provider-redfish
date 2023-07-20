@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
+	"sync"
 )
 
 // TestAPICall captures the arguments to one of the API calls.
@@ -27,6 +29,7 @@ type TestAPICall struct {
 // function calls and actions that would normally need to connect
 // with a host.
 type TestClient struct {
+	mu sync.Mutex
 	// calls collects any API calls made through the client
 	calls []TestAPICall
 	// CustomReturnForActions can be used to define custom
@@ -119,11 +122,15 @@ func (c *TestClient) recordCall(action, url string, payload interface{}, customH
 }
 
 func (c *TestClient) performAction(action, url string, payload interface{}, customHeaders map[string]string) (*http.Response, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.recordCall(action, url, payload, customHeaders)
 	customReturnForAction := c.getCustomReturnForAction(action)
 	if customReturnForAction == nil {
-		return nil, nil
+		body := io.NopCloser(strings.NewReader(""))
+		return &http.Response{Body: body}, nil
 	}
+
 	resp := customReturnForAction.(*http.Response)
 	if resp.StatusCode != 200 && resp.StatusCode != 201 && resp.StatusCode != 202 && resp.StatusCode != 204 {
 		payload, err := io.ReadAll(resp.Body)
