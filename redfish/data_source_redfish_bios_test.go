@@ -3,13 +3,11 @@ package redfish
 import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"os"
 	"testing"
 )
 
 // redfish.Power represents a concrete Go type that represents an API resource
 func TestAccRedfishBiosDataSource_basic(t *testing.T) {
-	os.Setenv("TF_ACC", "1")
 
 	resource.Test(t, resource.TestCase{
 		Providers: testAccProviders,
