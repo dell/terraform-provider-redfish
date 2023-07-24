@@ -5,8 +5,6 @@
 package swordfish
 
 import (
-	"encoding/json"
-
 	"github.com/stmcginnis/gofish/common"
 )
 
@@ -201,20 +199,8 @@ type DataSecurityLoSCapabilities struct {
 
 // GetDataSecurityLoSCapabilities will get a DataSecurityLoSCapabilities instance from the service.
 func GetDataSecurityLoSCapabilities(c common.Client, uri string) (*DataSecurityLoSCapabilities, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var datasecurityloscapabilities DataSecurityLoSCapabilities
-	err = json.NewDecoder(resp.Body).Decode(&datasecurityloscapabilities)
-	if err != nil {
-		return nil, err
-	}
-
-	datasecurityloscapabilities.SetClient(c)
-	return &datasecurityloscapabilities, nil
+	var dataSecurityLoSCapabilities DataSecurityLoSCapabilities
+	return &dataSecurityLoSCapabilities, dataSecurityLoSCapabilities.Get(c, uri, &dataSecurityLoSCapabilities)
 }
 
 // ListReferencedDataSecurityLoSCapabilities gets the collection of DataSecurityLoSCapabilities from
@@ -225,18 +211,32 @@ func ListReferencedDataSecurityLoSCapabilities(c common.Client, link string) ([]
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *DataSecurityLoSCapabilities
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, datasecurityloscapabilitiesLink := range links.ItemLinks {
-		datasecurityloscapabilities, err := GetDataSecurityLoSCapabilities(c, datasecurityloscapabilitiesLink)
+	get := func(link string) {
+		datasecurityloscapabilities, err := GetDataSecurityLoSCapabilities(c, link)
+		ch <- GetResult{Item: datasecurityloscapabilities, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[datasecurityloscapabilitiesLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, datasecurityloscapabilities)
+			result = append(result, r.Item)
 		}
 	}
 

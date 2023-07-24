@@ -228,9 +228,9 @@ func (networkadapter *NetworkAdapter) UnmarshalJSON(b []byte) error {
 
 	// Extract the links to other entities for later
 	*networkadapter = NetworkAdapter(t.temp)
-	networkadapter.assembly = string(t.Assembly)
-	networkadapter.networkDeviceFunctions = string(t.NetworkDeviceFunctions)
-	networkadapter.networkPorts = string(t.NetworkPorts)
+	networkadapter.assembly = t.Assembly.String()
+	networkadapter.networkDeviceFunctions = t.NetworkDeviceFunctions.String()
+	networkadapter.networkPorts = t.NetworkPorts.String()
 	networkadapter.resetSettingsToDefaultTarget = t.Actions.ResetSettingsToDefault.Target
 
 	return nil
@@ -238,37 +238,43 @@ func (networkadapter *NetworkAdapter) UnmarshalJSON(b []byte) error {
 
 // GetNetworkAdapter will get a NetworkAdapter instance from the Redfish service.
 func GetNetworkAdapter(c common.Client, uri string) (*NetworkAdapter, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var networkAdapter NetworkAdapter
-	err = json.NewDecoder(resp.Body).Decode(&networkAdapter)
-	if err != nil {
-		return nil, err
-	}
-
-	networkAdapter.SetClient(c)
-	return &networkAdapter, nil
+	return &networkAdapter, networkAdapter.Get(c, uri, &networkAdapter)
 }
 
 // ListReferencedNetworkAdapter gets the collection of Chassis from a provided reference.
-func ListReferencedNetworkAdapter(c common.Client, link string) ([]*NetworkAdapter, error) {
+func ListReferencedNetworkAdapter(c common.Client, link string) ([]*NetworkAdapter, error) { //nolint:dupl
 	var result []*NetworkAdapter
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	if link == "" {
+		return result, nil
 	}
 
+	type GetResult struct {
+		Item  *NetworkAdapter
+		Link  string
+		Error error
+	}
+
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, networkAdapterLink := range links.ItemLinks {
-		networkAdapter, err := GetNetworkAdapter(c, networkAdapterLink)
+	get := func(link string) {
+		networkadapter, err := GetNetworkAdapter(c, link)
+		ch <- GetResult{Item: networkadapter, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[networkAdapterLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, networkAdapter)
+			result = append(result, r.Item)
 		}
 	}
 
@@ -300,6 +306,5 @@ func (networkadapter *NetworkAdapter) NetworkPorts() ([]*NetworkPort, error) {
 // ResetSettingsToDefault shall perform a reset of all active and pending
 // settings back to factory default settings upon reset of the network adapter.
 func (networkadapter *NetworkAdapter) ResetSettingsToDefault() error {
-	_, err := networkadapter.Client.Post(networkadapter.resetSettingsToDefaultTarget, nil)
-	return err
+	return networkadapter.Post(networkadapter.resetSettingsToDefaultTarget, nil)
 }

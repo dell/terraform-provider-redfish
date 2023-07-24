@@ -7,9 +7,8 @@ package swordfish
 import (
 	"encoding/json"
 
-	"github.com/stmcginnis/gofish/redfish"
-
 	"github.com/stmcginnis/gofish/common"
+	"github.com/stmcginnis/gofish/redfish"
 )
 
 // Capacity is used to represent storage capacity. The sum of the values
@@ -107,56 +106,64 @@ func (capacitysource *CapacitySource) UnmarshalJSON(b []byte) error {
 	*capacitysource = CapacitySource(t.temp)
 
 	// Extract the links to other entities for later
-	capacitysource.providedClassOfService = string(t.ProvidedClassOfService)
-	capacitysource.providingDrives = string(t.ProvidingDrives)
-	capacitysource.providingMemory = string(t.ProvidingMemory)
-	capacitysource.providingMemoryChunks = string(t.ProvidingMemoryChunks)
-	capacitysource.providingPools = string(t.ProvidingPools)
-	capacitysource.providingVolumes = string(t.ProvidingVolumes)
+	capacitysource.providedClassOfService = t.ProvidedClassOfService.String()
+	capacitysource.providingDrives = t.ProvidingDrives.String()
+	capacitysource.providingMemory = t.ProvidingMemory.String()
+	capacitysource.providingMemoryChunks = t.ProvidingMemoryChunks.String()
+	capacitysource.providingPools = t.ProvidingPools.String()
+	capacitysource.providingVolumes = t.ProvidingVolumes.String()
 
 	return nil
 }
 
 // GetCapacitySource will get a CapacitySource instance from the service.
 func GetCapacitySource(c common.Client, uri string) (*CapacitySource, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var capacitysource CapacitySource
-	err = json.NewDecoder(resp.Body).Decode(&capacitysource)
-	if err != nil {
-		return nil, err
-	}
-
-	capacitysource.SetClient(c)
-	return &capacitysource, nil
+	var capacitySource CapacitySource
+	return &capacitySource, capacitySource.Get(c, uri, &capacitySource)
 }
 
 // ListReferencedCapacitySources gets the collection of CapacitySources from
 // a provided reference.
-func ListReferencedCapacitySources(c common.Client, link string) ([]*CapacitySource, error) {
+func ListReferencedCapacitySources(c common.Client, link string) ([]*CapacitySource, error) { //nolint:dupl
 	var result []*CapacitySource
 	if link == "" {
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *CapacitySource
+		Link  string
+		Error error
 	}
 
-	for _, capSourceLink := range links.ItemLinks {
-		capSource, err := GetCapacitySource(c, capSourceLink)
+	ch := make(chan GetResult)
+	collectionError := common.NewCollectionError()
+	get := func(link string) {
+		capacitysource, err := GetCapacitySource(c, link)
+		ch <- GetResult{Item: capacitysource, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			return result, err
+			collectionError.Failures[link] = err
 		}
-		result = append(result, capSource)
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
+		} else {
+			result = append(result, r.Item)
+		}
 	}
 
-	return result, nil
+	if collectionError.Empty() {
+		return result, nil
+	}
+
+	return result, collectionError
 }
 
 // ProvidedClassOfService gets the ClassOfService from the ProvidingDrives,

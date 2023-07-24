@@ -489,7 +489,7 @@ func (volume *Volume) UnmarshalJSON(b []byte) error {
 	*volume = Volume(t.temp)
 	volume.allocatedPools = t.AllocatedPools.ToStrings()
 	volume.storageGroups = t.StorageGroups.ToStrings()
-	volume.classOfService = string(t.Links.ClassOfService)
+	volume.classOfService = t.Links.ClassOfService.String()
 	volume.dedicatedSpareDrives = t.Links.DedicatedSpareDrives.ToStrings()
 	volume.drives = t.Links.Drives.ToStrings()
 	volume.spareResourceSets = t.Links.SpareResourceSets.ToStrings()
@@ -548,20 +548,8 @@ func (volume *Volume) Update() error {
 
 // GetVolume will get a Volume instance from the service.
 func GetVolume(c common.Client, uri string) (*Volume, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var volume Volume
-	err = json.NewDecoder(resp.Body).Decode(&volume)
-	if err != nil {
-		return nil, err
-	}
-
-	volume.SetClient(c)
-	return &volume, nil
+	return &volume, volume.Get(c, uri, &volume)
 }
 
 // ListReferencedVolumes gets the collection of Volume from a provided reference.
@@ -571,18 +559,32 @@ func ListReferencedVolumes(c common.Client, link string) ([]*Volume, error) { //
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *Volume
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, volumeLink := range links.ItemLinks {
-		volume, err := GetVolume(c, volumeLink)
+	get := func(link string) {
+		volume, err := GetVolume(c, link)
+		ch <- GetResult{Item: volume, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[volumeLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, volume)
+			result = append(result, r.Item)
 		}
 	}
 
@@ -703,36 +705,32 @@ func (volume *Volume) StoragePools() ([]*StoragePool, error) {
 func (volume *Volume) AssignReplicaTarget(replicaType ReplicaType, updateMode ReplicaUpdateMode, targetVolumeODataID string) error {
 	// This action wasn't added until later revisions
 	if volume.assignReplicaTargetTarget == "" {
-		return fmt.Errorf("AssignReplicaTarget action is not supported by this system") // nolint
+		return fmt.Errorf("AssignReplicaTarget action is not supported by this system")
 	}
 
 	// Define this action's parameters
-	type temp struct {
+	// Set the values for the action arguments
+	t := struct {
 		ReplicaType       ReplicaType
 		ReplicaUpdateMode ReplicaUpdateMode
 		TargetVolume      string
-	}
-
-	// Set the values for the action arguments
-	t := temp{
+	}{
 		ReplicaType:       replicaType,
 		ReplicaUpdateMode: updateMode,
 		TargetVolume:      targetVolumeODataID,
 	}
 
-	_, err := volume.Client.Post(volume.assignReplicaTargetTarget, t)
-	return err
+	return volume.Post(volume.assignReplicaTargetTarget, t)
 }
 
 // CheckConsistency is used to force a check of the Volume's parity or redundant
 // data to ensure it matches calculated values.
 func (volume *Volume) CheckConsistency() error {
 	if volume.checkConsistencyTarget == "" {
-		return fmt.Errorf("CheckConsistency action is not supported by this system") // nolint
+		return fmt.Errorf("CheckConsistency action is not supported by this system")
 	}
 
-	_, err := volume.Client.Post(volume.checkConsistencyTarget, nil)
-	return err
+	return volume.Post(volume.checkConsistencyTarget, nil)
 }
 
 // Initialize is used to prepare the contents of the volume for use by the system.
@@ -742,15 +740,12 @@ func (volume *Volume) Initialize(initType InitializeType) error {
 	}
 
 	// Define this action's parameters
-	type temp struct {
-		InitializeType InitializeType
-	}
-
 	// Set the values for the action arguments
-	t := temp{InitializeType: initType}
+	t := struct {
+		InitializeType InitializeType
+	}{InitializeType: initType}
 
-	_, err := volume.Client.Post(volume.initializeTarget, t)
-	return err
+	return volume.Post(volume.initializeTarget, t)
 }
 
 // RemoveReplicaRelationship is used to disable data synchronization between a
@@ -759,23 +754,20 @@ func (volume *Volume) Initialize(initType InitializeType) error {
 func (volume *Volume) RemoveReplicaRelationship(deleteTarget bool, targetVolumeODataID string) error {
 	// This action wasn't added until later revisions
 	if volume.removeReplicaRelationshipTarget == "" {
-		return fmt.Errorf("RemoveReplicaRelationship action is not supported by this system") // nolint
+		return fmt.Errorf("RemoveReplicaRelationship action is not supported by this system")
 	}
 
 	// Define this action's parameters
-	type temp struct {
+	// Set the values for the action arguments
+	t := struct {
 		DeleteTargetVolume bool
 		TargetVolume       string
-	}
-
-	// Set the values for the action arguments
-	t := temp{
+	}{
 		DeleteTargetVolume: deleteTarget,
 		TargetVolume:       targetVolumeODataID,
 	}
 
-	_, err := volume.Client.Post(volume.removeReplicaRelationshipTarget, t)
-	return err
+	return volume.Post(volume.removeReplicaRelationshipTarget, t)
 }
 
 // ResumeReplication is used to resume the active data synchronization between a
@@ -784,19 +776,16 @@ func (volume *Volume) RemoveReplicaRelationship(deleteTarget bool, targetVolumeO
 func (volume *Volume) ResumeReplication(targetVolumeODataID string) error {
 	// This action wasn't added until later revisions
 	if volume.resumeReplicationTarget == "" {
-		return fmt.Errorf("ResumeReplication action is not supported by this system") // nolint
+		return fmt.Errorf("ResumeReplication action is not supported by this system")
 	}
 
 	// Define this action's parameters
-	type temp struct {
-		TargetVolume string
-	}
-
 	// Set the values for the action arguments
-	t := temp{TargetVolume: targetVolumeODataID}
+	t := struct {
+		TargetVolume string
+	}{TargetVolume: targetVolumeODataID}
 
-	_, err := volume.Client.Post(volume.resumeReplicationTarget, t)
-	return err
+	return volume.Post(volume.resumeReplicationTarget, t)
 }
 
 // ReverseReplicationRelationship is used to reverse the replication
@@ -804,19 +793,16 @@ func (volume *Volume) ResumeReplication(targetVolumeODataID string) error {
 func (volume *Volume) ReverseReplicationRelationship(targetVolumeODataID string) error {
 	// This action wasn't added until later revisions
 	if volume.reverseReplicationRelationshipTarget == "" {
-		return fmt.Errorf("ReverseReplicationRelationship action is not supported by this system") // nolint
+		return fmt.Errorf("ReverseReplicationRelationship action is not supported by this system")
 	}
 
 	// Define this action's parameters
-	type temp struct {
-		TargetVolume string
-	}
-
 	// Set the values for the action arguments
-	t := temp{TargetVolume: targetVolumeODataID}
+	t := struct {
+		TargetVolume string
+	}{TargetVolume: targetVolumeODataID}
 
-	_, err := volume.Client.Post(volume.reverseReplicationRelationshipTarget, t)
-	return err
+	return volume.Post(volume.reverseReplicationRelationshipTarget, t)
 }
 
 // SplitReplication is used to split the replication relationship and suspend
@@ -824,19 +810,16 @@ func (volume *Volume) ReverseReplicationRelationship(targetVolumeODataID string)
 func (volume *Volume) SplitReplication(targetVolumeODataID string) error {
 	// This action wasn't added until later revisions
 	if volume.splitReplicationTarget == "" {
-		return fmt.Errorf("SplitReplication action is not supported by this system") // nolint
+		return fmt.Errorf("SplitReplication action is not supported by this system")
 	}
 
 	// Define this action's parameters
-	type temp struct {
-		TargetVolume string
-	}
-
 	// Set the values for the action arguments
-	t := temp{TargetVolume: targetVolumeODataID}
+	t := struct {
+		TargetVolume string
+	}{TargetVolume: targetVolumeODataID}
 
-	_, err := volume.Client.Post(volume.splitReplicationTarget, t)
-	return err
+	return volume.Post(volume.splitReplicationTarget, t)
 }
 
 // SuspendReplication is used to suspend active data synchronization between a
@@ -845,17 +828,14 @@ func (volume *Volume) SplitReplication(targetVolumeODataID string) error {
 func (volume *Volume) SuspendReplication(targetVolumeODataID string) error {
 	// This action wasn't added until later revisions
 	if volume.suspendReplicationTarget == "" {
-		return fmt.Errorf("SuspendReplication action is not supported by this system") // nolint
+		return fmt.Errorf("SuspendReplication action is not supported by this system")
 	}
 
 	// Define this action's parameters
-	type temp struct {
-		TargetVolume string
-	}
-
 	// Set the values for the action arguments
-	t := temp{TargetVolume: targetVolumeODataID}
+	t := struct {
+		TargetVolume string
+	}{TargetVolume: targetVolumeODataID}
 
-	_, err := volume.Client.Post(volume.suspendReplicationTarget, t)
-	return err
+	return volume.Post(volume.suspendReplicationTarget, t)
 }

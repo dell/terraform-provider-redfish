@@ -95,7 +95,7 @@ func (endpointgroup *EndpointGroup) UnmarshalJSON(b []byte) error {
 	*endpointgroup = EndpointGroup(t.temp)
 
 	// Extract the links to other entities for later
-	endpointgroup.endpoints = string(t.Endpoints)
+	endpointgroup.endpoints = t.Endpoints.String()
 	endpointgroup.EndpointsCount = t.EndpointsCount
 
 	// This is a read/write object, so we need to save the raw object data for later
@@ -130,20 +130,8 @@ func (endpointgroup *EndpointGroup) Update() error {
 
 // GetEndpointGroup will get a EndpointGroup instance from the service.
 func GetEndpointGroup(c common.Client, uri string) (*EndpointGroup, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var endpointgroup EndpointGroup
-	err = json.NewDecoder(resp.Body).Decode(&endpointgroup)
-	if err != nil {
-		return nil, err
-	}
-
-	endpointgroup.SetClient(c)
-	return &endpointgroup, nil
+	var endpointGroup EndpointGroup
+	return &endpointGroup, endpointGroup.Get(c, uri, &endpointGroup)
 }
 
 // ListReferencedEndpointGroups gets the collection of EndpointGroup from
@@ -154,18 +142,32 @@ func ListReferencedEndpointGroups(c common.Client, link string) ([]*EndpointGrou
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *EndpointGroup
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, endpointgroupLink := range links.ItemLinks {
-		endpointgroup, err := GetEndpointGroup(c, endpointgroupLink)
+	get := func(link string) {
+		endpointgroup, err := GetEndpointGroup(c, link)
+		ch <- GetResult{Item: endpointgroup, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[endpointgroupLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, endpointgroup)
+			result = append(result, r.Item)
 		}
 	}
 

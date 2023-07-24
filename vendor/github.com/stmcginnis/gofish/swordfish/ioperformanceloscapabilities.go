@@ -118,20 +118,8 @@ func (ioperformanceloscapabilities *IOPerformanceLoSCapabilities) Update() error
 
 // GetIOPerformanceLoSCapabilities will get a IOPerformanceLoSCapabilities instance from the service.
 func GetIOPerformanceLoSCapabilities(c common.Client, uri string) (*IOPerformanceLoSCapabilities, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var ioperformanceloscapabilities IOPerformanceLoSCapabilities
-	err = json.NewDecoder(resp.Body).Decode(&ioperformanceloscapabilities)
-	if err != nil {
-		return nil, err
-	}
-
-	ioperformanceloscapabilities.SetClient(c)
-	return &ioperformanceloscapabilities, nil
+	var ioPerformanceLoSCapabilities IOPerformanceLoSCapabilities
+	return &ioPerformanceLoSCapabilities, ioPerformanceLoSCapabilities.Get(c, uri, &ioPerformanceLoSCapabilities)
 }
 
 // ListReferencedIOPerformanceLoSCapabilitiess gets the collection of IOPerformanceLoSCapabilities from
@@ -142,18 +130,32 @@ func ListReferencedIOPerformanceLoSCapabilitiess(c common.Client, link string) (
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *IOPerformanceLoSCapabilities
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, ioperformanceloscapabilitiesLink := range links.ItemLinks {
-		ioperformanceloscapabilities, err := GetIOPerformanceLoSCapabilities(c, ioperformanceloscapabilitiesLink)
+	get := func(link string) {
+		ioperformanceloscapabilities, err := GetIOPerformanceLoSCapabilities(c, link)
+		ch <- GetResult{Item: ioperformanceloscapabilities, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[ioperformanceloscapabilitiesLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, ioperformanceloscapabilities)
+			result = append(result, r.Item)
 		}
 	}
 

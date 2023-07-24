@@ -54,27 +54,15 @@ func (memorydomain *MemoryDomain) UnmarshalJSON(b []byte) error {
 
 	// Extract the links to other entities for later
 	*memorydomain = MemoryDomain(t.temp)
-	memorydomain.memoryChunks = string(t.MemoryChunks)
+	memorydomain.memoryChunks = t.MemoryChunks.String()
 
 	return nil
 }
 
 // GetMemoryDomain will get a MemoryDomain instance from the service.
 func GetMemoryDomain(c common.Client, uri string) (*MemoryDomain, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var memorydomain MemoryDomain
-	err = json.NewDecoder(resp.Body).Decode(&memorydomain)
-	if err != nil {
-		return nil, err
-	}
-
-	memorydomain.SetClient(c)
-	return &memorydomain, nil
+	var memoryDomain MemoryDomain
+	return &memoryDomain, memoryDomain.Get(c, uri, &memoryDomain)
 }
 
 // ListReferencedMemoryDomains gets the collection of MemoryDomain from
@@ -85,18 +73,32 @@ func ListReferencedMemoryDomains(c common.Client, link string) ([]*MemoryDomain,
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *MemoryDomain
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, memorydomainLink := range links.ItemLinks {
-		memorydomain, err := GetMemoryDomain(c, memorydomainLink)
+	get := func(link string) {
+		memorydomain, err := GetMemoryDomain(c, link)
+		ch <- GetResult{Item: memorydomain, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[memorydomainLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, memorydomain)
+			result = append(result, r.Item)
 		}
 	}
 

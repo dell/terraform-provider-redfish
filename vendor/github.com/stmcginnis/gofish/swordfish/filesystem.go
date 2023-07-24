@@ -215,9 +215,9 @@ func (filesystem *FileSystem) UnmarshalJSON(b []byte) error {
 	*filesystem = FileSystem(t.temp)
 
 	// Extract the links to other entities for later
-	filesystem.exportedShares = string(t.ExportedShares)
+	filesystem.exportedShares = t.ExportedShares.String()
 	filesystem.replicaTargets = t.ReplicaTargets.ToStrings()
-	filesystem.classOfService = string(t.Links.ClassOfService)
+	filesystem.classOfService = t.Links.ClassOfService.String()
 	filesystem.ReplicaCollectionCount = t.Links.ReplicaCollectionCount
 	filesystem.spareResourceSets = t.Links.SpareResourceSets.ToStrings()
 	filesystem.SpareResourceSetsCount = t.Links.SpareResourceSetsCount
@@ -259,20 +259,8 @@ func (filesystem *FileSystem) Update() error {
 
 // GetFileSystem will get a FileSystem instance from the service.
 func GetFileSystem(c common.Client, uri string) (*FileSystem, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var filesystem FileSystem
-	err = json.NewDecoder(resp.Body).Decode(&filesystem)
-	if err != nil {
-		return nil, err
-	}
-
-	filesystem.SetClient(c)
-	return &filesystem, nil
+	var fileSystem FileSystem
+	return &fileSystem, fileSystem.Get(c, uri, &fileSystem)
 }
 
 // ListReferencedFileSystems gets the collection of FileSystem from
@@ -283,18 +271,32 @@ func ListReferencedFileSystems(c common.Client, link string) ([]*FileSystem, err
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *FileSystem
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, filesystemLink := range links.ItemLinks {
-		filesystem, err := GetFileSystem(c, filesystemLink)
+	get := func(link string) {
+		filesystem, err := GetFileSystem(c, link)
+		ch <- GetResult{Item: filesystem, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[filesystemLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, filesystem)
+			result = append(result, r.Item)
 		}
 	}
 

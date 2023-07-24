@@ -70,20 +70,8 @@ func (datastoragelineofservice *DataStorageLineOfService) UnmarshalJSON(b []byte
 
 // GetDataStorageLineOfService will get a DataStorageLineOfService instance from the service.
 func GetDataStorageLineOfService(c common.Client, uri string) (*DataStorageLineOfService, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var datastoragelineofservice DataStorageLineOfService
-	err = json.NewDecoder(resp.Body).Decode(&datastoragelineofservice)
-	if err != nil {
-		return nil, err
-	}
-
-	datastoragelineofservice.SetClient(c)
-	return &datastoragelineofservice, nil
+	var dataStorageLineOfService DataStorageLineOfService
+	return &dataStorageLineOfService, dataStorageLineOfService.Get(c, uri, &dataStorageLineOfService)
 }
 
 // ListReferencedDataStorageLineOfServices gets the collection of DataStorageLineOfService from
@@ -94,18 +82,32 @@ func ListReferencedDataStorageLineOfServices(c common.Client, link string) ([]*D
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *DataStorageLineOfService
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, datastoragelineofserviceLink := range links.ItemLinks {
-		datastoragelineofservice, err := GetDataStorageLineOfService(c, datastoragelineofserviceLink)
+	get := func(link string) {
+		datastoragelineofservice, err := GetDataStorageLineOfService(c, link)
+		ch <- GetResult{Item: datastoragelineofservice, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[datastoragelineofserviceLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, datastoragelineofservice)
+			result = append(result, r.Item)
 		}
 	}
 

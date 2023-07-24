@@ -123,9 +123,9 @@ func (fileshare *FileShare) UnmarshalJSON(b []byte) error {
 
 	// Extract the links to other entities for later
 	*fileshare = FileShare(t.temp)
-	fileshare.classOfService = string(t.Links.ClassOfService)
-	fileshare.fileSystem = string(t.Links.FileSystem)
-	fileshare.ethernetInterfaces = string(t.EthernetInterfaces)
+	fileshare.classOfService = t.Links.ClassOfService.String()
+	fileshare.fileSystem = t.Links.FileSystem.String()
+	fileshare.ethernetInterfaces = t.EthernetInterfaces.String()
 
 	// This is a read/write object, so we need to save the raw object data for later
 	fileshare.rawData = b
@@ -158,44 +158,52 @@ func (fileshare *FileShare) Update() error {
 
 // GetFileShare will get a FileShare instance from the service.
 func GetFileShare(c common.Client, uri string) (*FileShare, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var fileshare FileShare
-	err = json.NewDecoder(resp.Body).Decode(&fileshare)
-	if err != nil {
-		return nil, err
-	}
-
-	fileshare.SetClient(c)
-	return &fileshare, nil
+	var fileShare FileShare
+	return &fileShare, fileShare.Get(c, uri, &fileShare)
 }
 
 // ListReferencedFileShares gets the collection of FileShare from a provided
 // reference.
-func ListReferencedFileShares(c common.Client, link string) ([]*FileShare, error) {
+func ListReferencedFileShares(c common.Client, link string) ([]*FileShare, error) { //nolint:dupl
 	var result []*FileShare
 	if link == "" {
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *FileShare
+		Link  string
+		Error error
 	}
 
-	for _, fileshareLink := range links.ItemLinks {
-		fileshare, err := GetFileShare(c, fileshareLink)
+	ch := make(chan GetResult)
+	collectionError := common.NewCollectionError()
+	get := func(link string) {
+		fileshare, err := GetFileShare(c, link)
+		ch <- GetResult{Item: fileshare, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			return result, err
+			collectionError.Failures[link] = err
 		}
-		result = append(result, fileshare)
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
+		} else {
+			result = append(result, r.Item)
+		}
 	}
 
-	return result, nil
+	if collectionError.Empty() {
+		return result, nil
+	}
+
+	return result, collectionError
 }
 
 // ClassOfService gets the file share's class of service.

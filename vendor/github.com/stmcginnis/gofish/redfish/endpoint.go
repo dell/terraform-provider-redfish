@@ -217,20 +217,8 @@ func (endpoint *Endpoint) UnmarshalJSON(b []byte) error {
 
 // GetEndpoint will get a Endpoint instance from the service.
 func GetEndpoint(c common.Client, uri string) (*Endpoint, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var endpoint Endpoint
-	err = json.NewDecoder(resp.Body).Decode(&endpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	endpoint.SetClient(c)
-	return &endpoint, nil
+	return &endpoint, endpoint.Get(c, uri, &endpoint)
 }
 
 // ListReferencedEndpoints gets the collection of Endpoint from
@@ -241,18 +229,32 @@ func ListReferencedEndpoints(c common.Client, link string) ([]*Endpoint, error) 
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *Endpoint
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, endpointLink := range links.ItemLinks {
-		endpoint, err := GetEndpoint(c, endpointLink)
+	get := func(link string) {
+		endpoint, err := GetEndpoint(c, link)
+		ch <- GetResult{Item: endpoint, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[endpointLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, endpoint)
+			result = append(result, r.Item)
 		}
 	}
 

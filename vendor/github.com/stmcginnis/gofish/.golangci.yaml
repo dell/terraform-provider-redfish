@@ -31,12 +31,6 @@ linters-settings:
     min-complexity: 25
   goimports:
     local-prefixes: github.com/stmcginnis
-  golint:
-    min-confidence: 0
-  gomnd:
-    settings:
-      mnd:
-        checks: argument,case,condition,return
   govet:
     check-shadowing: true
   misspell:
@@ -51,7 +45,6 @@ linters:
   disable-all: true
   enable:
     - bodyclose
-    - deadcode
     - depguard
     - dogsled
     - dupl
@@ -62,8 +55,6 @@ linters:
     - gocyclo
     - goheader
     - goimports
-    - golint
-    - gomnd
     - goprintffuncname
     - gosec
     - gosimple
@@ -73,15 +64,14 @@ linters:
     - nakedret
     - noctx
     - nolintlint
+    - revive
     - rowserrcheck
     - staticcheck
-    - structcheck
     - stylecheck
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
     - whitespace
 
   # don't enable:
@@ -111,8 +101,3 @@ issues:
 run:
   skip-dirs:
     - examples
-
-# golangci.com configuration
-# https://github.com/golangci/golangci/wiki/Configuration
-service:
-  golangci-lint-version: 1.38.0 # use the fixed version to not introduce new linters unexpectedly

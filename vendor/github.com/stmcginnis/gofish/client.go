@@ -15,8 +15,11 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httputil"
+	"net/textproto"
 	"os"
 	"path/filepath"
+	"strconv"
+	"sync"
 
 	"strings"
 	"time"
@@ -45,6 +48,9 @@ type APIClient struct {
 
 	// Auth information saved for later to be able to log out
 	auth *redfish.AuthToken
+
+	// mu used to lock requests
+	mu *sync.Mutex
 
 	// dumpWriter will receive HTTP dumps if non-nil.
 	dumpWriter io.Writer
@@ -99,6 +105,7 @@ func setupClientWithConfig(ctx context.Context, config *ClientConfig) (c *APICli
 		endpoint:   config.Endpoint,
 		dumpWriter: config.DumpWriter,
 		ctx:        ctx,
+		mu:         &sync.Mutex{},
 	}
 
 	if config.TLSHandshakeTimeout == 0 {
@@ -141,6 +148,7 @@ func setupClientWithEndpoint(ctx context.Context, endpoint string) (c *APIClient
 	client := &APIClient{
 		endpoint: endpoint,
 		ctx:      ctx,
+		mu:       &sync.Mutex{},
 	}
 	client.HTTPClient = &http.Client{}
 
@@ -183,12 +191,12 @@ func (c *APIClient) setupClientAuth(config *ClientConfig) error {
 }
 
 // Connect creates a new client connection to a Redfish service.
-func Connect(config ClientConfig) (c *APIClient, err error) { // nolint:gocritic
+func Connect(config ClientConfig) (c *APIClient, err error) { //nolint:gocritic
 	return ConnectContext(context.Background(), config)
 }
 
 // ConnectContext is the same as Connect, but sets the ctx.
-func ConnectContext(ctx context.Context, config ClientConfig) (c *APIClient, err error) { // nolint:gocritic
+func ConnectContext(ctx context.Context, config ClientConfig) (c *APIClient, err error) { //nolint:gocritic
 	client, err := setupClientWithConfig(ctx, &config)
 	if err != nil {
 		return c, err
@@ -216,6 +224,11 @@ func ConnectDefaultContext(ctx context.Context, endpoint string) (c *APIClient, 
 	}
 
 	return client, err
+}
+
+// GetService returns the APIClient's service.
+func (c *APIClient) GetService() *Service {
+	return c.Service
 }
 
 // CloneWithSession will create a new Client with a session instead of basic auth.
@@ -246,7 +259,7 @@ func (c *APIClient) CloneWithSession() (*APIClient, error) {
 // GetSession retrieves the session data from an initialized APIClient. An error
 // is returned if the client is not authenticated.
 func (c *APIClient) GetSession() (*Session, error) {
-	if c.auth.Session == "" {
+	if c.auth == nil || c.auth.Session == "" {
 		return nil, fmt.Errorf("client not authenticated")
 	}
 	return &Session{
@@ -363,7 +376,7 @@ func (c *APIClient) runRequestWithMultipartPayloadWithHeaders(method, url string
 			}
 		} else {
 			// Add other fields
-			if partWriter, err = payloadWriter.CreateFormField(key); err != nil {
+			if partWriter, err = createFormField(key, payloadWriter); err != nil {
 				return nil, err
 			}
 		}
@@ -374,6 +387,21 @@ func (c *APIClient) runRequestWithMultipartPayloadWithHeaders(method, url string
 	payloadWriter.Close()
 
 	return c.runRawRequestWithHeaders(method, url, bytes.NewReader(payloadBuffer.Bytes()), payloadWriter.FormDataContentType(), customHeaders)
+}
+
+var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
+
+func escapeQuotes(s string) string {
+	return quoteEscaper.Replace(s)
+}
+
+// createFormField create form field with Content-Type
+func createFormField(fieldname string, w *multipart.Writer) (io.Writer, error) {
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition",
+		fmt.Sprintf(`form-data; name=%q`, escapeQuotes(fieldname)))
+	h.Set("Content-Type", "application/json")
+	return w.CreatePart(h)
 }
 
 // runRawRequest actually performs the REST calls
@@ -404,9 +432,22 @@ func (c *APIClient) runRawRequestWithHeaders(method, url string, payloadBuffer i
 
 	// Add custom headers
 	for k, v := range customHeaders {
-		if len(k) > 0 && len(v) > 0 { // Quick check to avoid empty headers
-			req.Header.Set(k, v)
+		if k == "" && v == "" { // Quick check to avoid empty headers
+			continue
 		}
+
+		// Set Content-Length custom headers on the request
+		// since its ignored when set using Header.Set()
+		if strings.EqualFold("Content-Length", k) {
+			req.ContentLength, err = strconv.ParseInt(v, 10, 64) // base 10, 64 bit
+			if err != nil {
+				return nil, common.ConstructError(0, []byte("error parsing custom Content-Length header"))
+			}
+
+			continue
+		}
+
+		req.Header.Set(k, v)
 	}
 
 	// Add content info if present
@@ -418,7 +459,6 @@ func (c *APIClient) runRawRequestWithHeaders(method, url string, payloadBuffer i
 	if c.auth != nil {
 		if c.auth.Token != "" {
 			req.Header.Set("X-Auth-Token", c.auth.Token)
-			req.Header.Set("Cookie", fmt.Sprintf("sessionKey=%s", c.auth.Token))
 		} else if c.auth.BasicAuth && c.auth.Username != "" && c.auth.Password != "" {
 			encodedAuth := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", c.auth.Username, c.auth.Password)))
 			req.Header.Set("Authorization", fmt.Sprintf("Basic %v", encodedAuth))
@@ -428,35 +468,22 @@ func (c *APIClient) runRawRequestWithHeaders(method, url string, payloadBuffer i
 
 	// Dump request if needed.
 	if c.dumpWriter != nil {
-		d, err := httputil.DumpRequestOut(req, true)
-		if err != nil {
-			return nil, common.ConstructError(0, []byte(err.Error()))
-		}
-
-		d = append(d, '\n')
-		_, err = c.dumpWriter.Write(d)
-		if err != nil {
-			panic(err)
+		if err := c.dumpRequest(req); err != nil {
+			return nil, err
 		}
 	}
-
+	c.mu.Lock()
 	resp, err := c.HTTPClient.Do(req)
+	c.mu.Unlock()
 	if err != nil {
 		return nil, err
 	}
 
 	// Dump response if needed.
 	if c.dumpWriter != nil {
-		d, err := httputil.DumpResponse(resp, true)
-		if err != nil {
+		if err := c.dumpResponse(resp); err != nil {
 			defer resp.Body.Close()
-			return nil, common.ConstructError(0, []byte(err.Error()))
-		}
-
-		d = append(d, '\n')
-		_, err = c.dumpWriter.Write(d)
-		if err != nil {
-			panic(err)
+			return nil, err
 		}
 	}
 
@@ -470,6 +497,38 @@ func (c *APIClient) runRawRequestWithHeaders(method, url string, payloadBuffer i
 	}
 
 	return resp, err
+}
+
+// dumpRequest writes outgoing client requests to dumpWriter
+func (c *APIClient) dumpRequest(req *http.Request) error {
+	d, err := httputil.DumpRequestOut(req, true)
+	if err != nil {
+		return common.ConstructError(0, []byte(err.Error()))
+	}
+
+	d = append(d, '\n')
+	_, err = c.dumpWriter.Write(d)
+	if err != nil {
+		panic(err)
+	}
+
+	return nil
+}
+
+// dumpRequest writes incoming responses to dumpWriter
+func (c *APIClient) dumpResponse(resp *http.Response) error {
+	d, err := httputil.DumpResponse(resp, true)
+	if err != nil {
+		return common.ConstructError(0, []byte(err.Error()))
+	}
+
+	d = append(d, '\n')
+	_, err = c.dumpWriter.Write(d)
+	if err != nil {
+		panic(err)
+	}
+
+	return nil
 }
 
 // Logout will delete any active session. Useful to defer logout when creating

@@ -60,29 +60,17 @@ func (networkinterface *NetworkInterface) UnmarshalJSON(b []byte) error {
 
 	// Extract the links to other entities for later
 	*networkinterface = NetworkInterface(t.temp)
-	networkinterface.networkAdapter = string(t.Links.NetworkAdapter)
-	networkinterface.networkDeviceFunctions = string(t.NetworkDeviceFunctions)
-	networkinterface.networkPorts = string(t.NetworkPorts)
+	networkinterface.networkAdapter = t.Links.NetworkAdapter.String()
+	networkinterface.networkDeviceFunctions = t.NetworkDeviceFunctions.String()
+	networkinterface.networkPorts = t.NetworkPorts.String()
 
 	return nil
 }
 
 // GetNetworkInterface will get a NetworkInterface instance from the service.
 func GetNetworkInterface(c common.Client, uri string) (*NetworkInterface, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var networkinterface NetworkInterface
-	err = json.NewDecoder(resp.Body).Decode(&networkinterface)
-	if err != nil {
-		return nil, err
-	}
-
-	networkinterface.SetClient(c)
-	return &networkinterface, nil
+	var networkInterface NetworkInterface
+	return &networkInterface, networkInterface.Get(c, uri, &networkInterface)
 }
 
 // ListReferencedNetworkInterfaces gets the collection of NetworkInterface from
@@ -93,18 +81,32 @@ func ListReferencedNetworkInterfaces(c common.Client, link string) ([]*NetworkIn
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *NetworkInterface
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, networkinterfaceLink := range links.ItemLinks {
-		networkinterface, err := GetNetworkInterface(c, networkinterfaceLink)
+	get := func(link string) {
+		networkinterface, err := GetNetworkInterface(c, link)
+		ch <- GetResult{Item: networkinterface, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[networkinterfaceLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, networkinterface)
+			result = append(result, r.Item)
 		}
 	}
 

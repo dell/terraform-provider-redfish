@@ -354,9 +354,9 @@ func (memory *Memory) UnmarshalJSON(b []byte) error {
 	*memory = Memory(t.temp)
 
 	// Extract the links to other entities for later
-	memory.assembly = string(t.Assembly)
-	memory.metrics = string(t.Metrics)
-	memory.chassis = string(t.Links.Chassis)
+	memory.assembly = t.Assembly.String()
+	memory.metrics = t.Metrics.String()
+	memory.chassis = t.Links.Chassis.String()
 
 	// This is a read/write object, so we need to save the raw object data for later
 	memory.rawData = b
@@ -386,20 +386,8 @@ func (memory *Memory) Update() error {
 
 // GetMemory will get a Memory instance from the service.
 func GetMemory(c common.Client, uri string) (*Memory, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var memory Memory
-	err = json.NewDecoder(resp.Body).Decode(&memory)
-	if err != nil {
-		return nil, err
-	}
-
-	memory.SetClient(c)
-	return &memory, nil
+	return &memory, memory.Get(c, uri, &memory)
 }
 
 // ListReferencedMemorys gets the collection of Memory from
@@ -410,18 +398,32 @@ func ListReferencedMemorys(c common.Client, link string) ([]*Memory, error) { //
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *Memory
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, memoryLink := range links.ItemLinks {
-		memory, err := GetMemory(c, memoryLink)
+	get := func(link string) {
+		memory, err := GetMemory(c, link)
+		ch <- GetResult{Item: memory, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[memoryLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, memory)
+			result = append(result, r.Item)
 		}
 	}
 

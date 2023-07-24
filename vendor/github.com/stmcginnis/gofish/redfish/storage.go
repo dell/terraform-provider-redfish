@@ -96,7 +96,7 @@ func (storage *Storage) UnmarshalJSON(b []byte) error {
 	storage.enclosures = t.Links.Enclosures.ToStrings()
 	storage.EnclosuresCount = t.Links.EnclosuresCount
 	storage.drives = t.Drives.ToStrings()
-	storage.volumes = string(t.Volumes)
+	storage.volumes = t.Volumes.String()
 	storage.setEncryptionKeyTarget = t.Actions.SetEncryptionKey.Target
 
 	return nil
@@ -104,20 +104,8 @@ func (storage *Storage) UnmarshalJSON(b []byte) error {
 
 // GetStorage will get a Storage instance from the service.
 func GetStorage(c common.Client, uri string) (*Storage, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var storage Storage
-	err = json.NewDecoder(resp.Body).Decode(&storage)
-	if err != nil {
-		return nil, err
-	}
-
-	storage.SetClient(c)
-	return &storage, nil
+	return &storage, storage.Get(c, uri, &storage)
 }
 
 // ListReferencedStorages gets the collection of Storage from a provided
@@ -128,18 +116,32 @@ func ListReferencedStorages(c common.Client, link string) ([]*Storage, error) { 
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *Storage
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, storageLink := range links.ItemLinks {
-		storage, err := GetStorage(c, storageLink)
+	get := func(link string) {
+		storage, err := GetStorage(c, link)
+		ch <- GetResult{Item: storage, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[storageLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, storage)
+			result = append(result, r.Item)
 		}
 	}
 
@@ -200,13 +202,11 @@ func (storage *Storage) Volumes() ([]*Volume, error) {
 
 // SetEncryptionKey shall set the encryption key for the storage subsystem.
 func (storage *Storage) SetEncryptionKey(key string) error {
-	type temp struct {
+	t := struct {
 		EncryptionKey string
-	}
-	t := temp{EncryptionKey: key}
+	}{EncryptionKey: key}
 
-	_, err := storage.Client.Post(storage.setEncryptionKeyTarget, t)
-	return err
+	return storage.Post(storage.setEncryptionKeyTarget, t)
 }
 
 // GetOperationApplyTimeValues returns the OperationApplyTime values applicable for this storage
@@ -260,7 +260,7 @@ type StorageController struct {
 	// interface (in Gigabits per second). The interface specified connects the
 	// controller to the storage devices, not the controller to a host (e.g. SAS
 	// bus, not PCIe host bus).
-	SpeedGbps int
+	SpeedGbps float32
 	// Status shall contain any status or health properties of the resource.
 	Status common.Status
 	// SupportedControllerProtocols shall be the set of protocols this storage
@@ -310,7 +310,7 @@ func (storagecontroller *StorageController) UnmarshalJSON(b []byte) error {
 	*storagecontroller = StorageController(t.temp)
 
 	// Extract the links to other entities for later
-	storagecontroller.assembly = string(t.Assembly)
+	storagecontroller.assembly = t.Assembly.String()
 	storagecontroller.endpoints = t.Links.StorageServices.ToStrings()
 	storagecontroller.EndpointsCount = t.Links.EndpointsCount
 	storagecontroller.storageServices = t.Links.StorageServices.ToStrings()
@@ -344,20 +344,8 @@ func (storagecontroller *StorageController) Update() error {
 
 // GetStorageController will get a Storage controller instance from the service.
 func GetStorageController(c common.Client, uri string) (*StorageController, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var storage StorageController
-	err = json.NewDecoder(resp.Body).Decode(&storage)
-	if err != nil {
-		return nil, err
-	}
-
-	storage.SetClient(c)
-	return &storage, nil
+	var storageController StorageController
+	return &storageController, storageController.Get(c, uri, &storageController)
 }
 
 // ListReferencedStorageControllers gets the collection of StorageControllers
@@ -368,18 +356,32 @@ func ListReferencedStorageControllers(c common.Client, link string) ([]*StorageC
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *StorageController
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, storageLink := range links.ItemLinks {
-		storage, err := GetStorageController(c, storageLink)
+	get := func(link string) {
+		storagecontroller, err := GetStorageController(c, link)
+		ch <- GetResult{Item: storagecontroller, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[storageLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, storage)
+			result = append(result, r.Item)
 		}
 	}
 

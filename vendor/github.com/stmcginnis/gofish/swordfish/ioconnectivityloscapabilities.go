@@ -90,20 +90,8 @@ func (ioconnectivityloscapabilities *IOConnectivityLoSCapabilities) Update() err
 // GetIOConnectivityLoSCapabilities will get a IOConnectivityLoSCapabilities
 // instance from the service.
 func GetIOConnectivityLoSCapabilities(c common.Client, uri string) (*IOConnectivityLoSCapabilities, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var ioconnectivityloscapabilities IOConnectivityLoSCapabilities
-	err = json.NewDecoder(resp.Body).Decode(&ioconnectivityloscapabilities)
-	if err != nil {
-		return nil, err
-	}
-
-	ioconnectivityloscapabilities.SetClient(c)
-	return &ioconnectivityloscapabilities, nil
+	var ioConnectivityLoSCapabilities IOConnectivityLoSCapabilities
+	return &ioConnectivityLoSCapabilities, ioConnectivityLoSCapabilities.Get(c, uri, &ioConnectivityLoSCapabilities)
 }
 
 // ListReferencedIOConnectivityLoSCapabilitiess gets the collection of
@@ -114,18 +102,32 @@ func ListReferencedIOConnectivityLoSCapabilitiess(c common.Client, link string) 
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *IOConnectivityLoSCapabilities
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, ioconnectivityloscapabilitiesLink := range links.ItemLinks {
-		ioconnectivityloscapabilities, err := GetIOConnectivityLoSCapabilities(c, ioconnectivityloscapabilitiesLink)
+	get := func(link string) {
+		ioconnectivityloscapabilities, err := GetIOConnectivityLoSCapabilities(c, link)
+		ch <- GetResult{Item: ioconnectivityloscapabilities, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[ioconnectivityloscapabilitiesLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, ioconnectivityloscapabilities)
+			result = append(result, r.Item)
 		}
 	}
 

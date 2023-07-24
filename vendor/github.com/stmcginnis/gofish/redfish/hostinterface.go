@@ -140,14 +140,14 @@ func (hostinterface *HostInterface) UnmarshalJSON(b []byte) error {
 	*hostinterface = HostInterface(t.temp)
 
 	// Extract the links to other entities for later
-	hostinterface.authNoneRole = string(t.Links.AuthNoneRole)
+	hostinterface.authNoneRole = t.Links.AuthNoneRole.String()
 	hostinterface.computerSystems = t.Links.ComputerSystems.ToStrings()
 	hostinterface.ComputerSystemsCount = t.Links.ComputerSystemsCount
-	hostinterface.firmwareAuthRole = string(t.Links.FirmwareAuthRole)
-	hostinterface.kernelAuthRole = string(t.Links.KernelAuthRole)
-	hostinterface.hostEthernetInterfaces = string(t.HostEthernetInterfaces)
-	hostinterface.managerEthernetInterface = string(t.ManagerEthernetInterface)
-	hostinterface.networkProtocol = string(t.NetworkProtocol)
+	hostinterface.firmwareAuthRole = t.Links.FirmwareAuthRole.String()
+	hostinterface.kernelAuthRole = t.Links.KernelAuthRole.String()
+	hostinterface.hostEthernetInterfaces = t.HostEthernetInterfaces.String()
+	hostinterface.managerEthernetInterface = t.ManagerEthernetInterface.String()
+	hostinterface.networkProtocol = t.NetworkProtocol.String()
 
 	// This is a read/write object, so we need to save the raw object data for later
 	hostinterface.rawData = b
@@ -183,20 +183,8 @@ func (hostinterface *HostInterface) Update() error {
 
 // GetHostInterface will get a HostInterface instance from the service.
 func GetHostInterface(c common.Client, uri string) (*HostInterface, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var hostinterface HostInterface
-	err = json.NewDecoder(resp.Body).Decode(&hostinterface)
-	if err != nil {
-		return nil, err
-	}
-
-	hostinterface.SetClient(c)
-	return &hostinterface, nil
+	var hostInterface HostInterface
+	return &hostInterface, hostInterface.Get(c, uri, &hostInterface)
 }
 
 // ListReferencedHostInterfaces gets the collection of HostInterface from
@@ -207,18 +195,32 @@ func ListReferencedHostInterfaces(c common.Client, link string) ([]*HostInterfac
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *HostInterface
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, hostinterfaceLink := range links.ItemLinks {
-		hostinterface, err := GetHostInterface(c, hostinterfaceLink)
+	get := func(link string) {
+		hostinterface, err := GetHostInterface(c, link)
+		ch <- GetResult{Item: hostinterface, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[hostinterfaceLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, hostinterface)
+			result = append(result, r.Item)
 		}
 	}
 

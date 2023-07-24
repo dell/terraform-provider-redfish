@@ -5,8 +5,6 @@
 package swordfish
 
 import (
-	"encoding/json"
-
 	"github.com/stmcginnis/gofish/common"
 )
 
@@ -48,20 +46,8 @@ type IOPerformanceLineOfService struct {
 
 // GetIOPerformanceLineOfService will get a IOPerformanceLineOfService instance from the service.
 func GetIOPerformanceLineOfService(c common.Client, uri string) (*IOPerformanceLineOfService, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var ioperformancelineofservice IOPerformanceLineOfService
-	err = json.NewDecoder(resp.Body).Decode(&ioperformancelineofservice)
-	if err != nil {
-		return nil, err
-	}
-
-	ioperformancelineofservice.SetClient(c)
-	return &ioperformancelineofservice, nil
+	var ioPerformanceLineOfService IOPerformanceLineOfService
+	return &ioPerformanceLineOfService, ioPerformanceLineOfService.Get(c, uri, &ioPerformanceLineOfService)
 }
 
 // ListReferencedIOPerformanceLineOfServices gets the collection of IOPerformanceLineOfService from
@@ -72,18 +58,32 @@ func ListReferencedIOPerformanceLineOfServices(c common.Client, link string) ([]
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *IOPerformanceLineOfService
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, ioperformancelineofserviceLink := range links.ItemLinks {
-		ioperformancelineofservice, err := GetIOPerformanceLineOfService(c, ioperformancelineofserviceLink)
+	get := func(link string) {
+		ioperformancelineofservice, err := GetIOPerformanceLineOfService(c, link)
+		ch <- GetResult{Item: ioperformancelineofservice, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[ioperformancelineofserviceLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, ioperformancelineofservice)
+			result = append(result, r.Item)
 		}
 	}
 

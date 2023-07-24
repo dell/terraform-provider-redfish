@@ -5,8 +5,6 @@
 package swordfish
 
 import (
-	"encoding/json"
-
 	"github.com/stmcginnis/gofish/common"
 )
 
@@ -61,20 +59,8 @@ type DataProtectionLineOfService struct {
 
 // GetDataProtectionLineOfService will get a DataProtectionLineOfService instance from the service.
 func GetDataProtectionLineOfService(c common.Client, uri string) (*DataProtectionLineOfService, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var dataprotectionlineofservice DataProtectionLineOfService
-	err = json.NewDecoder(resp.Body).Decode(&dataprotectionlineofservice)
-	if err != nil {
-		return nil, err
-	}
-
-	dataprotectionlineofservice.SetClient(c)
-	return &dataprotectionlineofservice, nil
+	var dataProtectionLineOfService DataProtectionLineOfService
+	return &dataProtectionLineOfService, dataProtectionLineOfService.Get(c, uri, &dataProtectionLineOfService)
 }
 
 // ListReferencedDataProtectionLineOfServices gets the collection of DataProtectionLineOfService from
@@ -85,18 +71,32 @@ func ListReferencedDataProtectionLineOfServices(c common.Client, link string) ([
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *DataProtectionLineOfService
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, dataprotectionlineofserviceLink := range links.ItemLinks {
-		dataprotectionlineofservice, err := GetDataProtectionLineOfService(c, dataprotectionlineofserviceLink)
+	get := func(link string) {
+		dataprotectionlineofservice, err := GetDataProtectionLineOfService(c, link)
+		ch <- GetResult{Item: dataprotectionlineofservice, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[dataprotectionlineofserviceLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, dataprotectionlineofservice)
+			result = append(result, r.Item)
 		}
 	}
 

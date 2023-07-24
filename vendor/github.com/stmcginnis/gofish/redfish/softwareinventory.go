@@ -5,8 +5,6 @@
 package redfish
 
 import (
-	"encoding/json"
-
 	"github.com/stmcginnis/gofish/common"
 )
 
@@ -63,20 +61,8 @@ type SoftwareInventory struct {
 
 // GetSoftwareInventory will get a SoftwareInventory instance from the service.
 func GetSoftwareInventory(c common.Client, uri string) (*SoftwareInventory, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var softwareinventory SoftwareInventory
-	err = json.NewDecoder(resp.Body).Decode(&softwareinventory)
-	if err != nil {
-		return nil, err
-	}
-
-	softwareinventory.SetClient(c)
-	return &softwareinventory, nil
+	var softwareInventory SoftwareInventory
+	return &softwareInventory, softwareInventory.Get(c, uri, &softwareInventory)
 }
 
 // ListReferencedSoftwareInventories gets the collection of SoftwareInventory from
@@ -87,18 +73,32 @@ func ListReferencedSoftwareInventories(c common.Client, link string) ([]*Softwar
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *SoftwareInventory
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, softwareinventoryLink := range links.ItemLinks {
-		softwareinventory, err := GetSoftwareInventory(c, softwareinventoryLink)
+	get := func(link string) {
+		softwareinventory, err := GetSoftwareInventory(c, link)
+		ch <- GetResult{Item: softwareinventory, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[softwareinventoryLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, softwareinventory)
+			result = append(result, r.Item)
 		}
 	}
 

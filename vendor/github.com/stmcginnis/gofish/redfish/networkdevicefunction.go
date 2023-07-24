@@ -172,8 +172,8 @@ func (ethernet *Ethernet) UnmarshalJSON(b []byte) error {
 	*ethernet = Ethernet(t.temp)
 
 	// Extract the links to other entities for later
-	ethernet.vlan = string(t.VLAN)
-	ethernet.vlans = string(t.VLANs)
+	ethernet.vlan = t.VLAN.String()
+	ethernet.vlans = t.VLANs.String()
 
 	return nil
 }
@@ -317,8 +317,8 @@ func (networkdevicefunction *NetworkDeviceFunction) UnmarshalJSON(b []byte) erro
 	// Extract the links to other entities for later
 	networkdevicefunction.endpoints = t.Links.Endpoints.ToStrings()
 	networkdevicefunction.EndpointsCount = t.Links.EndpointsCount
-	networkdevicefunction.pcieFunction = string(t.Links.PCIeFunction)
-	networkdevicefunction.physicalPortAssignment = string(t.Links.PhysicalPortAssignment)
+	networkdevicefunction.pcieFunction = t.Links.PCIeFunction.String()
+	networkdevicefunction.physicalPortAssignment = t.Links.PhysicalPortAssignment.String()
 
 	// This is a read/write object, so we need to save the raw object data for later
 	networkdevicefunction.rawData = b
@@ -350,20 +350,8 @@ func (networkdevicefunction *NetworkDeviceFunction) Update() error {
 
 // GetNetworkDeviceFunction will get a NetworkDeviceFunction instance from the service.
 func GetNetworkDeviceFunction(c common.Client, uri string) (*NetworkDeviceFunction, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var networkdevicefunction NetworkDeviceFunction
-	err = json.NewDecoder(resp.Body).Decode(&networkdevicefunction)
-	if err != nil {
-		return nil, err
-	}
-
-	networkdevicefunction.SetClient(c)
-	return &networkdevicefunction, nil
+	var networkDeviceFunction NetworkDeviceFunction
+	return &networkDeviceFunction, networkDeviceFunction.Get(c, uri, &networkDeviceFunction)
 }
 
 // ListReferencedNetworkDeviceFunctions gets the collection of NetworkDeviceFunction from
@@ -374,18 +362,32 @@ func ListReferencedNetworkDeviceFunctions(c common.Client, link string) ([]*Netw
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *NetworkDeviceFunction
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, networkdevicefunctionLink := range links.ItemLinks {
-		networkdevicefunction, err := GetNetworkDeviceFunction(c, networkdevicefunctionLink)
+	get := func(link string) {
+		networkdevicefunction, err := GetNetworkDeviceFunction(c, link)
+		ch <- GetResult{Item: networkdevicefunction, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[networkdevicefunctionLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, networkdevicefunction)
+			result = append(result, r.Item)
 		}
 	}
 

@@ -170,7 +170,7 @@ func (pciefunction *PCIeFunction) UnmarshalJSON(b []byte) error {
 	pciefunction.EthernetInterfacesCount = t.Links.EthernetInterfacesCount
 	pciefunction.networkDeviceFunctions = t.Links.NetworkDeviceFunctions.ToStrings()
 	pciefunction.NetworkDeviceFunctionsCount = t.Links.NetworkDeviceFunctionsCount
-	pciefunction.pcieDevice = string(t.Links.PCIeDevice)
+	pciefunction.pcieDevice = t.Links.PCIeDevice.String()
 	pciefunction.storageControllers = t.Links.StorageControllers.ToStrings()
 	pciefunction.StorageControllersCount = t.Links.StorageControllersCount
 
@@ -179,20 +179,8 @@ func (pciefunction *PCIeFunction) UnmarshalJSON(b []byte) error {
 
 // GetPCIeFunction will get a PCIeFunction instance from the service.
 func GetPCIeFunction(c common.Client, uri string) (*PCIeFunction, error) {
-	resp, err := c.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var pciefunction PCIeFunction
-	err = json.NewDecoder(resp.Body).Decode(&pciefunction)
-	if err != nil {
-		return nil, err
-	}
-
-	pciefunction.SetClient(c)
-	return &pciefunction, nil
+	var pcieFunction PCIeFunction
+	return &pcieFunction, pcieFunction.Get(c, uri, &pcieFunction)
 }
 
 // ListReferencedPCIeFunctions gets the collection of PCIeFunction from
@@ -203,18 +191,32 @@ func ListReferencedPCIeFunctions(c common.Client, link string) ([]*PCIeFunction,
 		return result, nil
 	}
 
-	links, err := common.GetCollection(c, link)
-	if err != nil {
-		return result, err
+	type GetResult struct {
+		Item  *PCIeFunction
+		Link  string
+		Error error
 	}
 
+	ch := make(chan GetResult)
 	collectionError := common.NewCollectionError()
-	for _, pciefunctionLink := range links.ItemLinks {
-		pciefunction, err := GetPCIeFunction(c, pciefunctionLink)
+	get := func(link string) {
+		pciefunction, err := GetPCIeFunction(c, link)
+		ch <- GetResult{Item: pciefunction, Link: link, Error: err}
+	}
+
+	go func() {
+		err := common.CollectList(get, c, link)
 		if err != nil {
-			collectionError.Failures[pciefunctionLink] = err
+			collectionError.Failures[link] = err
+		}
+		close(ch)
+	}()
+
+	for r := range ch {
+		if r.Error != nil {
+			collectionError.Failures[r.Link] = r.Error
 		} else {
-			result = append(result, pciefunction)
+			result = append(result, r.Item)
 		}
 	}
 
