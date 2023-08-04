@@ -59,13 +59,15 @@ func getResourceRedfishUserAccountSchema() map[string]*schema.Schema {
 			Computed: true,
 		},
 		"username": {
-			Type:     schema.TypeString,
-			Required: true,
+			Type:         schema.TypeString,
+			Required:     true,
+			ValidateFunc: validation.StringIsNotWhiteSpace,
 		},
 		"password": {
-			Type:      schema.TypeString,
-			Required:  true,
-			Sensitive: true,
+			Type:         schema.TypeString,
+			Required:     true,
+			Sensitive:    true,
+			ValidateFunc: validation.StringIsNotWhiteSpace,
 		},
 		"enabled": {
 			Type:     schema.TypeBool,
@@ -143,7 +145,7 @@ func createRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) d
 
 	// check if user id is valid or not
 	userIdInt, err := strconv.Atoi(d.Get("user_id").(string))
-	if !(userIdInt > 2 && userIdInt <= 16) {
+	if len(d.Get("user_id").(string)) > 0 && !(userIdInt > 2 && userIdInt <= 16) {
 		return diag.Errorf("User_id can vary between 3 to 16 only")
 	}
 
@@ -198,6 +200,7 @@ func readRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) dia
 	d.Set("username", account.UserName)
 	d.Set("enabled", account.Enabled)
 	d.Set("role_id", account.RoleID)
+	d.Set("user_id", account.ID)
 
 	return diags
 }
@@ -220,7 +223,7 @@ func updateRedfishUserAccount(ctx context.Context, service *gofish.Service, d *s
 		return diag.Errorf("Error when retrieving accounts %v", err)
 	}
 
-	if d.Get("user_id") != account.ID {
+	if d.Get("user_id").(string) != account.ID {
 		return diag.Errorf("user_id cannot be updated")
 	}
 
