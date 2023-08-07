@@ -3,12 +3,12 @@ package redfish
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
-	//"log"
 )
 
 func resourceRedfishVirtualMedia() *schema.Resource {
@@ -52,11 +52,6 @@ func getResourceRedfishVirtualMediaSchema() map[string]*schema.Schema {
 					},
 				},
 			},
-		},
-		"virtual_media_id": {
-			Type:        schema.TypeString,
-			Description: "ID from the virtual media to be used. I.E: RemovableDisk",
-			Required:    true,
 		},
 		"image": {
 			Type:        schema.TypeString,
@@ -139,7 +134,6 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
 
 	//Get terraform schema data
-	virtualMediaID := d.Get("virtual_media_id").(string)
 	image := d.Get("image").(string)
 
 	var username string
@@ -171,22 +165,6 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 		writeProtected = true //If write_protected is not set, set it to true
 	}
 
-	//Get OOB Manager card - managers[0] will be our oob card
-	managers, err := service.Managers()
-	if err != nil {
-		return diag.Errorf("Couldn't retrieve managers from redfish API: %s", err)
-	}
-
-	virtualMediaCollection, err := managers[0].VirtualMedia()
-	if err != nil {
-		return diag.Errorf("Couldn't retrieve virtual media collection from redfish API: %s", err)
-	}
-	//Get specific virtual media
-	virtualMedia, err := getVirtualMedia(virtualMediaID, virtualMediaCollection)
-	if err != nil {
-		return diag.Errorf("Virtual Media selected doesn't exist: %s", err)
-	}
-
 	virtualMediaConfig := redfish.VirtualMediaConfig{
 		Image:                image,
 		Inserted:             inserted,
@@ -197,13 +175,70 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 		WriteProtected:       writeProtected,
 	}
 
-	err = virtualMedia.InsertMediaConfig(virtualMediaConfig)
+	//Get Systems details
+	systems, err := service.Systems()
 	if err != nil {
-		return diag.Errorf("Couldn't mount Virtual Media: %s", err)
+		return diag.Errorf("Error when retrieving systems: %s", err)
 	}
 
-	d.SetId(virtualMedia.ODataID)
-	return diags
+	virtualMediaCollection, err := systems[0].VirtualMedia()
+	if err != nil {
+		return diag.Errorf("Couldn't retrieve virtual media collection from redfish API: %s", err)
+	}
+
+	if len(virtualMediaCollection) != 0 {
+		for index := range virtualMediaCollection {
+			//Get specific virtual media
+			virtualMedia, err := getVirtualMedia(virtualMediaCollection[index].ID, virtualMediaCollection)
+			if err != nil {
+				return diag.Errorf("Virtual Media selected doesn't exist: %s", err)
+			}
+			if !virtualMedia.Inserted {
+				err = virtualMedia.InsertMediaConfig(virtualMediaConfig)
+				if err != nil {
+					return diag.Errorf("Couldn't mount Virtual Media: %s", err)
+				}
+
+				d.SetId(virtualMedia.ODataID)
+				return diags
+			}
+		}
+	} else {
+		// This implementation is added to support iDRAC firmware version 5.x. As virtual media can only be accessed through Managers card on 5.x.
+		//Get OOB Manager card - managers[0] will be our oob card
+		managers, err := service.Managers()
+		if err != nil {
+			return diag.Errorf("Couldn't retrieve managers from redfish API: %s", err)
+		}
+
+		virtualMediaCollection, err := managers[0].VirtualMedia()
+		if err != nil {
+			return diag.Errorf("Couldn't retrieve virtual media collection from redfish API: %s", err)
+		}
+
+		var virtualMediaID string
+		if strings.HasSuffix(image, ".iso") {
+			virtualMediaID = "CD"
+		} else {
+			virtualMediaID = "RemovableDisk"
+		}
+
+		virtualMedia, err := getVirtualMedia(virtualMediaID, virtualMediaCollection)
+		if err != nil {
+			return diag.Errorf("Virtual Media selected doesn't exist: %s", err)
+		}
+		if !virtualMedia.Inserted {
+			err = virtualMedia.InsertMediaConfig(virtualMediaConfig)
+			if err != nil {
+				return diag.Errorf("Couldn't mount Virtual Media: %s", err)
+			}
+
+			d.SetId(virtualMedia.ODataID)
+			return diags
+		}
+	}
+
+	return diag.Errorf("There are no Virtual Medias to mount")
 }
 
 func readRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
