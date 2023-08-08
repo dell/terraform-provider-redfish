@@ -105,11 +105,13 @@ func getResourceRedfishBiosSchema() map[string]*schema.Schema {
 			Type:        schema.TypeInt,
 			Optional:    true,
 			Description: "reset_timeout is the time in seconds that the provider waits for the server to be reset before timing out.",
+			Default:     defaultBiosConfigServerResetTimeout,
 		},
 		"bios_job_timeout": {
 			Type:        schema.TypeInt,
 			Optional:    true,
 			Description: "bios_job_timeout is the time in seconds that the provider waits for the bios update job to be completed before timing out.",
+			Default:     defaultBiosConfigJobTimeout,
 		},
 	}
 }
@@ -194,15 +196,10 @@ func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) 
 		return diag.Errorf("error getting BIOS attributes to patch: %s", err)
 	}
 
-	resetTimeout, ok := d.GetOk("reset_timeout")
-	if !ok {
-		resetTimeout = defaultBiosConfigServerResetTimeout
-	}
+	resetTimeout := d.Get("reset_timeout")
 
-	biosConfigJobTimeout, ok := d.GetOk("bios_job_timeout")
-	if !ok {
-		biosConfigJobTimeout = defaultBiosConfigJobTimeout
-	}
+	biosConfigJobTimeout := d.Get("bios_job_timeout")
+
 	log.Printf("[DEBUG] resetTimeout is set to %d  and Bios Config Job timeout is set to %d", resetTimeout.(int), biosConfigJobTimeout.(int))
 
 	var biosTaskURI string
