@@ -180,6 +180,9 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 	if err != nil {
 		return diag.Errorf("Error when retrieving systems: %s", err)
 	}
+	if len(systems) == 0 {
+		return diag.Errorf("There is no system available")
+	}
 
 	virtualMediaCollection, err := systems[0].VirtualMedia()
 	if err != nil {
