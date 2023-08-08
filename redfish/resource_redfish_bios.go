@@ -80,10 +80,9 @@ func getResourceRedfishBiosSchema() map[string]*schema.Schema {
 		"settings_apply_time": {
 			Type:     schema.TypeString,
 			Optional: true,
-			Description: "The time when the BIOS settings can be applied. Applicable values are 'OnReset', and 'Immediate'. " +
-				"Default is \"OnReset\".",
+			Description: "The time when the BIOS settings can be applied. Applicable value is 'OnReset' only. " +
+				"In upcoming releases other apply time values will be supported. Default is \"OnReset\".",
 			ValidateFunc: validation.StringInSlice([]string{
-				string(redfishcommon.ImmediateApplyTime),
 				string(redfishcommon.OnResetApplyTime),
 			}, false),
 			Default: string(redfishcommon.OnResetApplyTime),
@@ -101,6 +100,18 @@ func getResourceRedfishBiosSchema() map[string]*schema.Schema {
 				string(redfish.PowerCycleResetType),
 			}, false),
 			Default: string(redfish.GracefulRestartResetType),
+		},
+		"reset_timeout": {
+			Type:        schema.TypeInt,
+			Optional:    true,
+			Description: "reset_timeout is the time in seconds that the provider waits for the server to be reset before timing out.",
+			Default:     defaultBiosConfigServerResetTimeout,
+		},
+		"bios_job_timeout": {
+			Type:        schema.TypeInt,
+			Optional:    true,
+			Description: "bios_job_timeout is the time in seconds that the provider waits for the bios update job to be completed before timing out.",
+			Default:     defaultBiosConfigJobTimeout,
 		},
 	}
 }
@@ -185,6 +196,12 @@ func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) 
 		return diag.Errorf("error getting BIOS attributes to patch: %s", err)
 	}
 
+	resetTimeout := d.Get("reset_timeout")
+
+	biosConfigJobTimeout := d.Get("bios_job_timeout")
+
+	log.Printf("[DEBUG] resetTimeout is set to %d  and Bios Config Job timeout is set to %d", resetTimeout.(int), biosConfigJobTimeout.(int))
+
 	var biosTaskURI string
 	if len(attrsPayload) != 0 {
 		biosTaskURI, err = patchBiosAttributes(d, bios, attrsPayload)
@@ -193,14 +210,14 @@ func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) 
 		}
 
 		// reboot the server
-		_, diags := PowerOperation(resetType.(string), defaultBiosConfigServerResetTimeout, intervalBiosConfigJobCheckTime, service)
+		_, diags := PowerOperation(resetType.(string), resetTimeout.(int), intervalBiosConfigJobCheckTime, service)
 		if diags.HasError() {
 			// TODO: handle this scenario
-			return diag.Errorf("There was an issue restarting the server")
+			return diag.Errorf("there was an issue restarting the server")
 		}
 
 		// wait for the bios config job to finish
-		err = common.WaitForJobToFinish(service, biosTaskURI, intervalBiosConfigJobCheckTime, defaultBiosConfigJobTimeout)
+		err = common.WaitForJobToFinish(service, biosTaskURI, intervalBiosConfigJobCheckTime, biosConfigJobTimeout.(int))
 		if err != nil {
 			return diag.Errorf("Error waiting for Bios config monitor task (%s) to be completed: %s", biosTaskURI, err)
 		}
@@ -213,6 +230,7 @@ func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) 
 		return diag.Errorf("error setting bios attributes: %s", err)
 	}
 
+	diags = readRedfishBiosResource(service, d)
 	// Set the ID to @odata.id
 	d.SetId(bios.ODataID)
 

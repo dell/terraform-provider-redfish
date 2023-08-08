@@ -25,7 +25,6 @@ resource "redfish_bios" "bios" {
   attributes = {
     "NumLock" = "On"
   }
-  settings_apply_time = "OnReset"
   reset_type          = "ForceRestart"
 }
 
@@ -42,4 +41,5 @@ data "redfish_bios" "bios" {
 
 output "bios_attributes" {
   value = data.redfish_bios.bios
+  sensitive = true
 }
