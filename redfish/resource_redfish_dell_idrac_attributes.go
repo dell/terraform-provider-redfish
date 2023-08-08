@@ -156,7 +156,7 @@ func updateRedfishDellIdracAttributes(ctx context.Context, service *gofish.Servi
 		Attributes: attributesToPatch,
 	}
 
-	response, err := service.Client.Patch(idracAttributes.ODataID, patchBody)
+	response, err := service.GetClient().Patch(idracAttributes.ODataID, patchBody)
 	if err != nil {
 		return diag.Errorf("there was an issue when creating/updating idrac attributes - %s", err)
 	}
@@ -231,7 +231,7 @@ func getManagerAttributeRegistry(service *gofish.Service) (*dell.ManagerAttribut
 	for _, r := range registries {
 		if r.ID == "ManagerAttributeRegistry" {
 			// Get ManagerAttributesRegistry
-			managerAttrRegistry, err := dell.GetDellManagerAttributeRegistry(service.Client, r.Location[0].URI)
+			managerAttrRegistry, err := dell.GetDellManagerAttributeRegistry(service.GetClient(), r.Location[0].URI)
 			if err != nil {
 				return nil, err
 			}

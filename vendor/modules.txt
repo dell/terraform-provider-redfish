@@ -162,7 +162,7 @@ github.com/mitchellh/reflectwalk
 # github.com/oklog/run v1.0.0
 ## explicit
 github.com/oklog/run
-# github.com/stmcginnis/gofish v0.14.0
+# github.com/stmcginnis/gofish v0.14.0 => /root/prajwal/gofish/gofish
 ## explicit; go 1.16
 github.com/stmcginnis/gofish
 github.com/stmcginnis/gofish/common
@@ -318,3 +318,4 @@ google.golang.org/protobuf/types/known/anypb
 google.golang.org/protobuf/types/known/durationpb
 google.golang.org/protobuf/types/known/emptypb
 google.golang.org/protobuf/types/known/timestamppb
+# github.com/stmcginnis/gofish => /root/prajwal/gofish/gofish

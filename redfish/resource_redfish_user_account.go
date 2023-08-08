@@ -127,7 +127,7 @@ func createRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) d
 			payload["Enabled"] = d.Get("enabled").(bool)
 			payload["RoleId"] = d.Get("role_id").(string)
 			//Ideally a go routine for each server should be done
-			res, err := service.Client.Patch(account.ODataID, payload)
+			res, err := service.GetClient().Patch(account.ODataID, payload)
 			if err != nil {
 				return diag.Errorf("Error when contacting the redfish API %v", err) //This error might happen when a user was created outside terraform
 			}
@@ -192,7 +192,7 @@ func updateRedfishUserAccount(ctx context.Context, service *gofish.Service, d *s
 		payload["Password"] = d.Get("password")
 		payload["Enabled"] = d.Get("enabled")
 		payload["RoleId"] = d.Get("role_id")
-		res, err := service.Client.Patch(account.ODataID, payload)
+		res, err := service.GetClient().Patch(account.ODataID, payload)
 		if err != nil {
 			return diag.Errorf("Error when contacting the redfish API %v", err)
 		}
@@ -222,7 +222,7 @@ func deleteRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) d
 
 	payload := make(map[string]interface{})
 	payload["UserName"] = ""
-	res, err := service.Client.Patch(account.ODataID, payload)
+	res, err := service.GetClient().Patch(account.ODataID, payload)
 	if err != nil {
 		return diag.Errorf("Error when contacting the redfish API %v", err)
 	}

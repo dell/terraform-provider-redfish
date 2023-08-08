@@ -222,9 +222,14 @@ type Chassis struct {
 	WeightKg float64
 	// WidthMm shall represent the width of the chassis, in
 	// millimeters, as specified by the manufacturer.
-	WidthMm         float64
-	thermal         string
-	power           string
+	WidthMm float64
+	thermal string
+	power   string
+	// pcieSlots shall be a link to the PCIe slot properties for this chassis
+	pcieSlots string
+	// sensors shall be a link to to the collection of sensors
+	// located in the equipment and sub-components
+	sensors         string
 	networkAdapters string
 	// logServices shall be a link to a collection of type LogServiceCollection.
 	logServices     string
@@ -263,6 +268,8 @@ func (chassis *Chassis) UnmarshalJSON(b []byte) error {
 		Drives          common.Link
 		Thermal         common.Link
 		Power           common.Link
+		PCIeSlots       common.Link
+		Sensors         common.Link
 		NetworkAdapters common.Link
 		LogServices     common.Link
 		Links           linkReference
@@ -285,6 +292,8 @@ func (chassis *Chassis) UnmarshalJSON(b []byte) error {
 	}
 	chassis.thermal = t.Thermal.String()
 	chassis.power = t.Power.String()
+	chassis.pcieSlots = t.PCIeSlots.String()
+	chassis.sensors = t.Sensors.String()
 	chassis.networkAdapters = t.NetworkAdapters.String()
 	chassis.logServices = t.LogServices.String()
 	chassis.computerSystems = t.Links.ComputerSystems.ToStrings()
@@ -384,7 +393,7 @@ func (chassis *Chassis) Drives() ([]*Drive, error) {
 	collectionError := common.NewCollectionError()
 	driveLinks := chassis.linkedDrives
 	if chassis.drives != "" {
-		drives, err := common.GetCollection(chassis.Client, chassis.drives)
+		drives, err := common.GetCollection(chassis.GetClient(), chassis.drives)
 		if err != nil {
 			collectionError.Failures[chassis.drives] = err
 			return nil, collectionError
@@ -400,12 +409,12 @@ func (chassis *Chassis) Drives() ([]*Drive, error) {
 
 	ch := make(chan GetResult)
 	get := func(link string) {
-		drive, err := GetDrive(chassis.Client, link)
+		drive, err := GetDrive(chassis.GetClient(), link)
 		ch <- GetResult{Item: drive, Link: link, Error: err}
 	}
 
 	go func() {
-		common.CollectCollection(get, chassis.Client, driveLinks)
+		common.CollectCollection(get, driveLinks)
 		close(ch)
 	}()
 
@@ -430,7 +439,7 @@ func (chassis *Chassis) Thermal() (*Thermal, error) {
 		return nil, nil
 	}
 
-	return GetThermal(chassis.Client, chassis.thermal)
+	return GetThermal(chassis.GetClient(), chassis.thermal)
 }
 
 // Power gets the power information for the chassis
@@ -439,7 +448,16 @@ func (chassis *Chassis) Power() (*Power, error) {
 		return nil, nil
 	}
 
-	return GetPower(chassis.Client, chassis.power)
+	return GetPower(chassis.GetClient(), chassis.power)
+}
+
+// PCIeSlots gets the PCIe slots properties for the chassis
+func (chassis *Chassis) PCIeSlots() (*PCIeSlots, error) {
+	if chassis.pcieSlots == "" {
+		return nil, nil
+	}
+
+	return GetPCIeSlots(chassis.GetClient(), chassis.pcieSlots)
 }
 
 // ComputerSystems returns the collection of systems from this chassis
@@ -448,7 +466,7 @@ func (chassis *Chassis) ComputerSystems() ([]*ComputerSystem, error) {
 
 	collectionError := common.NewCollectionError()
 	for _, uri := range chassis.computerSystems {
-		cs, err := GetComputerSystem(chassis.Client, uri)
+		cs, err := GetComputerSystem(chassis.GetClient(), uri)
 		if err != nil {
 			collectionError.Failures[uri] = err
 		} else {
@@ -469,7 +487,7 @@ func (chassis *Chassis) ManagedBy() ([]*Manager, error) {
 
 	collectionError := common.NewCollectionError()
 	for _, uri := range chassis.managedBy {
-		manager, err := GetManager(chassis.Client, uri)
+		manager, err := GetManager(chassis.GetClient(), uri)
 		if err != nil {
 			collectionError.Failures[uri] = err
 		} else {
@@ -484,21 +502,26 @@ func (chassis *Chassis) ManagedBy() ([]*Manager, error) {
 	return result, collectionError
 }
 
+// Sensors gets the collection of sensors located in the equipment and sub-components of this chassis
+func (chassis *Chassis) Sensors() ([]*Sensor, error) {
+	return ListReferencedSensors(chassis.GetClient(), chassis.sensors)
+}
+
 // NetworkAdapters gets the collection of network adapters of this chassis
 func (chassis *Chassis) NetworkAdapters() ([]*NetworkAdapter, error) {
-	return ListReferencedNetworkAdapter(chassis.Client, chassis.networkAdapters)
+	return ListReferencedNetworkAdapter(chassis.GetClient(), chassis.networkAdapters)
 }
 
 // LogServices get this chassis's log services.
 func (chassis *Chassis) LogServices() ([]*LogService, error) {
-	return ListReferencedLogServices(chassis.Client, chassis.logServices)
+	return ListReferencedLogServices(chassis.GetClient(), chassis.logServices)
 }
 
 // The Assembly schema defines an assembly.
 // Assembly information contains details about a device, such as part number, serial number, manufacturer, and production date.
 // It also provides access to the original data for the assembly.
 func (chassis *Chassis) Assembly() (*Assembly, error) {
-	return GetAssembly(chassis.Client, chassis.assembly)
+	return GetAssembly(chassis.GetClient(), chassis.assembly)
 }
 
 // Reset shall reset the chassis. This action shall not reset Systems or other

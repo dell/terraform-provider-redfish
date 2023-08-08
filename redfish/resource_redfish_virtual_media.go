@@ -244,7 +244,7 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 func readRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	virtualMedia, err := redfish.GetVirtualMedia(service.Client, d.Id())
+	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), d.Id())
 	if err != nil {
 		return diag.Errorf("Virtual Media doesn't exist: %s", err) //This error won't be triggered ever
 	}
@@ -319,7 +319,7 @@ func updateRedfishVirtualMedia(ctx context.Context, service *gofish.Service, d *
 	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
 
 	//Hot update os not possible. Unmount and mount needs to be done to update
-	virtualMedia, err := redfish.GetVirtualMedia(service.Client, d.Id())
+	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), d.Id())
 	if err != nil {
 		return diag.Errorf("Virtual Media doesn't exist: %s", err) //This error won't be triggered ever
 	}
@@ -386,7 +386,7 @@ func deleteRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 	redfishMutexKV.Lock(getRedfishServerEndpoint(d))
 	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
 
-	virtualMedia, err := redfish.GetVirtualMedia(service.Client, d.Id())
+	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), d.Id())
 	if err != nil {
 		return diag.Errorf("Virtual Media doesn't exist: %s", err) //This error won't be triggered ever
 	}

@@ -164,7 +164,7 @@ func readRedfishSimpleUpdate(service *gofish.Service, d *schema.ResourceData) di
 	var diags diag.Diagnostics
 
 	// Try to get software inventory
-	_, err := redfish.GetSoftwareInventory(service.Client, d.Id())
+	_, err := redfish.GetSoftwareInventory(service.GetClient(), d.Id())
 	if err != nil {
 		_, ok := err.(*redfishcommon.Error)
 		if !ok {
@@ -225,7 +225,7 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 	switch transferProtocol {
 	case "HTTP":
 		// Get ETag from FW inventory
-		response, err := service.Client.Get(updateService.FirmwareInventory)
+		response, err := service.GetClient().Get(updateService.FirmwareInventory)
 		if err != nil {
 			diag.Errorf("error while retrieving Etag from FirmwareInventory")
 		}
@@ -250,7 +250,7 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 		}
 
 		// Upload FW Package to FW inventory
-		response, err = service.Client.PostMultipartWithHeaders(updateService.HTTPPushURI, payload, customHeaders)
+		response, err = service.GetClient().PostMultipartWithHeaders(updateService.HTTPPushURI, payload, customHeaders)
 		if err != nil {
 			return diag.Errorf("there was an issue when uploading FW package to redfish - %s", err)
 		}
@@ -258,7 +258,7 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 		packageLocation := response.Header.Get("Location")
 
 		// Get package information ( SoftwareID - Version )
-		packageInformation, err := redfish.GetSoftwareInventory(service.Client, packageLocation)
+		packageInformation, err := redfish.GetSoftwareInventory(service.GetClient(), packageLocation)
 		if err != nil {
 			return diag.Errorf("there was an issue when retrieving uploaded package information - %s", err)
 		}
@@ -270,7 +270,7 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 			ImageURI: packageLocation,
 		}
 		// Do the POST call agains Simple.Update service
-		response, err = service.Client.Post(updateService.UpdateServiceTarget, triggerUpdatePayload)
+		response, err = service.GetClient().Post(updateService.UpdateServiceTarget, triggerUpdatePayload)
 		if err != nil {
 			// Delete uploaded package - TBD
 			return diag.Errorf("there was an issue when scheduling the update job - %s", err)

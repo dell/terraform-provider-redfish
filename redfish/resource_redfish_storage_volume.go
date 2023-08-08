@@ -279,7 +279,7 @@ func readRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData) d
 	var diags diag.Diagnostics
 
 	//Check if the volume exists
-	_, err := redfish.GetVolume(service.Client, d.Id())
+	_, err := redfish.GetVolume(service.GetClient(), d.Id())
 	if err != nil {
 		e, ok := err.(*redfishcommon.Error)
 		if !ok {
@@ -372,7 +372,7 @@ func getStorageController(storageControllers []*redfish.Storage, diskControllerI
 
 func deleteVolume(service *gofish.Service, volumeURI string) (jobID string, err error) {
 	//TODO - Check if we can delete immediately or if we need to schedule a job
-	res, err := service.Client.Delete(volumeURI)
+	res, err := service.GetClient().Delete(volumeURI)
 	if err != nil {
 		return "", fmt.Errorf("error while deleting the volume %s", volumeURI)
 	}
@@ -438,7 +438,7 @@ func createVolume(service *gofish.Service,
 	}
 	newVolume["Drives"] = listDrives
 	volumesURL := fmt.Sprintf("%v/Volumes", storageLink)
-	res, err := service.Client.Post(volumesURL, newVolume)
+	res, err := service.GetClient().Post(volumesURL, newVolume)
 	if err != nil {
 		return "", err
 	}

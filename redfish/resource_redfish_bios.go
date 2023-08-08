@@ -292,7 +292,7 @@ func patchBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes 
 	oDataURI.Path = path.Join(oDataURI.Path, "Settings")
 	settingsObjectURI := oDataURI.String()
 
-	resp, err := bios.Client.Patch(settingsObjectURI, payload)
+	resp, err := bios.GetClient().Patch(settingsObjectURI, payload)
 	if err != nil {
 		log.Printf("[DEBUG] error sending the patch request: %s", err)
 		return "", err

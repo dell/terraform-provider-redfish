@@ -326,6 +326,8 @@ type Boot struct {
 	// one time boot only. Changes to this property do not alter the BIOS
 	// persistent boot order configuration.
 	UefiTargetBootSourceOverride string `json:",omitempty"`
+	// The link to a collection of certificates used for booting through HTTPS by this computer system.
+	certificates string
 }
 
 // UnmarshalJSON unmarshals a Boot object from the raw JSON.
@@ -333,7 +335,8 @@ func (boot *Boot) UnmarshalJSON(b []byte) error {
 	type temp Boot
 	var t struct {
 		temp
-		BootOptions common.Link
+		BootOptions  common.Link
+		Certificates common.Link
 	}
 
 	err := json.Unmarshal(b, &t)
@@ -345,6 +348,7 @@ func (boot *Boot) UnmarshalJSON(b []byte) error {
 
 	// Extract the links to other entities for later
 	boot.bootOptions = t.BootOptions.String()
+	boot.certificates = t.Certificates.String()
 
 	return nil
 }
@@ -514,6 +518,9 @@ type ComputerSystem struct {
 	// storage shall be a link to a collection
 	// of type StorageCollection.
 	storage string
+	// virtualMedia shall contain a reference to a collection of type
+	// VirtualMediaCollection which are for the use of this system.
+	virtualMedia string
 	// SubModel shall contain the information
 	// about the sub-model (or config) of the system. This shall not include
 	// the model/product name or the manufacturer name.
@@ -582,6 +589,7 @@ func (computersystem *ComputerSystem) UnmarshalJSON(b []byte) error {
 		MemoryDomains      common.Link
 		PCIeDevices        common.Links
 		PCIeFunctions      common.Links
+		VirtualMedia       common.Link
 		Links              CSLinks
 		Settings           common.Settings `json:"@Redfish.Settings"`
 	}
@@ -604,6 +612,7 @@ func (computersystem *ComputerSystem) UnmarshalJSON(b []byte) error {
 	computersystem.storage = t.Storage.String()
 	computersystem.logServices = t.LogServices.String()
 	computersystem.memoryDomains = t.MemoryDomains.String()
+	computersystem.virtualMedia = t.VirtualMedia.String()
 	computersystem.pcieDevices = t.PCIeDevices.ToStrings()
 	computersystem.pcieFunctions = t.PCIeFunctions.ToStrings()
 	computersystem.chassis = t.Links.Chassis.ToStrings()
@@ -705,7 +714,7 @@ func (computersystem *ComputerSystem) Bios() (*Bios, error) {
 		return nil, nil
 	}
 
-	return GetBios(computersystem.Client, computersystem.bios)
+	return GetBios(computersystem.GetClient(), computersystem.bios)
 }
 
 // BootOptions gets all BootOption items for this system.
@@ -714,7 +723,7 @@ func (computersystem *ComputerSystem) BootOptions() ([]*BootOption, error) {
 	if computersystem.Boot.bootOptions == "" {
 		return result, nil
 	}
-	c := computersystem.Client
+	c := computersystem.GetClient()
 
 	type GetResult struct {
 		Item  *BootOption
@@ -752,29 +761,33 @@ func (computersystem *ComputerSystem) BootOptions() ([]*BootOption, error) {
 	return result, collectionError
 }
 
+func (computersystem *ComputerSystem) BootCertificates() ([]*Certificate, error) {
+	return ListReferencedCertificates(computersystem.GetClient(), computersystem.Boot.certificates)
+}
+
 // EthernetInterfaces get this system's ethernet interfaces.
 func (computersystem *ComputerSystem) EthernetInterfaces() ([]*EthernetInterface, error) {
-	return ListReferencedEthernetInterfaces(computersystem.Client, computersystem.ethernetInterfaces)
+	return ListReferencedEthernetInterfaces(computersystem.GetClient(), computersystem.ethernetInterfaces)
 }
 
 // LogServices get this system's log services.
 func (computersystem *ComputerSystem) LogServices() ([]*LogService, error) {
-	return ListReferencedLogServices(computersystem.Client, computersystem.logServices)
+	return ListReferencedLogServices(computersystem.GetClient(), computersystem.logServices)
 }
 
 // Memory gets this system's memory.
 func (computersystem *ComputerSystem) Memory() ([]*Memory, error) {
-	return ListReferencedMemorys(computersystem.Client, computersystem.memory)
+	return ListReferencedMemorys(computersystem.GetClient(), computersystem.memory)
 }
 
 // MemoryDomains gets this system's memory domains.
 func (computersystem *ComputerSystem) MemoryDomains() ([]*MemoryDomain, error) {
-	return ListReferencedMemoryDomains(computersystem.Client, computersystem.memoryDomains)
+	return ListReferencedMemoryDomains(computersystem.GetClient(), computersystem.memoryDomains)
 }
 
 // NetworkInterfaces returns a collection of network interfaces in this system.
 func (computersystem *ComputerSystem) NetworkInterfaces() ([]*NetworkInterface, error) {
-	return ListReferencedNetworkInterfaces(computersystem.Client, computersystem.networkInterfaces)
+	return ListReferencedNetworkInterfaces(computersystem.GetClient(), computersystem.networkInterfaces)
 }
 
 // PCIeDevices gets all PCIeDevices for this system.
@@ -783,7 +796,7 @@ func (computersystem *ComputerSystem) PCIeDevices() ([]*PCIeDevice, error) {
 
 	collectionError := common.NewCollectionError()
 	for _, pciedeviceLink := range computersystem.pcieDevices {
-		pciedevice, err := GetPCIeDevice(computersystem.Client, pciedeviceLink)
+		pciedevice, err := GetPCIeDevice(computersystem.GetClient(), pciedeviceLink)
 		if err != nil {
 			collectionError.Failures[pciedeviceLink] = err
 		} else {
@@ -804,7 +817,7 @@ func (computersystem *ComputerSystem) PCIeFunctions() ([]*PCIeFunction, error) {
 
 	collectionError := common.NewCollectionError()
 	for _, pciefunctionLink := range computersystem.pcieFunctions {
-		pciefunction, err := GetPCIeFunction(computersystem.Client, pciefunctionLink)
+		pciefunction, err := GetPCIeFunction(computersystem.GetClient(), pciefunctionLink)
 		if err != nil {
 			collectionError.Failures[pciefunctionLink] = err
 		} else {
@@ -821,7 +834,7 @@ func (computersystem *ComputerSystem) PCIeFunctions() ([]*PCIeFunction, error) {
 
 // Processors returns a collection of processors from this system
 func (computersystem *ComputerSystem) Processors() ([]*Processor, error) {
-	return ListReferencedProcessors(computersystem.Client, computersystem.processors)
+	return ListReferencedProcessors(computersystem.GetClient(), computersystem.processors)
 }
 
 // SecureBoot gets the secure boot information for the system.
@@ -830,7 +843,7 @@ func (computersystem *ComputerSystem) SecureBoot() (*SecureBoot, error) {
 		return nil, nil
 	}
 
-	return GetSecureBoot(computersystem.Client, computersystem.secureBoot)
+	return GetSecureBoot(computersystem.GetClient(), computersystem.secureBoot)
 }
 
 // SetBoot set a boot object based on a payload request
@@ -893,7 +906,7 @@ func (computersystem *ComputerSystem) UpdateBootAttributesApplyAt(attrs Settings
 		}
 	}
 
-	resp, err := computersystem.Client.Get(computersystem.settingsTarget)
+	resp, err := computersystem.GetClient().Get(computersystem.settingsTarget)
 	if err != nil {
 		return err
 	}
@@ -912,7 +925,7 @@ func (computersystem *ComputerSystem) UpdateBootAttributesApplyAt(attrs Settings
 			header["If-Match"] = resp.Header["Etag"][0]
 		}
 
-		resp, err = computersystem.Client.PatchWithHeaders(computersystem.settingsTarget, data, header)
+		resp, err = computersystem.GetClient().PatchWithHeaders(computersystem.settingsTarget, data, header)
 		if err != nil {
 			return err
 		}
@@ -939,12 +952,17 @@ func (computersystem *ComputerSystem) SetDefaultBootOrder() error {
 
 // SimpleStorages gets all simple storage services of this system.
 func (computersystem *ComputerSystem) SimpleStorages() ([]*SimpleStorage, error) {
-	return ListReferencedSimpleStorages(computersystem.Client, computersystem.simpleStorage)
+	return ListReferencedSimpleStorages(computersystem.GetClient(), computersystem.simpleStorage)
 }
 
 // Storage gets the storage associated with this system.
 func (computersystem *ComputerSystem) Storage() ([]*Storage, error) {
-	return ListReferencedStorages(computersystem.Client, computersystem.storage)
+	return ListReferencedStorages(computersystem.GetClient(), computersystem.storage)
+}
+
+// VirtualMedia gets the virtual media associated with this system.
+func (computersystem *ComputerSystem) VirtualMedia() ([]*VirtualMedia, error) {
+	return ListReferencedVirtualMedias(computersystem.GetClient(), computersystem.virtualMedia)
 }
 
 // CSLinks are references to resources that are related to, but not contained
