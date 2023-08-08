@@ -244,7 +244,7 @@ func getManagerAttributeRegistry(service *gofish.Service) (*dell.ManagerAttribut
 
 func getIdracAttributes(attributes []*dell.DellAttributes) (*dell.DellAttributes, error) {
 	for _, a := range attributes {
-		if a.ID == "iDRACAttributes" {
+		if a.ID == "iDRAC.Embedded.1" {
 			return a, nil
 		}
 	}
