@@ -2,6 +2,8 @@ package redfish
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/stmcginnis/gofish/redfish"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -18,6 +20,11 @@ func resourceRedFishPower() *schema.Resource {
 		CustomizeDiff: CheckPowerDiff(),
 	}
 }
+
+const (
+	defaultMaximumPowerConfigServerTimeout int = 120
+	intervalPowerConfigJobCheckTime        int = 10
+)
 
 // Custom function for calculating power state. Given some desired_power_action, we know what the expected power
 // state should be after the action is applied. Instead of marking the value of power_state as unknown during
@@ -36,7 +43,7 @@ func CheckPowerDiff(funcs ...schema.CustomizeDiffFunc) schema.CustomizeDiffFunc 
 			d.SetNew("power_state", "Off")
 		} else if resetType == "ForceOn" || resetType == "On" {
 			d.SetNew("power_state", "On")
-		} else if resetType == "ForceRestart" || resetType == "PowerCycle" {
+		} else if resetType == "ForceRestart" || resetType == "PowerCycle" || resetType == "Nmi" {
 			d.SetNew("power_state", "Reset_On")
 		}
 		// Note - if they select PushPowerButton then this function does nothing because we don't know what the value
@@ -82,24 +89,37 @@ func getResourceRedfishPowerSchema() map[string]*schema.Schema {
 			Type:     schema.TypeString,
 			Required: true,
 			Description: "Desired power setting. Applicable values 'On','ForceOn','ForceOff','ForceRestart'," +
-				"'GracefulRestart','GracefulShutdown','PowerCycle'",
+				"'GracefulRestart','GracefulShutdown','PowerCycle', 'PushPowerButton', 'Nmi'",
+			ValidateFunc: validation.StringInSlice([]string{
+				string(redfish.OnResetType),
+				string(redfish.ForceOnResetType),
+				string(redfish.ForceOffResetType),
+				string(redfish.ForceRestartResetType),
+				string(redfish.GracefulRestartResetType),
+				string(redfish.GracefulShutdownResetType),
+				string(redfish.PushPowerButtonResetType),
+				string(redfish.PowerCycleResetType),
+				string(redfish.NmiResetType),
+			}, false),
 		},
 		"maximum_wait_time": {
 			Type:     schema.TypeInt,
-			Required: true,
+			Optional: true,
 			Description: "The maximum amount of time to wait for the server to enter the correct power state before" +
 				"giving up in seconds",
+			Default: defaultMaximumPowerConfigServerTimeout,
 		},
 		"check_interval": {
 			Type:        schema.TypeInt,
-			Required:    true,
+			Optional:    true,
 			Description: "The frequency with which to check the server's power state in seconds",
+			Default:     intervalPowerConfigJobCheckTime,
 		},
 		"power_state": {
 			Type:     schema.TypeString,
 			Computed: true,
 			Description: "Desired power setting. Applicable values 'On','ForceOn','ForceOff','ForceRestart'," +
-				"'GracefulRestart','GracefulShutdown','PowerCycle'.",
+				"'GracefulRestart','GracefulShutdown','PowerCycle', 'PushPowerButton', 'Nmi'.",
 		},
 	}
 }
@@ -168,9 +188,13 @@ func resourceRedfishPowerUpdate(ctx context.Context, d *schema.ResourceData, m i
 
 	d.SetId(system.SerialNumber + "_power")
 
-	powerState, diags := PowerOperation(resetType.(string), d.Get("maximum_wait_time").(int), d.Get("check_interval").(int), service)
+	maxTimeout := d.Get("maximum_wait_time")
 
-	if (resetType == "ForceRestart" || resetType == "GracefulRestart" || resetType == "PowerCycle") && powerState == "On" {
+	checkInterval := d.Get("check_interval")
+
+	powerState, diags := PowerOperation(resetType.(string), maxTimeout.(int), checkInterval.(int), service)
+
+	if (resetType == "ForceRestart" || resetType == "GracefulRestart" || resetType == "PowerCycle" || resetType == "Nmi") && powerState == "On" {
 		powerState = "Reset_On"
 	}
 
