@@ -2,12 +2,12 @@ package redfish
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/stmcginnis/gofish/redfish"
 	"log"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"time"
 )
 
 func resourceRedFishPower() *schema.Resource {
@@ -193,6 +193,9 @@ func resourceRedfishPowerUpdate(ctx context.Context, d *schema.ResourceData, m i
 	checkInterval := d.Get("check_interval")
 
 	powerState, diags := PowerOperation(resetType.(string), maxTimeout.(int), checkInterval.(int), service)
+
+	// time to allow changes to get reflected
+	time.Sleep(10 * time.Second)
 
 	if (resetType == "ForceRestart" || resetType == "GracefulRestart" || resetType == "PowerCycle" || resetType == "Nmi") && powerState == "On" {
 		powerState = "Reset_On"
