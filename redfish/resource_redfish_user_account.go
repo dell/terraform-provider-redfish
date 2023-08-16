@@ -272,7 +272,7 @@ func deleteRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) d
 	payload := make(map[string]interface{})
 	payload["Enable"] = "false"
 	payload["RoleId"] = "None"
-  res, err := service.GetClient().Patch(account.ODataID, payload)
+	res, err := service.GetClient().Patch(account.ODataID, payload)
 	if err != nil {
 		return diag.Errorf("Error when contacting the redfish API %v", err)
 	}
@@ -283,7 +283,7 @@ func deleteRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) d
 	// second PATCH call to remove username.
 	payload = make(map[string]interface{})
 	payload["UserName"] = ""
-	res, err = service.Client.Patch(account.ODataID, payload)
+	res, err = service.GetClient().Patch(account.ODataID, payload)
 	if err != nil {
 		return diag.Errorf("Error when contacting the redfish API %v", err)
 	}
