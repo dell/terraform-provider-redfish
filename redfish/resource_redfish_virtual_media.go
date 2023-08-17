@@ -203,6 +203,7 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 				}
 
 				d.SetId(virtualMedia.ODataID)
+				diags = readRedfishVirtualMedia(service, d)
 				return diags
 			}
 		}
@@ -237,6 +238,7 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 			}
 
 			d.SetId(virtualMedia.ODataID)
+			diags = readRedfishVirtualMedia(service, d)
 			return diags
 		}
 	}
@@ -290,25 +292,25 @@ func readRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) di
 	}
 
 	if virtualMedia.Image != image {
-		d.Set("image", image)
+		d.Set("image", virtualMedia.Image)
 	}
 	if virtualMedia.UserName != username {
-		d.Set("username", username)
+		d.Set("username", virtualMedia.UserName)
 	}
 	if virtualMedia.Password != password {
-		d.Set("password", password)
+		d.Set("password", virtualMedia.Password)
 	}
 	if string(virtualMedia.TransferMethod) != transferMethod {
-		d.Set("transfer_method", transferMethod)
+		d.Set("transfer_method", virtualMedia.TransferMethod)
 	}
 	if string(virtualMedia.TransferProtocolType) != transferProtocolType {
-		d.Set("transfer_protocol_type", transferProtocolType)
+		d.Set("transfer_protocol_type", virtualMedia.TransferProtocolType)
 	}
 	if virtualMedia.Inserted != inserted {
-		d.Set("inserted", inserted)
+		d.Set("inserted", virtualMedia.Inserted)
 	}
 	if virtualMedia.WriteProtected != writeProtected {
-		d.Set("write_protected", writeProtected)
+		d.Set("write_protected", virtualMedia.WriteProtected)
 	}
 
 	return diags
@@ -379,6 +381,7 @@ func updateRedfishVirtualMedia(ctx context.Context, service *gofish.Service, d *
 		return diag.Errorf("Couldn't mount Virtual Media: %s", err)
 	}
 
+	diags = readRedfishVirtualMedia(service, d)
 	return diags
 }
 
