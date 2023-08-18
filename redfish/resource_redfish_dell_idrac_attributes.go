@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/dell/terraform-provider-redfish/gofish/dell"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -163,6 +164,7 @@ func updateRedfishDellIdracAttributes(ctx context.Context, service *gofish.Servi
 	response.Body.Close()
 
 	d.SetId(idracAttributes.ODataID)
+	readRedfishDellIdracAttributes(ctx, service, d, m)
 
 	return diags
 }
@@ -244,7 +246,7 @@ func getManagerAttributeRegistry(service *gofish.Service) (*dell.ManagerAttribut
 
 func getIdracAttributes(attributes []*dell.DellAttributes) (*dell.DellAttributes, error) {
 	for _, a := range attributes {
-		if a.ID == "iDRAC.Embedded.1" {
+		if strings.Contains(a.ID, "iDRAC") {
 			return a, nil
 		}
 	}
