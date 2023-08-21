@@ -118,12 +118,21 @@ func PowerOperation(resetType string, maximumWaitTime int, checkInterval int, se
 		}
 	}
 
-	if resetType == "ForceRestart" || resetType == "GracefulRestart" || resetType == "PowerCycle" {
+	if resetType == "ForceRestart" || resetType == "GracefulRestart" || resetType == "PowerCycle" || resetType == "Nmi" {
 		// If someone asks for a reset while the server is off, change the reset type to on instead
 		if system.PowerState == "Off" {
 			resetType = "On"
 		}
 		targetPowerState = "On"
+	}
+
+	if resetType == "PushPowerButton" {
+		// In case of Push Power button toggle the current state
+		if system.PowerState == "Off" {
+			targetPowerState = "On"
+		} else {
+			targetPowerState = "Off"
+		}
 	}
 
 	// Run the power operation against the target server
