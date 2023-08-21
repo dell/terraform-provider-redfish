@@ -4,12 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
-	"net/url"
-	"path"
-	"strconv"
-	"strings"
-
 	"github.com/dell/terraform-provider-redfish/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -17,6 +11,12 @@ import (
 	"github.com/stmcginnis/gofish"
 	redfishcommon "github.com/stmcginnis/gofish/common"
 	"github.com/stmcginnis/gofish/redfish"
+	"log"
+	"net/url"
+	"path"
+	"strconv"
+	"strings"
+	"time"
 )
 
 const (
@@ -221,7 +221,7 @@ func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) 
 		if err != nil {
 			return diag.Errorf("Error waiting for Bios config monitor task (%s) to be completed: %s", biosTaskURI, err)
 		}
-
+		time.Sleep(30 * time.Second)
 	} else {
 		log.Printf("[DEBUG] BIOS attributes are already set")
 	}
