@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
 )
@@ -61,7 +62,7 @@ func getResourceRedfishVirtualMediaSchema() map[string]*schema.Schema {
 		"inserted": {
 			Type:        schema.TypeBool,
 			Description: "The URI of the remote media to attach to the virtual media",
-			Optional:    true,
+			Computed:    true,
 		},
 		"username": {
 			Type:        schema.TypeString,
@@ -75,18 +76,36 @@ func getResourceRedfishVirtualMediaSchema() map[string]*schema.Schema {
 		},
 		"transfer_method": {
 			Type:        schema.TypeString,
-			Description: "",
+			Description: "Indicates how the data is transferred",
 			Optional:    true,
+			Computed:    true,
+			ValidateFunc: validation.StringInSlice([]string{
+				string(redfish.StreamTransferMethod),
+				string(redfish.UploadTransferMethod),
+			}, false),
 		},
 		"transfer_protocol_type": {
 			Type:        schema.TypeString,
-			Description: "",
+			Description: "The protocol used to transfer.",
 			Optional:    true,
+			Computed:    true,
+			ValidateFunc: validation.StringInSlice([]string{
+				string(redfish.CIFSTransferProtocolType),
+				string(redfish.FTPTransferProtocolType),
+				string(redfish.SFTPTransferProtocolType),
+				string(redfish.HTTPTransferProtocolType),
+				string(redfish.HTTPSTransferProtocolType),
+				string(redfish.NFSTransferProtocolType),
+				string(redfish.SCPTransferProtocolType),
+				string(redfish.TFTPTransferProtocolType),
+				string(redfish.OEMTransferProtocolType),
+			}, false),
 		},
 		"write_protected": {
 			Type:        schema.TypeBool,
-			Description: "",
+			Description: "Indicates whether the remote device media prevents writing to that media.",
 			Optional:    true,
+			Computed:    true,
 		},
 	}
 }
@@ -147,6 +166,9 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 	var transferMethod string
 	if v, ok := d.GetOk("transfer_method"); ok {
 		transferMethod = v.(string)
+	}
+	if transferMethod == "Upload" {
+		return diag.Errorf("Unable to Process the request because the value entered for the parameter TransferMethod is not supported by the implementation.")
 	}
 	var transferProtocolType string
 	if v, ok := d.GetOk("transfer_protocol_type"); ok {
@@ -281,14 +303,10 @@ func readRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) di
 	var inserted bool
 	if v, ok := d.GetOkExists("inserted"); ok {
 		inserted = v.(bool)
-	} else {
-		inserted = true //If inserted is not set, set it to true
 	}
 	var writeProtected bool
 	if v, ok := d.GetOkExists("write_protected"); ok {
 		writeProtected = v.(bool)
-	} else {
-		writeProtected = true //If write_protected is not set, set it to true
 	}
 
 	if virtualMedia.Image != image {
@@ -349,6 +367,9 @@ func updateRedfishVirtualMedia(ctx context.Context, service *gofish.Service, d *
 	if v, ok := d.GetOk("transfer_method"); ok {
 		transferMethod = v.(string)
 	}
+	if transferMethod == "Upload" {
+		return diag.Errorf("Unable to Process the request because the value entered for the parameter TransferMethod is not supported by the implementation.")
+	}
 	var transferProtocolType string
 	if v, ok := d.GetOk("transfer_protocol_type"); ok {
 		transferProtocolType = v.(string)
@@ -381,7 +402,6 @@ func updateRedfishVirtualMedia(ctx context.Context, service *gofish.Service, d *
 		return diag.Errorf("Couldn't mount Virtual Media: %s", err)
 	}
 
-	diags = readRedfishVirtualMedia(service, d)
 	return diags
 }
 
