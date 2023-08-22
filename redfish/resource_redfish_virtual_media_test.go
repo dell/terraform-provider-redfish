@@ -19,7 +19,6 @@ func TestAccRedfishVirtualMedia_basic(t *testing.T) {
 					"virtual_media",
 					"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img",
 					true,
-					true,
 					"HTTP",
 					"Stream"),
 				Check: resource.ComposeTestCheckFunc(
@@ -43,7 +42,6 @@ func TestAccRedfishVirtualMediaInvalid_basic(t *testing.T) {
 					"virtual_media",
 					"http://linuxlib.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img",
 					true,
-					true,
 					"HTTP",
 					"Stream"),
 				ExpectError: regexp.MustCompile("Unable to locate the ISO or IMG image file or folder"),
@@ -63,7 +61,6 @@ func TestAccRedfishVirtualMediaNoMediaNegative_basic(t *testing.T) {
 					"virtual_media1",
 					"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/iso/RHEL-8.8.0-20230411.3-x86_64-boot.iso",
 					true,
-					true,
 					"HTTP",
 					"Stream") +
 					testAccRedfishResourceVirtualMediaConfig(
@@ -71,14 +68,12 @@ func TestAccRedfishVirtualMediaNoMediaNegative_basic(t *testing.T) {
 						"virtual_media2",
 						"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img",
 						true,
-						true,
 						"HTTP",
 						"Stream") +
 					testAccRedfishResourceVirtualMediaConfig(
 						creds,
 						"virtual_media3",
 						"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img",
-						true,
 						true,
 						"HTTP",
 						"Stream"),
@@ -94,11 +89,10 @@ func TestAccRedfishVirtualMediaServer2_basic(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRedfishResourceVirtualMediaConfigServer(
+				Config: testAccRedfishResourceVirtualMediaConfigServer5x(
 					creds,
 					"virtual_media",
 					"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img",
-					true,
 					true,
 					"HTTP",
 					"Stream"),
@@ -122,7 +116,6 @@ func TestAccRedfishVirtualMediaUpdate_basic(t *testing.T) {
 					"virtual_media",
 					"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img",
 					true,
-					true,
 					"HTTP",
 					"Stream"),
 				Check: resource.ComposeTestCheckFunc(
@@ -135,7 +128,6 @@ func TestAccRedfishVirtualMediaUpdate_basic(t *testing.T) {
 					creds,
 					"virtual_media",
 					"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/iso/RHEL-8.8.0-20230411.3-x86_64-boot.iso",
-					true,
 					true,
 					"HTTP",
 					"Stream"),
@@ -151,7 +143,6 @@ func TestAccRedfishVirtualMediaUpdate_basic(t *testing.T) {
 func testAccRedfishResourceVirtualMediaConfig(testingInfo TestingServerCredentials,
 	resource_name string,
 	image string,
-	inserted bool,
 	write_protected bool,
 	transfer_protocol_type string,
 	transfer_method string) string {
@@ -166,7 +157,6 @@ func testAccRedfishResourceVirtualMediaConfig(testingInfo TestingServerCredentia
 			ssl_insecure = true
 		  }
 		  image = "%s"
-		  inserted = %t
 		  write_protected = %t
 		  transfer_protocol_type = "%s"
 		  transfer_method = "%s"
@@ -177,17 +167,15 @@ func testAccRedfishResourceVirtualMediaConfig(testingInfo TestingServerCredentia
 		testingInfo.Password,
 		testingInfo.Endpoint,
 		image,
-		inserted,
 		write_protected,
 		transfer_protocol_type,
 		transfer_method,
 	)
 }
 
-func testAccRedfishResourceVirtualMediaConfigServer(testingInfo TestingServerCredentials,
+func testAccRedfishResourceVirtualMediaConfigServer5x(testingInfo TestingServerCredentials,
 	resource_name string,
 	image string,
-	inserted bool,
 	write_protected bool,
 	transfer_protocol_type string,
 	transfer_method string) string {
@@ -202,7 +190,6 @@ func testAccRedfishResourceVirtualMediaConfigServer(testingInfo TestingServerCre
 			ssl_insecure = true
 		  }
 		  image = "%s"
-		  inserted = %t
 		  write_protected = %t
 		  transfer_protocol_type = "%s"
 		  transfer_method = "%s"
@@ -213,7 +200,6 @@ func testAccRedfishResourceVirtualMediaConfigServer(testingInfo TestingServerCre
 		testingInfo.Password,
 		testingInfo.Endpoint2,
 		image,
-		inserted,
 		write_protected,
 		transfer_protocol_type,
 		transfer_method,
