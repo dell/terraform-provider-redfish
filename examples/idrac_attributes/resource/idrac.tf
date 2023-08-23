@@ -2,7 +2,7 @@ terraform {
   required_providers {
     redfish = {
       version = "~> 0.2.0"
-      source  = "dell.com/dell/redfish"
+      source  = "registry.terraform.io/dell/redfish"
     }
   }
 }
@@ -20,10 +20,12 @@ resource "redfish_dell_idrac_attributes" "idrac" {
   }
 
   attributes = {
-    "Users.3.Enable"                      = "Disabled"
-    "Users.3.UserName"                    = "mike"
-    "Users.3.Password"                    = "test1234"
-    "Users.3.Privilege"                   = 511
-    "TelemetryFanSensor.1.ReportInterval" = 60
+    "Users.3.Enable"                         = "Disabled"
+    "Users.3.UserName"                       = "mike"
+    "Users.3.Password"                       = "test1234"
+    "Users.3.Privilege"                      = 511
+    "Redfish.1.NumericDynamicSegmentsEnable" = "Disabled"
+    "SysLog.1.PowerLogInterval"              = "5"
+    "Time.1.Timezone"                        = "CST6CDT"
   }
 }
