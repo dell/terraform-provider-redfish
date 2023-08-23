@@ -206,5 +206,5 @@ func DellManager(manager *redfish.Manager) (*Manager, error) {
 
 // DellAttributes return an slice with all configurable dell attributes
 func (m *Manager) DellAttributes() ([]*DellAttributes, error) {
-	return ListReferenceDellAttributes(m.Client, m.links.DellAttributes)
+	return ListReferenceDellAttributes(m.GetClient(), m.links.DellAttributes)
 }

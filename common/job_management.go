@@ -2,10 +2,11 @@ package common
 
 import (
 	"fmt"
-	"github.com/stmcginnis/gofish"
-	"github.com/stmcginnis/gofish/redfish"
 	"log"
 	"time"
+
+	"github.com/stmcginnis/gofish"
+	"github.com/stmcginnis/gofish/redfish"
 )
 
 const (
@@ -28,7 +29,7 @@ func WaitForJobToFinish(service *gofish.Service, jobURI string, timeBetweenAttem
 		select {
 		case <-attemptTick.C:
 			//For some reason iDRAC 4.40.00.0 from time to time gives the following error: iDRAC is not ready. The configuration values cannot be accessed. Please retry after a few minutes.
-			job, err := redfish.GetTask(service.Client, jobURI)
+			job, err := redfish.GetTask(service.GetClient(), jobURI)
 			if err == nil {
 				log.Printf("[DEBUG] - Attempting one more time... Job state is %s\n", job.TaskState)
 				//Check if job has finished
@@ -55,7 +56,7 @@ func WaitForJobToFinish(service *gofish.Service, jobURI string, timeBetweenAttem
 //	- taskID: Id of the tasks to delete
 func DeleteDellJob(service *gofish.Service, taskID string) error {
 	url := "/redfish/v1/Managers/iDRAC.Embedded.1/Jobs/"
-	resp, err := service.Client.Delete(fmt.Sprintf("%s%s", url, taskID))
+	resp, err := service.GetClient().Delete(fmt.Sprintf("%s%s", url, taskID))
 	if err != nil {
 		return err
 	}
