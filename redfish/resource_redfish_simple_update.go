@@ -166,7 +166,7 @@ func readRedfishSimpleUpdate(service *gofish.Service, d *schema.ResourceData) di
 	var diags diag.Diagnostics
 
 	// Try to get software inventory
-	_, err := redfish.GetSoftwareInventory(service.Client, d.Id())
+	_, err := redfish.GetSoftwareInventory(service.GetClient(), d.Id())
 	if err != nil {
 		_, ok := err.(*redfishcommon.Error)
 		if !ok {
