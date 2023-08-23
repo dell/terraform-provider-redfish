@@ -71,8 +71,8 @@ func getResourceRedfishSimpleUpdateSchema() map[string]*schema.Schema {
 			Required: true,
 			Description: "The network protocol that the Update Service uses to retrieve the software image file located at the URI provided " +
 				"in ImageURI, if the URI does not contain a scheme." +
-				"Accepted values: CIFS, FTP, SFTP, HTTP, HTTPS, NSF, SCP, TFTP, OEM, NFS" +
-				"Currently only HTTP is supported with local file path or http web link",
+				" Accepted values: CIFS, FTP, SFTP, HTTP, HTTPS, NSF, SCP, TFTP, OEM, NFS." +
+				" Currently only HTTP is supported with local file path or http web link.",
 		},
 		/* For the time being, target_firmware_image will be the local path for our firmware packages.
 		   It is intended to work along HTTP transfer protocol
