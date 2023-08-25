@@ -235,20 +235,20 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 			payload["ImageURI"] = imagePath
 			payload["TransferProtocol"] = protocol
 
-			_, err = service.Client.Post(httpURI, payload)
+			_, err = service.GetClient().Post(httpURI, payload)
 			if err != nil {
 				// Delete uploaded package - TBD
 				return diag.Errorf("there was an issue when scheduling the update job - %s", err)
 			}
 
-			swInventory, err := redfish.GetSoftwareInventory(service.Client, d.Id())
+			swInventory, err := redfish.GetSoftwareInventory(service.GetClient(), d.Id())
 			if err != nil {
 				return diag.Errorf("unable to fetch data %v", err)
 			}
 			d.SetId(swInventory.ODataID)
 		} else {
 			// Get ETag from FW inventory
-			response, err := service.Client.Get(updateService.FirmwareInventory)
+			response, err := service.GetClient().Get(updateService.FirmwareInventory)
 			if err != nil {
 				diag.Errorf("error while retrieving Etag from FirmwareInventory")
 			}
@@ -273,7 +273,7 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 			}
 
 			// Upload FW Package to FW inventory
-			response, err = service.Client.PostMultipartWithHeaders(updateService.HTTPPushURI, payload, customHeaders)
+			response, err = service.GetClient().PostMultipartWithHeaders(updateService.HTTPPushURI, payload, customHeaders)
 			if err != nil {
 				return diag.Errorf("there was an issue when uploading FW package to redfish - %s", err)
 			}
@@ -281,7 +281,7 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 			packageLocation := response.Header.Get("Location")
 
 			// Get package information ( SoftwareID - Version )
-			packageInformation, err := redfish.GetSoftwareInventory(service.Client, packageLocation)
+			packageInformation, err := redfish.GetSoftwareInventory(service.GetClient(), packageLocation)
 			if err != nil {
 				return diag.Errorf("there was an issue when retrieving uploaded package information - %s", err)
 			}
@@ -293,7 +293,7 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 				ImageURI: packageLocation,
 			}
 			// Do the POST call against Simple.Update service
-			response, err = service.Client.Post(updateService.UpdateServiceTarget, triggerUpdatePayload)
+			response, err = service.GetClient().Post(updateService.UpdateServiceTarget, triggerUpdatePayload)
 			if err != nil {
 				// Delete uploaded package - TBD
 				return diag.Errorf("there was an issue when scheduling the update job - %s", err)
