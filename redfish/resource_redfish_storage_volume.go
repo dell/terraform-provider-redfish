@@ -69,7 +69,7 @@ func getResourceRedfishStorageVolumeSchema() map[string]*schema.Schema {
 		},
 		"volume_name": {
 			Type:        schema.TypeString,
-			Required:    true,
+			Optional:    true,
 			Description: "This value is the desired name for the volume to be given",
 		},
 		"volume_type": {
@@ -77,7 +77,6 @@ func getResourceRedfishStorageVolumeSchema() map[string]*schema.Schema {
 			Required:    true,
 			Description: "This value specifies the raid level the virtual disk is going to have. Possible values are: NonRedundant (RAID-0), Mirrored (RAID-1), StripedWithParity (RAID-5), SpannedMirrors (RAID-10) or SpannedStripesWithParity (RAID-50)",
 			ValidateFunc: validation.StringInSlice([]string{
-				// string(redfish.RawDeviceVolumeType),
 				string(redfish.NonRedundantVolumeType),
 				string(redfish.MirroredVolumeType),
 				string(redfish.StripedWithParityVolumeType),
@@ -123,6 +122,45 @@ func getResourceRedfishStorageVolumeSchema() map[string]*schema.Schema {
 			Optional: true,
 			Description: "volume_job_timeout is the time in seconds that the provider waits for the volume job to be completed before timing out." +
 				"Default is 1200s",
+		},
+		"capacity_bytes": {
+			Type:        schema.TypeInt,
+			Optional:    true,
+			Description: "capacity_bytes shall contain the size in bytes of the associated volume.",
+		},
+		"optimum_io_size_bytes": {
+			Type:        schema.TypeInt,
+			Optional:    true,
+			Description: "optimum_io_size_bytes shall contain the optimum IO size to use when performing IO on this volume.",
+		},
+		"read_cache_policy": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "read_cache_policy shall contain a boolean indicator of the read cache policy for the Volume.",
+			ValidateFunc: validation.StringInSlice([]string{
+				string(redfish.ReadAheadReadCachePolicyType),
+				string(redfish.AdaptiveReadAheadReadCachePolicyType),
+				string(redfish.OffReadCachePolicyType),
+			}, false),
+		},
+		"write_cache_policy": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "write_cache_policy shall contain a boolean indicator of the write cache policy for the Volume.",
+			ValidateFunc: validation.StringInSlice([]string{
+				string(redfish.WriteThroughWriteCachePolicyType),
+				string(redfish.ProtectedWriteBackWriteCachePolicyType),
+				string(redfish.UnprotectedWriteBackWriteCachePolicyType),
+			}, false),
+		},
+		"disk_cache_policy": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "disk_cache_policy shall contain a boolean indicator of the disk cache policy for the Volume.",
+			ValidateFunc: validation.StringInSlice([]string{
+				"Enabled",
+				"Disabled",
+			}, false),
 		},
 	}
 }
@@ -173,7 +211,21 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 	storageID := d.Get("storage_controller_id").(string)
 	volumeType := d.Get("volume_type").(string)
 	volumeName := d.Get("volume_name").(string)
+	optimumIOSizeBytes := d.Get("optimum_io_size_bytes").(int)
+	capacityBytes := d.Get("capacity_bytes").(int)
+	readCachePolicy, ok := d.GetOk("read_cache_policy")
 	driveNamesRaw := d.Get("drives").([]interface{})
+	if !ok {
+		readCachePolicy = string(redfish.OffReadCachePolicyType)
+	}
+	writeCachePolicy, ok := d.GetOk("write_cache_policy")
+	if !ok {
+		writeCachePolicy = string(redfish.UnprotectedWriteBackWriteCachePolicyType)
+	}
+	diskCachePolicy, ok := d.GetOk("disk_cache_policy")
+	if !ok {
+		diskCachePolicy = "Enabled"
+	}
 	applyTime, ok := d.GetOk("settings_apply_time")
 	if !ok {
 		// If settingsApplyTime has not set, by default use Immediate
@@ -227,7 +279,7 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 	}
 
 	// Create volume job
-	jobID, err := createVolume(service, storage.ODataID, volumeType, volumeName, drives, applyTime.(string))
+	jobID, err := createVolume(service, storage.ODataID, volumeType, volumeName, optimumIOSizeBytes, capacityBytes, readCachePolicy.(string), writeCachePolicy.(string), diskCachePolicy.(string), drives, applyTime.(string))
 	if err != nil {
 		return diag.Errorf("Error when creating the virtual disk on disk controller %s - %s", storageID, err)
 	}
@@ -271,6 +323,8 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 	}
 
 	d.SetId(volumeID)
+	diags = readRedfishStorageVolume(service, d)
+
 	return diags
 
 }
@@ -279,7 +333,7 @@ func readRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData) d
 	var diags diag.Diagnostics
 
 	//Check if the volume exists
-	_, err := redfish.GetVolume(service.Client, d.Id())
+	_, err := redfish.GetVolume(service.GetClient(), d.Id())
 	if err != nil {
 		e, ok := err.(*redfishcommon.Error)
 		if !ok {
@@ -303,9 +357,103 @@ func readRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData) d
 
 func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
-	/*
-		Since we are dealing with storage, better not to try to update anything
-	*/
+
+	// Lock the mutex to avoid race conditions with other resources
+	redfishMutexKV.Lock(getRedfishServerEndpoint(d))
+	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
+
+	// Get user config
+	storageID := d.Get("storage_controller_id").(string)
+	volumeName := d.Get("volume_name").(string)
+	driveNamesRaw := d.Get("drives").([]interface{})
+	readCachePolicy, ok := d.GetOk("read_cache_policy")
+	if !ok {
+		readCachePolicy = string(redfish.OffReadCachePolicyType)
+	}
+	writeCachePolicy := d.Get("write_cache_policy")
+	if !ok {
+		writeCachePolicy = string(redfish.UnprotectedWriteBackWriteCachePolicyType)
+	}
+	diskCachePolicy, ok := d.GetOk("disk_cache_policy")
+	if !ok {
+		diskCachePolicy = "Enabled"
+	}
+	applyTime, ok := d.GetOk("settings_apply_time")
+	if !ok {
+		// If settingsApplyTime has not set, by default use Immediate
+		applyTime = "Immediate"
+	}
+
+	// Convert from []interface{} to []string for using
+	driveNames := make([]string, len(driveNamesRaw))
+	for i, raw := range driveNamesRaw {
+		driveNames[i] = raw.(string)
+	}
+
+	volumeJobTimeout, ok := d.GetOk("volume_job_timeout")
+	if !ok {
+		volumeJobTimeout = defaultStorageVolumeJobTimeout
+	}
+
+	// Get storage
+	systems, err := service.Systems()
+	if err != nil {
+		return diag.Errorf("Error when retreiving the Systems from the Redfish API")
+	}
+
+	storageControllers, err := systems[0].Storage()
+	if err != nil {
+		return diag.Errorf("Error when retreiving the Storage from %v from the Redfish API", systems[0].Name)
+	}
+
+	storage, err := getStorageController(storageControllers, storageID)
+	if err != nil {
+		return diag.Errorf("Error when getting the storage struct: %s", err)
+	}
+
+	// Check if settings_apply_time is doable on this controller
+	operationApplyTimes, err := storage.GetOperationApplyTimeValues()
+	if err != nil {
+		return diag.Errorf("couldn't retrieve operationApplyTimes from %s controller", storage.Name)
+	}
+	if !checkOperationApplyTimes(applyTime.(string), operationApplyTimes) {
+		return diag.Errorf("Storage controller %s does not support settings_apply_time: %s", storageID, applyTime)
+	}
+
+	// Update volume job
+	jobID, err := updateVolume(service, d.Id(), readCachePolicy.(string), writeCachePolicy.(string), volumeName, diskCachePolicy.(string), applyTime.(string))
+	if err != nil {
+		return diag.Errorf("Error when updating the virtual disk on disk controller %s - %s", storageID, err)
+	}
+
+	// Immediate or OnReset scenarios
+	switch applyTime.(string) {
+	case string(redfishcommon.OnResetApplyTime): // OnReset case
+		// Get reset_timeout and reset_type from schema
+		resetType, ok := d.GetOk("reset_type")
+		if !ok {
+			resetType = string(redfish.ForceRestartResetType)
+		}
+		resetTimeout, ok := d.GetOk("reset_timeout")
+		if !ok {
+			resetTimeout = defaultStorageVolumeResetTimeout
+		}
+
+		// Reboot the server
+		_, diags := PowerOperation(resetType.(string), resetTimeout.(int), intervalSimpleUpdateJobCheckTime, service)
+		if diags.HasError() {
+			// Handle this scenario - TBD
+			return diag.Errorf("there was an issue when restarting the server")
+		}
+
+	}
+
+	// Wait for the job to finish
+	err = common.WaitForJobToFinish(service, jobID, intervalStorageVolumeJobCheckTime, volumeJobTimeout.(int))
+	if err != nil {
+		return diag.Errorf("Error, job %s wasn't able to complete: %s", jobID, err)
+	}
+
 	return diags
 }
 
@@ -372,7 +520,7 @@ func getStorageController(storageControllers []*redfish.Storage, diskControllerI
 
 func deleteVolume(service *gofish.Service, volumeURI string) (jobID string, err error) {
 	//TODO - Check if we can delete immediately or if we need to schedule a job
-	res, err := service.Client.Delete(volumeURI)
+	res, err := service.GetClient().Delete(volumeURI)
 	if err != nil {
 		return "", fmt.Errorf("error while deleting the volume %s", volumeURI)
 	}
@@ -404,31 +552,34 @@ func getDrives(drives []*redfish.Drive, driveNames []string) ([]*redfish.Drive, 
 
 /*
 createVolume creates a virtualdisk on a disk controller by using the redfish API
-Parameters:
-
-	c -> client API
-	service -> Service struct from gofish
-	storageLink -> ODataID of the storage object (i.e. /redfish/v1/.../RAID.Integrated.1-1)
-	volumeType -> raid mode to apply to that set of disks
-		Modes:
-			- RAID-0 -> "NonRedundant"
-			- RAID-1 -> "Mirrored"
-			- RAID-5 -> "StripedWithParity"
-			- RAID-10 -> "SpannedMirrors"
-			- RAID-50 -> "SpannedStripesWithParity"
-	volumeName -> Name for the volume
-	driveNames -> Drives to use for the raid configuration
 */
 func createVolume(service *gofish.Service,
 	storageLink string,
 	volumeType string,
 	volumeName string,
+	optimumIOSizeBytes int,
+	capacityBytes int,
+	readCachePolicy string,
+	writeCachePolicy string,
+	diskCachePolicy string,
 	drives []*redfish.Drive,
 	applyTime string) (jobID string, err error) {
 
 	newVolume := make(map[string]interface{})
 	newVolume["VolumeType"] = volumeType
+	newVolume["DisplayName"] = volumeName
 	newVolume["Name"] = volumeName
+	newVolume["ReadCachePolicy"] = readCachePolicy
+	newVolume["WriteCachePolicy"] = writeCachePolicy
+	newVolume["CapacityBytes"] = capacityBytes
+	newVolume["OptimumIOSizeBytes"] = optimumIOSizeBytes
+	newVolume["Oem"] = map[string]map[string]map[string]interface{}{
+		"Dell": {
+			"DellVolume": {
+				"DiskCachePolicy": diskCachePolicy,
+			},
+		},
+	}
 	newVolume["@Redfish.OperationApplyTime"] = applyTime
 	var listDrives []map[string]string
 	for _, drive := range drives {
@@ -438,7 +589,48 @@ func createVolume(service *gofish.Service,
 	}
 	newVolume["Drives"] = listDrives
 	volumesURL := fmt.Sprintf("%v/Volumes", storageLink)
-	res, err := service.Client.Post(volumesURL, newVolume)
+
+	res, err := service.GetClient().Post(volumesURL, newVolume)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusAccepted {
+		return "", fmt.Errorf("the query was unsucessfull")
+	}
+	jobID = res.Header.Get("Location")
+	if len(jobID) == 0 {
+		return "", fmt.Errorf("there was some error when retreiving the jobID")
+	}
+	return jobID, nil
+}
+
+func updateVolume(service *gofish.Service,
+	storageLink string,
+	readCachePolicy string,
+	writeCachePolicy string,
+	volumeName string,
+	diskCachePolicy string,
+	applyTime string) (jobID string, err error) {
+
+	payload := make(map[string]interface{})
+	payload["ReadCachePolicy"] = readCachePolicy
+	payload["WriteCachePolicy"] = writeCachePolicy
+	payload["DisplayName"] = volumeName
+	payload["Oem"] = map[string]map[string]map[string]interface{}{
+		"Dell": {
+			"DellVolume": {
+				"DiskCachePolicy": diskCachePolicy,
+			},
+		},
+	}
+	payload["Name"] = volumeName
+	payload["@Redfish.SettingsApplyTime"] = map[string]interface{}{
+		"ApplyTime": applyTime,
+	}
+	volumesURL := fmt.Sprintf("%v/Settings", storageLink)
+
+	res, err := service.GetClient().Patch(volumesURL, payload)
 	if err != nil {
 		return "", err
 	}
