@@ -3,6 +3,8 @@ package redfish
 import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"os"
+	"regexp"
 	"testing"
 )
 
@@ -35,6 +37,26 @@ func TestAccRedfishPower_basic(t *testing.T) {
 			{
 				Config: testAccRedfishResourcePowerConfig(
 					creds,
+					"GracefulShutdown",
+					120,
+					10),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_power.system_power", "power_state", "Off"),
+				),
+			},
+			{
+				Config: testAccRedfishResourcePowerConfig(
+					creds,
+					"On",
+					120,
+					10),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_power.system_power", "power_state", "On"),
+				),
+			},
+			{
+				Config: testAccRedfishResourcePowerConfig(
+					creds,
 					"ForceOff",
 					120,
 					10),
@@ -56,16 +78,6 @@ func TestAccRedfishPower_basic(t *testing.T) {
 			{
 				Config: testAccRedfishResourcePowerConfig(
 					creds,
-					"GracefulShutdown",
-					120,
-					10),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_power.system_power", "power_state", "Off"),
-				),
-			},
-			{
-				Config: testAccRedfishResourcePowerConfig(
-					creds,
 					"PowerCycle",
 					120,
 					10),
@@ -74,10 +86,39 @@ func TestAccRedfishPower_basic(t *testing.T) {
 				),
 				ExpectNonEmptyPlan: true,
 			},
+			{
+				Config: testAccRedfishResourcePowerConfig(
+					creds,
+					"PushPowerButton",
+					120,
+					10),
+			},
+			{
+				Config: testAccRedfishResourcePowerConfig(
+					creds,
+					"PushPowerButton",
+					120,
+					10),
+			},
 		},
 	})
 }
 
+// redfish.Power represents a concrete Go type that represents an API resource
+func TestAccRedfishPower_Invalid(t *testing.T) {
+	os.Setenv("TF_ACC", "1")
+	resource.Test(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourcePowerConfig1(
+					creds,
+					"nil"),
+				ExpectError: regexp.MustCompile("expected desired_power_action to be one of"),
+			},
+		},
+	})
+}
 func testAccRedfishResourcePowerConfig(testingInfo TestingServerCredentials,
 	desiredPowerAction string,
 	maximumWaitTime int,
@@ -109,5 +150,33 @@ func testAccRedfishResourcePowerConfig(testingInfo TestingServerCredentials,
 		desiredPowerAction,
 		maximumWaitTime,
 		checkInterval,
+	)
+}
+
+func testAccRedfishResourcePowerConfig1(testingInfo TestingServerCredentials,
+	desiredPowerAction string) string {
+	return fmt.Sprintf(`
+
+		resource "redfish_power" "system_power" {
+
+		  redfish_server {
+			user = "%s"
+			password = "%s"
+			endpoint = "https://%s"
+			ssl_insecure = true
+		  }
+
+		  desired_power_action = "%s"
+		}
+
+		output "current_power_state" {
+		  value = redfish_power.system_power
+          sensitive = true
+		}
+		`,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+		desiredPowerAction,
 	)
 }
