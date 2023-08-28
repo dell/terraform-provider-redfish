@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/dell/terraform-provider-redfish/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -70,7 +71,8 @@ func getResourceRedfishSimpleUpdateSchema() map[string]*schema.Schema {
 			Required: true,
 			Description: "The network protocol that the Update Service uses to retrieve the software image file located at the URI provided " +
 				"in ImageURI, if the URI does not contain a scheme." +
-				"Accepted values: CIFS, FTP, SFTP, HTTP, HTTPS, NSF, SCP, TFTP, OEM, NFS",
+				" Accepted values: CIFS, FTP, SFTP, HTTP, HTTPS, NSF, SCP, TFTP, OEM, NFS." +
+				" Currently only HTTP is supported with local file path or http web link.",
 		},
 		/* For the time being, target_firmware_image will be the local path for our firmware packages.
 		   It is intended to work along HTTP transfer protocol
@@ -164,7 +166,7 @@ func readRedfishSimpleUpdate(service *gofish.Service, d *schema.ResourceData) di
 	var diags diag.Diagnostics
 
 	// Try to get software inventory
-	_, err := redfish.GetSoftwareInventory(service.Client, d.Id())
+	_, err := redfish.GetSoftwareInventory(service.GetClient(), d.Id())
 	if err != nil {
 		_, ok := err.(*redfishcommon.Error)
 		if !ok {
@@ -222,97 +224,117 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 		return diag.Errorf("%s. Supported transfer protocols in this implementation: %s", err, availableTransferProtocols) // !!!! append list of supported transfer protocols
 	}
 
-	switch transferProtocol {
-	case "HTTP":
-		// Get ETag from FW inventory
-		response, err := service.Client.Get(updateService.FirmwareInventory)
-		if err != nil {
-			diag.Errorf("error while retrieving Etag from FirmwareInventory")
-		}
-		response.Body.Close()
-		etag := response.Header.Get("ETag")
+	if transferProtocol == "HTTP" {
+		if strings.HasPrefix(targetFirmwareImage, "http") {
 
-		// Set custom headers
-		customHeaders := map[string]string{
-			"if-match": etag,
-		}
+			protocol := d.Get("transfer_protocol")
+			imagePath := d.Get("target_firmware_image")
+			httpURI := updateService.UpdateServiceTarget
 
-		// Open file to upload
-		file, err := openFile(targetFirmwareImage)
-		if err != nil {
-			return diag.Errorf("couldn't open FW file to upload - %s", err)
-		}
-		defer file.Close()
+			payload := make(map[string]interface{})
+			payload["ImageURI"] = imagePath
+			payload["TransferProtocol"] = protocol
 
-		// Set payload
-		payload := map[string]io.Reader{
-			"file": file,
-		}
+			_, err = service.GetClient().Post(httpURI, payload)
+			if err != nil {
+				// Delete uploaded package - TBD
+				return diag.Errorf("there was an issue when scheduling the update job - %s", err)
+			}
 
-		// Upload FW Package to FW inventory
-		response, err = service.Client.PostMultipartWithHeaders(updateService.HTTPPushURI, payload, customHeaders)
-		if err != nil {
-			return diag.Errorf("there was an issue when uploading FW package to redfish - %s", err)
-		}
-		response.Body.Close()
-		packageLocation := response.Header.Get("Location")
+			swInventory, err := redfish.GetSoftwareInventory(service.GetClient(), d.Id())
+			if err != nil {
+				return diag.Errorf("unable to fetch data %v", err)
+			}
+			d.SetId(swInventory.ODataID)
+		} else {
+			// Get ETag from FW inventory
+			response, err := service.GetClient().Get(updateService.FirmwareInventory)
+			if err != nil {
+				diag.Errorf("error while retrieving Etag from FirmwareInventory")
+			}
+			response.Body.Close()
+			etag := response.Header.Get("ETag")
 
-		// Get package information ( SoftwareID - Version )
-		packageInformation, err := redfish.GetSoftwareInventory(service.Client, packageLocation)
-		if err != nil {
-			return diag.Errorf("there was an issue when retrieving uploaded package information - %s", err)
-		}
+			// Set custom headers
+			customHeaders := map[string]string{
+				"if-match": etag,
+			}
 
-		// Set payload for POST call that'll trigger the update job scheduling
-		triggerUpdatePayload := struct {
-			ImageURI string
-		}{
-			ImageURI: packageLocation,
-		}
-		// Do the POST call agains Simple.Update service
-		response, err = service.Client.Post(updateService.UpdateServiceTarget, triggerUpdatePayload)
-		if err != nil {
-			// Delete uploaded package - TBD
-			return diag.Errorf("there was an issue when scheduling the update job - %s", err)
-		}
-		response.Body.Close()
-		// Get jobid
-		jobID := response.Header.Get("Location")
+			// Open file to upload
+			file, err := openFile(targetFirmwareImage)
+			if err != nil {
+				return diag.Errorf("couldn't open FW file to upload - %s", err)
+			}
+			defer file.Close()
 
-		// Reboot the server
-		_, diags := PowerOperation(resetType, resetTimeout.(int), intervalSimpleUpdateJobCheckTime, service)
-		if diags.HasError() {
-			// Delete uploaded package - TBD
-			return diag.Errorf("there was an issue when restarting the server")
-		}
+			// Set payload
+			payload := map[string]io.Reader{
+				"file": file,
+			}
 
-		// Check JID
-		err = common.WaitForJobToFinish(service, jobID, intervalSimpleUpdateJobCheckTime, simpleUpdateJobTimeout.(int))
-		if err != nil {
-			// Delete uploaded package - TBD
-			return diag.Errorf("there was an issue when waiting for the job to complete - %s", err)
-		}
+			// Upload FW Package to FW inventory
+			response, err = service.GetClient().PostMultipartWithHeaders(updateService.HTTPPushURI, payload, customHeaders)
+			if err != nil {
+				return diag.Errorf("there was an issue when uploading FW package to redfish - %s", err)
+			}
+			response.Body.Close()
+			packageLocation := response.Header.Get("Location")
 
-		// Get updated FW inventory
-		fwInventory, err := updateService.FirmwareInventories()
-		if err != nil {
-			// TBD - HOW TO HANDLE WHEN FAILS BUT FIRMWARE WAS INSTALLED?
-			return diag.Errorf("error when getting firmware inventory - %s", err)
-		}
+			// Get package information ( SoftwareID - Version )
+			packageInformation, err := redfish.GetSoftwareInventory(service.GetClient(), packageLocation)
+			if err != nil {
+				return diag.Errorf("there was an issue when retrieving uploaded package information - %s", err)
+			}
 
-		// Get fw ID
-		fwPackage, err := getFWfromInventory(fwInventory, packageInformation.SoftwareID, packageInformation.Version)
-		if err != nil {
-			// TBD - HOW TO HANDLE WHEN FAILS BUT FIRMWARE WAS INSTALLED?
-			return diag.Errorf("error when retrieving fw package from fw inventory - %s", err)
-		}
-		d.Set("software_id", fwPackage.SoftwareID)
-		d.Set("version", fwPackage.Version)
-		d.SetId(fwPackage.ODataID)
+			// Set payload for POST call that'll trigger the update job scheduling
+			triggerUpdatePayload := struct {
+				ImageURI string
+			}{
+				ImageURI: packageLocation,
+			}
+			// Do the POST call against Simple.Update service
+			response, err = service.GetClient().Post(updateService.UpdateServiceTarget, triggerUpdatePayload)
+			if err != nil {
+				// Delete uploaded package - TBD
+				return diag.Errorf("there was an issue when scheduling the update job - %s", err)
+			}
+			response.Body.Close()
+			// Get jobid
+			jobID := response.Header.Get("Location")
 
-	default:
+			// Reboot the server
+			_, diags := PowerOperation(resetType, resetTimeout.(int), intervalSimpleUpdateJobCheckTime, service)
+			if diags.HasError() {
+				// Delete uploaded package - TBD
+				return diag.Errorf("there was an issue when restarting the server")
+			}
+
+			// Check JID
+			err = common.WaitForJobToFinish(service, jobID, intervalSimpleUpdateJobCheckTime, simpleUpdateJobTimeout.(int))
+			if err != nil {
+				// Delete uploaded package - TBD
+				return diag.Errorf("there was an issue when waiting for the job to complete - %s", err)
+			}
+
+			// Get updated FW inventory
+			fwInventory, err := updateService.FirmwareInventories()
+			if err != nil {
+				// TBD - HOW TO HANDLE WHEN FAILS BUT FIRMWARE WAS INSTALLED?
+				return diag.Errorf("error when getting firmware inventory - %s", err)
+			}
+
+			// Get fw ID
+			fwPackage, err := getFWfromInventory(fwInventory, packageInformation.SoftwareID, packageInformation.Version)
+			if err != nil {
+				// TBD - HOW TO HANDLE WHEN FAILS BUT FIRMWARE WAS INSTALLED?
+				return diag.Errorf("error when retrieving fw package from fw inventory - %s", err)
+			}
+			d.Set("software_id", fwPackage.SoftwareID)
+			d.Set("version", fwPackage.Version)
+			d.SetId(fwPackage.ODataID)
+		}
+	} else {
 		return diag.Errorf("Transfer protocol not available in this implementation")
-
 	}
 
 	return diags

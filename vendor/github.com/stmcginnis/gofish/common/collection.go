@@ -12,8 +12,9 @@ import (
 
 // Collection represents a collection of entity references.
 type Collection struct {
-	Name      string `json:"Name"`
-	ItemLinks []string
+	Name            string `json:"Name"`
+	ItemLinks       []string
+	MembersNextLink string `json:"Members@odata.nextLink,omitempty"`
 }
 
 // UnmarshalJSON unmarshals a collection from the raw JSON.
@@ -102,18 +103,24 @@ func (cr *CollectionError) Error() string {
 
 // CollectList will retrieve a collection of entities from the Redfish service.
 func CollectList(get func(string), c Client, link string) error {
-	links, err := GetCollection(c, link)
+	collection, err := GetCollection(c, link)
 	if err != nil {
 		return err
 	}
 
-	CollectCollection(get, c, links.ItemLinks)
+	CollectCollection(get, collection.ItemLinks)
+	if collection.MembersNextLink != "" {
+		err := CollectList(get, c, collection.MembersNextLink)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 // CollectCollection will retrieve a collection of entitied from the Redfish service
 // when you already have the set of individual links in the collection.
-func CollectCollection(get func(string), c Client, links []string) {
+func CollectCollection(get func(string), links []string) {
 	// Only allow three concurrent requests to avoid overwhelming the service
 	limiter := make(chan struct{}, 3)
 	var wg sync.WaitGroup

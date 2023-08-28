@@ -3,12 +3,13 @@ package redfish
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
-	//"log"
 )
 
 func resourceRedfishVirtualMedia() *schema.Resource {
@@ -53,11 +54,6 @@ func getResourceRedfishVirtualMediaSchema() map[string]*schema.Schema {
 				},
 			},
 		},
-		"virtual_media_id": {
-			Type:        schema.TypeString,
-			Description: "ID from the virtual media to be used. I.E: RemovableDisk",
-			Required:    true,
-		},
 		"image": {
 			Type:        schema.TypeString,
 			Description: "The URI of the remote media to attach to the virtual media",
@@ -66,7 +62,7 @@ func getResourceRedfishVirtualMediaSchema() map[string]*schema.Schema {
 		"inserted": {
 			Type:        schema.TypeBool,
 			Description: "The URI of the remote media to attach to the virtual media",
-			Optional:    true,
+			Computed:    true,
 		},
 		"username": {
 			Type:        schema.TypeString,
@@ -80,18 +76,36 @@ func getResourceRedfishVirtualMediaSchema() map[string]*schema.Schema {
 		},
 		"transfer_method": {
 			Type:        schema.TypeString,
-			Description: "",
+			Description: "Indicates how the data is transferred",
 			Optional:    true,
+			Computed:    true,
+			ValidateFunc: validation.StringInSlice([]string{
+				string(redfish.StreamTransferMethod),
+				string(redfish.UploadTransferMethod),
+			}, false),
 		},
 		"transfer_protocol_type": {
 			Type:        schema.TypeString,
-			Description: "",
+			Description: "The protocol used to transfer.",
 			Optional:    true,
+			Computed:    true,
+			ValidateFunc: validation.StringInSlice([]string{
+				string(redfish.CIFSTransferProtocolType),
+				string(redfish.FTPTransferProtocolType),
+				string(redfish.SFTPTransferProtocolType),
+				string(redfish.HTTPTransferProtocolType),
+				string(redfish.HTTPSTransferProtocolType),
+				string(redfish.NFSTransferProtocolType),
+				string(redfish.SCPTransferProtocolType),
+				string(redfish.TFTPTransferProtocolType),
+				string(redfish.OEMTransferProtocolType),
+			}, false),
 		},
 		"write_protected": {
 			Type:        schema.TypeBool,
-			Description: "",
+			Description: "Indicates whether the remote device media prevents writing to that media.",
 			Optional:    true,
+			Computed:    true,
 		},
 	}
 }
@@ -139,7 +153,6 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
 
 	//Get terraform schema data
-	virtualMediaID := d.Get("virtual_media_id").(string)
 	image := d.Get("image").(string)
 
 	var username string
@@ -153,6 +166,9 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 	var transferMethod string
 	if v, ok := d.GetOk("transfer_method"); ok {
 		transferMethod = v.(string)
+	}
+	if transferMethod == "Upload" {
+		return diag.Errorf("Unable to Process the request because the value entered for the parameter TransferMethod is not supported by the implementation.")
 	}
 	var transferProtocolType string
 	if v, ok := d.GetOk("transfer_protocol_type"); ok {
@@ -171,22 +187,6 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 		writeProtected = true //If write_protected is not set, set it to true
 	}
 
-	//Get OOB Manager card - managers[0] will be our oob card
-	managers, err := service.Managers()
-	if err != nil {
-		return diag.Errorf("Couldn't retrieve managers from redfish API: %s", err)
-	}
-
-	virtualMediaCollection, err := managers[0].VirtualMedia()
-	if err != nil {
-		return diag.Errorf("Couldn't retrieve virtual media collection from redfish API: %s", err)
-	}
-	//Get specific virtual media
-	virtualMedia, err := getVirtualMedia(virtualMediaID, virtualMediaCollection)
-	if err != nil {
-		return diag.Errorf("Virtual Media selected doesn't exist: %s", err)
-	}
-
 	virtualMediaConfig := redfish.VirtualMediaConfig{
 		Image:                image,
 		Inserted:             inserted,
@@ -197,19 +197,81 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 		WriteProtected:       writeProtected,
 	}
 
-	err = virtualMedia.InsertMediaConfig(virtualMediaConfig)
+	//Get Systems details
+	systems, err := service.Systems()
 	if err != nil {
-		return diag.Errorf("Couldn't mount Virtual Media: %s", err)
+		return diag.Errorf("Error when retrieving systems: %s", err)
+	}
+	if len(systems) == 0 {
+		return diag.Errorf("There is no system available")
 	}
 
-	d.SetId(virtualMedia.ODataID)
-	return diags
+	virtualMediaCollection, err := systems[0].VirtualMedia()
+	if err != nil {
+		return diag.Errorf("Couldn't retrieve virtual media collection from redfish API: %s", err)
+	}
+
+	if len(virtualMediaCollection) != 0 {
+		for index := range virtualMediaCollection {
+			//Get specific virtual media
+			virtualMedia, err := getVirtualMedia(virtualMediaCollection[index].ID, virtualMediaCollection)
+			if err != nil {
+				return diag.Errorf("Virtual Media selected doesn't exist: %s", err)
+			}
+			if !virtualMedia.Inserted {
+				err = virtualMedia.InsertMediaConfig(virtualMediaConfig)
+				if err != nil {
+					return diag.Errorf("Couldn't mount Virtual Media: %s", err)
+				}
+
+				d.SetId(virtualMedia.ODataID)
+				diags = readRedfishVirtualMedia(service, d)
+				return diags
+			}
+		}
+	} else {
+		// This implementation is added to support iDRAC firmware version 5.x. As virtual media can only be accessed through Managers card on 5.x.
+		//Get OOB Manager card - managers[0] will be our oob card
+		managers, err := service.Managers()
+		if err != nil {
+			return diag.Errorf("Couldn't retrieve managers from redfish API: %s", err)
+		}
+
+		virtualMediaCollection, err := managers[0].VirtualMedia()
+		if err != nil {
+			return diag.Errorf("Couldn't retrieve virtual media collection from redfish API: %s", err)
+		}
+
+		var virtualMediaID string
+		if strings.HasSuffix(image, ".iso") {
+			virtualMediaID = "CD"
+		} else {
+			virtualMediaID = "RemovableDisk"
+		}
+
+		virtualMedia, err := getVirtualMedia(virtualMediaID, virtualMediaCollection)
+		if err != nil {
+			return diag.Errorf("Virtual Media selected doesn't exist: %s", err)
+		}
+		if !virtualMedia.Inserted {
+			err = virtualMedia.InsertMediaConfig(virtualMediaConfig)
+			if err != nil {
+				return diag.Errorf("Couldn't mount Virtual Media: %s", err)
+			}
+
+			d.SetId(virtualMedia.ODataID)
+			diags = readRedfishVirtualMedia(service, d)
+			return diags
+		}
+	}
+
+	return diag.Errorf("There are no Virtual Medias to mount")
 }
 
 func readRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	virtualMedia, err := redfish.GetVirtualMedia(service.Client, d.Id())
+	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), d.Id())
 	if err != nil {
 		return diag.Errorf("Virtual Media doesn't exist: %s", err) //This error won't be triggered ever
 	}
@@ -241,36 +303,32 @@ func readRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) di
 	var inserted bool
 	if v, ok := d.GetOkExists("inserted"); ok {
 		inserted = v.(bool)
-	} else {
-		inserted = true //If inserted is not set, set it to true
 	}
 	var writeProtected bool
 	if v, ok := d.GetOkExists("write_protected"); ok {
 		writeProtected = v.(bool)
-	} else {
-		writeProtected = true //If write_protected is not set, set it to true
 	}
 
 	if virtualMedia.Image != image {
-		d.Set("image", image)
+		d.Set("image", virtualMedia.Image)
 	}
 	if virtualMedia.UserName != username {
-		d.Set("username", username)
+		d.Set("username", virtualMedia.UserName)
 	}
 	if virtualMedia.Password != password {
-		d.Set("password", password)
+		d.Set("password", virtualMedia.Password)
 	}
 	if string(virtualMedia.TransferMethod) != transferMethod {
-		d.Set("transfer_method", transferMethod)
+		d.Set("transfer_method", virtualMedia.TransferMethod)
 	}
 	if string(virtualMedia.TransferProtocolType) != transferProtocolType {
-		d.Set("transfer_protocol_type", transferProtocolType)
+		d.Set("transfer_protocol_type", virtualMedia.TransferProtocolType)
 	}
 	if virtualMedia.Inserted != inserted {
-		d.Set("inserted", inserted)
+		d.Set("inserted", virtualMedia.Inserted)
 	}
 	if virtualMedia.WriteProtected != writeProtected {
-		d.Set("write_protected", writeProtected)
+		d.Set("write_protected", virtualMedia.WriteProtected)
 	}
 
 	return diags
@@ -284,7 +342,7 @@ func updateRedfishVirtualMedia(ctx context.Context, service *gofish.Service, d *
 	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
 
 	//Hot update os not possible. Unmount and mount needs to be done to update
-	virtualMedia, err := redfish.GetVirtualMedia(service.Client, d.Id())
+	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), d.Id())
 	if err != nil {
 		return diag.Errorf("Virtual Media doesn't exist: %s", err) //This error won't be triggered ever
 	}
@@ -308,6 +366,9 @@ func updateRedfishVirtualMedia(ctx context.Context, service *gofish.Service, d *
 	var transferMethod string
 	if v, ok := d.GetOk("transfer_method"); ok {
 		transferMethod = v.(string)
+	}
+	if transferMethod == "Upload" {
+		return diag.Errorf("Unable to Process the request because the value entered for the parameter TransferMethod is not supported by the implementation.")
 	}
 	var transferProtocolType string
 	if v, ok := d.GetOk("transfer_protocol_type"); ok {
@@ -351,7 +412,7 @@ func deleteRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 	redfishMutexKV.Lock(getRedfishServerEndpoint(d))
 	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
 
-	virtualMedia, err := redfish.GetVirtualMedia(service.Client, d.Id())
+	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), d.Id())
 	if err != nil {
 		return diag.Errorf("Virtual Media doesn't exist: %s", err) //This error won't be triggered ever
 	}
