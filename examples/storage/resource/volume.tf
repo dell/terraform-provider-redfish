@@ -21,9 +21,22 @@ resource "redfish_storage_volume" "volume" {
 
   storage_controller_id = "RAID.Integrated.1-1"
   volume_name           = "TerraformVol"
-  volume_type           = "Mirrored"
-  drives                = ["Solid State Disk 0:1:0", "Solid State Disk 0:1:1"]
+  volume_type           = "NonRedundant"
+  drives                = ["Solid State Disk 0:0:1"]
   settings_apply_time   = "Immediate"
-  // settings_apply_time = "OnReset"
-}
+  reset_type = "PowerCycle"
+  reset_timeout = 100
+  volume_job_timeout = 1200
+  capacity_bytes = 1073323222
+  optimum_io_size_bytes = 131072
+  read_cache_policy = "AdaptiveReadAhead"
+  write_cache_policy = "UnprotectedWriteBack"
+  disk_cache_policy = "Disabled"
 
+  lifecycle {
+    ignore_changes = [
+      capacity_bytes,
+      volume_type
+    ]
+  }
+}
