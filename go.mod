@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.16.0
-	github.com/stmcginnis/gofish v0.14.1-0.20230814131833-46b1b33645ed
+	github.com/stmcginnis/gofish v0.14.1-0.20230828052805-4738a5dd9470
 )
 
 require (
