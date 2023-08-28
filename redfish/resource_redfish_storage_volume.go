@@ -69,7 +69,7 @@ func getResourceRedfishStorageVolumeSchema() map[string]*schema.Schema {
 		},
 		"volume_name": {
 			Type:        schema.TypeString,
-			Optional:    true,
+			Required:    true,
 			Description: "This value is the desired name for the volume to be given",
 		},
 		"volume_type": {
@@ -213,8 +213,8 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 	volumeName := d.Get("volume_name").(string)
 	optimumIOSizeBytes := d.Get("optimum_io_size_bytes").(int)
 	capacityBytes := d.Get("capacity_bytes").(int)
-	readCachePolicy, ok := d.GetOk("read_cache_policy")
 	driveNamesRaw := d.Get("drives").([]interface{})
+	readCachePolicy, ok := d.GetOk("read_cache_policy")
 	if !ok {
 		readCachePolicy = string(redfish.OffReadCachePolicyType)
 	}
