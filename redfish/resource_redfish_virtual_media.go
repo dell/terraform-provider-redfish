@@ -64,16 +64,6 @@ func getResourceRedfishVirtualMediaSchema() map[string]*schema.Schema {
 			Description: "The URI of the remote media to attach to the virtual media",
 			Computed:    true,
 		},
-		"username": {
-			Type:        schema.TypeString,
-			Description: "The username to access the image parameter-specific URI",
-			Optional:    true,
-		},
-		"password": {
-			Type:        schema.TypeString,
-			Description: "The password to access the image parameter-specific URI",
-			Optional:    true,
-		},
 		"transfer_method": {
 			Type:        schema.TypeString,
 			Description: "Indicates how the data is transferred",
@@ -155,14 +145,6 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 	//Get terraform schema data
 	image := d.Get("image").(string)
 
-	var username string
-	if v, ok := d.GetOk("username"); ok {
-		username = v.(string)
-	}
-	var password string
-	if v, ok := d.GetOk("password"); ok {
-		password = v.(string)
-	}
 	var transferMethod string
 	if v, ok := d.GetOk("transfer_method"); ok {
 		transferMethod = v.(string)
@@ -190,10 +172,8 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 	virtualMediaConfig := redfish.VirtualMediaConfig{
 		Image:                image,
 		Inserted:             inserted,
-		Password:             password,
 		TransferMethod:       transferMethod,
 		TransferProtocolType: transferProtocolType,
-		UserName:             username,
 		WriteProtected:       writeProtected,
 	}
 
@@ -284,14 +264,6 @@ func readRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) di
 	//Get terraform schema data
 	image := d.Get("image").(string)
 
-	var username string
-	if v, ok := d.GetOk("username"); ok {
-		username = v.(string)
-	}
-	var password string
-	if v, ok := d.GetOk("password"); ok {
-		password = v.(string)
-	}
 	var transferMethod string
 	if v, ok := d.GetOk("transfer_method"); ok {
 		transferMethod = v.(string)
@@ -311,12 +283,6 @@ func readRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) di
 
 	if virtualMedia.Image != image {
 		d.Set("image", virtualMedia.Image)
-	}
-	if virtualMedia.UserName != username {
-		d.Set("username", virtualMedia.UserName)
-	}
-	if virtualMedia.Password != password {
-		d.Set("password", virtualMedia.Password)
 	}
 	if string(virtualMedia.TransferMethod) != transferMethod {
 		d.Set("transfer_method", virtualMedia.TransferMethod)
@@ -355,14 +321,6 @@ func updateRedfishVirtualMedia(ctx context.Context, service *gofish.Service, d *
 	//Get terraform schema data
 	image := d.Get("image").(string)
 
-	var username string
-	if v, ok := d.GetOk("username"); ok {
-		username = v.(string)
-	}
-	var password string
-	if v, ok := d.GetOk("password"); ok {
-		password = v.(string)
-	}
 	var transferMethod string
 	if v, ok := d.GetOk("transfer_method"); ok {
 		transferMethod = v.(string)
@@ -390,10 +348,8 @@ func updateRedfishVirtualMedia(ctx context.Context, service *gofish.Service, d *
 	virtualMediaConfig := redfish.VirtualMediaConfig{
 		Image:                image,
 		Inserted:             inserted,
-		Password:             password,
 		TransferMethod:       transferMethod,
 		TransferProtocolType: transferProtocolType,
-		UserName:             username,
 		WriteProtected:       writeProtected,
 	}
 
