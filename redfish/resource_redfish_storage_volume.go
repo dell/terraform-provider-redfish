@@ -99,6 +99,7 @@ func getResourceRedfishStorageVolumeSchema() map[string]*schema.Schema {
 			ValidateFunc: validation.StringInSlice([]string{
 				string(redfishcommon.ImmediateApplyTime),
 				string(redfishcommon.OnResetApplyTime)}, false),
+			Default: string(redfishcommon.ImmediateApplyTime),
 		},
 		"reset_type": {
 			Type:     schema.TypeString,
@@ -110,18 +111,21 @@ func getResourceRedfishStorageVolumeSchema() map[string]*schema.Schema {
 				string(redfish.GracefulRestartResetType),
 				string(redfish.PowerCycleResetType),
 			}, false),
+			Default: string(redfish.ForceRestartResetType),
 		},
 		"reset_timeout": {
 			Type:     schema.TypeInt,
 			Optional: true,
 			Description: "reset_timeout is the time in seconds that the provider waits for the server to be reset" +
 				"(if settings_apply_time is set to \"OnReset\") before timing out. Default is 120s.",
+			Default: defaultStorageVolumeResetTimeout,
 		},
 		"volume_job_timeout": {
 			Type:     schema.TypeInt,
 			Optional: true,
 			Description: "volume_job_timeout is the time in seconds that the provider waits for the volume job to be completed before timing out." +
 				"Default is 1200s",
+			Default: defaultStorageVolumeJobTimeout,
 		},
 		"capacity_bytes": {
 			Type:        schema.TypeInt,
@@ -142,6 +146,7 @@ func getResourceRedfishStorageVolumeSchema() map[string]*schema.Schema {
 				string(redfish.AdaptiveReadAheadReadCachePolicyType),
 				string(redfish.OffReadCachePolicyType),
 			}, false),
+			Default: string(redfish.OffReadCachePolicyType),
 		},
 		"write_cache_policy": {
 			Type:        schema.TypeString,
@@ -152,6 +157,7 @@ func getResourceRedfishStorageVolumeSchema() map[string]*schema.Schema {
 				string(redfish.ProtectedWriteBackWriteCachePolicyType),
 				string(redfish.UnprotectedWriteBackWriteCachePolicyType),
 			}, false),
+			Default: string(redfish.UnprotectedWriteBackWriteCachePolicyType),
 		},
 		"disk_cache_policy": {
 			Type:        schema.TypeString,
@@ -161,6 +167,7 @@ func getResourceRedfishStorageVolumeSchema() map[string]*schema.Schema {
 				"Enabled",
 				"Disabled",
 			}, false),
+			Default: "Enabled",
 		},
 	}
 }
@@ -214,23 +221,10 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 	optimumIOSizeBytes := d.Get("optimum_io_size_bytes").(int)
 	capacityBytes := d.Get("capacity_bytes").(int)
 	driveNamesRaw := d.Get("drives").([]interface{})
-	readCachePolicy, ok := d.GetOk("read_cache_policy")
-	if !ok {
-		readCachePolicy = string(redfish.OffReadCachePolicyType)
-	}
-	writeCachePolicy, ok := d.GetOk("write_cache_policy")
-	if !ok {
-		writeCachePolicy = string(redfish.UnprotectedWriteBackWriteCachePolicyType)
-	}
-	diskCachePolicy, ok := d.GetOk("disk_cache_policy")
-	if !ok {
-		diskCachePolicy = "Enabled"
-	}
-	applyTime, ok := d.GetOk("settings_apply_time")
-	if !ok {
-		// If settingsApplyTime has not set, by default use Immediate
-		applyTime = "Immediate"
-	}
+	readCachePolicy := d.Get("read_cache_policy")
+	writeCachePolicy := d.Get("write_cache_policy")
+	diskCachePolicy := d.Get("disk_cache_policy")
+	applyTime := d.Get("settings_apply_time")
 
 	// Convert from []interface{} to []string for using
 	driveNames := make([]string, len(driveNamesRaw))
@@ -238,10 +232,7 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 		driveNames[i] = raw.(string)
 	}
 
-	volumeJobTimeout, ok := d.GetOk("volume_job_timeout")
-	if !ok {
-		volumeJobTimeout = defaultStorageVolumeJobTimeout
-	}
+	volumeJobTimeout := d.Get("volume_job_timeout")
 
 	// Get storage
 	systems, err := service.Systems()
@@ -288,14 +279,8 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 	switch applyTime.(string) {
 	case string(redfishcommon.OnResetApplyTime): // OnReset case
 		// Get reset_timeout and reset_type from schema
-		resetType, ok := d.GetOk("reset_type")
-		if !ok {
-			resetType = string(redfish.ForceRestartResetType)
-		}
-		resetTimeout, ok := d.GetOk("reset_timeout")
-		if !ok {
-			resetTimeout = defaultStorageVolumeResetTimeout
-		}
+		resetType := d.Get("reset_type")
+		resetTimeout := d.Get("reset_timeout")
 
 		// Reboot the server
 		_, diags := PowerOperation(resetType.(string), resetTimeout.(int), intervalSimpleUpdateJobCheckTime, service)
@@ -366,23 +351,10 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 	storageID := d.Get("storage_controller_id").(string)
 	volumeName := d.Get("volume_name").(string)
 	driveNamesRaw := d.Get("drives").([]interface{})
-	readCachePolicy, ok := d.GetOk("read_cache_policy")
-	if !ok {
-		readCachePolicy = string(redfish.OffReadCachePolicyType)
-	}
+	readCachePolicy := d.Get("read_cache_policy")
 	writeCachePolicy := d.Get("write_cache_policy")
-	if !ok {
-		writeCachePolicy = string(redfish.UnprotectedWriteBackWriteCachePolicyType)
-	}
-	diskCachePolicy, ok := d.GetOk("disk_cache_policy")
-	if !ok {
-		diskCachePolicy = "Enabled"
-	}
-	applyTime, ok := d.GetOk("settings_apply_time")
-	if !ok {
-		// If settingsApplyTime has not set, by default use Immediate
-		applyTime = "Immediate"
-	}
+	diskCachePolicy := d.Get("disk_cache_policy")
+	applyTime := d.Get("settings_apply_time")
 
 	// Convert from []interface{} to []string for using
 	driveNames := make([]string, len(driveNamesRaw))
@@ -390,10 +362,7 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 		driveNames[i] = raw.(string)
 	}
 
-	volumeJobTimeout, ok := d.GetOk("volume_job_timeout")
-	if !ok {
-		volumeJobTimeout = defaultStorageVolumeJobTimeout
-	}
+	volumeJobTimeout := d.Get("volume_job_timeout")
 
 	// Get storage
 	systems, err := service.Systems()
@@ -430,14 +399,8 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 	switch applyTime.(string) {
 	case string(redfishcommon.OnResetApplyTime): // OnReset case
 		// Get reset_timeout and reset_type from schema
-		resetType, ok := d.GetOk("reset_type")
-		if !ok {
-			resetType = string(redfish.ForceRestartResetType)
-		}
-		resetTimeout, ok := d.GetOk("reset_timeout")
-		if !ok {
-			resetTimeout = defaultStorageVolumeResetTimeout
-		}
+		resetType := d.Get("reset_type")
+		resetTimeout := d.Get("reset_timeout")
 
 		// Reboot the server
 		_, diags := PowerOperation(resetType.(string), resetTimeout.(int), intervalSimpleUpdateJobCheckTime, service)
@@ -465,15 +428,8 @@ func deleteRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
 
 	// Get vars from schema
-	applyTime, ok := d.GetOk("settings_apply_time")
-	if !ok {
-		// If settingsApplyTime has not set, by default use Immediate
-		applyTime = "Immediate"
-	}
-	volumeJobTimeout, ok := d.GetOk("volume_job_timeout")
-	if !ok {
-		volumeJobTimeout = defaultStorageVolumeJobTimeout
-	}
+	applyTime := d.Get("settings_apply_time")
+	volumeJobTimeout := d.Get("volume_job_timeout")
 
 	jobID, err := deleteVolume(service, d.Id())
 	if err != nil {
@@ -483,14 +439,8 @@ func deleteRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 	switch applyTime.(string) {
 	case string(redfishcommon.OnResetApplyTime): // OnReset case
 		// Get reset_timeout and reset_type from schema
-		resetType, ok := d.GetOk("reset_type")
-		if !ok {
-			resetType = string(redfish.ForceRestartResetType)
-		}
-		resetTimeout, ok := d.GetOk("reset_timeout")
-		if !ok {
-			resetTimeout = defaultStorageVolumeResetTimeout
-		}
+		resetType := d.Get("reset_type")
+		resetTimeout := d.Get("reset_timeout")
 
 		// Reboot the server
 		_, diags := PowerOperation(resetType.(string), resetTimeout.(int), intervalSimpleUpdateJobCheckTime, service)
