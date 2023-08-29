@@ -3,8 +3,8 @@ module github.com/dell/terraform-provider-redfish
 go 1.19
 
 require (
+	github.com/stmcginnis/gofish v0.14.1-0.20230828052805-4738a5dd9470
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.27.0
-	github.com/stmcginnis/gofish v0.14.1-0.20230814131833-46b1b33645ed
 )
 
 require (
