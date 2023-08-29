@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package tftypes
 
 import (
@@ -8,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	msgpack "github.com/vmihailenco/msgpack/v4"
+	msgpack "github.com/vmihailenco/msgpack/v5"
 )
 
 // ValueConverter is an interface that provider-defined types can implement to
@@ -260,17 +263,13 @@ func (val Value) Copy() Value {
 //
 // The builtin Value representations are:
 //
-// * String: string, *string
-//
-// * Number: *big.Float, int64, *int64, int32, *int32, int16, *int16, int8,
-//           *int8, int, *int, uint64, *uint64, uint32, *uint32, uint16,
-//           *uint16, uint8, *uint8, uint, *uint, float64, *float64
-//
-// * Bool: bool, *bool
-//
-// * Map and Object: map[string]Value
-//
-// * Tuple, List, and Set: []Value
+//   - String: string, *string
+//   - Number: *big.Float, int64, *int64, int32, *int32, int16, *int16, int8,
+//     *int8, int, *int, uint64, *uint64, uint32, *uint32, uint16,
+//     *uint16, uint8, *uint8, uint, *uint, float64, *float64
+//   - Bool: bool, *bool
+//   - Map and Object: map[string]Value
+//   - Tuple, List, and Set: []Value
 func NewValue(t Type, val interface{}) Value {
 	v, err := newValue(t, val)
 	if err != nil {
@@ -440,7 +439,7 @@ func (val Value) As(dst interface{}) error {
 		if !ok {
 			return fmt.Errorf("can't unmarshal %s into %T, expected *big.Float", val.Type(), dst)
 		}
-		target.Set(v)
+		target.Copy(v)
 		return nil
 	case **big.Float:
 		if val.IsNull() {
@@ -544,6 +543,7 @@ func (val Value) IsFullyKnown() bool {
 	case primitive:
 		return true
 	case List, Set, Tuple:
+		//nolint:forcetypeassert // NewValue func validates the type
 		for _, v := range val.value.([]Value) {
 			if !v.IsFullyKnown() {
 				return false
@@ -551,6 +551,7 @@ func (val Value) IsFullyKnown() bool {
 		}
 		return true
 	case Map, Object:
+		//nolint:forcetypeassert // NewValue func validates the type
 		for _, v := range val.value.(map[string]Value) {
 			if !v.IsFullyKnown() {
 				return false
