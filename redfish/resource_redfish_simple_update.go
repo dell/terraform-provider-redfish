@@ -3,12 +3,6 @@ package redfish
 import (
 	"context"
 	"fmt"
-	"io"
-	"log"
-	"os"
-	"path/filepath"
-	"strings"
-
 	"github.com/dell/terraform-provider-redfish/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -16,6 +10,11 @@ import (
 	"github.com/stmcginnis/gofish"
 	redfishcommon "github.com/stmcginnis/gofish/common"
 	"github.com/stmcginnis/gofish/redfish"
+	"io"
+	"log"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 const (
@@ -72,7 +71,7 @@ func getResourceRedfishSimpleUpdateSchema() map[string]*schema.Schema {
 			Description: "The network protocol that the Update Service uses to retrieve the software image file located at the URI provided " +
 				"in ImageURI, if the URI does not contain a scheme." +
 				" Accepted values: CIFS, FTP, SFTP, HTTP, HTTPS, NSF, SCP, TFTP, OEM, NFS." +
-				" Currently only HTTP is supported with local file path or http web link.",
+				" Currently only HTTP, HTTPS and NFS are supported with local file path or HTTP(s)/NFS link.",
 		},
 		/* For the time being, target_firmware_image will be the local path for our firmware packages.
 		   It is intended to work along HTTP transfer protocol
@@ -224,28 +223,17 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 		return diag.Errorf("%s. Supported transfer protocols in this implementation: %s", err, availableTransferProtocols) // !!!! append list of supported transfer protocols
 	}
 
-	if transferProtocol == "HTTP" {
+	if transferProtocol == "NFS" {
+		err := pullUpdate(service, d)
+		if err != nil {
+			return diag.Errorf(" %s", err)
+		}
+	} else if transferProtocol == "HTTP" || transferProtocol == "HTTPS" {
 		if strings.HasPrefix(targetFirmwareImage, "http") {
-
-			protocol := d.Get("transfer_protocol")
-			imagePath := d.Get("target_firmware_image")
-			httpURI := updateService.UpdateServiceTarget
-
-			payload := make(map[string]interface{})
-			payload["ImageURI"] = imagePath
-			payload["TransferProtocol"] = protocol
-
-			_, err = service.GetClient().Post(httpURI, payload)
+			err := pullUpdate(service, d)
 			if err != nil {
-				// Delete uploaded package - TBD
-				return diag.Errorf("there was an issue when scheduling the update job - %s", err)
+				return diag.Errorf(" %s", err)
 			}
-
-			swInventory, err := redfish.GetSoftwareInventory(service.GetClient(), d.Id())
-			if err != nil {
-				return diag.Errorf("unable to fetch data %v", err)
-			}
-			d.SetId(swInventory.ODataID)
 		} else {
 			// Get ETag from FW inventory
 			response, err := service.GetClient().Get(updateService.FirmwareInventory)
@@ -332,6 +320,9 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 			d.Set("software_id", fwPackage.SoftwareID)
 			d.Set("version", fwPackage.Version)
 			d.SetId(fwPackage.ODataID)
+
+			diags = readRedfishSimpleUpdate(service, d)
+			return diags
 		}
 	} else {
 		return diag.Errorf("Transfer protocol not available in this implementation")
@@ -385,4 +376,33 @@ func getFWfromInventory(softwareInventories []*redfish.SoftwareInventory, softwa
 		}
 	}
 	return nil, fmt.Errorf("couldn't find FW on Firmware inventory")
+}
+func pullUpdate(service *gofish.Service, d *schema.ResourceData) error {
+
+	// Get update service from root
+	updateService, err := service.UpdateService()
+	if err != nil {
+		return fmt.Errorf("error while retrieving UpdateService - %s", err)
+	}
+
+	protocol := d.Get("transfer_protocol")
+	imagePath := d.Get("target_firmware_image")
+	httpURI := updateService.UpdateServiceTarget
+
+	payload := make(map[string]interface{})
+	payload["ImageURI"] = imagePath
+	payload["TransferProtocol"] = protocol
+
+	_, err = service.GetClient().Post(httpURI, payload)
+	if err != nil {
+		// Delete uploaded package - TBD
+		return fmt.Errorf("there was an issue when scheduling the update job - %s", err)
+	}
+
+	swInventory, err := redfish.GetSoftwareInventory(service.GetClient(), d.Id())
+	if err != nil {
+		return fmt.Errorf("unable to fetch data %v", err)
+	}
+	d.SetId(swInventory.ODataID)
+	return nil
 }
