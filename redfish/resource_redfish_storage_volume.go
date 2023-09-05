@@ -129,9 +129,10 @@ func getResourceRedfishStorageVolumeSchema() map[string]*schema.Schema {
 			Default: defaultStorageVolumeJobTimeout,
 		},
 		"capacity_bytes": {
-			Type:        schema.TypeInt,
-			Optional:    true,
-			Description: "capacity_bytes shall contain the size in bytes of the associated volume.",
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Description:  "capacity_bytes shall contain the size in bytes of the associated volume.",
+			ValidateFunc: validation.IntAtLeast(1000000000),
 		},
 		"optimum_io_size_bytes": {
 			Type:        schema.TypeInt,
