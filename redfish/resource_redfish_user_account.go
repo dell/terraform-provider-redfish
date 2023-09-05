@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -62,13 +64,13 @@ func getResourceRedfishUserAccountSchema() map[string]*schema.Schema {
 		"username": {
 			Type:         schema.TypeString,
 			Required:     true,
-			ValidateFunc: validation.StringIsNotWhiteSpace,
+			ValidateFunc: validation.StringLenBetween(1, 16),
 		},
 		"password": {
 			Type:         schema.TypeString,
 			Required:     true,
 			Sensitive:    true,
-			ValidateFunc: validation.StringIsNotWhiteSpace,
+			ValidateFunc: validation.StringLenBetween(4, 40),
 		},
 		"enabled": {
 			Type:     schema.TypeBool,
@@ -138,8 +140,20 @@ func createRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) d
 		return diag.Errorf("Error when retrieving account list %v", err)
 	}
 
+	// validate Password
+	err = validatePassword(d.Get("password").(string))
+	if err != nil {
+		return diag.Errorf(err.Error())
+	}
+
 	// check if username already exists
 	err = checkUserNameExists(accountList, d.Get("username").(string))
+	if err != nil {
+		return diag.Errorf(err.Error())
+	}
+
+	// check if user id already exists
+	err = checkUserIDExists(accountList, d.Get("user_id").(string))
 	if err != nil {
 		return diag.Errorf(err.Error())
 	}
@@ -226,6 +240,12 @@ func updateRedfishUserAccount(ctx context.Context, service *gofish.Service, d *s
 
 	if d.Get("user_id").(string) != account.ID {
 		return diag.Errorf("user_id cannot be updated")
+	}
+
+	// validate Password
+	err = validatePassword(d.Get("password").(string))
+	if err != nil {
+		return diag.Errorf(err.Error())
 	}
 
 	// check if the username already exists
@@ -323,6 +343,29 @@ func checkUserNameExists(accountList []*redfish.ManagerAccount, username string)
 		if username == account.UserName {
 			return fmt.Errorf("user %v already exists against ID %v. Please enter a different user name", username, account.ID)
 		}
+	}
+	return nil
+}
+
+// To check if given ID already exists
+func checkUserIDExists(accountList []*redfish.ManagerAccount, userID string) error {
+	for _, account := range accountList {
+		fmt.Printf("user id %v, account.ID %v, userName %v", userID, account.ID, account.UserName)
+		if len(userID) > 0 && userID == account.ID && len(account.UserName) != 0 {
+			return fmt.Errorf("user ID %v already exists. Please enter a valid user ID", userID)
+		}
+	}
+	return nil
+}
+
+// To validate password
+func validatePassword(password string) error {
+	hasLowerCase := regexp.MustCompile(`[a-z]`).MatchString(password)
+	hasUpperCase := regexp.MustCompile(`[A-Z]`).MatchString(password)
+	hasNumber := regexp.MustCompile(`\d`).MatchString(password)
+	hasSpecialChar := strings.ContainsAny(password, "'-!\"#$%&()*,./:;?@[\\]^_`{|}~+<=>")
+	if !hasLowerCase || !hasUpperCase || !hasNumber || !hasSpecialChar {
+		return fmt.Errorf("validation failed. The password must include one uppercase and one lower case letter, one number and a special character")
 	}
 	return nil
 }
