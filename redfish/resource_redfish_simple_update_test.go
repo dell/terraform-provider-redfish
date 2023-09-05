@@ -31,6 +31,15 @@ func TestAccRedfishSimpleUpdate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("redfish_simple_update.update", "transfer_protocol", "HTTP"),
 				),
 			},
+			{
+				Config: testAccRedfishResourceUpdateConfig(
+					creds,
+					"NFS",
+					os.Getenv("TF_TESTING_FIRMWARE_IMAGE_NFS")),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_simple_update.update", "transfer_protocol", "NFS"),
+				),
+			},
 		},
 	})
 }
@@ -57,7 +66,7 @@ func TestAccRedfishSimpleUpdate_InvalidProto(t *testing.T) {
 			{
 				Config: testAccRedfishResourceUpdateConfig(
 					creds,
-					"HTTPS",
+					"CIFS",
 					os.Getenv("TF_TESTING_FIRMWARE_IMAGE_HTTP")),
 				ExpectError: regexp.MustCompile("Transfer protocol not available in this implementation"),
 			},
