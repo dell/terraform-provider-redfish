@@ -144,6 +144,9 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 
 	//Get terraform schema data
 	image := d.Get("image").(string)
+	if !strings.HasSuffix(image, ".iso") && !strings.HasSuffix(image, ".img") {
+		return diag.Errorf("Unable to Process the request because the value entered for the parameter Image is not supported by the implementation. Please provide an image with extension iso or img.")
+	}
 
 	var transferMethod string
 	if v, ok := d.GetOk("transfer_method"); ok {
@@ -320,6 +323,9 @@ func updateRedfishVirtualMedia(ctx context.Context, service *gofish.Service, d *
 
 	//Get terraform schema data
 	image := d.Get("image").(string)
+	if !strings.HasSuffix(image, ".iso") && !strings.HasSuffix(image, ".img") {
+		return diag.Errorf("Unable to Process the request because the value entered for the parameter Image is not supported by the implementation. Please provide an image with extension iso or img.")
+	}
 
 	var transferMethod string
 	if v, ok := d.GetOk("transfer_method"); ok {
