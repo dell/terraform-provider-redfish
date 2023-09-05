@@ -382,8 +382,6 @@ func pullUpdate(service *gofish.Service, d *schema.ResourceData, resetType strin
 
 	// Get jobid
 	jobID := response.Header.Get("Location")
-	fmt.Printf("JOB ID: %v", jobID)
-
 	err = updateJobStatus(service, d, response, resetType)
 	if err != nil {
 		// Delete uploaded package - TBD
@@ -392,7 +390,6 @@ func pullUpdate(service *gofish.Service, d *schema.ResourceData, resetType strin
 
 	job, err := redfish.GetTask(service.GetClient(), jobID)
 	if len(job.Messages) > 0 {
-		log.Printf("Message %v", job.Messages[0].Message)
 		message := job.Messages[0].Message
 		if strings.Contains(message, "Unable to transfer") || strings.Contains(message, "Module took more time than expected.") {
 			return fmt.Errorf("please check the image path, download failed")
