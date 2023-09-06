@@ -166,7 +166,7 @@ func PowerOperation(resetType string, maximumWaitTime int, checkInterval int, se
 	// If we've reached here it means the system never reached the appropriate target state
 	// We will instead set the power state to whatever the current state is and return
 	// TODO : Change to warning when updated to plugin framework
-	log.Printf("[ERROR]: The system failed to correctly update the system power within specified maximum wait time!")
+	log.Printf("[ERROR]: The system failed to update the server's power status within the maximum wait time specified!")
 	return system.PowerState, diags
 
 }
