@@ -12,6 +12,7 @@ import (
 	"github.com/stmcginnis/gofish/redfish"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -188,15 +189,6 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 	transferProtocol := d.Get("transfer_protocol").(string)
 	targetFirmwareImage := d.Get("target_firmware_image").(string)
 	resetType := d.Get("reset_type").(string)
-	resetTimeout, ok := d.GetOk("reset_timeout")
-	if !ok {
-		resetTimeout = defaultSimpleUpdateResetTimeout
-	}
-	simpleUpdateJobTimeout, ok := d.GetOk("simple_update_job_timeout")
-	if !ok {
-		simpleUpdateJobTimeout = defaultSimpleUpdateJobTimeout
-	}
-	log.Printf("[DEBUG] resetTimeout is set to %d and simpleUpdateJobTimeout to %d", resetTimeout.(int), simpleUpdateJobTimeout.(int))
 
 	// Check if chosen reset type is supported before doing anything else
 	systems, err := service.Systems()
@@ -224,13 +216,13 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 	}
 
 	if transferProtocol == "NFS" {
-		err := pullUpdate(service, d)
+		err := pullUpdate(service, d, resetType)
 		if err != nil {
 			return diag.Errorf(" %s", err)
 		}
 	} else if transferProtocol == "HTTP" || transferProtocol == "HTTPS" {
 		if strings.HasPrefix(targetFirmwareImage, "http") {
-			err := pullUpdate(service, d)
+			err := pullUpdate(service, d, resetType)
 			if err != nil {
 				return diag.Errorf(" %s", err)
 			}
@@ -287,23 +279,11 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 				return diag.Errorf("there was an issue when scheduling the update job - %s", err)
 			}
 			response.Body.Close()
-			// Get jobid
-			jobID := response.Header.Get("Location")
 
-			// Reboot the server
-			_, diags := PowerOperation(resetType, resetTimeout.(int), intervalSimpleUpdateJobCheckTime, service)
-			if diags.HasError() {
-				// Delete uploaded package - TBD
-				return diag.Errorf("there was an issue when restarting the server")
-			}
-
-			// Check JID
-			err = common.WaitForJobToFinish(service, jobID, intervalSimpleUpdateJobCheckTime, simpleUpdateJobTimeout.(int))
+			err = updateJobStatus(service, d, response, resetType)
 			if err != nil {
-				// Delete uploaded package - TBD
-				return diag.Errorf("there was an issue when waiting for the job to complete - %s", err)
+				diag.Errorf("Error running job %v", err)
 			}
-
 			// Get updated FW inventory
 			fwInventory, err := updateService.FirmwareInventories()
 			if err != nil {
@@ -322,6 +302,7 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 			d.SetId(fwPackage.ODataID)
 
 			diags = readRedfishSimpleUpdate(service, d)
+
 			return diags
 		}
 	} else {
@@ -377,7 +358,7 @@ func getFWfromInventory(softwareInventories []*redfish.SoftwareInventory, softwa
 	}
 	return nil, fmt.Errorf("couldn't find FW on Firmware inventory")
 }
-func pullUpdate(service *gofish.Service, d *schema.ResourceData) error {
+func pullUpdate(service *gofish.Service, d *schema.ResourceData, resetType string) error {
 
 	// Get update service from root
 	updateService, err := service.UpdateService()
@@ -393,10 +374,26 @@ func pullUpdate(service *gofish.Service, d *schema.ResourceData) error {
 	payload["ImageURI"] = imagePath
 	payload["TransferProtocol"] = protocol
 
-	_, err = service.GetClient().Post(httpURI, payload)
+	response, err := service.GetClient().Post(httpURI, payload)
 	if err != nil {
 		// Delete uploaded package - TBD
 		return fmt.Errorf("there was an issue when scheduling the update job - %s", err)
+	}
+
+	// Get jobid
+	jobID := response.Header.Get("Location")
+	err = updateJobStatus(service, d, response, resetType)
+	if err != nil {
+		// Delete uploaded package - TBD
+		return fmt.Errorf("there was an issue when waiting for the job to complete - %s", err)
+	}
+
+	job, err := redfish.GetTask(service.GetClient(), jobID)
+	if len(job.Messages) > 0 {
+		message := job.Messages[0].Message
+		if strings.Contains(message, "Unable to transfer") || strings.Contains(message, "Module took more time than expected.") {
+			return fmt.Errorf("please check the image path, download failed")
+		}
 	}
 
 	swInventory, err := redfish.GetSoftwareInventory(service.GetClient(), d.Id())
@@ -404,5 +401,36 @@ func pullUpdate(service *gofish.Service, d *schema.ResourceData) error {
 		return fmt.Errorf("unable to fetch data %v", err)
 	}
 	d.SetId(swInventory.ODataID)
+	return nil
+}
+
+func updateJobStatus(service *gofish.Service, d *schema.ResourceData, response *http.Response, resetType string) error {
+	// Get jobid
+	jobID := response.Header.Get("Location")
+
+	resetTimeout, ok := d.GetOk("reset_timeout")
+	if !ok {
+		resetTimeout = defaultSimpleUpdateResetTimeout
+	}
+	simpleUpdateJobTimeout, ok := d.GetOk("simple_update_job_timeout")
+	if !ok {
+		simpleUpdateJobTimeout = defaultSimpleUpdateJobTimeout
+	}
+	log.Printf("[DEBUG] resetTimeout is set to %d and simpleUpdateJobTimeout to %d", resetTimeout.(int), simpleUpdateJobTimeout.(int))
+
+	// Reboot the server
+	_, diags := PowerOperation(resetType, resetTimeout.(int), intervalSimpleUpdateJobCheckTime, service)
+	if diags.HasError() {
+		// Delete uploaded package - TBD
+		return fmt.Errorf("there was an issue when restarting the server")
+	}
+
+	// Check JID
+	err := common.WaitForJobToFinish(service, jobID, intervalSimpleUpdateJobCheckTime, simpleUpdateJobTimeout.(int))
+	if err != nil {
+		// Delete uploaded package - TBD
+		return fmt.Errorf("there was an issue when waiting for the job to complete - %s", err)
+	}
+
 	return nil
 }
