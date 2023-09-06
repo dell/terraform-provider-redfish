@@ -135,15 +135,15 @@ func createRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) d
 	redfishMutexKV.Lock(getRedfishServerEndpoint(d))
 	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
 
+	// validate Password
+	err := validatePassword(d.Get("password").(string))
+	if err != nil {
+		return diag.Errorf(err.Error())
+	}
+
 	accountList, err := getAccountList(service)
 	if err != nil {
 		return diag.Errorf("Error when retrieving account list %v", err)
-	}
-
-	// validate Password
-	err = validatePassword(d.Get("password").(string))
-	if err != nil {
-		return diag.Errorf(err.Error())
 	}
 
 	// check if username already exists
@@ -228,6 +228,12 @@ func updateRedfishUserAccount(ctx context.Context, service *gofish.Service, d *s
 	redfishMutexKV.Lock(getRedfishServerEndpoint(d))
 	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
 
+	// validate Password
+	err := validatePassword(d.Get("password").(string))
+	if err != nil {
+		return diag.Errorf(err.Error())
+	}
+
 	accountList, err := getAccountList(service)
 	if err != nil {
 		return diag.Errorf("Error when retrieving account list %v", err)
@@ -240,12 +246,6 @@ func updateRedfishUserAccount(ctx context.Context, service *gofish.Service, d *s
 
 	if d.Get("user_id").(string) != account.ID {
 		return diag.Errorf("user_id cannot be updated")
-	}
-
-	// validate Password
-	err = validatePassword(d.Get("password").(string))
-	if err != nil {
-		return diag.Errorf(err.Error())
 	}
 
 	// check if the username already exists
