@@ -68,9 +68,10 @@ func getResourceRedfishStorageVolumeSchema() map[string]*schema.Schema {
 			Description: "This value must be the storage controller ID the user want to manage. I.e: RAID.Integrated.1-1",
 		},
 		"volume_name": {
-			Type:        schema.TypeString,
-			Required:    true,
-			Description: "This value is the desired name for the volume to be given",
+			Type:         schema.TypeString,
+			Required:     true,
+			Description:  "This value is the desired name for the volume to be given",
+			ValidateFunc: validation.StringLenBetween(1, 15),
 		},
 		"volume_type": {
 			Type:        schema.TypeString,
@@ -128,9 +129,10 @@ func getResourceRedfishStorageVolumeSchema() map[string]*schema.Schema {
 			Default: defaultStorageVolumeJobTimeout,
 		},
 		"capacity_bytes": {
-			Type:        schema.TypeInt,
-			Optional:    true,
-			Description: "capacity_bytes shall contain the size in bytes of the associated volume.",
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Description:  "capacity_bytes shall contain the size in bytes of the associated volume.",
+			ValidateFunc: validation.IntAtLeast(1000000000),
 		},
 		"optimum_io_size_bytes": {
 			Type:        schema.TypeInt,
@@ -229,6 +231,9 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 	// Convert from []interface{} to []string for using
 	driveNames := make([]string, len(driveNamesRaw))
 	for i, raw := range driveNamesRaw {
+		if len(raw.(string)) == 0 {
+			return diag.Errorf("Error when getting the drives: drive name cannot be blank")
+		}
 		driveNames[i] = raw.(string)
 	}
 
@@ -359,6 +364,9 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 	// Convert from []interface{} to []string for using
 	driveNames := make([]string, len(driveNamesRaw))
 	for i, raw := range driveNamesRaw {
+		if len(raw.(string)) == 0 {
+			return diag.Errorf("Error when getting the drives: drive name cannot be blank")
+		}
 		driveNames[i] = raw.(string)
 	}
 
