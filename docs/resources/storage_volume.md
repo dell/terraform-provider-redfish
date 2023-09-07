@@ -25,10 +25,15 @@ description: |-
 
 ### Optional
 
+- `capacity_bytes` (Number) capacity_bytes shall contain the size in bytes of the associated volume.
+- `disk_cache_policy` (String) disk_cache_policy shall contain a boolean indicator of the disk cache policy for the Volume.
+- `optimum_io_size_bytes` (Number) optimum_io_size_bytes shall contain the optimum IO size to use when performing IO on this volume.
+- `read_cache_policy` (String) read_cache_policy shall contain a boolean indicator of the read cache policy for the Volume.
 - `reset_timeout` (Number) reset_timeout is the time in seconds that the provider waits for the server to be reset(if settings_apply_time is set to "OnReset") before timing out. Default is 120s.
 - `reset_type` (String) Reset type allows to choose the type of restart to apply when settings_apply_time is set to "OnReset"Possible values are: "ForceRestart", "GracefulRestart" or "PowerCycle". If not set, "ForceRestart" is the default.
 - `settings_apply_time` (String) Flag to make the operation either "Immediate" or "OnReset". By default value is "Immediate"
 - `volume_job_timeout` (Number) volume_job_timeout is the time in seconds that the provider waits for the volume job to be completed before timing out.Default is 1200s
+- `write_cache_policy` (String) write_cache_policy shall contain a boolean indicator of the write cache policy for the Volume.
 
 ### Read-Only
 
@@ -46,5 +51,3 @@ Optional:
 - `password` (String) This field is the password related to the user given
 - `ssl_insecure` (Boolean) This field indicates if the SSL/TLS certificate must be verified
 - `user` (String) This field is the user to login against the redfish API
-
-

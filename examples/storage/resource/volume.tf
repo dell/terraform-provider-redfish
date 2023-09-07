@@ -24,14 +24,14 @@ resource "redfish_storage_volume" "volume" {
   volume_type           = "NonRedundant"
   drives                = ["Solid State Disk 0:0:1"]
   settings_apply_time   = "Immediate"
-  reset_type = "PowerCycle"
-  reset_timeout = 100
-  volume_job_timeout = 1200
-  capacity_bytes = 1073323222
+  reset_type            = "PowerCycle"
+  reset_timeout         = 100
+  volume_job_timeout    = 1200
+  capacity_bytes        = 1073323222
   optimum_io_size_bytes = 131072
-  read_cache_policy = "AdaptiveReadAhead"
-  write_cache_policy = "UnprotectedWriteBack"
-  disk_cache_policy = "Disabled"
+  read_cache_policy     = "AdaptiveReadAhead"
+  write_cache_policy    = "UnprotectedWriteBack"
+  disk_cache_policy     = "Disabled"
 
   lifecycle {
     ignore_changes = [

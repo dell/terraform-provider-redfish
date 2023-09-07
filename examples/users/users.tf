@@ -22,7 +22,7 @@ resource "redfish_user_account" "rr" {
     ssl_insecure = each.value.ssl_insecure
   }
 
-  user_id = "4"
+  user_id  = "4"
   username = "test"
   password = "Test@123"
   role_id  = "Operator"
