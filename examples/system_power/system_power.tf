@@ -1,16 +1,10 @@
 terraform {
   required_providers {
     redfish = {
-      version = "~> 0.2.0"
+      version = "~> 1.0.0"
       source  = "registry.terraform.io/dell/redfish"
     }
   }
-}
-
-// For servers without a uniquely defined username/password these values will be used
-provider "redfish" {
-  user     = "root"
-  password = "password"
 }
 
 resource "redfish_power" "system_power" {
@@ -34,7 +28,11 @@ resource "redfish_power" "system_power" {
   | GracefulShutdown | Shut down gracefully and power off.                                                     |
   | On               | Turn on the unit.                                                                       |
   | PowerCycle       | Power cycle the unit.                                                                   |
+  | GracefulRestart  | Shut down gracefully and restart the system .                                           |
+  | PushPowerButton  | Alters the power state of the system. If the system is Off, it powers On and vice-versa |
+  | Nmi              | Turns the unit on in troubleshooting mode.                                              |
   */
+
   desired_power_action = "ForceRestart"
 
   // The maximum amount of time to wait for the server to enter the correct power state before

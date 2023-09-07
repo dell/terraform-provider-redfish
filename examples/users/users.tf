@@ -1,15 +1,10 @@
 terraform {
   required_providers {
     redfish = {
-      version = "~> 0.2.0"
+      version = "~> 1.0.0"
       source  = "registry.terraform.io/dell/redfish"
     }
   }
-}
-
-provider "redfish" {
-  //user = "root"
-  //password = "calvin"
 }
 
 resource "redfish_user_account" "rr" {
