@@ -22,8 +22,10 @@ description: |-
 ### Optional
 
 - `attributes` (Map of String) Bios attributes
+- `bios_job_timeout` (Number) bios_job_timeout is the time in seconds that the provider waits for the bios update job to be completed before timing out.
+- `reset_timeout` (Number) reset_timeout is the time in seconds that the provider waits for the server to be reset before timing out.
 - `reset_type` (String) Reset type to apply on the computer system after the BIOS settings are applied. Applicable values are 'ForceRestart', 'GracefulRestart', and 'PowerCycle'.Default = "GracefulRestart".
-- `settings_apply_time` (String) The time when the BIOS settings can be applied. Applicable values are 'OnReset', and 'Immediate'. Default is "OnReset".
+- `settings_apply_time` (String) The time when the BIOS settings can be applied. Applicable value is 'OnReset' only. In upcoming releases other apply time values will be supported. Default is "OnReset".
 
 ### Read-Only
 
@@ -41,5 +43,3 @@ Optional:
 - `password` (String, Sensitive) User password for login
 - `ssl_insecure` (Boolean) This field indicates whether the SSL/TLS certificate must be verified or not
 - `user` (String) User name for login
-
-

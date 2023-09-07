@@ -25,7 +25,7 @@ resource "redfish_bios" "bios" {
   attributes = {
     "NumLock" = "On"
   }
-  reset_type          = "ForceRestart"
+  reset_type = "ForceRestart"
 }
 
 data "redfish_bios" "bios" {
@@ -40,6 +40,6 @@ data "redfish_bios" "bios" {
 }
 
 output "bios_attributes" {
-  value = data.redfish_bios.bios
+  value     = data.redfish_bios.bios
   sensitive = true
 }

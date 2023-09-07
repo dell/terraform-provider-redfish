@@ -24,7 +24,8 @@ description: |-
 ### Optional
 
 - `enabled` (Boolean)
-- `role_id` (String)
+- `role_id` (String) Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. Default is "None".
+- `user_id` (String)
 
 ### Read-Only
 
@@ -42,5 +43,3 @@ Optional:
 - `password` (String) This field is the password related to the user given
 - `ssl_insecure` (Boolean) This field indicates if the SSL/TLS certificate must be verified
 - `user` (String) This field is the user to login against the redfish API
-
-

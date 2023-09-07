@@ -45,5 +45,3 @@ Read-Only:
 
 - `id` (String)
 - `odata_id` (String)
-
-

@@ -20,7 +20,7 @@ description: |-
 - `redfish_server` (Block List, Min: 1) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
 - `reset_type` (String) Reset type allows to choose the type of restart to apply when firmware upgrade is scheduled.Possible values are: "ForceRestart", "GracefulRestart" or "PowerCycle"
 - `target_firmware_image` (String) Target firmware image used for firmware update on the redfish instance. Make sure you place your firmware packages in the same folder as the module and set it as follows: "${path.module}/BIOS_FXC54_WN64_1.15.0.EXE"
-- `transfer_protocol` (String) The network protocol that the Update Service uses to retrieve the software image file located at the URI provided in ImageURI, if the URI does not contain a scheme.Accepted values: CIFS, FTP, SFTP, HTTP, HTTPS, NSF, SCP, TFTP, OEM, NFS
+- `transfer_protocol` (String) The network protocol that the Update Service uses to retrieve the software image file located at the URI provided in ImageURI, if the URI does not contain a scheme. Accepted values: CIFS, FTP, SFTP, HTTP, HTTPS, NSF, SCP, TFTP, OEM, NFS. Currently only HTTP, HTTPS and NFS are supported with local file path or HTTP(s)/NFS link.
 
 ### Optional
 
@@ -45,5 +45,3 @@ Optional:
 - `password` (String, Sensitive) User password for login
 - `ssl_insecure` (Boolean) This field indicates whether the SSL/TLS certificate must be verified or not
 - `user` (String) User name for login
-
-
