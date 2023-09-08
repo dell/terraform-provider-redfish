@@ -230,8 +230,11 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 
 	// Convert from []interface{} to []string for using
 	driveNames := make([]string, len(driveNamesRaw))
+	if len(driveNamesRaw) == 0 {
+		return diag.Errorf("Error when getting the drives: drives cannot be empty")
+	}
 	for i, raw := range driveNamesRaw {
-		if len(raw.(string)) == 0 {
+		if raw == nil {
 			return diag.Errorf("Error when getting the drives: drive name cannot be blank")
 		}
 		driveNames[i] = raw.(string)
@@ -363,8 +366,11 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 
 	// Convert from []interface{} to []string for using
 	driveNames := make([]string, len(driveNamesRaw))
+	if len(driveNamesRaw) == 0 {
+		return diag.Errorf("Error when getting the drives: drives cannot be empty")
+	}
 	for i, raw := range driveNamesRaw {
-		if len(raw.(string)) == 0 {
+		if raw == nil {
 			return diag.Errorf("Error when getting the drives: drive name cannot be blank")
 		}
 		driveNames[i] = raw.(string)
