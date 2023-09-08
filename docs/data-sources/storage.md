@@ -45,5 +45,3 @@ Read-Only:
 
 - `drives` (List of String)
 - `storage_controller_id` (String)
-
-

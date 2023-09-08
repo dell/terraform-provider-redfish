@@ -19,20 +19,17 @@ description: |-
 
 - `image` (String) The URI of the remote media to attach to the virtual media
 - `redfish_server` (Block List, Min: 1) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
-- `virtual_media_id` (String) ID from the virtual media to be used. I.E: RemovableDisk
 
 ### Optional
 
-- `inserted` (Boolean) The URI of the remote media to attach to the virtual media
-- `password` (String) The password to access the image parameter-specific URI
-- `transfer_method` (String)
-- `transfer_protocol_type` (String)
-- `username` (String) The username to access the image parameter-specific URI
-- `write_protected` (Boolean)
+- `transfer_method` (String) Indicates how the data is transferred
+- `transfer_protocol_type` (String) The protocol used to transfer.
+- `write_protected` (Boolean) Indicates whether the remote device media prevents writing to that media.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+- `inserted` (Boolean) The URI of the remote media to attach to the virtual media
 
 <a id="nestedblock--redfish_server"></a>
 ### Nested Schema for `redfish_server`
@@ -46,5 +43,3 @@ Optional:
 - `password` (String, Sensitive) User password for login
 - `ssl_insecure` (Boolean) This field indicates whether the SSL/TLS certificate must be verified or not
 - `user` (String) User name for login
-
-

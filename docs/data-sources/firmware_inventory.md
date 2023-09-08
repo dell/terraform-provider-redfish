@@ -47,5 +47,3 @@ Read-Only:
 - `entity_id` (String)
 - `entity_name` (String)
 - `version` (String)
-
-
