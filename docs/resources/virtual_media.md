@@ -47,15 +47,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-terraform {
-  required_providers {
-    redfish = {
-      version = "~> 1.0.0"
-      source  = "registry.terraform.io/dell/redfish"
-    }
-  }
-}
-
 resource "redfish_virtual_media" "vm" {
   for_each = var.rack1
 

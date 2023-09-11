@@ -15,15 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-terraform {
-  required_providers {
-    redfish = {
-      version = "~> 1.0.0"
-      source  = "registry.terraform.io/dell/redfish"
-    }
-  }
-}
-
 resource "redfish_dell_idrac_attributes" "idrac" {
   for_each = var.rack1
 
