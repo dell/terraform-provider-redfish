@@ -29,7 +29,18 @@ description: |-
 {{ if .HasExample -}}
 ## Example Usage
 
+variables.tf
+{{ tffile ( printf "examples/data-sources/%s/variables.tf" .Name ) }}
+
+terraform.tfvars
+{{ tffile ( printf "examples/data-sources/%s/terraform.tfvars" .Name ) }}
+
+provider.tf
+{{ tffile ( printf "examples/data-sources/%s/provider.tf" .Name ) }}
+
+main.tf
 {{ printf "{{tffile %q}}" .ExampleFile }}
+
 {{- end }}
 
 {{ .SchemaMarkdown | trimspace }}

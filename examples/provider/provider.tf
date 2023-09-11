@@ -15,11 +15,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-variable "rack1" {
-  type = map(object({
-    user         = string
-    password     = string
-    endpoint     = string
-    ssl_insecure = bool
-  }))
+terraform {
+  required_providers {
+    redfish = {
+      version = "1.0.0"
+      source  = "registry.terraform.io/dell/redfish"
+    }
+  }
 }

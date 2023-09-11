@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 variable "rack1" {
   type = map(object({
     user         = string

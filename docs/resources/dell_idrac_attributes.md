@@ -26,9 +26,102 @@ description: |-
 
 
 
-
 ## Example Usage
 
+variables.tf
+```terraform
+/*
+Copyright (c) 2023 Dell Inc., or its subsidiaries. All Rights Reserved.
+
+Licensed under the Mozilla Public License Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://mozilla.org/MPL/2.0/
+
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+variable "rack1" {
+  type = map(object({
+    user         = string
+    password     = string
+    endpoint     = string
+    ssl_insecure = bool
+  }))
+}
+```
+
+terraform.tfvars
+```terraform
+/*
+Copyright (c) 2023 Dell Inc., or its subsidiaries. All Rights Reserved.
+
+Licensed under the Mozilla Public License Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://mozilla.org/MPL/2.0/
+
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+rack1 = {
+  "my-server-1" = {
+    user         = "admin"
+    password     = "passw0rd"
+    endpoint     = "https://my-server-1.myawesomecompany.org"
+    ssl_insecure = true
+  },
+  "my-server-2" = {
+    user         = "admin"
+    password     = "passw0rd"
+    endpoint     = "https://my-server-2.myawesomecompany.org"
+    ssl_insecure = true
+  },
+}
+```
+
+provider.tf
+```terraform
+/*
+Copyright (c) 2023 Dell Inc., or its subsidiaries. All Rights Reserved.
+
+Licensed under the Mozilla Public License Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://mozilla.org/MPL/2.0/
+
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+terraform {
+  required_providers {
+    redfish = {
+      version = "1.0.0"
+      source  = "registry.terraform.io/dell/redfish"
+    }
+  }
+}
+```
+
+main.tf
 ```terraform
 /*
 Copyright (c) 2023 Dell Inc., or its subsidiaries. All Rights Reserved.
@@ -93,4 +186,5 @@ Optional:
 - `password` (String, Sensitive) User password for login
 - `ssl_insecure` (Boolean) This field indicates whether the SSL/TLS certificate must be verified or not
 - `user` (String) User name for login
+
 
