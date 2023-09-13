@@ -49,7 +49,7 @@ The Terraform Provider for Dell RedFish is released and licensed under the MPL-2
 
 | **Terraform Provider** | **iDRAC Version** | **OS** | **Terraform** | **Golang** |
 |---------------------|-----------------------|-------|--------------------|--------------------------|
-| v1.0.0 | 5.x/6.x/7.x | ubuntu22.04 <br> rhel8.x <br> rhel9.x | 1.3.x <br> 1.4.x <br> | 1.19.x
+| v1.0.0 | 5.x <br> 6.x <br> 7.x | ubuntu22.04 <br> rhel8.x <br> rhel9.x | 1.3.x <br> 1.4.x <br> | 1.19.x
 
 ## List of DataSources in Terraform Provider for Dell RedFish
   * [Bios](docs/data-sources/bios.md)

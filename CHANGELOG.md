@@ -21,7 +21,7 @@ The release supports resources and data sources mentioned in the Features sectio
 * `redfish_firmware_inventory` for reading firware inventory details.
 * `redfish_storage` for reading storage volume details.
 * `redfish_system_boot` for reading system boot details.
-* `redfish_virtual_media` for reading virtual media.
+* `redfish_virtual_media` for reading virtual media details.
 
 ### Notes:
 * `write_protected` attribute of virtual media can only be configured as “true”.
