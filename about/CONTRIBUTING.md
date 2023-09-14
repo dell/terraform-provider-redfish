@@ -35,7 +35,7 @@ Become one of the contributors to this project! We thrive to build a welcoming a
 
 You can contribute to this project in several ways. Here are some examples:
 
-* Contribute to the Terraform provider for Dell RedFish documentation and codebase.
+* Contribute to the Terraform provider for RedFish documentation and codebase.
 * Report and triage bugs.
 * Feature requests.
 * Write technical documentation and blog posts, for users and contributors.
@@ -43,11 +43,11 @@ You can contribute to this project in several ways. Here are some examples:
 
 ## Submitting issues
 
-All issues related to Terraform provider for Dell RedFish, regardless of the service/repository the issue belongs to (see table above), should be submitted [here](https://github.com/dell/dell-terraform-providers/issues). Issues will be triaged and labels will be used to indicate the type of issue. This section outlines the types of issues that can be submitted.  
+All issues related to Terraform provider for RedFish, regardless of the service/repository the issue belongs to (see table above), should be submitted [here](https://github.com/dell/dell-terraform-providers/issues). Issues will be triaged and labels will be used to indicate the type of issue. This section outlines the types of issues that can be submitted.  
 
 ### Report bugs
 
-We aim to track and document everything related to Terraform provider for Dell RedFish via the Issues page. The code and documentation are released with no warranties or SLAs and are intended to be supported through a community driven process.
+We aim to track and document everything related to Terraform provider for RedFish via the Issues page. The code and documentation are released with no warranties or SLAs and are intended to be supported through a community driven process.
 
 Before submitting a new issue, make sure someone hasn't already reported the problem. Look through the [existing issues](https://github.com/dell/dell-terraform-providers/issues) for similar issues.
 
@@ -70,7 +70,7 @@ If you have an idea of how to improve this project, submit a [feature request](h
 
 If you have a question and you can't find the answer in the documentation or issues, the next step is to submit a [question.](https://github.com/dell/dell-terraform-providers/issues/new?labels=type%2Fquestion&template=ask-a-question.md&title=%5BQUESTION%5D%3A)
 
-We'd love your help answering questions being asked by other Terraform provider for Dell RedFish users.
+We'd love your help answering questions being asked by other Terraform provider for RedFish users.
 
 ## Triage issues
 
@@ -81,7 +81,7 @@ Triage helps ensure that issues resolve quickly by:
 * Lowering the issue count by preventing duplicate issues.
 * Streamlining the development process by preventing duplicate discussions.
 
-If you don't have the knowledge or time to code, consider helping with _issue triage_. The Terraform provider for Dell RedFish community will thank you for saving them time by spending some of yours.
+If you don't have the knowledge or time to code, consider helping with _issue triage_. The Terraform provider for RedFish community will thank you for saving them time by spending some of yours.
 
 Read more about the ways you can [Triage issues](ISSUE_TRIAGE.md).
 
@@ -118,7 +118,7 @@ $ git commit -S -m your commit message
 
 ### Commit message format
 
-Terraform provider for Dell RedFish uses the guidelines for commit messages outlined in [How to Write a Git Commit Message](https://chris.beams.io/posts/git-commit/)
+Terraform provider for RedFish uses the guidelines for commit messages outlined in [How to Write a Git Commit Message](https://chris.beams.io/posts/git-commit/)
 
 ## Pull requests
 

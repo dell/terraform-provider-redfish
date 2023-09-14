@@ -17,6 +17,6 @@ limitations under the License.
 
 # Support
 
-For any Terraform Provider for Dell RedFish issues, questions or feedback, please follow our [support process](https://github.com/dell/dell-terraform-providers/blob/main/docs/SUPPORT.md)
+For any Terraform Provider for RedFish issues, questions or feedback, please follow our [support process](https://github.com/dell/dell-terraform-providers/blob/main/docs/SUPPORT.md)
 
 You can also interact with us on [GitHub](https://github.com/dell/dell-terraform-providers) by creating a [GitHub Issue](https://github.com/dell/dell-terraform-providers/issues).

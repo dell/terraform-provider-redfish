@@ -3,7 +3,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 # v1.0.0 (September, 2023)
 ## Release Summary
-The release supports resources and data sources mentioned in the Features section for Dell RedFish.
+The release supports resources and data sources mentioned in the Features section for RedFish.
 ## Features
 
 ### Resources

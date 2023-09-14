@@ -14,12 +14,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
-# Terraform Provider for Dell Technologies RedFish
+# Terraform Provider for RedFish
 
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](about/CODE_OF_CONDUCT.md)
 [![License](https://img.shields.io/badge/License-MPL_2.0-blue.svg)](LICENSE)
 
-The Terraform Provider for Dell Technologies (Dell) RedFish allows data center and IT administrators to use Hashicorp Terraform to automate and orchestrate the provisioning and management of PowerEdge servers.
+The Terraform Provider for RedFish allows data center and IT administrators to use Hashicorp Terraform to automate and orchestrate the provisioning and management of PowerEdge servers.
 
 The Terraform Provider can be used to manage server power cycles, IDRAC attributes, BIOS attributes, virtual media, storage volumes, user support, and firmware updates on the server.
 
@@ -34,16 +34,16 @@ The Terraform Provider can be used to manage server power cycles, IDRAC attribut
 * [Security](https://github.com/dell/dell-terraform-providers/blob/main/docs/SECURITY.md)
 * [License](#license)
 * [Prerequisites](#prerequisites)
-* [List of DataSources in Terraform Provider for Dell RedFish](#list-of-datasources-in-terraform-provider-for-dell-redfish)
-* [List of Resources in Terraform Provider for Dell RedFish](#list-of-resources-in-terraform-provider-for-dell-redfish)
+* [List of DataSources in Terraform Provider for RedFish](#list-of-datasources-in-terraform-provider-for-redfish)
+* [List of Resources in Terraform Provider for RedFish](#list-of-resources-in-terraform-provider-for-redfish)
 * [Releasing, Maintenance and Deprecation](#releasing-maintenance-and-deprecation)
 * [Documentation](#documentation)
 
 ## Support
-For any Terraform Provider for Dell RedFish issues, questions or feedback, please follow our [support process](https://github.com/dell/dell-terraform-providers/blob/main/docs/SUPPORT.md)
+For any Terraform Provider for RedFish issues, questions or feedback, please follow our [support process](https://github.com/dell/dell-terraform-providers/blob/main/docs/SUPPORT.md)
 
 ## License
-The Terraform Provider for Dell RedFish is released and licensed under the MPL-2.0 license. See [LICENSE](LICENSE) for the full terms.
+The Terraform Provider for RedFish is released and licensed under the MPL-2.0 license. See [LICENSE](LICENSE) for the full terms.
 
 ## Prerequisites
 
@@ -51,7 +51,7 @@ The Terraform Provider for Dell RedFish is released and licensed under the MPL-2
 |---------------------|-----------------------|-------|--------------------|--------------------------|
 | v1.0.0 | 5.x <br> 6.x <br> 7.x | ubuntu22.04 <br> rhel8.x <br> rhel9.x | 1.3.x <br> 1.4.x <br> | 1.19.x
 
-## List of DataSources in Terraform Provider for Dell RedFish
+## List of DataSources in Terraform Provider for RedFish
   * [Bios](docs/data-sources/bios.md)
   * [iDRAC Attributes](docs/data-sources/dell_idrac_attributes.md)
   * [Firmware Inventory](docs/data-sources/firmware_inventory.md)
@@ -59,7 +59,7 @@ The Terraform Provider for Dell RedFish is released and licensed under the MPL-2
   * [System Boot](docs/data-sources/system_boot.md)
   * [Virtual Media](docs/data-sources/virtual_media.md)
 
-## List of Resources in Terraform Provider for Dell RedFish
+## List of Resources in Terraform Provider for RedFish
   * [Bios](docs/resources/bios.md)
   * [iDRAC Attributes](docs/resources/dell_idrac_attributes.md)
   * [Power](docs/resources/power.md)
@@ -68,12 +68,12 @@ The Terraform Provider for Dell RedFish is released and licensed under the MPL-2
   * [User Account](docs/resources/user_account.md)
   * [Virtual Media](docs/resources/virtual_media.md)
 
-## Installation and execution of Terraform Provider for Dell RedFish
+## Installation and execution of Terraform Provider for RedFish
 The installation and execution steps of Terraform Provider for Dell RedFish can be found [here](about/INSTALLATION.md).
 
 ## Releasing, Maintenance and Deprecation
 
-Terraform Provider for Dell Technnologies RedFish follows [Semantic Versioning](https://semver.org/).
+Terraform Provider for RedFish follows [Semantic Versioning](https://semver.org/).
 
 New versions will be release regularly if significant changes (bug fix or new feature) are made in the provider.
 
