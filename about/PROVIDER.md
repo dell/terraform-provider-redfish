@@ -1,5 +1,5 @@
 # Information about Redfish Terraform Provider
-This guide will explain different parts of the provider and will give an overview about how the provider is built, to onboard quicker developers that might be interested in this project.  
+This guide will explain different parts of the provider and will give an overview about how the provider is built.  
 
 ## 1. Provider's way of operation
 When you think of Terraform, normally operators tend to think that the way a provider connects with a cloud provider is via a single endpoint. Well, actually that's the way it works. Cloud providers provide an endpoint and operators point to that endpoint when configuring terraform.  
@@ -50,21 +50,21 @@ With this **terraform redfish provider** a different approach had to be followed
     
 users.tf
 ~~~
-provider "redfish" {}
-
 resource "redfish_user_account" "rr" {
-    for_each = var.rack1
+  for_each = var.rack1
 
-    redfish_server {
-        user = each.value.user
-        password = each.value.password
-        endpoint = each.value.endpoint
-        ssl_insecure = each.value.ssl_insecure
-    }      
+  redfish_server {
+    user         = each.value.user
+    password     = each.value.password
+    endpoint     = each.value.endpoint
+    ssl_insecure = each.value.ssl_insecure
+  }
 
-    username = "mike"
-    password = "test1234"
-    enabled = true
+  user_id  = "4"
+  username = "test"
+  password = "Test@123"
+  role_id  = "Operator"
+  enabled  = true
 }
 ~~~
   
@@ -72,18 +72,18 @@ resource "redfish_user_account" "rr" {
 terraform.tfvars
 ~~~
 rack1 = {
-    "my-server-1" = {
-        user = "root"
-        password = "calvin"
-        endpoint = "https://my-server-1.myawesomecompany.org"
-        ssl_insecure = true
-    },
-    "my-server-2" = {
-        user = "root"
-        password = "calvin"
-        endpoint = "https://my-server-2.myawesomecompany.org"
-        ssl_insecure = true
-    },
+  "my-server-1" = {
+    user         = "admin"
+    password     = "passw0rd"
+    endpoint     = "https://my-server-1.myawesomecompany.org"
+    ssl_insecure = true
+  },
+  "my-server-2" = {
+    user         = "admin"
+    password     = "passw0rd"
+    endpoint     = "https://my-server-2.myawesomecompany.org"
+    ssl_insecure = true
+  },
 }
 ~~~
   
@@ -95,7 +95,7 @@ There might be scenarios where operators have the same credentials for all machi
 ~~~
 provider "redfish" {
     user = "root"
-    password = "calvin"
+    password = "passw0rd"
 }
 ~~~
 
@@ -115,4 +115,3 @@ rack1 = {
 ~~~
 
 Terraform will always use the most specific client values. In the case client credentials are defined at both the provider block and resource level, **the credentials defined at the resource level** will be used. 
-  
