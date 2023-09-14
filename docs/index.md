@@ -27,12 +27,11 @@ description: |-
 # redfish Provider
 
 
-```markdown
 # Information about Redfish Terraform Provider
-This guide will explain different parts of the provider and will give an overview about how the provider is built.  
+This guide will explain different parts of the provider and will give an overview about how the provider is built.
 
 ## 1. Provider's way of operation
-When you think of Terraform, normally operators tend to think that the way a provider connects with a cloud provider is via a single endpoint. Well, actually that's the way it works. Cloud providers provide an endpoint and operators point to that endpoint when configuring terraform.  
+When you think of Terraform, normally operators tend to think that the way a provider connects with a cloud provider is via a single endpoint. Well, actually that's the way it works. Cloud providers provide an endpoint and operators point to that endpoint when configuring terraform.
 ~~~
   +-----------------+
   | Cloud provider  |
@@ -46,7 +45,7 @@ When you think of Terraform, normally operators tend to think that the way a pro
 ~~~
 
 With the **Redfish Terraform Provider**, that operating model has been changed because of the way the provider interacts with the infrastructure (Redfish endpoints).
-In a regular scenario (for instance a datacenter), operators don't just have one endpoint, but a bunch of them. Each redfish endpoint corresponds to each physical server.  
+In a regular scenario (for instance a datacenter), operators don't just have one endpoint, but a bunch of them. Each redfish endpoint corresponds to each physical server.
 ~~~
 +------------------+     +------------------+      ...N        +------------------+
 | PowerEdge Server |     | PowerEdge Server |  +-----------+   | PowerEdge Server |
@@ -66,18 +65,18 @@ In a regular scenario (for instance a datacenter), operators don't just have one
 ## How we overcome this
 
 Normally the provider is initialized in the provider block, giving it your cloud credentials to deal with the infrastructure. Something like this:
-~~~	
+~~~
 provider "aws" {
 	region     = "eu-west-1"
 	access_key = "myaccesskey"
 	secret_key = "mysecretkey"
 }
 ~~~
-When that is done, then operators would start writing the resources they want to deploy in those regions.  
+When that is done, then operators would start writing the resources they want to deploy in those regions.
 
-  
-With this **terraform redfish provider** a different approach had to be followed since there are multiple endpoints. What has been done (and kudos to Kyriakos Oikonomakos from Hashicorp for proposing this) was to initialize the client at the resource level. This allows operators to manage different servers from one central point. Take a look into this example:  
-    
+
+With this **terraform redfish provider** a different approach had to be followed since there are multiple endpoints. What has been done (and kudos to Kyriakos Oikonomakos from Hashicorp for proposing this) was to initialize the client at the resource level. This allows operators to manage different servers from one central point. Take a look into this example:
+
 users.tf
 ~~~
 resource "redfish_user_account" "rr" {
@@ -97,7 +96,7 @@ resource "redfish_user_account" "rr" {
   enabled  = true
 }
 ~~~
-  
+
 
 terraform.tfvars
 ~~~
@@ -116,8 +115,8 @@ rack1 = {
   },
 }
 ~~~
-  
-By doing this, operators create two users on two different servers using this provider and the Redfish API.  
+
+By doing this, operators create two users on two different servers using this provider and the Redfish API.
 *Remember, in every CRUD operation, the client must be initialized.*
 
 ## Overwriting client credentials
@@ -145,7 +144,6 @@ rack1 = {
 ~~~
 
 Terraform will always use the most specific client values. In the case client credentials are defined at both the provider block and resource level, **the credentials defined at the resource level** will be used.
-```
 
 ## Example Usage
 
