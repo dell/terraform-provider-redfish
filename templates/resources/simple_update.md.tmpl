@@ -25,6 +25,7 @@ description: |-
 # {{.Name }} ({{.Type}})
 
 {{ .Description | trimspace }}
+This Terraform resource is used to Update the iDRAC Server. We can Read the existing version or update the same using this resource.
 
 {{ if .HasExample -}}
 ## Example Usage
@@ -41,6 +42,8 @@ provider.tf
 main.tf
 {{tffile .ExampleFile }}
 
+After the successful execution of the above resource block, firmware would have got updated. It can be verified through state file.
+
 {{- end }}
 
 {{ .SchemaMarkdown | trimspace }}
@@ -53,3 +56,4 @@ Import is supported using the following syntax:
 {{ printf "{{codefile \"shell\" %q}}" .ImportFile }}
 
 {{- end }}
+

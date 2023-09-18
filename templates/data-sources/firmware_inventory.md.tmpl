@@ -25,7 +25,7 @@ description: |-
 # {{.Name }} ({{.Type}})
 
 {{ .Description | trimspace }}
-
+This Terraform datasource is used to query existing firmware details. The information fetched from this block can be further used for resource block.
 {{ if .HasExample -}}
 ## Example Usage
 
@@ -41,6 +41,9 @@ provider.tf
 main.tf
 {{tffile .ExampleFile }}
 
+After the successful execution of the above data block, we can see the output in the state file.
+
 {{- end }}
 
 {{ .SchemaMarkdown | trimspace }}
+
