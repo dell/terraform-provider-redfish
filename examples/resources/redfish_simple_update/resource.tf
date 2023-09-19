@@ -25,10 +25,12 @@ resource "redfish_simple_update" "update" {
     ssl_insecure = each.value.ssl_insecure
   }
 
-  transfer_protocol         = "HTTP"
-  target_firmware_image     = "/home/mikeletux/Downloads/BIOS_FXC54_WN64_1.15.0.EXE"
-  reset_type                = "ForceRestart"
-  reset_timeout             = 120  // If not set, by default will be 120s
+  // The network protocols and image for firmware update
+  transfer_protocol     = "HTTP"
+  target_firmware_image = "/home/mikeletux/Downloads/BIOS_FXC54_WN64_1.15.0.EXE"
+  // Reset parameters to be applied when upgrade is completed
+  reset_type    = "ForceRestart"
+  reset_timeout = 120 // If not set, by default will be 120s
+  // The maximum amount of time to wait for the simple update job to be completed
   simple_update_job_timeout = 1200 // If not set, by default will be 1200s
 }
-

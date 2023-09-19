@@ -27,6 +27,7 @@ description: |-
 {{ .Description | trimspace }}
 This Terraform resource is used to Update the iDRAC Server. We can Read the existing version or update the same using this resource.
 
+~> **Note:** In case of any failure in the middle of update, you can check the server. If required to run again, then terraform destroy need to be performed first.
 {{ if .HasExample -}}
 ## Example Usage
 

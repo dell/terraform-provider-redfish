@@ -25,8 +25,9 @@ description: |-
 # {{.Name }} ({{.Type}})
 
 {{ .Description | trimspace }}
-This Terraform resource is used to manage user resource of the iDRAC Server. We can create, read, modify and delete an existing user using this resource.
+This Terraform resource is used to manage user entity of the iDRAC Server. We can create, read, modify and delete an existing user using this resource.
 
+~> **Note:** In the absence of `user_id`, first available `user_id` is assigned to the given user.
 {{ if .HasExample -}}
 ## Example Usage
 
@@ -42,7 +43,7 @@ provider.tf
 main.tf
 {{tffile .ExampleFile }}
 
-After the successful execution of the above resource block, an new user would have got created, if not already present. It can be verified through state file.
+After the successful execution of the above resource block, a new user would have got created, if not already present. It can be verified through state file.
 
 {{- end }}
 

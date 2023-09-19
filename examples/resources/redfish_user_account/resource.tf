@@ -25,10 +25,11 @@ resource "redfish_user_account" "rr" {
     ssl_insecure = each.value.ssl_insecure
   }
 
+  // user details for creating/modifying a user
   user_id  = "4"
   username = "test"
   password = "Test@123"
   role_id  = "Operator"
-  enabled  = true
+  // to set user as active or inactive
+  enabled = true
 }
-
