@@ -28,10 +28,14 @@ resource "redfish_storage_volume" "volume" {
   storage_controller_id = "RAID.Integrated.1-1"
   volume_name           = "TerraformVol"
   volume_type           = "NonRedundant"
-  drives                = ["Solid State Disk 0:0:1"]
-  settings_apply_time   = "Immediate"
-  reset_type            = "PowerCycle"
-  reset_timeout         = 100
+  // Name of the physical disk on which virtual disk should get created.
+  drives = ["Solid State Disk 0:0:1"]
+  // Flag stating when to create virtual disk either "Immediate" or "OnReset"
+  settings_apply_time = "Immediate"
+  // Reset parameters to be applied when upgrade is completed
+  reset_type    = "PowerCycle"
+  reset_timeout = 100
+  // The maximum amount of time to wait for the volume job to be completed
   volume_job_timeout    = 1200
   capacity_bytes        = 1073323222
   optimum_io_size_bytes = 131072

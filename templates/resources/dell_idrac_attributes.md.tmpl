@@ -26,6 +26,7 @@ description: |-
 
 {{ .Description | trimspace }}
 
+This Terraform resource is used to configure iDRAC attributes of the iDRAC Server. We can Read the existing configurations or modify them using this resource.
 {{ if .HasExample -}}
 ## Example Usage
 
@@ -41,6 +42,7 @@ provider.tf
 main.tf
 {{tffile .ExampleFile }}
 
+After the successful execution of the above resource block, iDRAC attributes configuration would have got altered. It can be verified through state file.
 {{- end }}
 
 {{ .SchemaMarkdown | trimspace }}
