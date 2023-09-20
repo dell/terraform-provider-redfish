@@ -1,0 +1,59 @@
+---
+# Copyright (c) 2023 Dell Inc., or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Mozilla Public License Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://mozilla.org/MPL/2.0/
+#
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+title: "{{.Name }} {{.Type | lower}}"
+linkTitle: "{{.Name }}"
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name }} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+{{ if .HasExample -}}
+## Example Usage
+
+This Terraform resource is used to configure Power attributes of the iDRAC Server. We can Read the existing power state or modify it using this resource.
+
+variables.tf
+{{ tffile ( printf "examples/resources/%s/variables.tf" .Name ) }}
+
+terraform.tfvars
+{{ tffile ( printf "examples/resources/%s/terraform.tfvars" .Name ) }}
+
+provider.tf
+{{ tffile ( printf "examples/resources/%s/provider.tf" .Name ) }}
+
+main.tf
+{{tffile .ExampleFile }}
+
+After the successful execution of the above resource block, Power state would have been modified to the above desired value. It can be verified through state file.
+{{- end }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+{{ if .HasImport -}}
+## Import
+
+Import is supported using the following syntax:
+
+{{ printf "{{codefile \"shell\" %q}}" .ImportFile }}
+
+{{- end }}
+

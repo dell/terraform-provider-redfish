@@ -25,6 +25,7 @@ resource "redfish_dell_idrac_attributes" "idrac" {
     ssl_insecure = each.value.ssl_insecure
   }
 
+  // iDRAC attributes to be modified
   attributes = {
     "Users.3.Enable"                         = "Disabled"
     "Users.3.UserName"                       = "mike"

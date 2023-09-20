@@ -25,10 +25,14 @@ resource "redfish_bios" "bios" {
     ssl_insecure = each.value.ssl_insecure
   }
 
+  // Bios attributes to be altered
   attributes = {
     "NumLock" = "On"
   }
-  reset_type       = "ForceRestart"
-  reset_timeout    = "120"
+
+  // Reset parameters to be applied after bios settings are applied
+  reset_type    = "ForceRestart"
+  reset_timeout = "120"
+  // The maximum amount of time to wait for the bios job to be completed
   bios_job_timeout = "1200"
 }
