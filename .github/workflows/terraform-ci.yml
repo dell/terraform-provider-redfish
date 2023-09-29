@@ -47,7 +47,7 @@ jobs:
           # When `install-mode` is `binary` (default) the value can be v1.2 or v1.2.3 or `latest` to use the latest version.
           # When `install-mode` is `goinstall` the value can be v1.2.3, `latest`, or the hash of a commit.
           version: v1.54
- code-check:
+  code-check:
     name: Check Go formatting, linting, vetting
     runs-on: ubuntu-latest
     steps:
@@ -57,7 +57,7 @@ jobs:
         uses: dell/common-github-actions/go-code-formatter-linter-vetter@main
         with:
           directories: ./redfish # TBD ./...
- sanitize:
+  sanitize:
     name: Check for forbidden words
     runs-on: ubuntu-latest
     steps:
