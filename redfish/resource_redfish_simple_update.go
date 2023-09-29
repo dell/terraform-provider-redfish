@@ -231,7 +231,7 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 			if err != nil {
 				diag.Errorf("error while retrieving Etag from FirmwareInventory")
 			}
-			response.Body.Close()
+			response.Body.Close() //#nosec G104 -- TBD
 			etag := response.Header.Get("ETag")
 
 			// Set custom headers
@@ -256,7 +256,7 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 			if err != nil {
 				return diag.Errorf("there was an issue when uploading FW package to redfish - %s", err)
 			}
-			response.Body.Close()
+			response.Body.Close() //#nosec G104 -- TBD
 			packageLocation := response.Header.Get("Location")
 
 			// Get package information ( SoftwareID - Version )
@@ -277,7 +277,7 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 				// Delete uploaded package - TBD
 				return diag.Errorf("there was an issue when scheduling the update job - %s", err)
 			}
-			response.Body.Close()
+			response.Body.Close() //#nosec G104 -- TBD
 
 			err = updateJobStatus(service, d, response, resetType)
 			if err != nil {
@@ -332,6 +332,7 @@ func checkResetType(resetType string, allowableValues []redfish.ResetType) bool 
 
 // openFile is a simple function that opens a file
 func openFile(filePath string) (*os.File, error) {
+	//#nosec G304 -- TBD
 	if f, err := os.Open(filePath); err != nil {
 		return nil, fmt.Errorf("error when opening %s file - %s", filePath, err)
 	} else {
