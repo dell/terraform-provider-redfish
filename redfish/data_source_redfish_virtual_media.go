@@ -103,7 +103,8 @@ func readRedfishVirtualMediaCollection(service *gofish.Service, d *schema.Resour
 		vmToAdd["id"] = v.ID
 		vms = append(vms, vmToAdd)
 	}
-	d.Set("virtual_media", vms)
+	err = d.Set("virtual_media", vms)
+	diags = append(diags, diag.FromErr(err)...)
 	d.SetId(strconv.FormatInt(time.Now().Unix(), 10))
 
 	return diags

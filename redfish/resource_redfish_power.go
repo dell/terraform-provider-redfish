@@ -2,12 +2,14 @@ package redfish
 
 import (
 	"context"
+	"errors"
+	"log"
+	"time"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/stmcginnis/gofish/redfish"
-	"log"
-	"time"
 )
 
 func resourceRedFishPower() *schema.Resource {
@@ -32,6 +34,7 @@ const (
 func CheckPowerDiff(funcs ...schema.CustomizeDiffFunc) schema.CustomizeDiffFunc {
 	return func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
 
+		var err error
 		resetType, ok := d.GetOk("desired_power_action")
 
 		if !ok || resetType == nil {
@@ -40,16 +43,16 @@ func CheckPowerDiff(funcs ...schema.CustomizeDiffFunc) schema.CustomizeDiffFunc 
 		}
 
 		if resetType == "ForceOff" || resetType == "GracefulShutdown" {
-			d.SetNew("power_state", "Off")
+			err = errors.Join(err, d.SetNew("power_state", "Off"))
 		} else if resetType == "ForceOn" || resetType == "On" {
-			d.SetNew("power_state", "On")
+			err = errors.Join(err, d.SetNew("power_state", "On"))
 		} else if resetType == "ForceRestart" || resetType == "PowerCycle" || resetType == "Nmi" {
-			d.SetNew("power_state", "Reset_On")
+			err = errors.Join(err, d.SetNew("power_state", "Reset_On"))
 		}
 		// Note - if they select PushPowerButton then this function does nothing because we don't know what the value
 		// will be. We just let Terraform set everything to unknown as per normal
 
-		return nil
+		return err
 	}
 }
 
@@ -201,7 +204,9 @@ func resourceRedfishPowerUpdate(ctx context.Context, d *schema.ResourceData, m i
 		powerState = "Reset_On"
 	}
 
-	d.Set("power_state", powerState)
+	if err := d.Set("power_state", powerState); err != nil {
+		return diag.Errorf(err.Error())
+	}
 
 	return diags
 }

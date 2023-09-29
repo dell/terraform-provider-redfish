@@ -30,7 +30,7 @@ errcheck:
 lint:
 	@echo "==> Checking source code against linters..."
 	tfproviderlint ./redfish
-	golangci-lint run ./...
+	golangci-lint run --fix
 
 # vets all .go files
 vet:

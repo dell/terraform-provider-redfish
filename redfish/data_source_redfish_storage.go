@@ -112,7 +112,8 @@ func readRedfishStorageCollection(service *gofish.Service, d *schema.ResourceDat
 		m = append(m, mToAdd) //Insert controller into list
 	}
 
-	d.Set("storage", m)
+	err = d.Set("storage", m)
+	diags = append(diags, diag.FromErr(err)...)
 	d.SetId(strconv.FormatInt(time.Now().Unix(), 10))
 
 	return diags

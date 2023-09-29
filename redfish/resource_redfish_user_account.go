@@ -2,6 +2,7 @@ package redfish
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -164,6 +165,9 @@ func createRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) d
 
 	// check if user id is valid or not
 	userIdInt, err := strconv.Atoi(d.Get("user_id").(string))
+	if err != nil {
+		diag.Errorf(err.Error())
+	}
 	if len(d.Get("user_id").(string)) > 0 && !(userIdInt > 2 && userIdInt <= 16) {
 		return diag.Errorf("User_id can vary between 3 to 16 only")
 	}
@@ -216,12 +220,11 @@ func readRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) dia
 		return diags
 	}
 
-	d.Set("username", account.UserName)
-	d.Set("enabled", account.Enabled)
-	d.Set("role_id", account.RoleID)
-	d.Set("user_id", account.ID)
-
-	return diags
+	err = d.Set("username", account.UserName)
+	err = errors.Join(err, d.Set("enabled", account.Enabled))
+	err = errors.Join(err, d.Set("role_id", account.RoleID))
+	err = errors.Join(err, d.Set("user_id", account.ID))
+	return append(diags, diag.FromErr(err)...)
 }
 
 func updateRedfishUserAccount(ctx context.Context, service *gofish.Service, d *schema.ResourceData, m interface{}) diag.Diagnostics {

@@ -4,6 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"net/url"
+	"path"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/dell/terraform-provider-redfish/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -11,12 +18,6 @@ import (
 	"github.com/stmcginnis/gofish"
 	redfishcommon "github.com/stmcginnis/gofish/common"
 	"github.com/stmcginnis/gofish/redfish"
-	"log"
-	"net/url"
-	"path"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const (
@@ -307,6 +308,11 @@ func patchBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes 
 	}
 
 	oDataURI, err := url.Parse(bios.ODataID)
+	if err != nil {
+		log.Printf("[DEBUG] error parsing odata id: %s", err)
+		return "", err
+	}
+
 	oDataURI.Path = path.Join(oDataURI.Path, "Settings")
 	settingsObjectURI := oDataURI.String()
 

@@ -99,16 +99,13 @@ func dataSourceRedfishFirmwareInventoryRead(ctx context.Context, d *schema.Resou
 
 func flattenInventoryItems(inventoryItems *[]InventoryItem) []interface{} {
 	if inventoryItems != nil {
-		inv := make([]interface{}, len(*inventoryItems), len(*inventoryItems))
-
+		inv := make([]interface{}, len(*inventoryItems))
 		for i, invItem := range *inventoryItems {
-			item := make(map[string]interface{})
-
-			item["entity_name"] = invItem.entityID
-			item["entity_id"] = invItem.entityName
-			item["version"] = invItem.version
-
-			inv[i] = item
+			inv[i] = map[string]any{
+				"entity_name": invItem.entityID,
+				"entity_id":   invItem.entityName,
+				"version":     invItem.version,
+			}
 		}
 		return inv
 	}

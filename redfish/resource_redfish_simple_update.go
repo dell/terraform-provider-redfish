@@ -2,7 +2,15 @@ package redfish
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/dell/terraform-provider-redfish/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -10,12 +18,6 @@ import (
 	"github.com/stmcginnis/gofish"
 	redfishcommon "github.com/stmcginnis/gofish/common"
 	"github.com/stmcginnis/gofish/redfish"
-	"io"
-	"log"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 const (
@@ -87,10 +89,7 @@ func getResourceRedfishSimpleUpdateSchema() map[string]*schema.Schema {
 			// DiffSuppressFunc will allow moving fw packages through the filesystem without triggering an update if so.
 			// At the moment it uses filename to see if they're the same. We need to strengthen that by somehow using hashing
 			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-				if filepath.Base(old) == filepath.Base(new) {
-					return true
-				}
-				return false
+				return filepath.Base(old) == filepath.Base(new)
 			},
 		},
 		"reset_type": {
@@ -297,13 +296,14 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 				// TBD - HOW TO HANDLE WHEN FAILS BUT FIRMWARE WAS INSTALLED?
 				return diag.Errorf("error when retrieving fw package from fw inventory - %s", err)
 			}
-			d.Set("software_id", fwPackage.SoftwareID)
-			d.Set("version", fwPackage.Version)
+			err = d.Set("software_id", fwPackage.SoftwareID)
+			err = errors.Join(err, d.Set("version", fwPackage.Version))
+			if err != nil {
+				return diag.Errorf(err.Error())
+			}
 			d.SetId(fwPackage.ODataID)
 
-			diags = readRedfishSimpleUpdate(service, d)
-
-			return diags
+			return readRedfishSimpleUpdate(service, d)
 		}
 	} else {
 		return diag.Errorf("Transfer protocol not available in this implementation")
@@ -389,6 +389,11 @@ func pullUpdate(service *gofish.Service, d *schema.ResourceData, resetType strin
 	}
 
 	job, err := redfish.GetTask(service.GetClient(), jobID)
+	if err != nil {
+		log.Printf("[DEBUG] error getting task: %s", err.Error())
+		return err
+	}
+
 	if len(job.Messages) > 0 {
 		message := job.Messages[0].Message
 		if strings.Contains(message, "Unable to transfer") || strings.Contains(message, "Module took more time than expected.") {

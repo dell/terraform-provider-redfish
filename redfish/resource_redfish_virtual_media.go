@@ -2,6 +2,7 @@ package redfish
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -285,22 +286,22 @@ func readRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) di
 	}
 
 	if virtualMedia.Image != image {
-		d.Set("image", virtualMedia.Image)
+		err = d.Set("image", virtualMedia.Image)
 	}
 	if string(virtualMedia.TransferMethod) != transferMethod {
-		d.Set("transfer_method", virtualMedia.TransferMethod)
+		err = errors.Join(err, d.Set("transfer_method", virtualMedia.TransferMethod))
 	}
 	if string(virtualMedia.TransferProtocolType) != transferProtocolType {
-		d.Set("transfer_protocol_type", virtualMedia.TransferProtocolType)
+		err = errors.Join(err, d.Set("transfer_protocol_type", virtualMedia.TransferProtocolType))
 	}
 	if virtualMedia.Inserted != inserted {
-		d.Set("inserted", virtualMedia.Inserted)
+		err = errors.Join(err, d.Set("inserted", virtualMedia.Inserted))
 	}
 	if virtualMedia.WriteProtected != writeProtected {
-		d.Set("write_protected", virtualMedia.WriteProtected)
+		err = errors.Join(err, d.Set("write_protected", virtualMedia.WriteProtected))
 	}
 
-	return diags
+	return append(diags, diag.FromErr(err)...)
 }
 
 func updateRedfishVirtualMedia(ctx context.Context, service *gofish.Service, d *schema.ResourceData, m interface{}) diag.Diagnostics {
