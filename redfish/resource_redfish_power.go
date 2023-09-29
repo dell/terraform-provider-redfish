@@ -31,9 +31,10 @@ const (
 // Custom function for calculating power state. Given some desired_power_action, we know what the expected power
 // state should be after the action is applied. Instead of marking the value of power_state as unknown during
 // PlanResourceChange, we can calculate exactly what the end power_state should be.
+//
+//revive:disable-next-line:unused-parameter TBD funcs is not needed
 func CheckPowerDiff(funcs ...schema.CustomizeDiffFunc) schema.CustomizeDiffFunc {
 	return func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
-
 		var err error
 		resetType, ok := d.GetOk("desired_power_action")
 
@@ -128,7 +129,6 @@ func getResourceRedfishPowerSchema() map[string]*schema.Schema {
 }
 
 func resourceRedfishPowerRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-
 	log.Printf("[DEBUG] %s: Beginning read", d.Id())
 	var diags diag.Diagnostics
 
@@ -162,7 +162,6 @@ func resourceRedfishPowerRead(ctx context.Context, d *schema.ResourceData, m int
 }
 
 func resourceRedfishPowerUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-
 	var diags diag.Diagnostics
 
 	// Lock the mutex to avoid race conditions with other resources
@@ -178,7 +177,6 @@ func resourceRedfishPowerUpdate(ctx context.Context, d *schema.ResourceData, m i
 
 	// Takes the m interface and feeds it the user input data d. You can then reference it with X.GetOk("user")
 	service, err := NewConfig(m.(*schema.ResourceData), d)
-
 	if err != nil {
 		return diag.Errorf(err.Error())
 	}
@@ -212,7 +210,6 @@ func resourceRedfishPowerUpdate(ctx context.Context, d *schema.ResourceData, m i
 }
 
 func resourceRedfishPowerDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-
 	var diags diag.Diagnostics
 
 	d.SetId("")

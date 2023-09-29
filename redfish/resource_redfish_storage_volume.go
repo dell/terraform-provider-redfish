@@ -99,7 +99,8 @@ func getResourceRedfishStorageVolumeSchema() map[string]*schema.Schema {
 			Optional:    true,
 			ValidateFunc: validation.StringInSlice([]string{
 				string(redfishcommon.ImmediateApplyTime),
-				string(redfishcommon.OnResetApplyTime)}, false),
+				string(redfishcommon.OnResetApplyTime),
+			}, false),
 			Default: string(redfishcommon.ImmediateApplyTime),
 		},
 		"reset_type": {
@@ -267,7 +268,7 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 		return diag.Errorf("Storage controller %s does not support settings_apply_time: %s", storageID, applyTime)
 	}
 
-	//Get drives
+	// Get drives
 	allStorageDrives, err := storage.Drives()
 	if err != nil {
 		return diag.Errorf("Error when getting the drives attached to controller - %s", err)
@@ -296,7 +297,6 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 			// Handle this scenario - TBD
 			return diag.Errorf("there was an issue when restarting the server")
 		}
-
 	}
 
 	// Wait for the job to finish
@@ -305,7 +305,7 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 		return diag.Errorf("Error, job %s wasn't able to complete: %s", jobID, err)
 	}
 
-	//Get storage volumes
+	// Get storage volumes
 	volumes, err := storage.Volumes()
 	if err != nil {
 		return diag.Errorf("there was an issue when retrieving volumes - %s", err)
@@ -319,13 +319,12 @@ func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 	diags = readRedfishStorageVolume(service, d)
 
 	return diags
-
 }
 
 func readRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	//Check if the volume exists
+	// Check if the volume exists
 	_, err := redfish.GetVolume(service.GetClient(), d.Id())
 	if err != nil {
 		e, ok := err.(*redfishcommon.Error)
@@ -422,7 +421,6 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 			// Handle this scenario - TBD
 			return diag.Errorf("there was an issue when restarting the server")
 		}
-
 	}
 
 	// Wait for the job to finish
@@ -464,7 +462,7 @@ func deleteRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData)
 		}
 	}
 
-	//WAIT FOR VOLUME TO DELETE
+	// WAIT FOR VOLUME TO DELETE
 	err = common.WaitForJobToFinish(service, jobID, intervalStorageVolumeJobCheckTime, volumeJobTimeout.(int))
 	if err != nil {
 		return diag.Errorf("Error, timeout reached when waiting for job %s to finish. %s", jobID, err)
@@ -483,7 +481,7 @@ func getStorageController(storageControllers []*redfish.Storage, diskControllerI
 }
 
 func deleteVolume(service *gofish.Service, volumeURI string) (jobID string, err error) {
-	//TODO - Check if we can delete immediately or if we need to schedule a job
+	// TODO - Check if we can delete immediately or if we need to schedule a job
 	res, err := service.GetClient().Delete(volumeURI)
 	if err != nil {
 		return "", fmt.Errorf("error while deleting the volume %s", volumeURI)
@@ -517,6 +515,7 @@ func getDrives(drives []*redfish.Drive, driveNames []string) ([]*redfish.Drive, 
 /*
 createVolume creates a virtualdisk on a disk controller by using the redfish API
 */
+//revive:disable:argument-limit
 func createVolume(service *gofish.Service,
 	storageLink string,
 	volumeType string,
@@ -527,8 +526,9 @@ func createVolume(service *gofish.Service,
 	writeCachePolicy string,
 	diskCachePolicy string,
 	drives []*redfish.Drive,
-	applyTime string) (jobID string, err error) {
-
+	applyTime string,
+) (jobID string, err error) {
+	//revive:enable:argument-limit
 	newVolume := make(map[string]interface{})
 	newVolume["VolumeType"] = volumeType
 	newVolume["DisplayName"] = volumeName
@@ -569,14 +569,16 @@ func createVolume(service *gofish.Service,
 	return jobID, nil
 }
 
+//revive:disable:argument-limit
 func updateVolume(service *gofish.Service,
 	storageLink string,
 	readCachePolicy string,
 	writeCachePolicy string,
 	volumeName string,
 	diskCachePolicy string,
-	applyTime string) (jobID string, err error) {
-
+	applyTime string,
+) (jobID string, err error) {
+	//revive:enable:argument-limit
 	payload := make(map[string]interface{})
 	payload["ReadCachePolicy"] = readCachePolicy
 	payload["WriteCachePolicy"] = writeCachePolicy

@@ -9,6 +9,7 @@ import (
 // This is a global MutexKV for use within this plugin
 var redfishMutexKV = mutexkv.NewMutexKV()
 
+// Provider returns the provider schema
 func Provider() *schema.Provider {
 	provider := &schema.Provider{
 		Schema: map[string]*schema.Schema{
@@ -57,8 +58,8 @@ func Provider() *schema.Provider {
 	return provider
 }
 
-func providerConfigure(d *schema.ResourceData, terraformVersion string) (interface{}, error) {
-	/*Redfish token issued by iDRAC needs to be revoked when the provider is done.
+func providerConfigure(d *schema.ResourceData, _ string) (interface{}, error) {
+	/* Redfish token issued by iDRAC needs to be revoked when the provider is done.
 	At the moment, the terraform SDK (Provider.StopFunc) is not implemented. To follow up, please refer to this pull request:
 	https://github.com/hashicorp/terraform-plugin-sdk/pull/377
 	*/

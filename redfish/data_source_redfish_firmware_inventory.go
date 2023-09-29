@@ -118,7 +118,6 @@ func getInventoryItems(fwInventories []*redfish.SoftwareInventory) []InventoryIt
 	inventoryItemList := make([]InventoryItem, 0)
 
 	for _, fwInv := range fwInventories {
-
 		if strings.HasPrefix(fwInv.Entity.ID, "Installed") {
 			inv.entityID = fwInv.Entity.ID
 			inv.entityName = fwInv.Entity.Name

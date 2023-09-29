@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-
 	"flag"
 	"log"
 
@@ -21,7 +20,6 @@ import (
 //go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
 
 func main() {
-
 	var debugMode bool
 
 	// Set this flag to true if you want the provider to run in debug mode. Leaving it as is will cause it to run
@@ -44,5 +42,4 @@ func main() {
 	}
 
 	plugin.Serve(opts)
-
 }

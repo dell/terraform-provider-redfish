@@ -27,6 +27,9 @@ fmtcheck:
 errcheck:
 	@sh -c "'$(CURDIR)/scripts/errcheck.sh'"
 
+check:
+	golangci-lint run --fix
+
 lint:
 	@echo "==> Checking source code against linters..."
 	tfproviderlint ./redfish

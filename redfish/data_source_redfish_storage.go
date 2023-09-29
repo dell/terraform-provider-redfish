@@ -84,7 +84,7 @@ func dataSourceRedfishStorageRead(ctx context.Context, d *schema.ResourceData, m
 
 func readRedfishStorageCollection(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
 	var diags diag.Diagnostics
-	m := make([]map[string]interface{}, 0) //List where all storage controller will be held
+	m := make([]map[string]interface{}, 0) // List where all storage controller will be held
 
 	systems, err := service.Systems()
 	if err != nil {
@@ -95,9 +95,9 @@ func readRedfishStorageCollection(service *gofish.Service, d *schema.ResourceDat
 		return diag.Errorf("Error when retrieving storage: %s", err)
 	}
 
-	var mToAdd map[string]interface{} //Map where each controller and its disks will be written
+	var mToAdd map[string]interface{} // Map where each controller and its disks will be written
 	for _, s := range storage {
-		mToAdd = make(map[string]interface{}) //Create new mToAdd instace
+		mToAdd = make(map[string]interface{}) // Create new mToAdd instace
 		mToAdd["storage_controller_id"] = s.ID
 		drives, err := s.Drives()
 		if err != nil {
@@ -109,7 +109,7 @@ func readRedfishStorageCollection(service *gofish.Service, d *schema.ResourceDat
 			driveNames = append(driveNames, d.Name)
 		}
 		mToAdd["drives"] = driveNames
-		m = append(m, mToAdd) //Insert controller into list
+		m = append(m, mToAdd) // Insert controller into list
 	}
 
 	err = d.Set("storage", m)

@@ -3,6 +3,7 @@ package redfish
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stmcginnis/gofish"
@@ -83,7 +84,6 @@ func readRedfishBios(service *gofish.Service, d *schema.ResourceData) diag.Diagn
 	systems, err := service.Systems()
 	if err != nil {
 		return diag.Errorf("error fetching computer systems collection: %s", err)
-
 	}
 
 	bios, err := systems[0].Bios()

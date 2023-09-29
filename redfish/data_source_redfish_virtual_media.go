@@ -83,13 +83,13 @@ func dataSourceRedfishVirtualMediaRead(ctx context.Context, d *schema.ResourceDa
 func readRedfishVirtualMediaCollection(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	//Get manager.Since this provider is thought to work with individual servers, should be only one.
+	// Get manager.Since this provider is thought to work with individual servers, should be only one.
 	manager, err := service.Managers()
 	if err != nil {
 		return diag.Errorf("Error retrieving the managers: %s", err)
 	}
 
-	//Get virtual media
+	// Get virtual media
 	virtualMedia, err := manager[0].VirtualMedia()
 	if err != nil {
 		return diag.Errorf("Error retrieving the virtual media instances: %s", err)

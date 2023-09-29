@@ -204,7 +204,7 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *
 		return diag.Errorf("error while retrieving UpdateService - %s", err)
 	}
 
-	//Check if the transfer protocol is available in the redfish instance
+	// Check if the transfer protocol is available in the redfish instance
 	err = checkTransferProtocol(transferProtocol, updateService)
 	if err != nil {
 		var availableTransferProtocols string
@@ -359,8 +359,8 @@ func getFWfromInventory(softwareInventories []*redfish.SoftwareInventory, softwa
 	}
 	return nil, fmt.Errorf("couldn't find FW on Firmware inventory")
 }
-func pullUpdate(service *gofish.Service, d *schema.ResourceData, resetType string) error {
 
+func pullUpdate(service *gofish.Service, d *schema.ResourceData, resetType string) error {
 	// Get update service from root
 	updateService, err := service.UpdateService()
 	if err != nil {

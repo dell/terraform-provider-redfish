@@ -174,7 +174,7 @@ func createRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) d
 
 	payload := make(map[string]interface{})
 	for _, account := range accountList {
-		if len(account.UserName) == 0 && account.ID != "1" { //ID 1 is reserved
+		if len(account.UserName) == 0 && account.ID != "1" { // ID 1 is reserved
 			payload["UserName"] = d.Get("username").(string)
 			payload["Password"] = d.Get("password").(string)
 			payload["Enabled"] = d.Get("enabled").(bool)
@@ -185,21 +185,21 @@ func createRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) d
 				url, _ := filepath.Split(account.ODataID)
 				account.ODataID = url + account.ID
 			}
-			//Ideally a go routine for each server should be done
+			// Ideally a go routine for each server should be done
 			res, err := service.GetClient().Patch(account.ODataID, payload)
 			if err != nil {
-				return diag.Errorf("Error when contacting the redfish API %v", err) //This error might happen when a user was created outside terraform
+				return diag.Errorf("Error when contacting the redfish API %v", err) // This error might happen when a user was created outside terraform
 			}
 			if res.StatusCode != 200 {
 				return diag.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
 			}
-			//Set ID to terraform state file
+			// Set ID to terraform state file
 			d.SetId(account.ID)
 			diags = readRedfishUserAccount(service, d)
 			return diags
 		}
 	}
-	//No room for new users
+	// No room for new users
 	return diag.Errorf("There are no room for new users")
 }
 
@@ -215,7 +215,7 @@ func readRedfishUserAccount(service *gofish.Service, d *schema.ResourceData) dia
 	if err != nil {
 		return diag.Errorf("Error when retrieving accounts %v", err)
 	}
-	if account == nil { //User doesn't exist. Needs to be recreated.
+	if account == nil { // User doesn't exist. Needs to be recreated.
 		d.SetId("")
 		return diags
 	}
@@ -341,7 +341,7 @@ func getAccount(accountList []*redfish.ManagerAccount, id string) (*redfish.Mana
 			return account, nil
 		}
 	}
-	return nil, nil //This will be returned if there are no errors but the user does not exist
+	return nil, nil // This will be returned if there are no errors but the user does not exist
 }
 
 // To check if given username is equal to any existing username

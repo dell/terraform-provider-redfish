@@ -117,6 +117,7 @@ func getResourceRedfishBiosSchema() map[string]*schema.Schema {
 	}
 }
 
+//revive:disable-next-line:unused-parameter TBD v is not needed
 func resourceRedfishBiosCustomizeDiff(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
 	if diff.Id() == "" {
 		return nil
@@ -240,7 +241,6 @@ func updateRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) 
 }
 
 func readRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
-
 	log.Printf("[DEBUG] %s: Beginning read", d.Id())
 	var diags diag.Diagnostics
 
@@ -265,7 +265,6 @@ func readRedfishBiosResource(service *gofish.Service, d *schema.ResourceData) di
 }
 
 func copyBiosAttributes(bios *redfish.Bios, attributes map[string]string) error {
-
 	// TODO: BIOS Attributes' values might be any of several types.
 	// terraform-sdk currently does not support a map with different
 	// value types. So we will convert int and float values to string.
@@ -282,7 +281,6 @@ func copyBiosAttributes(bios *redfish.Bios, attributes map[string]string) error 
 }
 
 func patchBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes map[string]interface{}) (biosTaskURI string, err error) {
-
 	payload := make(map[string]interface{})
 	payload["Attributes"] = attributes
 
@@ -335,7 +333,6 @@ func patchBiosAttributes(d *schema.ResourceData, bios *redfish.Bios, attributes 
 }
 
 func getBiosResource(service *gofish.Service) (*redfish.Bios, error) {
-
 	system, err := getSystemResource(service)
 	if err != nil {
 		log.Printf("[ERROR]: Failed to get system resource: %s", err)
@@ -352,7 +349,6 @@ func getBiosResource(service *gofish.Service) (*redfish.Bios, error) {
 }
 
 func getBiosAttrsToPatch(d *schema.ResourceData, attributes map[string]string) (map[string]interface{}, error) {
-
 	attrs := make(map[string]interface{})
 	attrsToPatch := make(map[string]interface{})
 
@@ -379,7 +375,6 @@ func getBiosAttrsToPatch(d *schema.ResourceData, attributes map[string]string) (
 					attrsToPatch[key] = newVal
 				}
 			}
-
 		} else {
 			err := fmt.Errorf("BIOS attribute %s not found", key)
 			return attrsToPatch, err

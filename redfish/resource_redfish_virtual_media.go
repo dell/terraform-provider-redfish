@@ -101,6 +101,7 @@ func getResourceRedfishVirtualMediaSchema() map[string]*schema.Schema {
 	}
 }
 
+//revive:disable-next-line:unused-parameter TBD ctx is not needed
 func resourceRedfishVirtualMediaCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	service, err := NewConfig(m.(*schema.ResourceData), d)
 	if err != nil {
@@ -143,7 +144,7 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 	redfishMutexKV.Lock(getRedfishServerEndpoint(d))
 	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
 
-	//Get terraform schema data
+	// Get terraform schema data
 	image := d.Get("image").(string)
 	if !strings.HasSuffix(image, ".iso") && !strings.HasSuffix(image, ".img") {
 		return diag.Errorf("Unable to Process the request because the value entered for the parameter Image is not supported by the implementation. Please provide an image with extension iso or img.")
@@ -164,13 +165,13 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 	if v, ok := d.GetOkExists("inserted"); ok {
 		inserted = v.(bool)
 	} else {
-		inserted = true //If inserted is not set, set it to true
+		inserted = true // If inserted is not set, set it to true
 	}
 	var writeProtected bool
 	if v, ok := d.GetOkExists("write_protected"); ok {
 		writeProtected = v.(bool)
 	} else {
-		writeProtected = true //If write_protected is not set, set it to true
+		writeProtected = true // If write_protected is not set, set it to true
 	}
 
 	virtualMediaConfig := redfish.VirtualMediaConfig{
@@ -181,7 +182,7 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 		WriteProtected:       writeProtected,
 	}
 
-	//Get Systems details
+	// Get Systems details
 	systems, err := service.Systems()
 	if err != nil {
 		return diag.Errorf("Error when retrieving systems: %s", err)
@@ -197,7 +198,7 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 
 	if len(virtualMediaCollection) != 0 {
 		for index := range virtualMediaCollection {
-			//Get specific virtual media
+			// Get specific virtual media
 			virtualMedia, err := getVirtualMedia(virtualMediaCollection[index].ID, virtualMediaCollection)
 			if err != nil {
 				return diag.Errorf("Virtual Media selected doesn't exist: %s", err)
@@ -215,7 +216,7 @@ func createRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 		}
 	} else {
 		// This implementation is added to support iDRAC firmware version 5.x. As virtual media can only be accessed through Managers card on 5.x.
-		//Get OOB Manager card - managers[0] will be our oob card
+		// Get OOB Manager card - managers[0] will be our oob card
 		managers, err := service.Managers()
 		if err != nil {
 			return diag.Errorf("Couldn't retrieve managers from redfish API: %s", err)
@@ -257,15 +258,15 @@ func readRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) di
 
 	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), d.Id())
 	if err != nil {
-		return diag.Errorf("Virtual Media doesn't exist: %s", err) //This error won't be triggered ever
+		return diag.Errorf("Virtual Media doesn't exist: %s", err) // This error won't be triggered ever
 	}
 
-	if len(virtualMedia.Image) == 0 { //Nothing is mounted here
+	if len(virtualMedia.Image) == 0 { // Nothing is mounted here
 		d.SetId("")
 		return diags
 	}
 
-	//Get terraform schema data
+	// Get terraform schema data
 	image := d.Get("image").(string)
 
 	var transferMethod string
@@ -311,10 +312,10 @@ func updateRedfishVirtualMedia(ctx context.Context, service *gofish.Service, d *
 	redfishMutexKV.Lock(getRedfishServerEndpoint(d))
 	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
 
-	//Hot update os not possible. Unmount and mount needs to be done to update
+	// Hot update os not possible. Unmount and mount needs to be done to update
 	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), d.Id())
 	if err != nil {
-		return diag.Errorf("Virtual Media doesn't exist: %s", err) //This error won't be triggered ever
+		return diag.Errorf("Virtual Media doesn't exist: %s", err) // This error won't be triggered ever
 	}
 
 	err = virtualMedia.EjectMedia()
@@ -322,7 +323,7 @@ func updateRedfishVirtualMedia(ctx context.Context, service *gofish.Service, d *
 		return diag.Errorf("There was an error when ejecting media: %s", err)
 	}
 
-	//Get terraform schema data
+	// Get terraform schema data
 	image := d.Get("image").(string)
 	if !strings.HasSuffix(image, ".iso") && !strings.HasSuffix(image, ".img") {
 		return diag.Errorf("Unable to Process the request because the value entered for the parameter Image is not supported by the implementation. Please provide an image with extension iso or img.")
@@ -343,13 +344,13 @@ func updateRedfishVirtualMedia(ctx context.Context, service *gofish.Service, d *
 	if v, ok := d.GetOkExists("inserted"); ok {
 		inserted = v.(bool)
 	} else {
-		inserted = true //If inserted is not set, set it to true
+		inserted = true // If inserted is not set, set it to true
 	}
 	var writeProtected bool
 	if v, ok := d.GetOkExists("write_protected"); ok {
 		writeProtected = v.(bool)
 	} else {
-		writeProtected = true //If write_protected is not set, set it to true
+		writeProtected = true // If write_protected is not set, set it to true
 	}
 
 	virtualMediaConfig := redfish.VirtualMediaConfig{
@@ -377,7 +378,7 @@ func deleteRedfishVirtualMedia(service *gofish.Service, d *schema.ResourceData) 
 
 	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), d.Id())
 	if err != nil {
-		return diag.Errorf("Virtual Media doesn't exist: %s", err) //This error won't be triggered ever
+		return diag.Errorf("Virtual Media doesn't exist: %s", err) // This error won't be triggered ever
 	}
 
 	err = virtualMedia.EjectMedia()

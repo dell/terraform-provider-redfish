@@ -14,9 +14,7 @@ import (
 
 // Based on an instance of Service from the gofish library, retrieve a concrete system on which we can take action
 func getSystemResource(service *gofish.Service) (*redfish.ComputerSystem, error) {
-
 	systems, err := service.Systems()
-
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +29,7 @@ func getSystemResource(service *gofish.Service) (*redfish.ComputerSystem, error)
 // See https://github.com/stmcginnis/gofish for details. This function returns a Service struct which can then be
 // used to make any required API calls.
 func NewConfig(provider *schema.ResourceData, resource *schema.ResourceData) (*gofish.Service, error) {
-	//Get redfish connection details from resource block
+	// Get redfish connection details from resource block
 	var providerUser, providerPassword string
 
 	if v, ok := provider.GetOk("user"); ok {
@@ -41,10 +39,10 @@ func NewConfig(provider *schema.ResourceData, resource *schema.ResourceData) (*g
 		providerPassword = v.(string)
 	}
 
-	resourceServerConfig := resource.Get("redfish_server").([]interface{}) //It must be just one element
+	resourceServerConfig := resource.Get("redfish_server").([]interface{}) // It must be just one element
 
-	//Overwrite parameters (just user and password for client connection)
-	//Get redfish username at resource level over provider level
+	// Overwrite parameters (just user and password for client connection)
+	// Get redfish username at resource level over provider level
 	var redfishClientUser, redfishClientPass string
 	if len(resourceServerConfig[0].(map[string]interface{})["user"].(string)) > 0 {
 		redfishClientUser = resourceServerConfig[0].(map[string]interface{})["user"].(string)
@@ -53,7 +51,7 @@ func NewConfig(provider *schema.ResourceData, resource *schema.ResourceData) (*g
 		redfishClientUser = providerUser
 		log.Println("Using redfish user from provider")
 	}
-	//Get redfish password at resource level over provider level
+	// Get redfish password at resource level over provider level
 	if len(resourceServerConfig[0].(map[string]interface{})["password"].(string)) > 0 {
 		redfishClientPass = resourceServerConfig[0].(map[string]interface{})["password"].(string)
 		log.Println("Using redfish password from resource")
@@ -61,7 +59,7 @@ func NewConfig(provider *schema.ResourceData, resource *schema.ResourceData) (*g
 		redfishClientPass = providerPassword
 		log.Println("Using redfish password from provider")
 	}
-	//If for some reason none user or pass has been set at provider/resource level, trow an error
+	// If for some reason none user or pass has been set at provider/resource level, trow an error
 	if len(redfishClientUser) == 0 || len(redfishClientPass) == 0 {
 		return nil, fmt.Errorf("Error. Either Redfish client username or password has not been set. Please check your configuration")
 	}
@@ -89,7 +87,6 @@ func NewConfig(provider *schema.ResourceData, resource *schema.ResourceData) (*g
 // interact with the server. It will return a tuple consisting of the server's power state at time of return and
 // diagnostics
 func PowerOperation(resetType string, maximumWaitTime int, checkInterval int, service *gofish.Service) (redfish.PowerState, diag.Diagnostics) {
-
 	var diags diag.Diagnostics
 
 	system, err := getSystemResource(service)
@@ -104,9 +101,8 @@ func PowerOperation(resetType string, maximumWaitTime int, checkInterval int, se
 		if system.PowerState == "Off" {
 			log.Printf("[TRACE]: Server already powered off. No action required.")
 			return redfish.OffPowerState, diags
-		} else {
-			targetPowerState = "Off"
 		}
+		targetPowerState = "Off"
 	}
 
 	if resetType == "On" || resetType == "ForceOn" {
@@ -168,7 +164,6 @@ func PowerOperation(resetType string, maximumWaitTime int, checkInterval int, se
 	// TODO : Change to warning when updated to plugin framework
 	log.Printf("[ERROR]: The system failed to update the server's power status within the maximum wait time specified!")
 	return system.PowerState, diags
-
 }
 
 // getRedfishServerEndpoint returns the endpoint from an schema. This might be useful

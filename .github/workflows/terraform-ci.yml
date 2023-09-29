@@ -32,6 +32,21 @@ env:
   
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
+  golangci:
+    name: Check Go formatting, linting, vetting using golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          # Require: The version of golangci-lint to use.
+          # When `install-mode` is `binary` (default) the value can be v1.2 or v1.2.3 or `latest` to use the latest version.
+          # When `install-mode` is `goinstall` the value can be v1.2.3, `latest`, or the hash of a commit.
+          version: v1.54
  code-check:
     name: Check Go formatting, linting, vetting
     runs-on: ubuntu-latest
@@ -41,15 +56,7 @@ jobs:
       - name: Run the formatter, linter, and vetter
         uses: dell/common-github-actions/go-code-formatter-linter-vetter@main
         with:
-          directories: ./...
-      - uses: WillAbides/setup-go-faster@v1.7.0
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - name: Run the static check
-        uses: dominikh/staticcheck-action@v1.2.0
-        with:
-          version: "2022.1"
-          install-go: false
+          directories: ./redfish # TBD ./...
  sanitize:
     name: Check for forbidden words
     runs-on: ubuntu-latest
@@ -59,7 +66,7 @@ jobs:
       - name: Run the forbidden words scan
         uses: dell/common-github-actions/code-sanitizer@main
         with:
-          args: /github/workspace
+          args: ./redfish # TBD ./
      
  build:
     name: Build
@@ -70,7 +77,6 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v3
-      - run: go mod download
       - run: go build -v .
 
  go_security_scan:
