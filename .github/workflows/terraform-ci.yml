@@ -68,7 +68,7 @@ jobs:
         with:
           args: /github/workspace/redfish # TBD /github/workspace
      
- build:
+  build:
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -79,7 +79,7 @@ jobs:
       - uses: actions/checkout@v3
       - run: go build -v .
 
- go_security_scan:
+  go_security_scan:
     name: Go security
     runs-on: ubuntu-latest
     steps:
@@ -90,7 +90,7 @@ jobs:
         with:
           directories: ./...
         
- generate:
+  generate:
     name: Generate
     runs-on: ubuntu-latest
     steps:
@@ -104,7 +104,7 @@ jobs:
           git diff --compact-summary --exit-code || \
             (echo; echo "Unexpected difference in directories after code generation. Run 'go generate ./...' command and commit."; exit 1) 
           
- malware_security_scan:
+  malware_security_scan:
       name: Malware Scanner
       runs-on: ubuntu-latest
       steps:
