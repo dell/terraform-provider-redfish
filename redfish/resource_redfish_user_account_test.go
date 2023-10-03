@@ -2,9 +2,10 @@ package redfish
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"regexp"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 // Test to create and update redfish user - Positive
@@ -17,7 +18,7 @@ func TestAccRedfishUser_basic(t *testing.T) {
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"test1",
-					"test1234",
+					"Test@1234",
 					"Operator",
 					true,
 					"15"),
@@ -29,7 +30,7 @@ func TestAccRedfishUser_basic(t *testing.T) {
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"test1",
-					"test1234",
+					"Test@1234",
 					"None",
 					false,
 					"15"),
@@ -51,7 +52,7 @@ func TestAccRedfishUserInvalid_basic(t *testing.T) {
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"test1",
-					"test1234",
+					"Test@1234",
 					"Admin",
 					false,
 					"15"),
@@ -71,7 +72,7 @@ func TestAccRedfishUserExisting_basic(t *testing.T) {
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"root",
-					"xyz123",
+					"Test@1234",
 					"Administrator",
 					true,
 					"15"),
@@ -91,7 +92,7 @@ func TestAccRedfishUserUpdateInvalid_basic(t *testing.T) {
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"test1",
-					"test1234",
+					"Test@1234",
 					"Administrator",
 					true,
 					"15"),
@@ -103,7 +104,7 @@ func TestAccRedfishUserUpdateInvalid_basic(t *testing.T) {
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"root",
-					"test1234",
+					"Test@1234",
 					"Administrator",
 					false,
 					"15"),
@@ -123,7 +124,7 @@ func TestAccRedfishUserUpdateInvalidId_basic(t *testing.T) {
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"test1",
-					"test1234",
+					"Test@1234",
 					"Administrator",
 					true,
 					"1"),
@@ -143,7 +144,7 @@ func TestAccRedfishUserUpdateId_basic(t *testing.T) {
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"test1",
-					"test1234",
+					"Test@1234",
 					"Administrator",
 					true,
 					"15"),
@@ -155,7 +156,7 @@ func TestAccRedfishUserUpdateId_basic(t *testing.T) {
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"test1",
-					"test1234",
+					"Test@1234",
 					"Administrator",
 					false,
 					"1"),
@@ -175,7 +176,7 @@ func TestAccRedfishUserUpdateUser_basic(t *testing.T) {
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"test1",
-					"test1234",
+					"Test@1234",
 					"Administrator",
 					true,
 					"15"),
@@ -187,7 +188,7 @@ func TestAccRedfishUserUpdateUser_basic(t *testing.T) {
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"test2",
-					"test1234",
+					"Test@1234",
 					"Administrator",
 					false,
 					"15"),

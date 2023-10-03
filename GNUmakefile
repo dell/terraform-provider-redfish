@@ -82,3 +82,9 @@ clean:
 	rm -rf vendor bin
 
 .PHONY: build test testacc vet fmt fmtcheck errcheck lint tools test-compile website website-lint website-test
+
+check:
+	terraform fmt -recursive examples/
+	gofmt -s -w .
+	# golangci-lint run --fix --timeout 5m
+	go vet

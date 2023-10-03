@@ -4,6 +4,7 @@
 // Original code is based on code by RogerV in the golang-nuts thread:
 // https://groups.google.com/group/golang-nuts/browse_thread/thread/40cc41e9d9fc9247
 
+//go:build darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris
 // +build darwin dragonfly freebsd linux netbsd openbsd solaris
 
 package speakeasy

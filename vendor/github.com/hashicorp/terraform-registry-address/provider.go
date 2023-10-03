@@ -182,9 +182,10 @@ func (pt Provider) Equals(other Provider) bool {
 // terraform-config-inspect.
 //
 // The following are valid source string formats:
-// 		name
-// 		namespace/name
-// 		hostname/namespace/name
+//
+//	name
+//	namespace/name
+//	hostname/namespace/name
 //
 // "name"-only format is parsed as -/name (i.e. legacy namespace)
 // requiring further identification of the namespace via Registry API
@@ -296,7 +297,7 @@ func ParseProviderSource(str string) (Provider, error) {
 
 // MustParseProviderSource is a wrapper around ParseProviderSource that panics if
 // it returns an error.
-func MustParseProviderSource(raw string) (Provider) {
+func MustParseProviderSource(raw string) Provider {
 	p, err := ParseProviderSource(raw)
 	if err != nil {
 		panic(err)

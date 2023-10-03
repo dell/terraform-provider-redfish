@@ -2,7 +2,7 @@
 //
 // It translates plain text with simple formatting rules into HTML or LaTeX.
 //
-// Sanitized Anchor Names
+// # Sanitized Anchor Names
 //
 // Blackfriday includes an algorithm for creating sanitized anchor names
 // corresponding to a given input text. This algorithm is used to create
