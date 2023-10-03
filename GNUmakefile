@@ -50,7 +50,7 @@ install: build
 	mv $(CURDIR)/bin/${OS_ARCH}/${BINARY}_v$(VERSION) ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${PKG_NAME}/${VERSION}/${OS_ARCH}
 
 test:
-	go test -i $(TEST) || exit 1
+	TF_ACC=1 go test -i $(TEST) || exit 1
 	echo $(TEST) | xargs -t -n4 go test $(TESTARGS) -timeout=30s -parallel=4
 
 generate:

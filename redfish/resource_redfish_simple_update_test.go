@@ -2,10 +2,11 @@ package redfish
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"os"
 	"regexp"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 // Test to create and update Simple update - Positive
@@ -17,7 +18,7 @@ func TestAccRedfishSimpleUpdate_basic(t *testing.T) {
 				Config: testAccRedfishResourceUpdateConfig(
 					creds,
 					"HTTP",
-					os.Getenv("TF_TESTING_FIRMWARE_IMAGE_LOCAL")),
+					os.Getenv("REDFISH_FIRMWARE_IMAGE_LOCAL")),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_simple_update.update", "transfer_protocol", "HTTP"),
 				),
@@ -26,7 +27,7 @@ func TestAccRedfishSimpleUpdate_basic(t *testing.T) {
 				Config: testAccRedfishResourceUpdateConfig(
 					creds,
 					"HTTP",
-					os.Getenv("TF_TESTING_FIRMWARE_IMAGE_HTTP")),
+					os.Getenv("REDFISH_FIRMWARE_IMAGE_HTTP")),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_simple_update.update", "transfer_protocol", "HTTP"),
 				),
@@ -35,7 +36,7 @@ func TestAccRedfishSimpleUpdate_basic(t *testing.T) {
 				Config: testAccRedfishResourceUpdateConfig(
 					creds,
 					"NFS",
-					os.Getenv("TF_TESTING_FIRMWARE_IMAGE_NFS")),
+					os.Getenv("REDFISH_FIRMWARE_IMAGE_NFS")),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_simple_update.update", "transfer_protocol", "NFS"),
 				),
@@ -53,21 +54,21 @@ func TestAccRedfishSimpleUpdate_InvalidProto(t *testing.T) {
 				Config: testAccRedfishResourceUpdateConfig(
 					creds,
 					"HTTP",
-					os.Getenv("TF_TESTING_FIRMWARE_IMAGE_INVALID")),
+					os.Getenv("REDFISH_FIRMWARE_IMAGE_INVALID")),
 				ExpectError: regexp.MustCompile("couldn't open FW file to upload - error when opening"),
 			},
 			{
 				Config: testAccRedfishResourceUpdateConfig(
 					creds,
 					"FTP",
-					os.Getenv("TF_TESTING_FIRMWARE_IMAGE_HTTP")),
+					os.Getenv("REDFISH_FIRMWARE_IMAGE_HTTP")),
 				ExpectError: regexp.MustCompile("this transfer protocol is not available in this redfish instance"),
 			},
 			{
 				Config: testAccRedfishResourceUpdateConfig(
 					creds,
 					"CIFS",
-					os.Getenv("TF_TESTING_FIRMWARE_IMAGE_HTTP")),
+					os.Getenv("REDFISH_FIRMWARE_IMAGE_HTTP")),
 				ExpectError: regexp.MustCompile("Transfer protocol not available in this implementation"),
 			},
 		},

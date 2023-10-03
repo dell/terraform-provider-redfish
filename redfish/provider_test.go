@@ -28,10 +28,10 @@ func init() {
 	}
 
 	creds = TestingServerCredentials{
-		Username:  os.Getenv("TF_TESTING_USERNAME"),
-		Password:  os.Getenv("TF_TESTING_PASSWORD"),
-		Endpoint:  os.Getenv("TF_TESTING_ENDPOINT"),
-		Endpoint2: os.Getenv("TF_TESTING_ENDPOINT2"),
+		Username:  os.Getenv("REDFISH_USERNAME"),
+		Password:  os.Getenv("REDFISH_PASSWORD"),
+		Endpoint:  os.Getenv("REDFISH_ENDPOINT"),
+		Endpoint2: os.Getenv("REDFISH_ENDPOINT2"),
 		Insecure:  false,
 	}
 
