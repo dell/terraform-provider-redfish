@@ -54,7 +54,7 @@ test:
 	echo $(TEST) | xargs -t -n4 go test $(TESTARGS) -timeout=30s -parallel=4
 
 generate:
-	GOFLAGS="-mod=readonly" go generate ./...
+	# GOFLAGS="-mod=readonly" go generate ./...
 
 testacc:
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
