@@ -1,7 +1,6 @@
 PKG_NAME=redfish
-VERSION=1.0.0
+VERSION=1.1.0
 TEST?=$$(go list ./... | grep -v 'vendor')
-GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 WEBSITE_REPO=github.com/hashicorp/terraform-website
 HOSTNAME=registry.terraform.io
 NAMESPACE=dell
@@ -10,15 +9,13 @@ OS_ARCH=linux_amd64
 
 default: build
 
-build: fmtcheck
-	go mod vendor
-	go install
-	GOOS=linux GOARCH=amd64 go build -o $(CURDIR)/bin/${OS_ARCH}/${BINARY}_v$(VERSION)
+build: fmt
+	go build -o $(CURDIR)/bin/${OS_ARCH}/${BINARY}_v$(VERSION)
 
 # formats all .go files
 fmt:
 	@echo "==> Fixing source code with gofmt..."
-	gofmt -s -w $(GOFMT_FILES)
+	gofmt -s -w .
 
 # runs a Go format check
 fmtcheck:

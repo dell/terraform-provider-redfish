@@ -10,7 +10,8 @@ import (
 
 func TestAccRedfishSystemBoot_fetch(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishDatasourceSystemBootConfig(creds, "System.Embedded.1"),
@@ -24,7 +25,8 @@ func TestAccRedfishSystemBoot_fetch(t *testing.T) {
 
 func TestAccRedfishSystemBoot_fetchInvalidID(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccRedfishDatasourceSystemBootConfig(creds, "invalid-id"),

@@ -10,7 +10,8 @@ import (
 func TestAccRedfishBiosDataSource_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishDataSourceBiosConfig(creds),

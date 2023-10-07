@@ -11,7 +11,8 @@ import (
 // Test to create redfish virtual media - Positive
 func TestAccRedfishVirtualMedia_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceVirtualMediaConfig(
@@ -34,7 +35,8 @@ func TestAccRedfishVirtualMedia_basic(t *testing.T) {
 func TestAccRedfishVirtualMediaInvalid_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceVirtualMediaConfig(
@@ -53,7 +55,8 @@ func TestAccRedfishVirtualMediaInvalid_basic(t *testing.T) {
 // Test to create redfish virtual media when no file shares are available to mount - Negative
 func TestAccRedfishVirtualMediaNoMediaNegative_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceVirtualMediaConfig(
@@ -86,7 +89,8 @@ func TestAccRedfishVirtualMediaNoMediaNegative_basic(t *testing.T) {
 // Test to create redfish virtual media on iDRAC 5.x - Positive
 func TestAccRedfishVirtualMediaServer2_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceVirtualMediaConfigServer5x(
@@ -108,7 +112,8 @@ func TestAccRedfishVirtualMediaServer2_basic(t *testing.T) {
 // Test to update redfish virtual media - Positive
 func TestAccRedfishVirtualMediaUpdate_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceVirtualMediaConfig(

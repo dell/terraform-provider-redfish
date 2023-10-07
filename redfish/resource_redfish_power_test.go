@@ -12,7 +12,8 @@ import (
 func TestAccRedfishPower_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourcePowerConfig(
@@ -108,7 +109,8 @@ func TestAccRedfishPower_basic(t *testing.T) {
 func TestAccRedfishPower_Invalid(t *testing.T) {
 	os.Setenv("TF_ACC", "1")
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourcePowerConfig1(

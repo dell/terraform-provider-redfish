@@ -65,3 +65,6 @@ website/.bundle
 website/build
 website/node_modules
 website/vendor
+
+redfish/redfish_test.env
+test

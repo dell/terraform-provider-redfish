@@ -11,7 +11,8 @@ import (
 func TestAccRedfishUser_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceUserConfig(
@@ -45,7 +46,8 @@ func TestAccRedfishUser_basic(t *testing.T) {
 func TestAccRedfishUserInvalid_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceUserConfig(
@@ -65,7 +67,8 @@ func TestAccRedfishUserInvalid_basic(t *testing.T) {
 func TestAccRedfishUserExisting_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceUserConfig(
@@ -85,7 +88,8 @@ func TestAccRedfishUserExisting_basic(t *testing.T) {
 func TestAccRedfishUserUpdateInvalid_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceUserConfig(
@@ -117,7 +121,8 @@ func TestAccRedfishUserUpdateInvalid_basic(t *testing.T) {
 func TestAccRedfishUserUpdateInvalidId_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceUserConfig(
@@ -137,7 +142,8 @@ func TestAccRedfishUserUpdateInvalidId_basic(t *testing.T) {
 func TestAccRedfishUserUpdateId_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceUserConfig(
@@ -169,7 +175,8 @@ func TestAccRedfishUserUpdateId_basic(t *testing.T) {
 func TestAccRedfishUserUpdateUser_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceUserConfig(

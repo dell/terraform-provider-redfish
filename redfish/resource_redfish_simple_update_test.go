@@ -11,7 +11,8 @@ import (
 // Test to create and update Simple update - Positive
 func TestAccRedfishSimpleUpdate_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceUpdateConfig(
@@ -47,7 +48,8 @@ func TestAccRedfishSimpleUpdate_basic(t *testing.T) {
 // Test to update with invalid path and protocol - Negative
 func TestAccRedfishSimpleUpdate_InvalidProto(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceUpdateConfig(

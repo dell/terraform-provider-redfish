@@ -11,7 +11,8 @@ import (
 func TestAccRedfishBios_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceBiosConfigOn(
@@ -27,7 +28,8 @@ func TestAccRedfishBios_basic(t *testing.T) {
 func TestAccRedfishBios_NumLockOff(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceBiosConfigOff(
@@ -43,7 +45,8 @@ func TestAccRedfishBios_NumLockOff(t *testing.T) {
 func TestAccRedfishBios_basic_InvalidSettings(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceBiosConfigInvalidSettingsApplyTime(
@@ -57,7 +60,8 @@ func TestAccRedfishBios_basic_InvalidSettings(t *testing.T) {
 func TestAccRedfishBios_basic_InvalidAttributes(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceBiosConfigInvalidAttributes(

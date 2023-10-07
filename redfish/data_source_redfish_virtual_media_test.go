@@ -9,7 +9,8 @@ import (
 
 func TestAccRedfishVirtualMedia_fetch(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishDatasourceVirtualMediaConfig(creds),

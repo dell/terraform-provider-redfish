@@ -9,7 +9,8 @@ import (
 // Test case for Firmware DataSource
 func TestAccRedfishFirmwareDataSource_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishDataSourceFirmwareConfig(creds),
