@@ -18,7 +18,7 @@ func TestAccRedfishStorageVolumeCreate_basic(t *testing.T) {
 					"RAID.Integrated.1-1",
 					"TerraformVol1",
 					"NonRedundant",
-					"Solid State Disk 0:0:1",
+					"Physical Disk 0:1:0",
 				),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
@@ -39,7 +39,7 @@ func TestAccRedfishStorageVolume_basic(t *testing.T) {
 					"RAID.Integrated.1-1",
 					"TerraformVol1",
 					"NonRedundant",
-					"Solid State Disk 0:0:1",
+					"Physical Disk 0:1:0",
 					"Immediate",
 					"Off",
 					"UnprotectedWriteBack",
