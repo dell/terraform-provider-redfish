@@ -5,8 +5,9 @@ import (
 	"flag"
 	"log"
 
-	"github.com/dell/terraform-provider-redfish/redfish"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
+	"terraform-provider-redfish/redfish/provider"
+
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
 
 // Run "go generate" to format example terraform files and generate the docs for the registry/website
@@ -20,26 +21,44 @@ import (
 //go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
 
 func main() {
-	var debugMode bool
+	var debug bool
 
-	// Set this flag to true if you want the provider to run in debug mode. Leaving it as is will cause it to run
-	// normally.
-	flag.BoolVar(&debugMode, "debug", false, "set to true to run the provider with support for debuggers like delve")
+	flag.BoolVar(&debug, "debug", false, "set to true to run the provider with support for debuggers like delve")
 	flag.Parse()
 
-	opts := &plugin.ServeOpts{
-		Debug:        debugMode,
-		ProviderAddr: "registry.terraform.io/dell/redfish",
-		ProviderFunc: redfish.Provider,
-	}
+	err := providerserver.Serve(context.Background(), provider.New, providerserver.ServeOpts{
+		Address: "registry.terraform.io/dell/redfish",
+		Debug:   debug,
+	})
 
-	if debugMode {
-		err := plugin.Debug(context.Background(), "registry.terraform.io/dell/redfish", opts)
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-		return
+	if err != nil {
+		log.Fatal(err.Error())
 	}
-
-	plugin.Serve(opts)
 }
+
+// func main() {
+
+// 	var debugMode bool
+
+// 	// Set this flag to true if you want the provider to run in debug mode. Leaving it as is will cause it to run
+// 	// normally.
+// 	flag.BoolVar(&debugMode, "debug", false, "set to true to run the provider with support for debuggers like delve")
+// 	flag.Parse()
+
+// 	opts := &plugin.ServeOpts{
+// 		Debug:        debugMode,
+// 		ProviderAddr: "registry.terraform.io/dell/redfish",
+// 		ProviderFunc: redfish.Provider,
+// 	}
+
+// 	if debugMode {
+// 		err := plugin.Debug(context.Background(), "registry.terraform.io/dell/redfish", opts)
+// 		if err != nil {
+// 			log.Fatal(err.Error())
+// 		}
+// 		return
+// 	}
+
+// 	plugin.Serve(opts)
+
+// }

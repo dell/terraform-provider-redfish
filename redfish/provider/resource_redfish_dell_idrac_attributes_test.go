@@ -1,4 +1,4 @@
-package redfish
+package provider
 
 import (
 	"fmt"
@@ -10,7 +10,8 @@ import (
 
 func TestAccRedfishIDRACAttributes_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceIDracAttributesConfig(
@@ -26,7 +27,8 @@ func TestAccRedfishIDRACAttributes_basic(t *testing.T) {
 
 func TestAccRedfishIDRACAttributes_invalidAttribute(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceIDracAttributesConfigInvalid(

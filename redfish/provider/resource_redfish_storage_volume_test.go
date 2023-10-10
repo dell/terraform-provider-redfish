@@ -1,4 +1,4 @@
-package redfish
+package provider
 
 import (
 	"fmt"
@@ -10,7 +10,8 @@ import (
 
 func TestAccRedfishStorageVolumeCreate_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceStorageVolumeMinConfig(
@@ -31,7 +32,8 @@ func TestAccRedfishStorageVolumeCreate_basic(t *testing.T) {
 
 func TestAccRedfishStorageVolume_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceStorageVolumeConfig(
@@ -60,7 +62,8 @@ func TestAccRedfishStorageVolume_basic(t *testing.T) {
 
 func TestAccRedfishStorageVolume_InvaldiController(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceStorageVolumeConfig(
@@ -86,7 +89,8 @@ func TestAccRedfishStorageVolume_InvaldiController(t *testing.T) {
 
 func TestAccRedfishStorageVolume_InvaldiDrive(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceStorageVolumeConfig(
@@ -112,7 +116,8 @@ func TestAccRedfishStorageVolume_InvaldiDrive(t *testing.T) {
 
 func TestAccRedfishStorageVolume_InvaldiVolumeType(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceStorageVolumeConfig(
@@ -138,7 +143,8 @@ func TestAccRedfishStorageVolume_InvaldiVolumeType(t *testing.T) {
 
 func TestAccRedfishStorageVolumeUpdate_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceStorageVolumeConfig(
