@@ -4,9 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"time"
-
 	"terraform-provider-redfish/redfish/models"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -38,9 +37,7 @@ func RedfishServerSchema() map[string]schema.Attribute {
 
 // Based on an instance of Service from the gofish library, retrieve a concrete system on which we can take action
 func getSystemResource(service *gofish.Service) (*redfish.ComputerSystem, error) {
-
 	systems, err := service.Systems()
-
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +97,6 @@ func NewConfig(pconfig *redfishProvider, rserver *models.RedfishServer) (*gofish
 // interact with the server. It will return a tuple consisting of the server's power state at time of return and
 // diagnostics
 func PowerOperation(resetType string, maximumWaitTime int, checkInterval int, service *gofish.Service) (redfish.PowerState, diag.Diagnostics) {
-
 	var diags diag.Diagnostics
 
 	system, err := getSystemResource(service)
@@ -179,7 +175,6 @@ func PowerOperation(resetType string, maximumWaitTime int, checkInterval int, se
 	// TODO : Change to warning when updated to plugin framework
 	log.Printf("[ERROR]: The system failed to update the server's power status within the maximum wait time specified!")
 	return system.PowerState, diags
-
 }
 
 // import (

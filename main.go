@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"log"
-
 	"terraform-provider-redfish/redfish/provider"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
@@ -30,7 +29,6 @@ func main() {
 		Address: "registry.terraform.io/dell/redfish",
 		Debug:   debug,
 	})
-
 	if err != nil {
 		log.Fatal(err.Error())
 	}
