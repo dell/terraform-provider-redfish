@@ -338,7 +338,7 @@ linters-settings:
         arguments:
           - ["ID"] # AllowList
           - ["VM"] # DenyList
-          - - upperCaseConst: true
+          - - upperCaseConst: true # https://github.com/golang/lint/issues/89
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#var-declaration
       - name: var-declaration
         severity: warning
