@@ -28,7 +28,7 @@ func RedfishServerSchema() map[string]schema.Attribute {
 			Required:    true,
 			Description: "Server BMC IP address or hostname",
 		},
-		"ssl_insecure": schema.BoolAttribute{
+		"validate_cert": schema.BoolAttribute{
 			Optional:    true,
 			Description: "This field indicates whether the SSL/TLS certificate must be verified or not",
 		},
@@ -42,7 +42,7 @@ func getSystemResource(service *gofish.Service) (*redfish.ComputerSystem, error)
 		return nil, err
 	}
 	if len(systems) == 0 {
-		return nil, errors.New("No computer systems found")
+		return nil, errors.New("no computer systems found")
 	}
 
 	return systems[0], err
@@ -59,7 +59,7 @@ func NewConfig(pconfig *redfishProvider, rserver *models.RedfishServer) (*gofish
 	} else if len(pconfig.Username) > 0 {
 		redfishClientUser = pconfig.Username
 	} else {
-		return nil, fmt.Errorf("Error. Either provide username at provider level or resource level. Please check your configuration")
+		return nil, fmt.Errorf("error. Either provide username at provider level or resource level. Please check your configuration")
 	}
 
 	if len(rserver.Password.ValueString()) > 0 {
@@ -67,11 +67,11 @@ func NewConfig(pconfig *redfishProvider, rserver *models.RedfishServer) (*gofish
 	} else if len(pconfig.Password) > 0 {
 		redfishClientPass = pconfig.Password
 	} else {
-		return nil, fmt.Errorf("Error. Either provide password at provider level or resource level. Please check your configuration")
+		return nil, fmt.Errorf("error. Either provide password at provider level or resource level. Please check your configuration")
 	}
 
 	if len(redfishClientUser) == 0 || len(redfishClientPass) == 0 {
-		return nil, fmt.Errorf("Error. Either Redfish client username or password has not been set. Please check your configuration")
+		return nil, fmt.Errorf("error. Either Redfish client username or password has not been set. Please check your configuration")
 	}
 
 	clientConfig := gofish.ClientConfig{
@@ -79,11 +79,11 @@ func NewConfig(pconfig *redfishProvider, rserver *models.RedfishServer) (*gofish
 		Username:  redfishClientUser,
 		Password:  redfishClientPass,
 		BasicAuth: true,
-		Insecure:  rserver.Insecure.ValueBool(),
+		Insecure:  !rserver.ValidateCert.ValueBool(),
 	}
 	api, err := gofish.Connect(clientConfig)
 	if err != nil {
-		return nil, fmt.Errorf("Error connecting to redfish API: %v", err)
+		return nil, fmt.Errorf("error connecting to redfish API: %v", err)
 	}
 	log.Printf("Connection with the redfish endpoint %v was sucessful\n", rserver.Endpoint.ValueString())
 	return api.Service, nil

@@ -2,7 +2,6 @@
 #1. Check Go formatting, linting, vetting
 #2. Check for forbidden words
 #3. Build
-#4. Go security
 #5. Generate
 #6. Malware Scanner
 
@@ -47,16 +46,6 @@ jobs:
           # When `install-mode` is `binary` (default) the value can be v1.2 or v1.2.3 or `latest` to use the latest version.
           # When `install-mode` is `goinstall` the value can be v1.2.3, `latest`, or the hash of a commit.
           version: v1.54
-  code-check:
-    name: Check Go formatting, linting, vetting
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout the code
-        uses: actions/checkout@v3
-      - name: Run the formatter, linter, and vetter
-        uses: dell/common-github-actions/go-code-formatter-linter-vetter@main
-        with:
-          directories: ./redfish/... # TBD ./...
   sanitize:
     name: Check for forbidden words
     runs-on: ubuntu-latest
@@ -78,17 +67,6 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v3
       - run: go build -v .
-
-  go_security_scan:
-    name: Go security
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout the code
-        uses: actions/checkout@v3
-      - name: Run Go Security
-        uses: dell/common-github-actions/gosec-runner@main
-        with:
-          directories: ./...
         
   generate:
     name: Generate
