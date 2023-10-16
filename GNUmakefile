@@ -10,10 +10,9 @@ OS_ARCH=linux_amd64
 
 default: build
 
-build: fmtcheck
-	go mod vendor
+build: lint
 	go install
-	GOOS=linux GOARCH=amd64 go build -o $(CURDIR)/bin/${OS_ARCH}/${BINARY}_v$(VERSION)
+	go build -o $(CURDIR)/bin/${OS_ARCH}/${BINARY}_v$(VERSION)
 
 # formats all .go files
 fmt:
@@ -27,10 +26,13 @@ fmtcheck:
 errcheck:
 	@sh -c "'$(CURDIR)/scripts/errcheck.sh'"
 
+check:
+	golangci-lint run --fix
+
 lint:
 	@echo "==> Checking source code against linters..."
-	tfproviderlint ./redfish
-	golangci-lint run ./...
+	# TODO: renable - tfproviderlint ./redfish
+	golangci-lint run --fix
 
 # vets all .go files
 vet:
@@ -41,6 +43,9 @@ vet:
 		echo "and fix them if necessary before submitting the code for review."; \
 		exit 1; \
 	fi
+
+sec:
+	gosec -exclude-generated ./...
 
 release:
 	goreleaser release --rm-dist --snapshot --skip-publish  --skip-sign

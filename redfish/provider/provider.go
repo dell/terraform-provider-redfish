@@ -31,7 +31,7 @@ type redfishProvider struct {
 }
 
 // Metadata - provider metadata AKA name.
-func (p *redfishProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
+func (_ *redfishProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
 	resp.TypeName = "redfish_"
 }
 

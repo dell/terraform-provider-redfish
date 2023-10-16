@@ -2,9 +2,8 @@ package provider
 
 import (
 	"context"
-	"time"
-
 	"terraform-provider-redfish/redfish/models"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -82,7 +81,7 @@ func PowerSchema() map[string]schema.Attribute {
 			MarkdownDescription: "The frequency with which to check the server's power state in seconds",
 			Description:         "The frequency with which to check the server's power state in seconds",
 			Optional:            true,
-			Default: int64default.StaticInt64(10),
+			Default:             int64default.StaticInt64(10),
 		},
 
 		"power_state": schema.StringAttribute{
@@ -107,7 +106,7 @@ func (r *powerResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 // Create creates the resource and sets the initial Terraform state.
 func (r *powerResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	tflog.Trace(ctx, "resource_power create : Started")
-	//Get Plan Data
+	// Get Plan Data
 	var plan models.Power
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -159,7 +158,7 @@ func (r *powerResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	}
 
 	tflog.Trace(ctx, "resource_power read: finished reading state")
-	//Save into State
+	// Save into State
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	tflog.Trace(ctx, "resource_power read: finished")
@@ -167,7 +166,7 @@ func (r *powerResource) Read(ctx context.Context, req resource.ReadRequest, resp
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *powerResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	//Get state Data
+	// Get state Data
 	tflog.Trace(ctx, "resource_power update: started")
 	var state, plan models.Power
 	diags := req.State.Get(ctx, &state)
@@ -184,7 +183,7 @@ func (r *powerResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	}
 
 	tflog.Trace(ctx, "resource_power update: finished state update")
-	//Save into State
+	// Save into State
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	tflog.Trace(ctx, "resource_power update: finished")

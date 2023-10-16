@@ -2,12 +2,11 @@ package main
 
 import (
 	"context"
-
 	"flag"
 	"log"
+	"terraform-provider-redfish/redfish/provider"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"terraform-provider-redfish/redfish/provider"
 )
 
 // Run "go generate" to format example terraform files and generate the docs for the registry/website
@@ -20,15 +19,6 @@ import (
 // can be customized.
 //go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
 
-var (
-	// these will be set by the goreleaser configuration
-	// to appropriate values for the compiled binary
-	version string = "1.0.0"
-
-	// goreleaser can also pass the specific commit if you want
-	// commit  string = ""
-)
-
 func main() {
 	var debug bool
 
@@ -39,7 +29,6 @@ func main() {
 		Address: "registry.terraform.io/dell/redfish",
 		Debug:   debug,
 	})
-
 	if err != nil {
 		log.Fatal(err.Error())
 	}

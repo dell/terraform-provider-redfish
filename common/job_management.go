@@ -28,11 +28,11 @@ func WaitForJobToFinish(service *gofish.Service, jobURI string, timeBetweenAttem
 	for {
 		select {
 		case <-attemptTick.C:
-			//For some reason iDRAC 4.40.00.0 from time to time gives the following error: iDRAC is not ready. The configuration values cannot be accessed. Please retry after a few minutes.
+			// For some reason iDRAC 4.40.00.0 from time to time gives the following error: iDRAC is not ready. The configuration values cannot be accessed. Please retry after a few minutes.
 			job, err := redfish.GetTask(service.GetClient(), jobURI)
 			if err == nil {
 				log.Printf("[DEBUG] - Attempting one more time... Job state is %s\n", job.TaskState)
-				//Check if job has finished
+				// Check if job has finished
 				switch status := job.TaskState; status {
 				case redfish.CompletedTaskState:
 					return nil
