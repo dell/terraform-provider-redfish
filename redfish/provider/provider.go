@@ -31,7 +31,7 @@ type redfishProvider struct {
 }
 
 // Metadata - provider metadata AKA name.
-func (_ *redfishProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
+func (*redfishProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
 	resp.TypeName = "redfish_"
 }
 
@@ -73,27 +73,11 @@ func (p *redfishProvider) Configure(ctx context.Context, req provider.ConfigureR
 		return
 	}
 
-	if config.Username.ValueString() == "" {
-		resp.Diagnostics.AddError(
-			"Unable to find username",
-			"Username cannot be an empty string",
-		)
-		return
-	}
-
 	if config.Password.IsUnknown() {
 		// Cannot connect to client with an unknown value
 		resp.Diagnostics.AddWarning(
 			"Unable to create client",
 			"Cannot use unknown value as password",
-		)
-		return
-	}
-
-	if config.Password.ValueString() == "" {
-		resp.Diagnostics.AddError(
-			"Unable to find ome password",
-			"password cannot be an empty string",
 		)
 		return
 	}

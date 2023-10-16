@@ -74,6 +74,7 @@ func PowerSchema() map[string]schema.Attribute {
 			Description: "The maximum amount of time to wait for the server to enter the correct power state before" +
 				"giving up in seconds",
 			Optional: true,
+			Computed: true,
 			Default:  int64default.StaticInt64(120),
 		},
 
@@ -81,6 +82,7 @@ func PowerSchema() map[string]schema.Attribute {
 			MarkdownDescription: "The frequency with which to check the server's power state in seconds",
 			Description:         "The frequency with which to check the server's power state in seconds",
 			Optional:            true,
+			Computed: true,
 			Default:             int64default.StaticInt64(10),
 		},
 

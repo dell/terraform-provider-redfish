@@ -1,5 +1,5 @@
 PKG_NAME=redfish
-VERSION=1.0.0
+VERSION=1.1.0
 TEST?=$$(go list ./... | grep -v 'vendor')
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 WEBSITE_REPO=github.com/hashicorp/terraform-website
@@ -10,7 +10,7 @@ OS_ARCH=linux_amd64
 
 default: build
 
-build: lint
+build:
 	go install
 	go build -o $(CURDIR)/bin/${OS_ARCH}/${BINARY}_v$(VERSION)
 
