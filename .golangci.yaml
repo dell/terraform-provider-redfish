@@ -22,10 +22,10 @@ run:
   # but default dirs are skipped independently of this option's value (see skip-dirs-use-default).
   # "/" will be replaced by current OS file path separator to properly work on Windows.
   skip-dirs:
-    - gofish/dell
-  # # Enables skipping of directories:
-  # # - vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
-  # # Default: true
+    - vendor
+  # Enables skipping of directories:
+  # - vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
+  # Default: true
   # skip-dirs-use-default: false
   # Which files to skip: they will be analyzed, but issues from them won't be reported.
   # Default value is empty list,
@@ -63,7 +63,7 @@ linters-settings:
     exclude: errcheckexcludes.txt
   staticcheck:
     # SAxxxx checks in https://staticcheck.io/docs/configuration/options/#checks
-    # SA1019: d.GetOkExists is deprecated, ignoring now since we shall be moving to plugin framework soon
+    # SA1019: TBD: d.GetOkExists is deprecated, ignoring now since we shall be moving to plugin framework soon
     checks: ["all", "-SA1019"]
   revive:
     # Maximum number of open files at the same time.
@@ -99,7 +99,7 @@ linters-settings:
       - name: argument-limit
         severity: warning
         disabled: false
-        arguments: [4] #TBD 
+        arguments: [3]
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#atomic
       - name: atomic
         severity: warning
@@ -128,7 +128,7 @@ linters-settings:
       - name: cognitive-complexity
         severity: warning
         disabled: false
-        arguments: [80] #TBD
+        arguments: [60] #TBD
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#comment-spacings
       - name: comment-spacings
         severity: warning
@@ -161,7 +161,7 @@ linters-settings:
       - name: cyclomatic
         severity: warning
         disabled: false
-        arguments: [20] # TBD
+        arguments: [10] # TBD
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#datarace
       - name: datarace
         severity: warning
