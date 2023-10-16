@@ -40,7 +40,7 @@ func (*redfishProvider) Schema(ctx context.Context, _ provider.SchemaRequest, re
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Terraform Provider Redfish",
 		Attributes: map[string]schema.Attribute{
-			"username": schema.StringAttribute{
+			"user": schema.StringAttribute{
 				MarkdownDescription: "This field is the user to login against the redfish API",
 				Description:         "This field is the user to login against the redfish API",
 				Optional:            true,
