@@ -6,7 +6,7 @@ import (
 
 // providerConfig can be used to store data from the Terraform configuration.
 type ProviderConfig struct {
-	Username types.String `tfsdk:"username"`
+	Username types.String `tfsdk:"user"`
 	Password types.String `tfsdk:"password"`
 }
 
