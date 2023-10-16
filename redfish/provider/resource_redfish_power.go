@@ -82,7 +82,7 @@ func PowerSchema() map[string]schema.Attribute {
 			MarkdownDescription: "The frequency with which to check the server's power state in seconds",
 			Description:         "The frequency with which to check the server's power state in seconds",
 			Optional:            true,
-			Computed: true,
+			Computed:            true,
 			Default:             int64default.StaticInt64(10),
 		},
 
