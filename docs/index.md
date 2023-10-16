@@ -212,4 +212,4 @@ variable "rack1" {
 ### Optional
 
 - `password` (String, Sensitive) This field is the password related to the user given
-- `username` (String) This field is the user to login against the redfish API
+- `user` (String) This field is the user to login against the redfish API
