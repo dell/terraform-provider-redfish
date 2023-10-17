@@ -9,97 +9,59 @@ import (
 )
 
 // redfish.Power represents a concrete Go type that represents an API resource
-func TestAccRedfishPower_basic(t *testing.T) {
+func TestAccRedfishPowerT1(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRedfishResourcePowerConfig(
-					creds,
-					"On",
-					120,
-					10),
-				Check: resource.ComposeTestCheckFunc(
+				Config: testAccRedfishResourcePowerConfig(creds, "On", 120, 10),
+				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_power.system_power", "power_state", "On"),
 				),
 			},
 			{
-				Config: testAccRedfishResourcePowerConfig(
-					creds,
-					"ForceOn",
-					120,
-					10),
-				Check: resource.ComposeTestCheckFunc(
+				Config: testAccRedfishResourcePowerConfig(creds, "ForceOn", 120, 10),
+				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_power.system_power", "power_state", "On"),
 				),
 			},
 			{
-				Config: testAccRedfishResourcePowerConfig(
-					creds,
-					"GracefulShutdown",
-					120,
-					10),
-				Check: resource.ComposeTestCheckFunc(
+				Config: testAccRedfishResourcePowerConfig(creds,"GracefulShutdown",120,10),
+				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_power.system_power", "power_state", "Off"),
 				),
 			},
 			{
-				Config: testAccRedfishResourcePowerConfig(
-					creds,
-					"On",
-					120,
-					10),
-				Check: resource.ComposeTestCheckFunc(
+				Config: testAccRedfishResourcePowerConfig(creds,"On",120, 10),
+				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_power.system_power", "power_state", "On"),
 				),
 			},
 			{
-				Config: testAccRedfishResourcePowerConfig(
-					creds,
-					"ForceOff",
-					120,
-					10),
-				Check: resource.ComposeTestCheckFunc(
+				Config: testAccRedfishResourcePowerConfig(creds,"ForceOff",120,10),
+				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_power.system_power", "power_state", "Off"),
 				),
 			},
 			{
-				Config: testAccRedfishResourcePowerConfig(
-					creds,
-					"ForceRestart",
-					120,
-					10),
-				Check: resource.ComposeTestCheckFunc(
+				Config: testAccRedfishResourcePowerConfig(creds,"ForceRestart",120,10),
+				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_power.system_power", "power_state", "Reset_On"),
 				),
-				ExpectNonEmptyPlan: true,
 			},
 			{
-				Config: testAccRedfishResourcePowerConfig(
-					creds,
-					"PowerCycle",
-					120,
-					10),
-				Check: resource.ComposeTestCheckFunc(
+				Config: testAccRedfishResourcePowerConfig(creds,"PowerCycle",120,10),
+				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_power.system_power", "power_state", "Reset_On"),
 				),
-				ExpectNonEmptyPlan: true,
 			},
 			{
-				Config: testAccRedfishResourcePowerConfig(
-					creds,
-					"PushPowerButton",
-					120,
-					10),
+				Config: testAccRedfishResourcePowerConfig(creds,"PushPowerButton",120,10),
 			},
 			{
-				Config: testAccRedfishResourcePowerConfig(
-					creds,
-					"PushPowerButton",
-					120,
-					10),
+				Config: testAccRedfishResourcePowerConfig(creds,"PushPowerButton",120,10),
 			},
 		},
 	})
@@ -116,7 +78,7 @@ func TestAccRedfishPower_Invalid(t *testing.T) {
 				Config: testAccRedfishResourcePowerConfig1(
 					creds,
 					"nil"),
-				ExpectError: regexp.MustCompile("expected desired_power_action to be one of"),
+				ExpectError: regexp.MustCompile("desired_power_action value must be one of"),
 			},
 		},
 	})
@@ -129,11 +91,11 @@ func testAccRedfishResourcePowerConfig(testingInfo TestingServerCredentials,
 		
 		resource "redfish_power" "system_power" {
 		
-		  redfish_server {
+		  redfish_server = {
 			user = "%s"
 			password = "%s"
 			endpoint = "https://%s"
-			ssl_insecure = true
+			validate_cert = false
 		  }
 
 		  desired_power_action = "%s"
@@ -161,12 +123,12 @@ func testAccRedfishResourcePowerConfig1(testingInfo TestingServerCredentials,
 
 		resource "redfish_power" "system_power" {
 
-		  redfish_server {
-			user = "%s"
-			password = "%s"
-			endpoint = "https://%s"
-			ssl_insecure = true
-		  }
+			redfish_server = {
+				user = "%s"
+				password = "%s"
+				endpoint = "https://%s"
+				validate_cert = false
+			  }
 
 		  desired_power_action = "%s"
 		}

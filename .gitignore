@@ -67,3 +67,5 @@ website/vendor
 
 redfish/provider/redfish_test.env
 test
+
+**/*debug*
