@@ -69,3 +69,4 @@ redfish/provider/redfish_test.env
 test
 
 **/*debug*
+**/coverage*

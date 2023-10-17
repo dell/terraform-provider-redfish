@@ -28,40 +28,40 @@ func TestAccRedfishPowerT1(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccRedfishResourcePowerConfig(creds,"GracefulShutdown",120,10),
+				Config: testAccRedfishResourcePowerConfig(creds, "GracefulShutdown", 120, 10),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_power.system_power", "power_state", "Off"),
 				),
 			},
 			{
-				Config: testAccRedfishResourcePowerConfig(creds,"On",120, 10),
+				Config: testAccRedfishResourcePowerConfig(creds, "On", 120, 10),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_power.system_power", "power_state", "On"),
 				),
 			},
 			{
-				Config: testAccRedfishResourcePowerConfig(creds,"ForceOff",120,10),
+				Config: testAccRedfishResourcePowerConfig(creds, "ForceOff", 120, 10),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_power.system_power", "power_state", "Off"),
 				),
 			},
 			{
-				Config: testAccRedfishResourcePowerConfig(creds,"ForceRestart",120,10),
+				Config: testAccRedfishResourcePowerConfig(creds, "ForceRestart", 120, 10),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_power.system_power", "power_state", "Reset_On"),
 				),
 			},
 			{
-				Config: testAccRedfishResourcePowerConfig(creds,"PowerCycle",120,10),
+				Config: testAccRedfishResourcePowerConfig(creds, "PowerCycle", 120, 10),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_power.system_power", "power_state", "Reset_On"),
 				),
 			},
 			{
-				Config: testAccRedfishResourcePowerConfig(creds,"PushPowerButton",120,10),
+				Config: testAccRedfishResourcePowerConfig(creds, "PushPowerButton", 120, 10),
 			},
 			{
-				Config: testAccRedfishResourcePowerConfig(creds,"PushPowerButton",120,10),
+				Config: testAccRedfishResourcePowerConfig(creds, "PushPowerButton", 125, 12),
 			},
 		},
 	})
