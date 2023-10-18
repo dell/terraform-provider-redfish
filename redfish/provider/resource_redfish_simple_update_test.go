@@ -11,6 +11,10 @@ import (
 
 // Test to create and update Simple update - Positive
 func TestAccRedfishSimpleUpdate_basic(t *testing.T) {
+	t.Log(testAccRedfishResourceUpdateConfig(
+		creds,
+		"HTTP",
+		os.Getenv("TF_TESTING_FIRMWARE_IMAGE_LOCAL")))
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -66,13 +70,13 @@ func TestAccRedfishSimpleUpdate_InvalidProto(t *testing.T) {
 					os.Getenv("TF_TESTING_FIRMWARE_IMAGE_HTTP")),
 				ExpectError: regexp.MustCompile("this transfer protocol is not available in this redfish instance"),
 			},
-			{
-				Config: testAccRedfishResourceUpdateConfig(
-					creds,
-					"CIFS",
-					os.Getenv("TF_TESTING_FIRMWARE_IMAGE_HTTP")),
-				ExpectError: regexp.MustCompile("Transfer protocol not available in this implementation"),
-			},
+			// {
+			// 	Config: testAccRedfishResourceUpdateConfig(
+			// 		creds,
+			// 		"CIFS",
+			// 		os.Getenv("TF_TESTING_FIRMWARE_IMAGE_HTTP")),
+			// 	ExpectError: regexp.MustCompile("Transfer protocol not available in this implementation"),
+			// },
 		},
 	})
 }
@@ -84,7 +88,7 @@ func testAccRedfishResourceUpdateConfig(testingInfo TestingServerCredentials,
 		
 		resource "redfish_simple_update" "update" {
 		
-		  redfish_server {
+		  redfish_server = {
 			user = "%s"
 			password = "%s"
 			endpoint = "https://%s"

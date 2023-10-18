@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -30,9 +29,9 @@ import (
 )
 
 const (
-	defaultSimpleUpdateResetTimeout  int = 120
-	defaultSimpleUpdateJobTimeout    int = 1200
-	intervalSimpleUpdateJobCheckTime int = 10
+	defaultSimpleUpdateResetTimeout  int   = 120
+	defaultSimpleUpdateJobTimeout    int   = 1200
+	intervalSimpleUpdateJobCheckTime int64 = 10
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -195,7 +194,11 @@ func (r *simpleUpdateResource) Create(ctx context.Context, req resource.CreateRe
 	plan.Id = types.StringValue(system.SerialNumber + "_simple_update")
 
 	// resetType := plan.DesiredPowerAction.ValueString()
-	dia, state := updateRedfishSimpleUpdate(ctx, service, plan)
+	updater := simpleUpdater{
+		ctx:     ctx,
+		service: service,
+	}
+	dia, state := updater.updateRedfishSimpleUpdate(plan)
 	resp.Diagnostics.Append(dia...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -269,7 +272,13 @@ func readRedfishSimpleUpdate(service *gofish.Service, d models.SimpleUpdateRes) 
 	return diags, d
 }
 
-func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d models.SimpleUpdateRes) (diag.Diagnostics, models.SimpleUpdateRes) {
+type simpleUpdater struct {
+	ctx           context.Context
+	service       *gofish.Service
+	updateService *redfish.UpdateService
+}
+
+func (u simpleUpdater) updateRedfishSimpleUpdate(d models.SimpleUpdateRes) (diag.Diagnostics, models.SimpleUpdateRes) {
 	var diags diag.Diagnostics
 	ret := d
 
@@ -278,7 +287,7 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d m
 	resetType := d.ResetType.ValueString()
 
 	// Check if chosen reset type is supported before doing anything else
-	systems, err := service.Systems()
+	systems, err := u.service.Systems()
 	if err != nil {
 		diags.AddError(
 			"Couldn't retrieve allowed reset types from systems",
@@ -286,6 +295,7 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d m
 		)
 		return diags, ret
 	}
+	tflog.Debug(u.ctx, "resource_simple_update : found system")
 
 	if ok := checkResetType(resetType, systems[0].SupportedResetTypes); !ok {
 		diags.AddError(
@@ -294,13 +304,16 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d m
 		)
 		return diags, ret
 	}
+	tflog.Debug(u.ctx, "resource_simple_update : reset type "+resetType+"is available")
 
 	// Get update service from root
-	updateService, err := service.UpdateService()
+	updateService, err := u.service.UpdateService()
 	if err != nil {
 		diags.AddError("error while retrieving UpdateService", err.Error())
 		return diags, ret
 	}
+	tflog.Debug(u.ctx, "resource_simple_update : found update service")
+	u.updateService = updateService
 
 	// Check if the transfer protocol is available in the redfish instance
 	err = checkTransferProtocol(transferProtocol, updateService)
@@ -315,9 +328,10 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d m
 		)
 		return diags, ret // !!!! append list of supported transfer protocols
 	}
+	tflog.Debug(u.ctx, "resource_simple_update : update type "+transferProtocol+" is valid")
 
 	if transferProtocol == "NFS" {
-		id, err := pullUpdate(service, d)
+		id, err := u.pullUpdate(d)
 		if err != nil {
 			diags.AddError(err.Error(), "")
 		} else {
@@ -325,23 +339,24 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d m
 		}
 	} else if transferProtocol == "HTTP" || transferProtocol == "HTTPS" {
 		if strings.HasPrefix(targetFirmwareImage, "http") {
-			id, err := pullUpdate(service, d)
+			id, err := u.pullUpdate(d)
 			if err != nil {
 				diags.AddError(err.Error(), "")
 			} else {
 				d.Id = types.StringValue(id)
 			}
 		} else {
-			fwPackage, err := uploadLocalFirmware(service, updateService, d)
+			fwPackage, err := u.uploadLocalFirmware(d)
 			if err != nil {
 				// TBD - HOW TO HANDLE WHEN FAILS BUT FIRMWARE WAS INSTALLED?
 				diags.AddError(err.Error(), "")
+				return diags, ret
 			}
 			ret.SoftwareId = types.StringValue(fwPackage.SoftwareID)
 			ret.Version = types.StringValue(fwPackage.Version)
 			ret.Id = types.StringValue(fwPackage.ODataID)
 
-			diagsRead, state := readRedfishSimpleUpdate(service, d)
+			diagsRead, state := readRedfishSimpleUpdate(u.service, d)
 			diags.Append(diagsRead...)
 			ret = state
 		}
@@ -352,8 +367,9 @@ func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d m
 	return diags, ret
 }
 
-func uploadLocalFirmware(service *gofish.Service, updateService *redfish.UpdateService, d models.SimpleUpdateRes) (*redfish.SoftwareInventory, error) {
+func (u simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.SoftwareInventory, error) {
 	// Get ETag from FW inventory
+	service, updateService := u.service, u.updateService
 	response, err := service.GetClient().Get(updateService.FirmwareInventory)
 	if err != nil {
 		return nil, fmt.Errorf("error while retrieving Etag from FirmwareInventory: %w", err)
@@ -406,10 +422,11 @@ func uploadLocalFirmware(service *gofish.Service, updateService *redfish.UpdateS
 	}
 	response.Body.Close()
 
-	err = updateJobStatus(service, d, response)
+	err = u.updateJobStatus(d, response)
 	if err != nil {
 		return nil, fmt.Errorf("error running job %w", err)
 	}
+	tflog.Debug(u.ctx, "resource_simple_update : Job finished successfully")
 	// Get updated FW inventory
 	fwInventory, err := updateService.FirmwareInventories()
 	if err != nil {
@@ -463,12 +480,10 @@ func getFWfromInventory(softwareInventories []*redfish.SoftwareInventory, softwa
 	return nil, fmt.Errorf("couldn't find FW on Firmware inventory")
 }
 
-func pullUpdate(service *gofish.Service, d models.SimpleUpdateRes) (string, error) {
+func (u simpleUpdater) pullUpdate(d models.SimpleUpdateRes) (string, error) {
 	// Get update service from root
-	updateService, err := service.UpdateService()
-	if err != nil {
-		return "", fmt.Errorf("error while retrieving UpdateService - %w", err)
-	}
+	updateService := u.updateService
+	service := u.service
 
 	protocol := d.Protocol.ValueString()
 	imagePath := d.Image.ValueString()
@@ -477,6 +492,7 @@ func pullUpdate(service *gofish.Service, d models.SimpleUpdateRes) (string, erro
 	payload := make(map[string]interface{})
 	payload["ImageURI"] = imagePath
 	payload["TransferProtocol"] = protocol
+	tflog.Trace(u.ctx, fmt.Sprintf("resource_simple_update : Job is scheduling payload %v", payload))
 
 	response, err := service.GetClient().Post(httpURI, payload)
 	if err != nil {
@@ -486,7 +502,8 @@ func pullUpdate(service *gofish.Service, d models.SimpleUpdateRes) (string, erro
 
 	// Get jobid
 	jobID := response.Header.Get("Location")
-	err = updateJobStatus(service, d, response)
+	tflog.Debug(u.ctx, "resource_simple_update : Job is scheduled with id "+jobID)
+	err = u.updateJobStatus(d, response)
 	if err != nil {
 		// Delete uploaded package - TBD
 		return "", fmt.Errorf("there was an issue when waiting for the job to complete - %s", err)
@@ -510,26 +527,30 @@ func pullUpdate(service *gofish.Service, d models.SimpleUpdateRes) (string, erro
 	return swInventory.ODataID, nil
 }
 
-func updateJobStatus(service *gofish.Service, d models.SimpleUpdateRes, response *http.Response) error {
+func (u simpleUpdater) updateJobStatus(d models.SimpleUpdateRes, response *http.Response) error {
 	// Get jobid
 	jobID := response.Header.Get("Location")
 
 	resetTimeout := d.ResetTimeout.ValueInt64()
 	simpleUpdateJobTimeout := d.JobTimeout.ValueInt64()
-	log.Printf("[DEBUG] resetTimeout is set to %d and simpleUpdateJobTimeout to %d", resetTimeout, simpleUpdateJobTimeout)
+	tflog.Debug(u.ctx, fmt.Sprintf(
+		"resource_simple_update : resetTimeout is set to %d and simpleUpdateJobTimeout to %d",
+		resetTimeout,
+		simpleUpdateJobTimeout))
 
 	// Reboot the server
-	_, diags := PowerOperation(d.ResetType.ValueString(), int(resetTimeout), intervalSimpleUpdateJobCheckTime, service)
-	if diags.HasError() {
+	pOp := powerOperator{u.ctx, u.service}
+	_, err := pOp.PowerOperation(d.ResetType.ValueString(), resetTimeout, intervalSimpleUpdateJobCheckTime)
+	if err != nil {
 		// Delete uploaded package - TBD
-		return fmt.Errorf("there was an issue when restarting the server")
+		return fmt.Errorf("there was an issue when restarting the server: %w", err)
 	}
 
 	// Check JID
-	err := common.WaitForJobToFinish(service, jobID, intervalSimpleUpdateJobCheckTime, int(simpleUpdateJobTimeout))
+	err = common.WaitForJobToFinish(u.service, jobID, intervalSimpleUpdateJobCheckTime, simpleUpdateJobTimeout)
 	if err != nil {
 		// Delete uploaded package - TBD
-		return fmt.Errorf("there was an issue when waiting for the job to complete - %s", err)
+		return fmt.Errorf("there was an issue when waiting for the job to complete - %w", err)
 	}
 
 	return nil

@@ -21,7 +21,7 @@ const (
 //   - jobURI -> URI for the job to check.
 //   - timeBetweenAttempts -> time to wait between attempts. I.e. 30 means 30 seconds.
 //   - timeout -> maximun time to wait until job is considered failed.
-func WaitForJobToFinish(service *gofish.Service, jobURI string, timeBetweenAttempts int, timeout int) error {
+func WaitForJobToFinish(service *gofish.Service, jobURI string, timeBetweenAttempts int64, timeout int64) error {
 	// Create tickers
 	attemptTick := time.NewTicker(time.Duration(timeBetweenAttempts) * time.Second)
 	timeoutTick := time.NewTicker(time.Duration(timeout) * time.Second)
@@ -44,7 +44,7 @@ func WaitForJobToFinish(service *gofish.Service, jobURI string, timeBetweenAttem
 			}
 		case <-timeoutTick.C:
 			log.Printf("[DEBUG] - Error. Timeout reached\n")
-			return fmt.Errorf("Timeout waiting for the job to finish")
+			return fmt.Errorf("timeout waiting for the job to finish")
 		}
 	}
 }

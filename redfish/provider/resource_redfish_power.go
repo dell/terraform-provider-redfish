@@ -149,8 +149,9 @@ func (r *powerResource) Create(ctx context.Context, req resource.CreateRequest, 
 	plan.PowerId = types.StringValue(system.SerialNumber + "_power")
 
 	resetType := plan.DesiredPowerAction.ValueString()
-	powerState, diags1 := PowerOperation(resetType, int(plan.MaximumWaitTime.ValueInt64()), int(plan.CheckInterval.ValueInt64()), service)
-	if diags1.HasError() {
+	pOp := powerOperator{ctx, service}
+	powerState, pErr := pOp.PowerOperation(resetType, plan.MaximumWaitTime.ValueInt64(), plan.CheckInterval.ValueInt64())
+	if pErr != nil {
 		return
 	}
 	// time to allow changes to get reflected

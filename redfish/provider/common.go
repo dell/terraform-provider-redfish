@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -8,7 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
 )
@@ -89,6 +90,11 @@ func NewConfig(pconfig *redfishProvider, rserver *models.RedfishServer) (*gofish
 	return api.Service, nil
 }
 
+type powerOperator struct {
+	ctx     context.Context
+	service *gofish.Service
+}
+
 // PowerOperation Executes a power operation against the target server. It takes four arguments. The first is the reset
 // type. See the struct "ResetType" at https://github.com/stmcginnis/gofish/blob/main/redfish/computersystem.go for all
 // possible options. The second is maximumWaitTime which is the maximum amount of time to wait for the server to reach
@@ -96,21 +102,20 @@ func NewConfig(pconfig *redfishProvider, rserver *models.RedfishServer) (*gofish
 // server's power state for updates. The last is a pointer to a gofish.Service object with which the function can
 // interact with the server. It will return a tuple consisting of the server's power state at time of return and
 // diagnostics
-func PowerOperation(resetType string, maximumWaitTime int, checkInterval int, service *gofish.Service) (redfish.PowerState, diag.Diagnostics) {
-	var diags diag.Diagnostics
+func (p powerOperator) PowerOperation(resetType string, maximumWaitTime int64, checkInterval int64) (redfish.PowerState, error) {
 
-	system, err := getSystemResource(service)
+	system, err := getSystemResource(p.service)
 	if err != nil {
-		log.Printf("[ERROR]: Failed to identify system: %s", err)
-		return "", diag.Errorf(err.Error())
+		tflog.Error(p.ctx, fmt.Sprintf("Failed to identify system: %s", err))
+		return "", fmt.Errorf("failed to identify system: %w", err)
 	}
 
 	var targetPowerState redfish.PowerState
 
 	if resetType == "ForceOff" || resetType == "GracefulShutdown" {
 		if system.PowerState == "Off" {
-			log.Printf("[TRACE]: Server already powered off. No action required.")
-			return redfish.OffPowerState, diags
+			tflog.Trace(p.ctx, "Server already powered off. No action required.")
+			return redfish.OffPowerState, nil
 		} else {
 			targetPowerState = "Off"
 		}
@@ -118,8 +123,8 @@ func PowerOperation(resetType string, maximumWaitTime int, checkInterval int, se
 
 	if resetType == "On" || resetType == "ForceOn" {
 		if system.PowerState == "On" {
-			log.Printf("[TRACE]: Server already powered on. No action required.")
-			return redfish.OnPowerState, diags
+			tflog.Error(p.ctx, "Server already powered on. No action required")
+			return redfish.OnPowerState, nil
 		} else {
 			targetPowerState = "On"
 		}
@@ -143,38 +148,37 @@ func PowerOperation(resetType string, maximumWaitTime int, checkInterval int, se
 	}
 
 	// Run the power operation against the target server
-	log.Printf("[TRACE]: Performing system.Reset(%s)", resetType)
+	tflog.Trace(p.ctx, fmt.Sprintf("Performing system.Reset(%s)", resetType))
 	if err = system.Reset(redfish.ResetType(resetType)); err != nil {
-		log.Printf("[WARN]: system.Reset returned an error: %s", err)
-		return system.PowerState, diag.Errorf(err.Error())
+		tflog.Warn(p.ctx, fmt.Sprintf("system.Reset returned an error: %s", err))
+		return system.PowerState, err
 	}
 
 	// Wait for the server to be in the correct power state
-	totalTime := 0
+	var totalTime int64 = 0
 	for totalTime < maximumWaitTime {
 
 		time.Sleep(time.Duration(checkInterval) * time.Second)
 		totalTime += checkInterval
-		log.Printf("[TRACE]: Total time is %d seconds. Checking power state now.", totalTime)
+		tflog.Trace(p.ctx, fmt.Sprintf("Total time is %d seconds. Checking power state now.", totalTime))
 
-		system, err := getSystemResource(service)
+		system, err := getSystemResource(p.service)
 		if err != nil {
-			log.Printf("[ERROR]: Failed to identify system: %s", err)
-			return targetPowerState, diag.Errorf(err.Error())
+			tflog.Error(p.ctx, fmt.Sprintf("Failed to identify system: %s", err))
+			return targetPowerState, err
 		}
 
 		if system.PowerState == targetPowerState {
-			log.Printf("[TRACE]: system.Reset successful")
-			return system.PowerState, diags
+			tflog.Debug(p.ctx, "system.Reset successful")
+			return system.PowerState, nil
 		}
-
 	}
 
 	// If we've reached here it means the system never reached the appropriate target state
 	// We will instead set the power state to whatever the current state is and return
 	// TODO : Change to warning when updated to plugin framework
-	log.Printf("[ERROR]: The system failed to update the server's power status within the maximum wait time specified!")
-	return system.PowerState, diags
+	tflog.Warn(p.ctx, "The system failed to update the server's power status within the maximum wait time specified!")
+	return system.PowerState, nil
 }
 
 // import (
