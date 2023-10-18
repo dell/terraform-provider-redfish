@@ -160,7 +160,7 @@ func PowerOperation(resetType string, maximumWaitTime int, checkInterval int, se
 		system, err := getSystemResource(service)
 		if err != nil {
 			log.Printf("[ERROR]: Failed to identify system: %s", err)
-			return system.PowerState, diag.Errorf(err.Error())
+			return targetPowerState, diag.Errorf(err.Error())
 		}
 
 		if system.PowerState == targetPowerState {

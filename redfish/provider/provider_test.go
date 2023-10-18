@@ -61,9 +61,9 @@ func testAccPreCheck(t *testing.T) {
 	}
 }
 
-func skipTest() bool {
-	return os.Getenv("TF_ACC") == "" || os.Getenv("ACC_DETAIL") == ""
-}
+// func skipTest() bool {
+// 	return os.Getenv("TF_ACC") == "" || os.Getenv("ACC_DETAIL") == ""
+// }
 
 // // TestingServerCredentials Struct used to store the credentials we pass for testing. This allows us to pass testing
 // // credentials via environment variables instead of having them hard coded
