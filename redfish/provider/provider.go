@@ -5,6 +5,7 @@ import (
 	// "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"context"
+	"terraform-provider-redfish/mutexkv"
 	"terraform-provider-redfish/redfish/models"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -15,7 +16,7 @@ import (
 )
 
 // This is a global MutexKV for use within this plugin
-// var redfishMutexKV = mutexkv.NewMutexKV()
+var redfishMutexKV = mutexkv.NewMutexKV()
 
 // Ensure the implementation satisfies the provider.Provider interface.
 var _ provider.Provider = &redfishProvider{}
@@ -31,12 +32,12 @@ type redfishProvider struct {
 }
 
 // Metadata - provider metadata AKA name.
-func (*redfishProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
+func (p *redfishProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
 	resp.TypeName = "redfish_"
 }
 
 // Schema implements provider.Provider.
-func (*redfishProvider) Schema(ctx context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *redfishProvider) Schema(ctx context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Terraform Provider Redfish",
 		Attributes: map[string]schema.Attribute{

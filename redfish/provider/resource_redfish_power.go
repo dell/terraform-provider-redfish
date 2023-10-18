@@ -5,13 +5,16 @@ import (
 	"terraform-provider-redfish/redfish/models"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/stmcginnis/gofish/redfish"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -64,7 +67,20 @@ func PowerSchema() map[string]schema.Attribute {
 				"'GracefulRestart','GracefulShutdown','PowerCycle', 'PushPowerButton', 'Nmi'",
 			Required: true,
 			PlanModifiers: []planmodifier.String{
-				stringplanmodifier.RequiresReplace(),
+				stringplanmodifier.RequiresReplaceIfConfigured(),
+			},
+			Validators: []validator.String{
+				stringvalidator.OneOf(
+					string(redfish.OnResetType),
+					string(redfish.ForceOnResetType),
+					string(redfish.ForceOffResetType),
+					string(redfish.ForceRestartResetType),
+					string(redfish.GracefulRestartResetType),
+					string(redfish.GracefulShutdownResetType),
+					string(redfish.PushPowerButtonResetType),
+					string(redfish.PowerCycleResetType),
+					string(redfish.NmiResetType),
+				),
 			},
 		},
 
@@ -82,7 +98,7 @@ func PowerSchema() map[string]schema.Attribute {
 			MarkdownDescription: "The frequency with which to check the server's power state in seconds",
 			Description:         "The frequency with which to check the server's power state in seconds",
 			Optional:            true,
-			Computed: true,
+			Computed:            true,
 			Default:             int64default.StaticInt64(10),
 		},
 
@@ -115,6 +131,10 @@ func (r *powerResource) Create(ctx context.Context, req resource.CreateRequest, 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	// 	// Lock the mutex to avoid race conditions with other resources
+	redfishMutexKV.Lock(plan.RedfishServer.Endpoint.ValueString())
+	defer redfishMutexKV.Unlock(plan.RedfishServer.Endpoint.ValueString())
+
 	service, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
@@ -159,6 +179,20 @@ func (r *powerResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
+	service, err := NewConfig(r.p, &state.RedfishServer)
+	if err != nil {
+		resp.Diagnostics.AddError("service error", err.Error())
+		return
+	}
+
+	system, err := getSystemResource(service)
+	if err != nil {
+		resp.Diagnostics.AddError("system error", err.Error())
+		return
+	}
+
+	state.PowerState = types.StringValue(string(system.PowerState))
+
 	tflog.Trace(ctx, "resource_power read: finished reading state")
 	// Save into State
 	diags = resp.State.Set(ctx, &state)
@@ -183,6 +217,10 @@ func (r *powerResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	state.MaximumWaitTime = plan.MaximumWaitTime
+	state.CheckInterval = plan.CheckInterval
+	state.RedfishServer = plan.RedfishServer
 
 	tflog.Trace(ctx, "resource_power update: finished state update")
 	// Save into State
