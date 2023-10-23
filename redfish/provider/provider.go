@@ -32,12 +32,12 @@ type redfishProvider struct {
 }
 
 // Metadata - provider metadata AKA name.
-func (p *redfishProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
+func (*redfishProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
 	resp.TypeName = "redfish_"
 }
 
 // Schema implements provider.Provider.
-func (p *redfishProvider) Schema(ctx context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (*redfishProvider) Schema(ctx context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Terraform Provider Redfish",
 		Attributes: map[string]schema.Attribute{
@@ -54,6 +54,7 @@ func (p *redfishProvider) Schema(ctx context.Context, _ provider.SchemaRequest, 
 			},
 		},
 	}
+	tflog.Trace(ctx, "resource schema created")
 }
 
 // Configure - provider pre-initiate calle function.
@@ -93,13 +94,15 @@ func (p *redfishProvider) Configure(ctx context.Context, req provider.ConfigureR
 	tflog.Trace(ctx, "Finished configuring the provider")
 }
 
-func (p *redfishProvider) Resources(ctx context.Context) []func() resource.Resource {
+// Resources function to add new resource
+func (*redfishProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewPowerResource,
 		NewDellIdracAttributesResource,
 	}
 }
 
-func (p *redfishProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+// DataSources function to add new datasource
+func (*redfishProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{}
 }

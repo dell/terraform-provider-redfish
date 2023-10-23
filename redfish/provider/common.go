@@ -13,6 +13,7 @@ import (
 	"github.com/stmcginnis/gofish/redfish"
 )
 
+// RedfishServerSchema to construct schema of redfish server
 func RedfishServerSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"user": schema.StringAttribute{
@@ -48,9 +49,9 @@ func getSystemResource(service *gofish.Service) (*redfish.ComputerSystem, error)
 	return systems[0], err
 }
 
-// // NewConfig function creates the needed gofish structs to query the redfish API
-// // See https://github.com/stmcginnis/gofish for details. This function returns a Service struct which can then be
-// // used to make any required API calls.
+// NewConfig function creates the needed gofish structs to query the redfish API
+// See https://github.com/stmcginnis/gofish for details. This function returns a Service struct which can then be
+// used to make any required API calls.
 func NewConfig(pconfig *redfishProvider, rserver *models.RedfishServer) (*gofish.Service, error) {
 	var redfishClientUser, redfishClientPass string
 
@@ -98,7 +99,8 @@ func NewConfig(pconfig *redfishProvider, rserver *models.RedfishServer) (*gofish
 // diagnostics
 func PowerOperation(resetType string, maximumWaitTime int, checkInterval int, service *gofish.Service) (redfish.PowerState, diag.Diagnostics) {
 	var diags diag.Diagnostics
-
+	const powerON redfish.PowerState = "On"
+	const powerOFF redfish.PowerState = "Off"
 	system, err := getSystemResource(service)
 	if err != nil {
 		log.Printf("[ERROR]: Failed to identify system: %s", err)
@@ -109,38 +111,35 @@ func PowerOperation(resetType string, maximumWaitTime int, checkInterval int, se
 	var targetPowerState redfish.PowerState
 
 	if resetType == "ForceOff" || resetType == "GracefulShutdown" {
-		if system.PowerState == "Off" {
+		if system.PowerState == powerOFF {
 			log.Printf("[TRACE]: Server already powered off. No action required.")
 			return redfish.OffPowerState, diags
-		} else {
-			targetPowerState = "Off"
 		}
+		targetPowerState = powerOFF
 	}
 
 	if resetType == "On" || resetType == "ForceOn" {
-		if system.PowerState == "On" {
+		if system.PowerState == powerON {
 			log.Printf("[TRACE]: Server already powered on. No action required.")
 			return redfish.OnPowerState, diags
-		} else {
-			targetPowerState = "On"
 		}
+		targetPowerState = powerON
 	}
 
 	if resetType == "ForceRestart" || resetType == "GracefulRestart" || resetType == "PowerCycle" || resetType == "Nmi" {
 		// If someone asks for a reset while the server is off, change the reset type to on instead
-		if system.PowerState == "Off" {
+		if system.PowerState == powerOFF {
 			resetType = "On"
 		}
-		targetPowerState = "On"
+		targetPowerState = powerON
 	}
 
 	if resetType == "PushPowerButton" {
 		// In case of Push Power button toggle the current state
-		if system.PowerState == "Off" {
-			targetPowerState = "On"
-		} else {
-			targetPowerState = "Off"
+		if system.PowerState == powerOFF {
+			targetPowerState = powerON
 		}
+		targetPowerState = powerOFF
 	}
 
 	// Run the power operation against the target server
@@ -154,7 +153,6 @@ func PowerOperation(resetType string, maximumWaitTime int, checkInterval int, se
 	// Wait for the server to be in the correct power state
 	totalTime := 0
 	for totalTime < maximumWaitTime {
-
 		time.Sleep(time.Duration(checkInterval) * time.Second)
 		totalTime += checkInterval
 		log.Printf("[TRACE]: Total time is %d seconds. Checking power state now.", totalTime)
@@ -165,12 +163,10 @@ func PowerOperation(resetType string, maximumWaitTime int, checkInterval int, se
 			diags.AddError("error", err.Error())
 			return targetPowerState, diags
 		}
-
 		if system.PowerState == targetPowerState {
 			log.Printf("[TRACE]: system.Reset successful")
 			return system.PowerState, diags
 		}
-
 	}
 
 	// If we've reached here it means the system never reached the appropriate target state

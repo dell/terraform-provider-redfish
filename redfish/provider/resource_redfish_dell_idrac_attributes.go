@@ -36,18 +36,20 @@ type dellIdracAttributesResource struct {
 // Configure implements resource.ResourceWithConfigure
 func (r *dellIdracAttributesResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
+		resp.Diagnostics.AddError("error", "provider data is empty")
 		return
 	}
 	r.p = req.ProviderData.(*redfishProvider)
+	tflog.Trace(ctx, "resource_DellIdracAttributes configured ")
 }
 
 // Metadata returns the resource type name.
-func (r *dellIdracAttributesResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (*dellIdracAttributesResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "dell_idrac_attributes"
 }
 
 // Schema defines the schema for the resource.
-func (r *dellIdracAttributesResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (*dellIdracAttributesResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Resource for managing DellIdracAttributes on OpenManage Enterprise.",
 		Version:             1,
@@ -55,6 +57,7 @@ func (r *dellIdracAttributesResource) Schema(_ context.Context, _ resource.Schem
 	}
 }
 
+// DellIdracAttributesSchema to define the idrac attribute schema
 func DellIdracAttributesSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"id": schema.StringAttribute{
@@ -84,7 +87,7 @@ func DellIdracAttributesSchema() map[string]schema.Attribute {
 // Create creates the resource and sets the initial Terraform state.
 func (r *dellIdracAttributesResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	tflog.Trace(ctx, "resource_DellIdracAttributes create : Started")
-	//Get Plan Data
+	// Get Plan Data
 	var plan models.DellIdracAttributes
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -127,7 +130,7 @@ func (r *dellIdracAttributesResource) Read(ctx context.Context, req resource.Rea
 	diags = readRedfishDellIdracAttributes(ctx, service, &state)
 	resp.Diagnostics.Append(diags...)
 	tflog.Trace(ctx, "resource_DellIdracAttributes read: finished reading state")
-	//Save into State
+	// Save into State
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	tflog.Trace(ctx, "resource_DellIdracAttributes read: finished")
@@ -135,7 +138,7 @@ func (r *dellIdracAttributesResource) Read(ctx context.Context, req resource.Rea
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *dellIdracAttributesResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	//Get state Data
+	// Get state Data
 	tflog.Trace(ctx, "resource_DellIdracAttributes update: started")
 	var plan models.DellIdracAttributes
 
@@ -156,14 +159,14 @@ func (r *dellIdracAttributesResource) Update(ctx context.Context, req resource.U
 	resp.Diagnostics.Append(diags...)
 
 	tflog.Trace(ctx, "resource_DellIdracAttributes update: finished state update")
-	//Save into State
+	// Save into State
 	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	tflog.Trace(ctx, "resource_DellIdracAttributes update: finished")
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
-func (r *dellIdracAttributesResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (*dellIdracAttributesResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	tflog.Trace(ctx, "resource_DellIdracAttributes delete: started")
 	// Get State Data
 	var state models.DellIdracAttributes
@@ -178,58 +181,60 @@ func (r *dellIdracAttributesResource) Delete(ctx context.Context, req resource.D
 }
 
 // ImportState import state for existing DellIdracAttributes
-func (r dellIdracAttributesResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (*dellIdracAttributesResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func updateRedfishDellIdracAttributes(ctx context.Context, service *gofish.Service, d *models.DellIdracAttributes) diag.Diagnostics {
 	var diags diag.Diagnostics
-
+	idracError := "there was an issue when creating/updating idrac attributes"
+	d.ID = types.StringValue("placeholder")
 	// Get attributes
-	attributesTf := d.Attributes.Elements()
+	attributesTf := make(map[string]string)
+	diags.Append(d.Attributes.ElementsAs(ctx, &attributesTf, true)...)
 	// get managerAttributeRegistry to check parameters before posting them to redfish
 	managerAttributeRegistry, err := getManagerAttributeRegistry(service)
 	if err != nil {
-		diags.AddError("there was an issue when creating/updating idrac attributes", err.Error())
+		diags.AddError(idracError, err.Error())
 		return diags
 	}
 	// Set right attributes to patch (values from map are all string. It needs int and string)
 	attributesToPatch, err := setManagerAttributesRightType(attributesTf, managerAttributeRegistry)
 	if err != nil {
-		diags.AddError("there was an issue when creating/updating idrac attributes", err.Error())
+		diags.AddError(idracError, err.Error())
 		return diags
 	}
 
 	// Check that all attributes passed are compliant with the API
 	err = checkManagerAttributes(managerAttributeRegistry, attributesToPatch)
 	if err != nil {
-		diags.AddError("there was an issue when creating/updating idrac attributes", err.Error())
+		diags.AddError(idracError, err.Error())
 		return diags
 	}
 
 	// get managers (Dell servers have only the iDRAC)
 	managers, err := service.Managers()
 	if err != nil {
-		diags.AddError("there was an issue when creating/updating idrac attributes", err.Error())
+		diags.AddError(idracError, err.Error())
 		return diags
 	}
 
 	// Get OEM
 	dellManager, err := dell.DellManager(managers[0])
 	if err != nil {
-		diags.AddError("there was an issue when creating/updating idrac attributes", err.Error())
+		diags.AddError(idracError, err.Error())
 		return diags
 	}
 
 	// Get Dell attributes
 	dellAttributes, err := dellManager.DellAttributes()
 	if err != nil {
-		diags.AddError("there was an issue when creating/updating idrac attributes", err.Error())
+		diags.AddError(idracError, err.Error())
 		return diags
 	}
 	idracAttributes, err := getIdracAttributes(dellAttributes)
 	if err != nil {
-		diags.AddError("there was an issue when creating/updating idrac attributes", err.Error())
+		diags.AddError(idracError, err.Error())
 		return diags
 	}
 
@@ -244,7 +249,7 @@ func updateRedfishDellIdracAttributes(ctx context.Context, service *gofish.Servi
 
 	response, err := service.GetClient().Patch(idracAttributes.ODataID, patchBody)
 	if err != nil {
-		diags.AddError("there was an issue when creating/updating idrac attributes", err.Error())
+		diags.AddError(idracError, err.Error())
 		return diags
 	}
 	response.Body.Close()
@@ -253,32 +258,32 @@ func updateRedfishDellIdracAttributes(ctx context.Context, service *gofish.Servi
 	return diags
 }
 
-func readRedfishDellIdracAttributes(ctx context.Context, service *gofish.Service, d *models.DellIdracAttributes) diag.Diagnostics {
+func readRedfishDellIdracAttributes(_ context.Context, service *gofish.Service, d *models.DellIdracAttributes) diag.Diagnostics {
 	var diags diag.Diagnostics
-
+	idracError := "there was an issue when reading idrac attributes"
 	// get managers (Dell servers have only the iDRAC)
 	managers, err := service.Managers()
 	if err != nil {
-		diags.AddError("there was an issue when reading idrac attributes", err.Error())
+		diags.AddError(idracError, err.Error())
 		return diags
 	}
 
 	// Get OEM
 	dellManager, err := dell.DellManager(managers[0])
 	if err != nil {
-		diags.AddError("there was an issue when reading idrac attributes", err.Error())
+		diags.AddError(idracError, err.Error())
 		return diags
 	}
 
 	// Get Dell attributes
 	dellAttributes, err := dellManager.DellAttributes()
 	if err != nil {
-		diags.AddError("there was an issue when reading idrac attributes", err.Error())
+		diags.AddError(idracError, err.Error())
 		return diags
 	}
 	idracAttributes, err := getIdracAttributes(dellAttributes)
 	if err != nil {
-		diags.AddError("there was an issue when reading idrac attributes", err.Error())
+		diags.AddError(idracError, err.Error())
 		return diags
 	}
 
@@ -291,7 +296,7 @@ func readRedfishDellIdracAttributes(ctx context.Context, service *gofish.Service
 		if attrValue != nil {                      // This is done to avoid triggering an update when reading Password values, that are shown as null (nil to Go)
 			readAttributes[k] = v
 		} else {
-			readAttributes[k] = v
+			readAttributes[k] = v.(types.String)
 		}
 	}
 	d.Attributes = types.MapValueMust(types.StringType, readAttributes)
@@ -345,7 +350,7 @@ func checkManagerAttributes(attrRegistry *dell.ManagerAttributeRegistry, attribu
 
 // setManagerAttributesRightType gets a map[string]interface{} from terraform, where all keys are strings,
 // and returns a map[string]interface{} where values are either string or ints, and can be used for PATCH
-func setManagerAttributesRightType(rawAttributes map[string]attr.Value, registry *dell.ManagerAttributeRegistry) (map[string]interface{}, error) {
+func setManagerAttributesRightType(rawAttributes map[string]string, registry *dell.ManagerAttributeRegistry) (map[string]interface{}, error) {
 	patchMap := make(map[string]interface{})
 
 	for k, v := range rawAttributes {
@@ -353,10 +358,9 @@ func setManagerAttributesRightType(rawAttributes map[string]attr.Value, registry
 		if err != nil {
 			return nil, err
 		}
-
 		switch attrType {
 		case "int":
-			t, err := strconv.Atoi(v.String())
+			t, err := strconv.Atoi(v)
 			if err != nil {
 				return nil, fmt.Errorf("property %s must be an integer", k)
 			}
