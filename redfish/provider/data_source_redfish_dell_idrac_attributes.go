@@ -1,114 +1,146 @@
 package provider
 
-// import (
-// 	"context"
-// 	"fmt"
+import (
+	"context"
+	"fmt"
+	"terraform-provider-redfish/gofish/dell"
+	"terraform-provider-redfish/redfish/models"
 
-// 	"github.com/dell/terraform-provider-redfish/gofish/dell"
-// 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-// 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-// 	"github.com/stmcginnis/gofish"
-// )
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/stmcginnis/gofish"
+)
 
-// func dataSourceRedfishDellIdracAttributes() *schema.Resource {
-// 	return &schema.Resource{
-// 		ReadContext: dataSourceRedfishDellIdracAttributesRead,
-// 		Schema:      getDataSourceRedfishDellIdracAttributesSchema(),
-// 	}
-// }
+var (
+	_ datasource.DataSource              = &DellIdracAttributesDatasource{}
+	_ datasource.DataSourceWithConfigure = &DellIdracAttributesDatasource{}
+)
 
-// func getDataSourceRedfishDellIdracAttributesSchema() map[string]*schema.Schema {
-// 	return map[string]*schema.Schema{
-// 		"redfish_server": {
-// 			Type:        schema.TypeList,
-// 			Required:    true,
-// 			Description: "List of server BMCs and their respective user credentials",
-// 			Elem: &schema.Resource{
-// 				Schema: map[string]*schema.Schema{
-// 					"user": {
-// 						Type:        schema.TypeString,
-// 						Optional:    true,
-// 						Description: "User name for login",
-// 					},
-// 					"password": {
-// 						Type:        schema.TypeString,
-// 						Optional:    true,
-// 						Description: "User password for login",
-// 						Sensitive:   true,
-// 					},
-// 					"endpoint": {
-// 						Type:        schema.TypeString,
-// 						Required:    true,
-// 						Description: "Server BMC IP address or hostname",
-// 					},
-// 					"ssl_insecure": {
-// 						Type:        schema.TypeBool,
-// 						Optional:    true,
-// 						Description: "This field indicates whether the SSL/TLS certificate must be verified or not",
-// 					},
-// 				},
-// 			},
-// 		},
-// 		"attributes": {
-// 			Type:        schema.TypeMap,
-// 			Computed:    true,
-// 			Description: "iDRAC attributes available to set",
-// 			Elem: &schema.Schema{
-// 				Type: schema.TypeString,
-// 			},
-// 		},
-// 	}
-// }
+// NewDellIdracAttributesDatasource is new datasource for idrac attributes
+func NewDellIdracAttributesDatasource() datasource.DataSource {
+	return &DellIdracAttributesDatasource{}
+}
 
-// func dataSourceRedfishDellIdracAttributesRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-// 	service, err := NewConfig(m.(*schema.ResourceData), d)
-// 	if err != nil {
-// 		return diag.Errorf(err.Error())
-// 	}
-// 	return readDatasourceRedfishDellIdracAttributes(service, d)
-// }
+// DellIdracAttributesDatasource to construct datasource
+type DellIdracAttributesDatasource struct {
+	p *redfishProvider
+}
 
-// func readDatasourceRedfishDellIdracAttributes(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
-// 	var diags diag.Diagnostics
+// Configure implements datasource.DataSourceWithConfigure
+func (g *DellIdracAttributesDatasource) Configure(_ context.Context, req datasource.ConfigureRequest, _ *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+	g.p = req.ProviderData.(*redfishProvider)
+}
 
-// 	// get managers (Dell servers have only the iDRAC)
-// 	managers, err := service.Managers()
-// 	if err != nil {
-// 		return diag.Errorf("there was an issue when reading idrac attributes - %s", err)
-// 	}
+// Metadata implements datasource.DataSource
+func (*DellIdracAttributesDatasource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "dell_idrac_attributes"
+}
 
-// 	// Get OEM
-// 	dellManager, err := dell.DellManager(managers[0])
-// 	if err != nil {
-// 		return diag.Errorf("there was an issue when reading idrac attributes - %s", err)
-// 	}
+// Schema implements datasource.DataSource
+func (*DellIdracAttributesDatasource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		MarkdownDescription: "Data source to provide redfish infiziya",
+		Attributes:          DellIdracAttributesSchemaDatasource(),
+	}
+}
 
-// 	// Get Dell attributes
-// 	dellAttributes, err := dellManager.DellAttributes()
-// 	if err != nil {
-// 		return diag.Errorf("there was an issue when reading idrac attributes - %s", err)
-// 	}
-// 	idracAttributes, err := getIdracAttributes(dellAttributes)
-// 	if err != nil {
-// 		return diag.Errorf("there was an issue when reading idrac attributes - %s", err)
-// 	}
+// DellIdracAttributesSchemaDatasource to define the idrac attribute schema
+func DellIdracAttributesSchemaDatasource() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"id": schema.StringAttribute{
+			MarkdownDescription: "ID of the iDRAC attributes resource",
+			Description:         "ID of the iDRAC attributes resource",
+			Computed:            true,
+		},
+		"redfish_server": schema.SingleNestedAttribute{
+			MarkdownDescription: "Redfish Server",
+			Description:         "Redfish Server",
+			Required:            true,
+			Attributes:          RedfishServerDatasourceSchema(),
+		},
+		"attributes": schema.MapAttribute{
+			MarkdownDescription: "iDRAC attributes. To check allowed attributes please either use the datasource for dell idrac attributes or query " +
+				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/iDRAC.Embedded.1. To get allowed values for those attributes, check " +
+				"/redfish/v1/Registries/ManagerAttributeRegistry/ManagerAttributeRegistry.v1_0_0.json from a Redfish Instance",
+			Description: "iDRAC attributes. To check allowed attributes please either use the datasource for dell idrac attributes or query " +
+				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/iDRAC.Embedded.1. To get allowed values for those attributes, check " +
+				"/redfish/v1/Registries/ManagerAttributeRegistry/ManagerAttributeRegistry.v1_0_0.json from a Redfish Instance",
+			ElementType: types.StringType,
+			Computed:    true,
+		},
+	}
+}
 
-// 	attributesToReturn := make(map[string]string)
+// Read implements datasource.DataSource
+func (g *DellIdracAttributesDatasource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var state models.DellIdracAttributes
+	diags := req.Config.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if state.ID.IsUnknown() {
+		state.ID = types.StringValue("placeholder")
+	}
+	service, err := NewConfig(g.p, &state.RedfishServer)
+	if err != nil {
+		resp.Diagnostics.AddError("service error", err.Error())
+		return
+	}
+	diags = readDatasourceRedfishDellIdracAttributes(service, &state)
+	resp.Diagnostics.Append(diags...)
+	diags = resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+}
 
-// 	for k, v := range idracAttributes.Attributes {
-// 		if v != nil {
-// 			attributesToReturn[k] = fmt.Sprintf("%v", v)
-// 		} else {
-// 			attributesToReturn[k] = ""
-// 		}
-// 	}
+func readDatasourceRedfishDellIdracAttributes(service *gofish.Service, d *models.DellIdracAttributes) diag.Diagnostics {
+	var diags diag.Diagnostics
+	idracError := "there was an issue when reading idrac attributes"
+	// get managers (Dell servers have only the iDRAC)
+	managers, err := service.Managers()
+	if err != nil {
+		diags.AddError(idracError, err.Error())
+		return diags
+	}
 
-// 	err = d.Set("attributes", attributesToReturn)
-// 	if err != nil {
-// 		return diag.Errorf("there was an issue when reading idrac attributes - %s", err)
-// 	}
+	// Get OEM
+	dellManager, err := dell.DellManager(managers[0])
+	if err != nil {
+		diags.AddError(idracError, err.Error())
+		return diags
+	}
 
-// 	d.SetId(idracAttributes.ODataID)
+	// Get Dell attributes
+	dellAttributes, err := dellManager.DellAttributes()
+	if err != nil {
+		diags.AddError(idracError, err.Error())
+		return diags
+	}
+	idracAttributes, err := getIdracAttributes(dellAttributes)
+	if err != nil {
+		diags.AddError(idracError, err.Error())
+		return diags
+	}
 
-// 	return diags
-// }
+	attributesToReturn := make(map[string]attr.Value)
+
+	for k, v := range idracAttributes.Attributes {
+		if v != nil {
+			attributesToReturn[k] = types.StringValue(fmt.Sprint(v))
+		} else {
+			attributesToReturn[k] = types.StringValue("")
+		}
+	}
+
+	d.Attributes = types.MapValueMust(types.StringType, attributesToReturn)
+	if err != nil {
+		diags.AddError(idracError, err.Error())
+		return diags
+	}
+
+	d.ID = types.StringValue(idracAttributes.ODataID)
+	return diags
+}

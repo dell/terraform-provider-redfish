@@ -20,6 +20,6 @@ variable "rack1" {
     user         = string
     password     = string
     endpoint     = string
-    ssl_insecure = bool
+    validate_cert = bool
   }))
 }

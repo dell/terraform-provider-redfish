@@ -104,5 +104,7 @@ func (*redfishProvider) Resources(_ context.Context) []func() resource.Resource 
 
 // DataSources function to add new datasource
 func (*redfishProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{}
+	return []func() datasource.DataSource{
+		NewDellIdracAttributesDatasource,
+	}
 }

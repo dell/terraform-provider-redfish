@@ -7,29 +7,53 @@ import (
 	"terraform-provider-redfish/redfish/models"
 	"time"
 
+	datasourceSchema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	resourceSchema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
 )
 
 // RedfishServerSchema to construct schema of redfish server
-func RedfishServerSchema() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"user": schema.StringAttribute{
+func RedfishServerSchema() map[string]resourceSchema.Attribute {
+	return map[string]resourceSchema.Attribute{
+		"user": resourceSchema.StringAttribute{
 			Optional:    true,
 			Description: "User name for login",
 		},
-		"password": schema.StringAttribute{
+		"password": resourceSchema.StringAttribute{
 			Optional:    true,
 			Description: "User password for login",
 			Sensitive:   true,
 		},
-		"endpoint": schema.StringAttribute{
+		"endpoint": resourceSchema.StringAttribute{
 			Required:    true,
 			Description: "Server BMC IP address or hostname",
 		},
-		"validate_cert": schema.BoolAttribute{
+		"validate_cert": resourceSchema.BoolAttribute{
+			Optional:    true,
+			Description: "This field indicates whether the SSL/TLS certificate must be verified or not",
+		},
+	}
+}
+
+// RedfishServerSchema to construct schema of redfish server
+func RedfishServerDatasourceSchema() map[string]datasourceSchema.Attribute {
+	return map[string]datasourceSchema.Attribute{
+		"user": datasourceSchema.StringAttribute{
+			Optional:    true,
+			Description: "User name for login",
+		},
+		"password": datasourceSchema.StringAttribute{
+			Optional:    true,
+			Description: "User password for login",
+			Sensitive:   true,
+		},
+		"endpoint": datasourceSchema.StringAttribute{
+			Required:    true,
+			Description: "Server BMC IP address or hostname",
+		},
+		"validate_cert": datasourceSchema.BoolAttribute{
 			Optional:    true,
 			Description: "This field indicates whether the SSL/TLS certificate must be verified or not",
 		},
