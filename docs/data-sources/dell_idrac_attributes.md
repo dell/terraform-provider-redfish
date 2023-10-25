@@ -50,10 +50,10 @@ limitations under the License.
 
 variable "rack1" {
   type = map(object({
-    user         = string
-    password     = string
-    endpoint     = string
-    ssl_insecure = bool
+    user          = string
+    password      = string
+    endpoint      = string
+    validate_cert = bool
   }))
 }
 ```
@@ -79,16 +79,16 @@ limitations under the License.
 
 rack1 = {
   "my-server-1" = {
-    user         = "admin"
-    password     = "passw0rd"
-    endpoint     = "https://my-server-1.myawesomecompany.org"
-    ssl_insecure = true
+    user          = "admin"
+    password      = "passw0rd"
+    endpoint      = "https://my-server-1.myawesomecompany.org"
+    validate_cert = false
   },
   "my-server-2" = {
-    user         = "admin"
-    password     = "passw0rd"
-    endpoint     = "https://my-server-2.myawesomecompany.org"
-    ssl_insecure = true
+    user          = "admin"
+    password      = "passw0rd"
+    endpoint      = "https://my-server-2.myawesomecompany.org"
+    validate_cert = false
   },
 }
 ```
@@ -115,7 +115,7 @@ limitations under the License.
 terraform {
   required_providers {
     redfish = {
-      version = "1.0.0"
+      version = "1.1.0"
       source  = "registry.terraform.io/dell/redfish"
     }
   }
@@ -144,11 +144,11 @@ limitations under the License.
 data "redfish_dell_idrac_attributes" "idrac" {
   for_each = var.rack1
 
-  redfish_server {
-    user         = each.value.user
-    password     = each.value.password
-    endpoint     = each.value.endpoint
-    ssl_insecure = each.value.ssl_insecure
+  redfish_server = {
+    user          = each.value.user
+    password      = each.value.password
+    endpoint      = each.value.endpoint
+    validate_cert = each.value.validate_cert
   }
 }
 
