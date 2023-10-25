@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"terraform-provider-redfish/common"
 	"terraform-provider-redfish/redfish/models"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -68,6 +68,9 @@ func SimpleUpdateSchema() map[string]schema.Attribute {
 			Description:         "ID of the simple update resource",
 			MarkdownDescription: "ID of the simple update resource",
 			Computed:            true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
 		},
 		"redfish_server": schema.SingleNestedAttribute{
 			MarkdownDescription: "Redfish Server",
@@ -113,10 +116,10 @@ func SimpleUpdateSchema() map[string]schema.Attribute {
 						resp *stringplanmodifier.RequiresReplaceIfFuncResponse,
 					) {
 						spath, ppath := req.StateValue.ValueString(), req.ConfigValue.ValueString()
+						resp.RequiresReplace = true
 						if filepath.Base(spath) == filepath.Base(ppath) {
 							resp.RequiresReplace = false
 						}
-						resp.RequiresReplace = true
 					},
 					"",
 					"",
@@ -153,10 +156,16 @@ func SimpleUpdateSchema() map[string]schema.Attribute {
 		"software_id": schema.StringAttribute{
 			Computed:    true,
 			Description: "Software ID from the firmware package uploaded",
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
 		},
 		"version": schema.StringAttribute{
 			Computed:    true,
 			Description: "Software version from the firmware package uploaded",
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
 		},
 	}
 }
@@ -229,24 +238,17 @@ func (r *simpleUpdateResource) Read(ctx context.Context, req resource.ReadReques
 
 // Update also refreshes the resource and writes to state
 func (r *simpleUpdateResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// update can be triggerred by only a change in non-functional requirements.
-	// So set them to state.
+	// update can be triggerred by only a change in image path, where base name of image remains same
+	// So set plan to state.
 	tflog.Trace(ctx, "resource_simple_update update : Started")
 	// Get Plan Data
-	var state models.SimpleUpdateRes
-	diags := req.State.Get(ctx, &state)
+	var plan models.SimpleUpdateRes
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	service, err := NewConfig(r.p, &state.RedfishServer)
-	if err != nil {
-		resp.Diagnostics.AddError("service error", err.Error())
-		return
-	}
-	dia, newState := readRedfishSimpleUpdate(service, state)
-	resp.Diagnostics.Append(dia...)
-	resp.Diagnostics.Append(resp.State.Set(ctx, &newState)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
 // Delete removes resource from state
@@ -265,7 +267,7 @@ func readRedfishSimpleUpdate(service *gofish.Service, d models.SimpleUpdateRes) 
 			diags.AddError("there was an issue with the API", err.Error())
 		} else {
 			// the firmware package previously applied has changed, trigger update
-			d.Image = types.StringValue("none")
+			d.Image = types.StringNull()
 		}
 	}
 
@@ -331,22 +333,23 @@ func (u simpleUpdater) updateRedfishSimpleUpdate(d models.SimpleUpdateRes) (diag
 	tflog.Debug(u.ctx, "resource_simple_update : update type "+transferProtocol+" is valid")
 
 	if transferProtocol == "NFS" {
-		id, err := u.pullUpdate(d)
+		tflog.Info(u.ctx, "Remote NFS protocol detected")
+		ret, err = u.pullUpdate(ret)
 		if err != nil {
 			diags.AddError(err.Error(), "")
-		} else {
-			d.Id = types.StringValue(id)
 		}
+		tflog.Debug(u.ctx, "Update Complete")
 	} else if transferProtocol == "HTTP" || transferProtocol == "HTTPS" {
 		if strings.HasPrefix(targetFirmwareImage, "http") {
-			id, err := u.pullUpdate(d)
+			tflog.Info(u.ctx, "Remote HTTP protocol detected")
+			ret, err = u.pullUpdate(ret)
 			if err != nil {
 				diags.AddError(err.Error(), "")
-			} else {
-				d.Id = types.StringValue(id)
 			}
+			tflog.Debug(u.ctx, "Update Complete")
 		} else {
-			fwPackage, err := u.uploadLocalFirmware(d)
+			tflog.Info(u.ctx, "Local firmware detected")
+			fwPackage, err := u.uploadLocalFirmware(ret)
 			if err != nil {
 				// TBD - HOW TO HANDLE WHEN FAILS BUT FIRMWARE WAS INSTALLED?
 				diags.AddError(err.Error(), "")
@@ -355,8 +358,9 @@ func (u simpleUpdater) updateRedfishSimpleUpdate(d models.SimpleUpdateRes) (diag
 			ret.SoftwareId = types.StringValue(fwPackage.SoftwareID)
 			ret.Version = types.StringValue(fwPackage.Version)
 			ret.Id = types.StringValue(fwPackage.ODataID)
+			tflog.Info(u.ctx, "Uploading Local Firmware Complete")
 
-			diagsRead, state := readRedfishSimpleUpdate(u.service, d)
+			diagsRead, state := readRedfishSimpleUpdate(u.service, ret)
 			diags.Append(diagsRead...)
 			ret = state
 		}
@@ -422,22 +426,28 @@ func (u simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.S
 	}
 	response.Body.Close()
 
-	err = u.updateJobStatus(d, response)
+	// Get jobid
+	jobID := response.Header.Get("Location")
+	d.Id = types.StringValue(jobID)
+	err = u.updateJobStatus(d)
 	if err != nil {
 		return nil, fmt.Errorf("error running job %w", err)
 	}
 	tflog.Debug(u.ctx, "resource_simple_update : Job finished successfully")
 	// Get updated FW inventory
+	time.Sleep(30 * time.Second)
 	fwInventory, err := updateService.FirmwareInventories()
 	if err != nil {
 		// TBD - HOW TO HANDLE WHEN FAILS BUT FIRMWARE WAS INSTALLED?
 		return nil, fmt.Errorf("error when getting firmware inventory - %w", err)
 	}
+	tflog.Debug(u.ctx, "resource_simple_update : Retrieved Firmware Inventories")
 
 	inv, err := getFWfromInventory(fwInventory, packageInformation.SoftwareID, packageInformation.Version)
 	if err != nil {
 		err = fmt.Errorf("error when retrieving fw package from fw inventory - %w", err)
 	}
+	tflog.Debug(u.ctx, "resource_simple_update : Retrieved Status from Inventories")
 	return inv, err
 }
 
@@ -480,7 +490,7 @@ func getFWfromInventory(softwareInventories []*redfish.SoftwareInventory, softwa
 	return nil, fmt.Errorf("couldn't find FW on Firmware inventory")
 }
 
-func (u simpleUpdater) pullUpdate(d models.SimpleUpdateRes) (string, error) {
+func (u simpleUpdater) pullUpdate(d models.SimpleUpdateRes) (models.SimpleUpdateRes, error) {
 	// Get update service from root
 	updateService := u.updateService
 	service := u.service
@@ -497,16 +507,18 @@ func (u simpleUpdater) pullUpdate(d models.SimpleUpdateRes) (string, error) {
 	response, err := service.GetClient().Post(httpURI, payload)
 	if err != nil {
 		// Delete uploaded package - TBD
-		return "", fmt.Errorf("there was an issue when scheduling the update job - %s", err)
+		return d, fmt.Errorf("there was an issue when scheduling the update job - %s", err)
 	}
 
 	// Get jobid
 	jobID := response.Header.Get("Location")
-	tflog.Debug(u.ctx, "resource_simple_update : Job is scheduled with id "+jobID)
-	err = u.updateJobStatus(d, response)
+	tflog.Info(u.ctx, "resource_simple_update : Job is scheduled with id "+jobID)
+
+	d.Id = types.StringValue(jobID)
+	err = u.updateJobStatus(d)
 	if err != nil {
 		// Delete uploaded package - TBD
-		return "", fmt.Errorf("there was an issue when waiting for the job to complete - %s", err)
+		return d, fmt.Errorf("there was an issue when waiting for the job to complete - %s", err)
 	}
 
 	job, err := redfish.GetTask(service.GetClient(), jobID)
@@ -517,19 +529,25 @@ func (u simpleUpdater) pullUpdate(d models.SimpleUpdateRes) (string, error) {
 		}
 	}
 	if err != nil {
-		return "", err
+		return d, err
 	}
+	tflog.Info(u.ctx, "Retrieved successful task")
 
 	swInventory, err := redfish.GetSoftwareInventory(service.GetClient(), d.Id.ValueString())
 	if err != nil {
-		return "", fmt.Errorf("unable to fetch data %v", err)
+		return d, fmt.Errorf("unable to fetch data %w", err)
 	}
-	return swInventory.ODataID, nil
+	tflog.Debug(u.ctx, "Retrieved inventory with ID "+swInventory.ODataID)
+
+	d.Id = types.StringValue(swInventory.ODataID)
+	d.Version = types.StringValue(swInventory.Version)
+	d.SoftwareId = types.StringValue(swInventory.SoftwareID)
+	return d, nil
 }
 
-func (u simpleUpdater) updateJobStatus(d models.SimpleUpdateRes, response *http.Response) error {
+func (u simpleUpdater) updateJobStatus(d models.SimpleUpdateRes) error {
 	// Get jobid
-	jobID := response.Header.Get("Location")
+	jobID := d.Id.ValueString()
 
 	resetTimeout := d.ResetTimeout.ValueInt64()
 	simpleUpdateJobTimeout := d.JobTimeout.ValueInt64()
@@ -539,12 +557,14 @@ func (u simpleUpdater) updateJobStatus(d models.SimpleUpdateRes, response *http.
 		simpleUpdateJobTimeout))
 
 	// Reboot the server
+	tflog.Debug(u.ctx, "Rebooting the server")
 	pOp := powerOperator{u.ctx, u.service}
 	_, err := pOp.PowerOperation(d.ResetType.ValueString(), resetTimeout, intervalSimpleUpdateJobCheckTime)
 	if err != nil {
 		// Delete uploaded package - TBD
 		return fmt.Errorf("there was an issue when restarting the server: %w", err)
 	}
+	tflog.Debug(u.ctx, "Reboot Complete")
 
 	// Check JID
 	err = common.WaitForJobToFinish(u.service, jobID, intervalSimpleUpdateJobCheckTime, simpleUpdateJobTimeout)
@@ -552,6 +572,7 @@ func (u simpleUpdater) updateJobStatus(d models.SimpleUpdateRes, response *http.
 		// Delete uploaded package - TBD
 		return fmt.Errorf("there was an issue when waiting for the job to complete - %w", err)
 	}
+	tflog.Debug(u.ctx, "Job has been completed")
 
 	return nil
 }

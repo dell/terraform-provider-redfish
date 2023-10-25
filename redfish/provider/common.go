@@ -103,7 +103,6 @@ type powerOperator struct {
 // interact with the server. It will return a tuple consisting of the server's power state at time of return and
 // diagnostics
 func (p powerOperator) PowerOperation(resetType string, maximumWaitTime int64, checkInterval int64) (redfish.PowerState, error) {
-
 	system, err := getSystemResource(p.service)
 	if err != nil {
 		tflog.Error(p.ctx, fmt.Sprintf("Failed to identify system: %s", err))
