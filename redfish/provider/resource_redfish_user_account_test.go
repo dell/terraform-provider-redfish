@@ -2,9 +2,10 @@ package provider
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"regexp"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 // Test to create and update redfish user - Positive
@@ -18,24 +19,24 @@ func TestAccRedfishUser_basic(t *testing.T) {
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"test1",
-					"test1234",
+					"Test@1234",
 					"Operator",
 					true,
 					"15"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_UserAccount.user_config", "username", "test1"),
 				),
 			},
 			{
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"test1",
-					"test1234",
+					"Test@1234",
 					"None",
 					false,
 					"15"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_UserAccount.user_config", "username", "test1"),
 				),
 			},
 		},
@@ -53,11 +54,11 @@ func TestAccRedfishUserInvalid_basic(t *testing.T) {
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"test1",
-					"test1234",
+					"Test@1234",
 					"Admin",
 					false,
 					"15"),
-				ExpectError: regexp.MustCompile(" expected role_id to be one of "),
+				ExpectError: regexp.MustCompile("Invalid Attribute Value Match"),
 			},
 		},
 	})
@@ -74,7 +75,7 @@ func TestAccRedfishUserExisting_basic(t *testing.T) {
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"root",
-					"xyz123",
+					"Xyz@123",
 					"Administrator",
 					true,
 					"15"),
@@ -95,19 +96,19 @@ func TestAccRedfishUserUpdateInvalid_basic(t *testing.T) {
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"test1",
-					"test1234",
+					"Test@1234",
 					"Administrator",
 					true,
 					"15"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_UserAccount.user_config", "username", "test1"),
 				),
 			},
 			{
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"root",
-					"test1234",
+					"Test@1234",
 					"Administrator",
 					false,
 					"15"),
@@ -128,7 +129,7 @@ func TestAccRedfishUserUpdateInvalidId_basic(t *testing.T) {
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"test1",
-					"test1234",
+					"Test@1234",
 					"Administrator",
 					true,
 					"1"),
@@ -149,19 +150,19 @@ func TestAccRedfishUserUpdateId_basic(t *testing.T) {
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"test1",
-					"test1234",
+					"Test@1234",
 					"Administrator",
 					true,
 					"15"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_UserAccount.user_config", "username", "test1"),
 				),
 			},
 			{
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"test1",
-					"test1234",
+					"Test@1234",
 					"Administrator",
 					false,
 					"1"),
@@ -182,25 +183,98 @@ func TestAccRedfishUserUpdateUser_basic(t *testing.T) {
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"test1",
-					"test1234",
+					"Test@1234",
 					"Administrator",
 					true,
 					"15"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_UserAccount.user_config", "username", "test1"),
 				),
 			},
 			{
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"test2",
-					"test1234",
+					"Test@1234",
 					"Administrator",
 					false,
 					"15"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test2"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_UserAccount.user_config", "username", "test2"),
 				),
+			},
+		},
+	})
+}
+
+// validation tests - Negative
+func TestAccRedfishUserValidation_basic(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test1",
+					"test123",
+					"Administrator",
+					true,
+					"15"),
+				ExpectError: regexp.MustCompile("Password validation failed"),
+			},
+			{
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test1",
+					"Test@1234",
+					"Administrator",
+					false,
+					"2"),
+				ExpectError: regexp.MustCompile("User ID already exists"),
+			},
+			{
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test2",
+					"Test@1234",
+					"Administrator",
+					false,
+					"15"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_UserAccount.user_config", "username", "test2"),
+				),
+			},
+			{
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test1",
+					"test123",
+					"Administrator",
+					true,
+					"15"),
+				ExpectError: regexp.MustCompile("Password validation failed"),
+			},
+			{
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test12345678901234",
+					"Test@1234",
+					"Administrator",
+					false,
+					"15"),
+				ExpectError: regexp.MustCompile("Invalid Attribute Value Length"),
+			},
+			{
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test1",
+					"T@1",
+					"Administrator",
+					false,
+					"15"),
+				ExpectError: regexp.MustCompile("Invalid Attribute Value Length"),
 			},
 		},
 	})
@@ -214,13 +288,13 @@ func testAccRedfishResourceUserConfig(testingInfo TestingServerCredentials,
 	userId string) string {
 	return fmt.Sprintf(`
 		
-		resource "redfish_user_account" "user_config" {
+		resource "redfish_UserAccount" "user_config" {
 		
-		  redfish_server {
+		  redfish_server = {
 			user = "%s"
 			password = "%s"
 			endpoint = "https://%s"
-			ssl_insecure = true
+			validate_cert = false
 		  }
 
 		  username = "%s"

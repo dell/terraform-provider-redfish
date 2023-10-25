@@ -13,6 +13,17 @@ import (
 	"github.com/stmcginnis/gofish/redfish"
 )
 
+// this defines the operation being executed on resource via terraform
+type operation uint8
+
+const (
+	operationRead operation = iota + 1
+	operationCreate
+	operationUpdate
+	operationDelete
+	operationImport
+)
+
 func RedfishServerSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"user": schema.StringAttribute{

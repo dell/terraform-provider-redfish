@@ -15,14 +15,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-resource "redfish_user_account" "rr" {
+resource "redfish_UserAccount" "rr" {
   for_each = var.rack1
 
-  redfish_server {
+  redfish_server = {
     user         = each.value.user
     password     = each.value.password
     endpoint     = each.value.endpoint
-    ssl_insecure = each.value.ssl_insecure
+    validate_cert = false
   }
 
   // user details for creating/modifying a user
