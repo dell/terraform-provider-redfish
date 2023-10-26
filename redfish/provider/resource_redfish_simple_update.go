@@ -435,6 +435,7 @@ func (u simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.S
 	}
 	tflog.Debug(u.ctx, "resource_simple_update : Job finished successfully")
 	// Get updated FW inventory
+	// sleep time to allow the inventory service to get started
 	time.Sleep(30 * time.Second)
 	fwInventory, err := updateService.FirmwareInventories()
 	if err != nil {
