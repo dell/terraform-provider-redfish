@@ -296,8 +296,11 @@ func readRedfishDellIdracAttributes(_ context.Context, service *gofish.Service, 
 	readAttributes := make(map[string]attr.Value)
 
 	for k, v := range old {
-		attrValue := idracAttributes.Attributes[k] // Check if attribute from config exists in idrac attributes
-		if attrValue != nil {                      // This is done to avoid triggering an update when reading Password values, that are shown as null (nil to Go)
+		// Check if attribute from config exists in idrac attributes
+		attrValue := idracAttributes.Attributes[k] 
+		// This is done to avoid triggering an update when reading Password values, 
+		// that are shown as null (nil to Go)
+		if attrValue != nil {                      
 			readAttributes[k] = v
 		} else {
 			readAttributes[k] = v.(types.String)
