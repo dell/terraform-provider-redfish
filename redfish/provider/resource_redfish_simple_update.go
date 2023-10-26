@@ -50,7 +50,7 @@ type simpleUpdateResource struct {
 }
 
 // Configure implements resource.ResourceWithConfigure
-func (r *simpleUpdateResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *simpleUpdateResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
