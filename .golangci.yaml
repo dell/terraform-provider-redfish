@@ -39,7 +39,6 @@ run:
   # "/" will be replaced by current OS file path separator to properly work on Windows.
   skip-files:
   #   - ".*\\.my\\.go$"
-    - redfish/provider/common.go
   # If set we pass it to "go list -mod={option}". From "go help modules":
   # If invoked with -mod=readonly, the go command is disallowed from the implicit
   # automatic updating of go.mod described above. Instead, it fails when any changes
@@ -276,7 +275,7 @@ linters-settings:
       - name: line-length-limit
         severity: warning
         disabled: false
-        arguments: [260] #TBD 80
+        arguments: [150] #TBD 80
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#modifies-parameter
       - name: modifies-parameter
         severity: warning

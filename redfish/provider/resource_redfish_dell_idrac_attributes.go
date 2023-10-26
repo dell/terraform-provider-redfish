@@ -72,11 +72,15 @@ func DellIdracAttributesSchema() map[string]schema.Attribute {
 			Attributes:          RedfishServerSchema(),
 		},
 		"attributes": schema.MapAttribute{
-			MarkdownDescription: "iDRAC attributes. To check allowed attributes please either use the datasource for dell idrac attributes or query " +
-				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/iDRAC.Embedded.1. To get allowed values for those attributes, check " +
+			MarkdownDescription: "iDRAC attributes. " +
+				"To check allowed attributes please either use the datasource for dell idrac attributes or query " +
+				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/iDRAC.Embedded.1. " +
+				"To get allowed values for those attributes, check " +
 				"/redfish/v1/Registries/ManagerAttributeRegistry/ManagerAttributeRegistry.v1_0_0.json from a Redfish Instance",
-			Description: "iDRAC attributes. To check allowed attributes please either use the datasource for dell idrac attributes or query " +
-				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/iDRAC.Embedded.1. To get allowed values for those attributes, check " +
+			Description: "iDRAC attributes. " +
+				"To check allowed attributes please either use the datasource for dell idrac attributes or query " +
+				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/iDRAC.Embedded.1. " +
+				"To get allowed values for those attributes, check " +
 				"/redfish/v1/Registries/ManagerAttributeRegistry/ManagerAttributeRegistry.v1_0_0.json from a Redfish Instance",
 			ElementType: types.StringType,
 			Required:    true,

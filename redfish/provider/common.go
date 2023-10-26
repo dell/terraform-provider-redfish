@@ -37,7 +37,7 @@ func RedfishServerSchema() map[string]resourceSchema.Attribute {
 	}
 }
 
-// RedfishServerSchema to construct schema of redfish server
+// RedfishServerDatasourceSchema to construct schema of redfish server
 func RedfishServerDatasourceSchema() map[string]datasourceSchema.Attribute {
 	return map[string]datasourceSchema.Attribute{
 		"user": datasourceSchema.StringAttribute{
@@ -121,7 +121,7 @@ func NewConfig(pconfig *redfishProvider, rserver *models.RedfishServer) (*gofish
 // server's power state for updates. The last is a pointer to a gofish.Service object with which the function can
 // interact with the server. It will return a tuple consisting of the server's power state at time of return and
 // diagnostics
-func PowerOperation(resetType string, maximumWaitTime int, checkInterval int, service *gofish.Service) (redfish.PowerState, diag.Diagnostics) {
+func PowerOperation(resetType string, maximumWaitTime int, checkInterval int, service *gofish.Service) (redfish.PowerState, diag.Diagnostics) { //nolint:revive
 	var diags diag.Diagnostics
 	const powerON redfish.PowerState = "On"
 	const powerOFF redfish.PowerState = "Off"
@@ -154,16 +154,18 @@ func PowerOperation(resetType string, maximumWaitTime int, checkInterval int, se
 		// If someone asks for a reset while the server is off, change the reset type to on instead
 		if system.PowerState == powerOFF {
 			resetType = "On"
+		} else {
+			targetPowerState = powerON
 		}
-		targetPowerState = powerON
 	}
 
 	if resetType == "PushPowerButton" {
 		// In case of Push Power button toggle the current state
 		if system.PowerState == powerOFF {
 			targetPowerState = powerON
+		} else {
+			targetPowerState = powerOFF
 		}
-		targetPowerState = powerOFF
 	}
 
 	// Run the power operation against the target server
