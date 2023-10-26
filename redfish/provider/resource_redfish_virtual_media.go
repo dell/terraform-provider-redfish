@@ -137,14 +137,14 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		WriteProtected:       plan.WriteProtected.ValueBool(),
 	}
 
-	//Get service
+	// Get service
 	service, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
 
-	//Get Systems details
+	// Get Systems details
 	systems, err := service.Systems()
 	if err != nil {
 		resp.Diagnostics.AddError("Error when retrieving systems", err.Error())
@@ -155,7 +155,7 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	//Get virtual media collection
+	// Get virtual media collection
 	virtualMediaCollection, err := systems[0].VirtualMedia()
 	if err != nil {
 		resp.Diagnostics.AddError("Couldn't retrieve virtual media collection from redfish API", err.Error())
@@ -164,7 +164,7 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 
 	if len(virtualMediaCollection) != 0 {
 		for index := range virtualMediaCollection {
-			//Get specific virtual media
+			// Get specific virtual media
 			virtualMedia, err := getVirtualMedia(virtualMediaCollection[index].ID, virtualMediaCollection)
 			if err != nil {
 				resp.Diagnostics.AddError("Virtual Media selected doesn't exist: %s", err.Error())
@@ -177,7 +177,7 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 					return
 				}
 
-				//Get virtual media details
+				// Get virtual media details
 				virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), virtualMedia.ODataID)
 				if err != nil {
 					resp.Diagnostics.AddError("Virtual Media selected doesn't exist: %s", err.Error())
@@ -198,14 +198,14 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		}
 	} else {
 		// This implementation is added to support iDRAC firmware version 5.x. As virtual media can only be accessed through Managers card on 5.x.
-		//Get OOB Manager card - managers[0] will be our oob card
+		// Get OOB Manager card - managers[0] will be our oob card
 		managers, err := service.Managers()
 		if err != nil {
 			resp.Diagnostics.AddError("Couldn't retrieve managers from redfish API: ", err.Error())
 			return
 		}
 
-		//Get virtual media collection
+		// Get virtual media collection
 		virtualMediaCollection, err := managers[0].VirtualMedia()
 		if err != nil {
 			resp.Diagnostics.AddError("Couldn't retrieve virtual media collection from redfish API: ", err.Error())
@@ -219,7 +219,7 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 			virtualMediaID = "RemovableDisk"
 		}
 
-		//Get specific virtual media
+		// Get specific virtual media
 		virtualMedia, err := getVirtualMedia(virtualMediaID, virtualMediaCollection)
 		if err != nil {
 			resp.Diagnostics.AddError("Virtual Media selected doesn't exist: ", err.Error())
@@ -232,7 +232,7 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 				return
 			}
 
-			//Get virtual media details
+			// Get virtual media details
 			virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), virtualMedia.ODataID)
 			if err != nil {
 				resp.Diagnostics.AddError("Virtual Media selected doesn't exist: %s", err.Error())
@@ -261,7 +261,7 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 
 func (r *virtualMediaResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	tflog.Trace(ctx, "resource_virtual_media read: started")
-	//Get State
+	// Get State
 	var state models.VirtualMedia
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -269,21 +269,21 @@ func (r *virtualMediaResource) Read(ctx context.Context, req resource.ReadReques
 		return
 	}
 
-	//Get service
+	// Get service
 	service, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
 
-	//Get virtual media details
+	// Get virtual media details
 	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), state.VirtualMediaID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Virtual Media doesn't exist: ", err.Error()) //This error won't be triggered ever
+		resp.Diagnostics.AddError("Virtual Media doesn't exist: ", err.Error()) // This error won't be triggered ever
 		return
 	}
 
-	if len(virtualMedia.Image) == 0 { //Nothing is mounted here
+	if len(virtualMedia.Image) == 0 { // Nothing is mounted here
 		return
 	}
 
@@ -319,7 +319,7 @@ func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
-	//Get service
+	// Get service
 	service, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
@@ -353,10 +353,10 @@ func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRe
 		WriteProtected:       state.WriteProtected.ValueBool(),
 	}
 
-	//Hot update os not possible. Unmount and mount needs to be done to update
+	// Hot update os not possible. Unmount and mount needs to be done to update
 	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), state.VirtualMediaID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Virtual Media doesn't exist: %s", err.Error()) //This error won't be triggered ever
+		resp.Diagnostics.AddError("Virtual Media doesn't exist: %s", err.Error()) // This error won't be triggered ever
 		return
 	}
 
@@ -369,7 +369,7 @@ func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRe
 	err = virtualMedia.InsertMediaConfig(virtualMediaConfig)
 	if err != nil {
 		resp.Diagnostics.AddError("Couldn't mount Virtual Media ", err.Error())
-		//if insert media fails, again performing insert with original(state) config
+		// if insert media fails, again performing insert with original(state) config
 		err = virtualMedia.InsertMediaConfig(virtualMediaConfigState)
 		if err != nil {
 			resp.Diagnostics.AddError("Couldn't mount Virtual Media ", err.Error())
@@ -378,10 +378,10 @@ func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
-	//Get virtual media details
+	// Get virtual media details
 	virtualMedia, err = redfish.GetVirtualMedia(service.GetClient(), state.VirtualMediaID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Virtual Media doesn't exist: %s", err.Error()) //This error won't be triggered ever
+		resp.Diagnostics.AddError("Virtual Media doesn't exist: %s", err.Error()) // This error won't be triggered ever
 		return
 	}
 
@@ -407,21 +407,21 @@ func (r *virtualMediaResource) Delete(ctx context.Context, req resource.DeleteRe
 		return
 	}
 
-	//Get service
+	// Get service
 	service, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
 
-	//Get virtual media deatails
+	// Get virtual media deatails
 	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), state.VirtualMediaID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Virtual Media doesn't exist: ", err.Error()) //This error won't be triggered ever
+		resp.Diagnostics.AddError("Virtual Media doesn't exist: ", err.Error()) // This error won't be triggered ever
 		return
 	}
 
-	//Eject virtual media
+	// Eject virtual media
 	err = virtualMedia.EjectMedia()
 	if err != nil {
 		resp.Diagnostics.AddError("There was an error when ejecting media: ", err.Error())

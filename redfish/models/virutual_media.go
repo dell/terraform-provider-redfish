@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+// VirtualMedia struct
 type VirtualMedia struct {
 	VirtualMediaID       types.String  `tfsdk:"id"`
 	RedfishServer        RedfishServer `tfsdk:"redfish_server"`
