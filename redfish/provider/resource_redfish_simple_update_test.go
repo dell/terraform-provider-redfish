@@ -9,27 +9,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccRf(t *testing.T) {
-	t.Log(testAccRedfishResourceUpdateConfig(
-		creds,
-		"HTTP",
-		os.Getenv("TF_TESTING_FIRMWARE_IMAGE_LOCAL")))
-	t.Log(testAccRedfishResourceUpdateConfig(
-		creds,
-		"HTTP",
-		os.Getenv("TF_TESTING_FIRMWARE_IMAGE_HTTP")))
-	t.Log(testAccRedfishResourceUpdateConfig(
-		creds,
-		"NFS",
-		os.Getenv("TF_TESTING_FIRMWARE_IMAGE_NFS")))
-}
-
 // Test to create and update Simple update - Positive
 func TestAccRedfishSimpleUpdate_basic(t *testing.T) {
-	t.Log(testAccRedfishResourceUpdateConfig(
-		creds,
-		"HTTP",
-		os.Getenv("TF_TESTING_FIRMWARE_IMAGE_LOCAL")))
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,

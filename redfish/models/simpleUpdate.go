@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+// SimpleUpdateRes is struct for simple update resource
 type SimpleUpdateRes struct {
 	Id            types.String  `tfsdk:"id"`
 	RedfishServer RedfishServer `tfsdk:"redfish_server"`
