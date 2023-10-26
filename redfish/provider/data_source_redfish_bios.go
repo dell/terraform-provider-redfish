@@ -1,12 +1,143 @@
 package provider
 
-// import (
-// 	"context"
-// 	"fmt"
-// 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-// 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-// 	"github.com/stmcginnis/gofish"
-// )
+import (
+	"context"
+	"fmt"
+	"terraform-provider-redfish/redfish/models"
+
+	"github.com/stmcginnis/gofish"
+
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+)
+
+var (
+	_ datasource.DataSource              = &BiosDatasource{}
+	_ datasource.DataSourceWithConfigure = &BiosDatasource{}
+)
+
+// NewBiosDatasource is new datasource for idrac attributes
+func NewBiosDatasource() datasource.DataSource {
+	return &BiosDatasource{}
+}
+
+// BiosDatasource to construct datasource
+type BiosDatasource struct {
+	p       *redfishProvider
+	ctx     context.Context
+	service *gofish.Service
+}
+
+// Configure implements datasource.DataSourceWithConfigure
+func (g *BiosDatasource) Configure(_ context.Context, req datasource.ConfigureRequest, _ *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+	g.p = req.ProviderData.(*redfishProvider)
+}
+
+// Metadata implements datasource.DataSource
+func (*BiosDatasource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "dell_idrac_attributes"
+}
+
+// Schema implements datasource.DataSource
+func (*BiosDatasource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		MarkdownDescription: "Data source to provide redfish infiziya",
+		Attributes:          BiosDatasourceSchema(),
+	}
+}
+
+// BiosDatasourceSchema to define the idrac attribute schema
+func BiosDatasourceSchema() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"id": schema.StringAttribute{
+			MarkdownDescription: "ID of the BIOS data-source",
+			Description:         "ID of the BIOS data-source",
+			Computed:            true,
+		},
+		"odata_id": schema.StringAttribute{
+			MarkdownDescription: "OData ID of the BIOS data-source",
+			Description:         "OData ID of the BIOS data-source",
+			Computed:            true,
+		},
+		"redfish_server": schema.SingleNestedAttribute{
+			MarkdownDescription: "Redfish Server",
+			Description:         "Redfish Server",
+			Required:            true,
+			Attributes:          RedfishServerDatasourceSchema(),
+		},
+		"attributes": schema.MapAttribute{
+			MarkdownDescription: "BIOS attributes.",
+			Description:         "BIOS attributes.",
+			ElementType:         types.StringType,
+			Computed:            true,
+		},
+	}
+}
+
+// Read implements datasource.DataSource
+func (g *BiosDatasource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var plan models.BiosDatasource
+	diags := req.Config.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if plan.ID.IsUnknown() {
+		plan.ID = types.StringValue("placeholder")
+	}
+	service, err := NewConfig(g.p, &plan.RedfishServer)
+	if err != nil {
+		resp.Diagnostics.AddError("service error", err.Error())
+		return
+	}
+	g.ctx = ctx
+	g.service = service
+	state, diags := g.readDatasourceRedfishBios(plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (models.BiosDatasource, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	systems, err := g.service.Systems()
+	if err != nil {
+		diags.AddError("Error fetching computer systems collection", err.Error())
+		return d, diags
+	}
+
+	bios, err := systems[0].Bios()
+	if err != nil {
+		diags.AddError("Error fetching bios", err.Error())
+		return d, diags
+	}
+
+	// TODO: BIOS Attributes' values might be any of several types.
+	// terraform-sdk currently does not support a map with different
+	// value types. So we will convert int and float values to string
+	attributes := make(map[string]attr.Value)
+
+	// copy from the BIOS attributes to the new bios attributes map
+	for key, value := range bios.Attributes {
+		if attr_val, ok := value.(string); ok {
+			attributes[key] = types.StringValue(attr_val)
+		} else {
+			attributes[key] = types.StringValue(fmt.Sprintf("%v", value))
+		}
+	}
+
+	d.OdataID = types.StringValue(bios.ODataID)
+	d.ID = types.StringValue(bios.ID)
+	d.Attributes, diags = types.MapValue(types.StringType, attributes)
+
+	return d, diags
+}
 
 // func dataSourceRedfishBios() *schema.Resource {
 // 	return &schema.Resource{
