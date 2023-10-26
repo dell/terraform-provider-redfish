@@ -148,7 +148,7 @@ func (p powerOperator) PowerOperation(resetType string, maximumWaitTime int64, c
 
 	if resetType == "On" || resetType == "ForceOn" {
 		if system.PowerState == powerON {
-			tflog.Error(p.ctx, "Server already powered on. No action required")
+			tflog.Trace(p.ctx, "Server already powered on. No action required")
 			return redfish.OnPowerState, nil
 		}
 		targetPowerState = powerON

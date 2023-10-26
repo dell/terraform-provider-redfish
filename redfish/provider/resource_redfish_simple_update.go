@@ -99,15 +99,10 @@ func SimpleUpdateSchema() map[string]schema.Attribute {
 		"target_firmware_image": schema.StringAttribute{
 			Required: true,
 			Description: "Target firmware image used for firmware update on the redfish instance. " +
-				"Make sure you place your firmware packages in the same folder as the module and set it as follows: \"${path.module}/BIOS_FXC54_WN64_1.15.0.EXE\"",
+				"Make sure you place your firmware packages in the same folder as the module and set " +
+				"it as follows: \"${path.module}/BIOS_FXC54_WN64_1.15.0.EXE\"",
 			// DiffSuppressFunc will allow moving fw packages through the filesystem without triggering an update if so.
 			// At the moment it uses filename to see if they're the same. We need to strengthen that by somehow using hashing
-			// DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			// 	if filepath.Base(old) == filepath.Base(new) {
-			// 		return true
-			// 	}
-			// 	return false
-			// },
 			PlanModifiers: []planmodifier.String{
 				stringplanmodifier.RequiresReplaceIf(
 					func(
