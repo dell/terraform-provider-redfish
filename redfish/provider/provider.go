@@ -99,6 +99,7 @@ func (*redfishProvider) Resources(_ context.Context) []func() resource.Resource 
 	return []func() resource.Resource{
 		NewPowerResource,
 		NewDellIdracAttributesResource,
+		NewRedfishStorageVolumeResource,
 	}
 }
 

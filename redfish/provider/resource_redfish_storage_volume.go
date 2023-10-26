@@ -1,5 +1,267 @@
 package provider
 
+import (
+	"context"
+	"fmt"
+	"log"
+	"net/http"
+	"terraform-provider-redfish/common"
+	"terraform-provider-redfish/redfish/models"
+
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/stmcginnis/gofish"
+	redfishcommon "github.com/stmcginnis/gofish/common"
+	"github.com/stmcginnis/gofish/redfish"
+)
+
+// Ensure the implementation satisfies the expected interfaces.
+var (
+	_ resource.Resource = &RedfishStorageVolumeResource{}
+)
+
+const (
+	defaultStorageVolumeResetTimeout  int = 120
+	defaultStorageVolumeJobTimeout    int = 1200
+	intervalStorageVolumeJobCheckTime int = 10
+	defaultSimpleUpdateResetTimeout  int = 120
+	defaultSimpleUpdateJobTimeout    int = 1200
+	intervalSimpleUpdateJobCheckTime int = 10
+)
+
+// NewRedfishStorageVolumeResource is a helper function to simplify the provider implementation.
+func NewRedfishStorageVolumeResource() resource.Resource {
+	return &RedfishStorageVolumeResource{}
+}
+
+// RedfishStorageVolumeResource is the resource implementation.
+type RedfishStorageVolumeResource struct {
+	p *redfishProvider
+}
+
+// Configure implements resource.ResourceWithConfigure
+func (r *RedfishStorageVolumeResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+	r.p = req.ProviderData.(*redfishProvider)
+}
+
+// Metadata returns the resource type name.
+func (r *RedfishStorageVolumeResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "storage_volume"
+}
+
+// Schema defines the schema for the resource.
+func (r *RedfishStorageVolumeResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		MarkdownDescription: "Resource for managing RedfishStorageVolume on OpenManage Enterprise.",
+		Version:             1,
+		Attributes:          VolumeSchema(),
+	}
+}
+
+func VolumeSchema() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"capacity_bytes": schema.Int64Attribute{
+			MarkdownDescription: "Capacity Bytes",
+			Description:         "Capacity Bytes",
+			Optional:            true,
+		},
+		"disk_cache_policy": schema.StringAttribute{
+			MarkdownDescription: "Disk Cache Policy",
+			Description:         "Disk Cache Policy",
+			Optional:            true,
+		},
+		"drives": schema.ListAttribute{
+			MarkdownDescription: "Drives",
+			Description:         "Drives",
+			Required:            true,
+			ElementType:         types.StringType,
+		},
+		"id": schema.StringAttribute{
+			MarkdownDescription: "ID",
+			Description:         "ID",
+			Computed:            true,
+		},
+		"redfish_server": schema.SingleNestedAttribute{
+			MarkdownDescription: "Redfish Server",
+			Description:         "Redfish Server",
+			Required:            true,
+			Attributes:          RedfishServerSchema(),
+		},
+		"optimum_io_size_bytes": schema.Int64Attribute{
+			MarkdownDescription: "Optimum Io Size Bytes",
+			Description:         "Optimum Io Size Bytes",
+			Optional:            true,
+		},
+		"read_cache_policy": schema.StringAttribute{
+			MarkdownDescription: "Read Cache Policy",
+			Description:         "Read Cache Policy",
+			Optional:            true,
+		},
+		"reset_timeout": schema.Int64Attribute{
+			MarkdownDescription: "Reset Timeout",
+			Description:         "Reset Timeout",
+			Optional:            true,
+		},
+		"reset_type": schema.StringAttribute{
+			MarkdownDescription: "Reset Type",
+			Description:         "Reset Type",
+			Optional:            true,
+		},
+		"settings_apply_time": schema.StringAttribute{
+			MarkdownDescription: "Settings Apply Time",
+			Description:         "Settings Apply Time",
+			Optional:            true,
+		},
+		"storage_controller_id": schema.StringAttribute{
+			MarkdownDescription: "Storage Controller ID",
+			Description:         "Storage Controller ID",
+			Required:            true,
+		},
+		"volume_job_timeout": schema.Int64Attribute{
+			MarkdownDescription: "Volume Job Timeout",
+			Description:         "Volume Job Timeout",
+			Optional:            true,
+		},
+		"volume_name": schema.StringAttribute{
+			MarkdownDescription: "Volume Name",
+			Description:         "Volume Name",
+			Required:            true,
+		},
+		"volume_type": schema.StringAttribute{
+			MarkdownDescription: "Volume Type",
+			Description:         "Volume Type",
+			Required:            true,
+		},
+		"write_cache_policy": schema.StringAttribute{
+			MarkdownDescription: "Write Cache Policy",
+			Description:         "Write Cache Policy",
+			Optional:            true,
+		},
+	}
+}
+
+// Create creates the resource and sets the initial Terraform state.
+func (r *RedfishStorageVolumeResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	tflog.Trace(ctx, "resource_RedfishStorageVolume create : Started")
+	//Get Plan Data
+	var plan models.RedfishStorageVolume
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	service, err := NewConfig(r.p, &plan.RedfishServer)
+	if err != nil {
+		resp.Diagnostics.AddError("service error", err.Error())
+		return
+	}
+
+	diags = createRedfishStorageVolume(service, &plan)
+	resp.Diagnostics.Append(diags...)
+
+	tflog.Trace(ctx, "resource_RedfishStorageVolume create: updating state finished, saving ...")
+	// Save into State
+	diags = resp.State.Set(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	tflog.Trace(ctx, "resource_RedfishStorageVolume create: finish")
+}
+
+// Read refreshes the Terraform state with the latest data.
+func (r *RedfishStorageVolumeResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	tflog.Trace(ctx, "resource_RedfishStorageVolume read: started")
+	var state models.RedfishStorageVolume
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	service, err := NewConfig(r.p, &state.RedfishServer)
+	if err != nil {
+		resp.Diagnostics.AddError("service error", err.Error())
+		return
+	}
+
+	diags = readRedfishStorageVolume(service, &state)
+	resp.Diagnostics.Append(diags...)
+
+	tflog.Trace(ctx, "resource_RedfishStorageVolume read: finished reading state")
+	//Save into State
+	diags = resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	tflog.Trace(ctx, "resource_RedfishStorageVolume read: finished")
+}
+
+// Update updates the resource and sets the updated Terraform state on success.
+func (r *RedfishStorageVolumeResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	//Get state Data
+	tflog.Trace(ctx, "resource_RedfishStorageVolume update: started")
+	var state, plan models.RedfishStorageVolume
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Get plan Data
+	diags = req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	service, err := NewConfig(r.p, &plan.RedfishServer)
+	if err != nil {
+		resp.Diagnostics.AddError("service error", err.Error())
+		return
+	}
+
+	diags = updateRedfishStorageVolume(ctx, service, &plan)
+	resp.Diagnostics.Append(diags...)
+
+	tflog.Trace(ctx, "resource_RedfishStorageVolume update: finished state update")
+	//Save into State
+	diags = resp.State.Set(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	tflog.Trace(ctx, "resource_RedfishStorageVolume update: finished")
+}
+
+// Delete deletes the resource and removes the Terraform state on success.
+func (r *RedfishStorageVolumeResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	tflog.Trace(ctx, "resource_RedfishStorageVolume delete: started")
+	// Get State Data
+	var state models.RedfishStorageVolume
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	service, err := NewConfig(r.p, &state.RedfishServer)
+	if err != nil {
+		resp.Diagnostics.AddError("service error", err.Error())
+		return
+	}
+
+	diags = deleteRedfishStorageVolume(service, &state)
+	resp.Diagnostics.Append(diags...)
+
+	resp.State.RemoveResource(ctx)
+	tflog.Trace(ctx, "resource_RedfishStorageVolume delete: finished")
+}
+
+// ImportState import state for existing RedfishStorageVolume
+func (r RedfishStorageVolumeResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
 // import (
 // 	"context"
 // 	"fmt"
@@ -176,25 +438,16 @@ package provider
 
 // func resourceRedfishStorageVolumeCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 // 	service, err := NewConfig(m.(*schema.ResourceData), d)
-// 	if err != nil {
-// 		return diag.Errorf(err.Error())
-// 	}
 // 	return createRedfishStorageVolume(service, d)
 // }
 
 // func resourceRedfishStorageVolumeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 // 	service, err := NewConfig(m.(*schema.ResourceData), d)
-// 	if err != nil {
-// 		return diag.Errorf(err.Error())
-// 	}
 // 	return readRedfishStorageVolume(service, d)
 // }
 
 // func resourceRedfishStorageVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 // 	service, err := NewConfig(m.(*schema.ResourceData), d)
-// 	if err != nil {
-// 		return diag.Errorf(err.Error())
-// 	}
 // 	if diags := updateRedfishStorageVolume(ctx, service, d, m); diags.HasError() {
 // 		return diags
 // 	}
@@ -203,427 +456,431 @@ package provider
 
 // func resourceRedfishStorageVolumeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 // 	service, err := NewConfig(m.(*schema.ResourceData), d)
-// 	if err != nil {
-// 		return diag.Errorf(err.Error())
-// 	}
 // 	return deleteRedfishStorageVolume(service, d)
 // }
 
-// func createRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
-// 	var diags diag.Diagnostics
+func createRedfishStorageVolume(service *gofish.Service, d *models.RedfishStorageVolume) diag.Diagnostics {
+	var diags diag.Diagnostics
+	var ctx context.Context
+	// Lock the mutex to avoid race conditions with other resources
+	redfishMutexKV.Lock(d.RedfishServer.Endpoint.ValueString())
+	defer redfishMutexKV.Unlock(d.RedfishServer.Endpoint.ValueString())
 
-// 	// Lock the mutex to avoid race conditions with other resources
-// 	redfishMutexKV.Lock(getRedfishServerEndpoint(d))
-// 	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
+	// Get user config
+	storageID := d.StorageControllerID.ValueString()
+	volumeType := d.VolumeType.ValueString()
+	volumeName := d.VolumeName.ValueString()
+	optimumIOSizeBytes := int(d.OptimumIoSizeBytes.ValueInt64())
+	capacityBytes := int(d.CapacityBytes.ValueInt64())
+	readCachePolicy := d.ReadCachePolicy.ValueString()
+	writeCachePolicy := d.WriteCachePolicy.ValueString()
+	diskCachePolicy := d.DiskCachePolicy.ValueString()
+	applyTime := d.SettingsApplyTime.ValueString()
+	volumeJobTimeout := int(d.VolumeJobTimeout.ValueInt64())
 
-// 	// Get user config
-// 	storageID := d.Get("storage_controller_id").(string)
-// 	volumeType := d.Get("volume_type").(string)
-// 	volumeName := d.Get("volume_name").(string)
-// 	optimumIOSizeBytes := d.Get("optimum_io_size_bytes").(int)
-// 	capacityBytes := d.Get("capacity_bytes").(int)
-// 	driveNamesRaw := d.Get("drives").([]interface{})
-// 	readCachePolicy := d.Get("read_cache_policy")
-// 	writeCachePolicy := d.Get("write_cache_policy")
-// 	diskCachePolicy := d.Get("disk_cache_policy")
-// 	applyTime := d.Get("settings_apply_time")
+	var driveNames []string
+	diags.Append(d.Drives.ElementsAs(ctx, &driveNames, true)...)
 
-// 	// Convert from []interface{} to []string for using
-// 	driveNames := make([]string, len(driveNamesRaw))
-// 	if len(driveNamesRaw) == 0 {
-// 		return diag.Errorf("Error when getting the drives: drives cannot be empty")
-// 	}
-// 	for i, raw := range driveNamesRaw {
-// 		if raw == nil {
-// 			return diag.Errorf("Error when getting the drives: drive name cannot be blank")
-// 		}
-// 		driveNames[i] = raw.(string)
-// 	}
+	if len(driveNames) == 0 {
+		diags.AddError("Error when getting the drives, drives cannot be empty", "")
+		return diags
+	}
 
-// 	volumeJobTimeout := d.Get("volume_job_timeout")
+	// Get storage
+	systems, err := service.Systems()
+	if err != nil {
+		diags.AddError("Error when retreiving the Systems from the Redfish API", "")
+		return diags
+	}
 
-// 	// Get storage
-// 	systems, err := service.Systems()
-// 	if err != nil {
-// 		return diag.Errorf("Error when retreiving the Systems from the Redfish API")
-// 	}
+	storageControllers, err := systems[0].Storage()
+	if err != nil {
+		diags.AddError(fmt.Sprintf("Error when retreiving the Storage from %v from the Redfish API", systems[0].Name), "")
+		return diags
+	}
 
-// 	storageControllers, err := systems[0].Storage()
-// 	if err != nil {
-// 		return diag.Errorf("Error when retreiving the Storage from %v from the Redfish API", systems[0].Name)
-// 	}
+	storage, err := getStorageController(storageControllers, storageID)
+	if err != nil {
+		diags.AddError(fmt.Sprintf("Error when getting the storage struct: %s", err.Error()), "")
+		return diags
+	}
 
-// 	storage, err := getStorageController(storageControllers, storageID)
-// 	if err != nil {
-// 		return diag.Errorf("Error when getting the storage struct: %s", err)
-// 	}
+	// Check if settings_apply_time is doable on this controller
+	operationApplyTimes, err := storage.GetOperationApplyTimeValues()
+	if err != nil {
+		diags.AddError(fmt.Sprintf("couldn't retrieve operationApplyTimes from %s controller", storage.Name), "")
+		return diags
+	}
+	if !checkOperationApplyTimes(applyTime, operationApplyTimes) {
+		diags.AddError(fmt.Sprintf("Storage controller %s does not support settings_apply_time: %s", storageID, applyTime),"")
+		return diags
+	}
 
-// 	// Check if settings_apply_time is doable on this controller
-// 	operationApplyTimes, err := storage.GetOperationApplyTimeValues()
-// 	if err != nil {
-// 		return diag.Errorf("couldn't retrieve operationApplyTimes from %s controller", storage.Name)
-// 	}
-// 	if !checkOperationApplyTimes(applyTime.(string), operationApplyTimes) {
-// 		return diag.Errorf("Storage controller %s does not support settings_apply_time: %s", storageID, applyTime)
-// 	}
+	//Get drives
+	allStorageDrives, err := storage.Drives()
+	if err != nil {
+		diags.AddError(fmt.Sprintf("Error when getting the drives attached to controller - %s", err), "")
+		return diags
+	}
+	drives, err := getDrives(allStorageDrives, driveNames)
+	if err != nil {
+		diags.AddError(fmt.Sprintf("Error when getting the drives: %s", err), "")
+		return diags
+	}
 
-// 	//Get drives
-// 	allStorageDrives, err := storage.Drives()
-// 	if err != nil {
-// 		return diag.Errorf("Error when getting the drives attached to controller - %s", err)
-// 	}
-// 	drives, err := getDrives(allStorageDrives, driveNames)
-// 	if err != nil {
-// 		return diag.Errorf("Error when getting the drives: %s", err)
-// 	}
+	// Create volume job
+	jobID, err := createVolume(service, storage.ODataID, volumeType, volumeName, optimumIOSizeBytes, capacityBytes, readCachePolicy, writeCachePolicy, diskCachePolicy, drives, applyTime)
+	if err != nil {
+		diags.AddError(fmt.Sprintf("Error when creating the virtual disk on disk controller %s - %s", storageID, err),"")
+		return diags
+	}
 
-// 	// Create volume job
-// 	jobID, err := createVolume(service, storage.ODataID, volumeType, volumeName, optimumIOSizeBytes, capacityBytes, readCachePolicy.(string), writeCachePolicy.(string), diskCachePolicy.(string), drives, applyTime.(string))
-// 	if err != nil {
-// 		return diag.Errorf("Error when creating the virtual disk on disk controller %s - %s", storageID, err)
-// 	}
+	// Immediate or OnReset scenarios
+	switch applyTime {
+	case string(redfishcommon.OnResetApplyTime): // OnReset case
+		// Get reset_timeout and reset_type from schema
+		resetType := d.ResetType.ValueString()
+		resetTimeout := int(d.ResetTimeout.ValueInt64())
 
-// 	// Immediate or OnReset scenarios
-// 	switch applyTime.(string) {
-// 	case string(redfishcommon.OnResetApplyTime): // OnReset case
-// 		// Get reset_timeout and reset_type from schema
-// 		resetType := d.Get("reset_type")
-// 		resetTimeout := d.Get("reset_timeout")
+		// Reboot the server
+		_, diags := PowerOperation(resetType, resetTimeout, intervalSimpleUpdateJobCheckTime, service)
+		if diags.HasError() {
+			// Handle this scenario - TBD
+			diags.AddError("there was an issue when restarting the server","")
+			return diags
+		}
 
-// 		// Reboot the server
-// 		_, diags := PowerOperation(resetType.(string), resetTimeout.(int), intervalSimpleUpdateJobCheckTime, service)
-// 		if diags.HasError() {
-// 			// Handle this scenario - TBD
-// 			return diag.Errorf("there was an issue when restarting the server")
-// 		}
+	}
 
-// 	}
+	// Wait for the job to finish
+	err = common.WaitForJobToFinish(service, jobID, intervalStorageVolumeJobCheckTime, volumeJobTimeout)
+	if err != nil {
+		diags.AddError(fmt.Sprintf("Error, job %s wasn't able to complete: %s", jobID, err),"")
+		return diags
+	}
 
-// 	// Wait for the job to finish
-// 	err = common.WaitForJobToFinish(service, jobID, intervalStorageVolumeJobCheckTime, volumeJobTimeout.(int))
-// 	if err != nil {
-// 		return diag.Errorf("Error, job %s wasn't able to complete: %s", jobID, err)
-// 	}
+	//Get storage volumes
+	volumes, err := storage.Volumes()
+	if err != nil {
+		diags.AddError(fmt.Sprintf("there was an issue when retrieving volumes - %s", err), "")
+		return diags
+	}
+	volumeID, err := getVolumeID(volumes, volumeName)
+	if err != nil {
+		diags.AddError(fmt.Sprintf("Error. The volume ID with volume name %s on %s controller was not found", volumeName, storageID), "")
+		return diags
+	}
+	d.ID = types.StringValue(volumeID) 
+	diags = readRedfishStorageVolume(service, d)
+	return diags
 
-// 	//Get storage volumes
-// 	volumes, err := storage.Volumes()
-// 	if err != nil {
-// 		return diag.Errorf("there was an issue when retrieving volumes - %s", err)
-// 	}
-// 	volumeID, err := getVolumeID(volumes, volumeName)
-// 	if err != nil {
-// 		return diag.Errorf("Error. The volume ID with volume name %s on %s controller was not found", volumeName, storageID)
-// 	}
+}
 
-// 	d.SetId(volumeID)
-// 	diags = readRedfishStorageVolume(service, d)
+func readRedfishStorageVolume(service *gofish.Service, d *models.RedfishStorageVolume) diag.Diagnostics {
+	var diags diag.Diagnostics
 
-// 	return diags
+	//Check if the volume exists
+	_, err := redfish.GetVolume(service.GetClient(), d.ID.ValueString())
+	if err != nil {
+		e, ok := err.(*redfishcommon.Error)
+		if !ok {
+			diags.AddError(fmt.Sprintf("There was an error with the API: %s", err), "")
+			return diags
+		}
+		if e.HTTPReturnedStatusCode == http.StatusNotFound {
+			log.Printf("Volume %s doesn't exist", d.ID.ValueString())
+			d.ID = types.StringValue("")
+			return diags
+		}
+		diags.AddError(fmt.Sprintf("Status code %d - %s", e.HTTPReturnedStatusCode, e.Error()), "")
+		return diags
+	}
 
-// }
+	/*
+		- If it has jobID, if finished, get the volumeID
+		Also never EVER trigger an update regarding disk properties for safety reasons
+	*/
 
-// func readRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
-// 	var diags diag.Diagnostics
+	return diags
+}
 
-// 	//Check if the volume exists
-// 	_, err := redfish.GetVolume(service.GetClient(), d.Id())
-// 	if err != nil {
-// 		e, ok := err.(*redfishcommon.Error)
-// 		if !ok {
-// 			return diag.Errorf("There was an error with the API: %s", err)
-// 		}
-// 		if e.HTTPReturnedStatusCode == http.StatusNotFound {
-// 			log.Printf("Volume %s doesn't exist", d.Id())
-// 			d.SetId("")
-// 			return diags
-// 		}
-// 		return diag.Errorf("Status code %d - %s", e.HTTPReturnedStatusCode, e.Error())
-// 	}
+func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service, d *models.RedfishStorageVolume) diag.Diagnostics {
+	var diags diag.Diagnostics
 
-// 	/*
-// 		- If it has jobID, if finished, get the volumeID
-// 		Also never EVER trigger an update regarding disk properties for safety reasons
-// 	*/
+	// Lock the mutex to avoid race conditions with other resources
+	redfishMutexKV.Lock(d.RedfishServer.Endpoint.ValueString())
+	defer redfishMutexKV.Unlock(d.RedfishServer.Endpoint.ValueString())
 
-// 	return diags
-// }
+	// Get user config
+	storageID := d.StorageControllerID.ValueString()
+	volumeName := d.VolumeName.ValueString()
+	readCachePolicy := d.ReadCachePolicy.ValueString()
+	writeCachePolicy := d.WriteCachePolicy.ValueString()
+	diskCachePolicy := d.DiskCachePolicy.ValueString()
+	applyTime := d.SettingsApplyTime.ValueString()
 
-// func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-// 	var diags diag.Diagnostics
+	var driveNames []string
+	diags.Append(d.Drives.ElementsAs(ctx, &driveNames, true)...)
 
-// 	// Lock the mutex to avoid race conditions with other resources
-// 	redfishMutexKV.Lock(getRedfishServerEndpoint(d))
-// 	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
+	volumeJobTimeout := int(d.ResetTimeout.ValueInt64())
 
-// 	// Get user config
-// 	storageID := d.Get("storage_controller_id").(string)
-// 	volumeName := d.Get("volume_name").(string)
-// 	driveNamesRaw := d.Get("drives").([]interface{})
-// 	readCachePolicy := d.Get("read_cache_policy")
-// 	writeCachePolicy := d.Get("write_cache_policy")
-// 	diskCachePolicy := d.Get("disk_cache_policy")
-// 	applyTime := d.Get("settings_apply_time")
+	// Get storage
+	systems, err := service.Systems()
+	if err != nil {
+		diags.AddError("Error when retreiving the Systems from the Redfish API","")
+		return diags
+	}
 
-// 	// Convert from []interface{} to []string for using
-// 	driveNames := make([]string, len(driveNamesRaw))
-// 	if len(driveNamesRaw) == 0 {
-// 		return diag.Errorf("Error when getting the drives: drives cannot be empty")
-// 	}
-// 	for i, raw := range driveNamesRaw {
-// 		if raw == nil {
-// 			return diag.Errorf("Error when getting the drives: drive name cannot be blank")
-// 		}
-// 		driveNames[i] = raw.(string)
-// 	}
+	storageControllers, err := systems[0].Storage()
+	if err != nil {
+		diags.AddError(fmt.Sprintf("Error when retreiving the Storage from %v from the Redfish API", systems[0].Name),"")
+		return diags
+	}
 
-// 	volumeJobTimeout := d.Get("volume_job_timeout")
+	storage, err := getStorageController(storageControllers, storageID)
+	if err != nil {
+		diags.AddError(fmt.Sprintf("Error when getting the storage struct: %s", err),"")
+		return diags
+	}
 
-// 	// Get storage
-// 	systems, err := service.Systems()
-// 	if err != nil {
-// 		return diag.Errorf("Error when retreiving the Systems from the Redfish API")
-// 	}
+	// Check if settings_apply_time is doable on this controller
+	operationApplyTimes, err := storage.GetOperationApplyTimeValues()
+	if err != nil {
+		diags.AddError(fmt.Sprintf("couldn't retrieve operationApplyTimes from %s controller", storage.Name),"")
+		return diags
+	}
+	if !checkOperationApplyTimes(applyTime, operationApplyTimes) {
+		diags.AddError(fmt.Sprintf("Storage controller %s does not support settings_apply_time: %s", storageID, applyTime),"")
+		return diags
+	}
 
-// 	storageControllers, err := systems[0].Storage()
-// 	if err != nil {
-// 		return diag.Errorf("Error when retreiving the Storage from %v from the Redfish API", systems[0].Name)
-// 	}
+	// Update volume job
+	jobID, err := updateVolume(service, d.ID.ValueString(), readCachePolicy, writeCachePolicy, volumeName, diskCachePolicy, applyTime)
+	if err != nil {
+		diags.AddError(fmt.Sprintf("Error when updating the virtual disk on disk controller %s - %s", storageID, err),"")
+		return diags
+	}
 
-// 	storage, err := getStorageController(storageControllers, storageID)
-// 	if err != nil {
-// 		return diag.Errorf("Error when getting the storage struct: %s", err)
-// 	}
+	// Immediate or OnReset scenarios
+	switch applyTime {
+	case string(redfishcommon.OnResetApplyTime): // OnReset case
+		// Get reset_timeout and reset_type from schema
+		resetType := d.ResetType.ValueString()
+		resetTimeout := d.ResetTimeout.ValueInt64()
 
-// 	// Check if settings_apply_time is doable on this controller
-// 	operationApplyTimes, err := storage.GetOperationApplyTimeValues()
-// 	if err != nil {
-// 		return diag.Errorf("couldn't retrieve operationApplyTimes from %s controller", storage.Name)
-// 	}
-// 	if !checkOperationApplyTimes(applyTime.(string), operationApplyTimes) {
-// 		return diag.Errorf("Storage controller %s does not support settings_apply_time: %s", storageID, applyTime)
-// 	}
+		// Reboot the server
+		_, diags := PowerOperation(resetType, int(resetTimeout), intervalSimpleUpdateJobCheckTime, service)
+		if diags.HasError() {
+			// Handle this scenario - TBD
+			diags.AddError("there was an issue when restarting the server","")
+			return diags
+		}
 
-// 	// Update volume job
-// 	jobID, err := updateVolume(service, d.Id(), readCachePolicy.(string), writeCachePolicy.(string), volumeName, diskCachePolicy.(string), applyTime.(string))
-// 	if err != nil {
-// 		return diag.Errorf("Error when updating the virtual disk on disk controller %s - %s", storageID, err)
-// 	}
+	}
 
-// 	// Immediate or OnReset scenarios
-// 	switch applyTime.(string) {
-// 	case string(redfishcommon.OnResetApplyTime): // OnReset case
-// 		// Get reset_timeout and reset_type from schema
-// 		resetType := d.Get("reset_type")
-// 		resetTimeout := d.Get("reset_timeout")
+	// Wait for the job to finish
+	err = common.WaitForJobToFinish(service, jobID, intervalStorageVolumeJobCheckTime, volumeJobTimeout)
+	if err != nil {
+		diags.AddError(fmt.Sprintf("Error, job %s wasn't able to complete: %s", jobID, err),"")
+		return diags
+	}
 
-// 		// Reboot the server
-// 		_, diags := PowerOperation(resetType.(string), resetTimeout.(int), intervalSimpleUpdateJobCheckTime, service)
-// 		if diags.HasError() {
-// 			// Handle this scenario - TBD
-// 			return diag.Errorf("there was an issue when restarting the server")
-// 		}
+	return diags
+}
 
-// 	}
+func deleteRedfishStorageVolume(service *gofish.Service, d *models.RedfishStorageVolume) diag.Diagnostics {
+	var diags diag.Diagnostics
 
-// 	// Wait for the job to finish
-// 	err = common.WaitForJobToFinish(service, jobID, intervalStorageVolumeJobCheckTime, volumeJobTimeout.(int))
-// 	if err != nil {
-// 		return diag.Errorf("Error, job %s wasn't able to complete: %s", jobID, err)
-// 	}
+	// Lock the mutex to avoid race conditions with other resources
+	redfishMutexKV.Lock(d.RedfishServer.Endpoint.ValueString())
+	defer redfishMutexKV.Unlock(d.RedfishServer.Endpoint.ValueString())
 
-// 	return diags
-// }
+	// Get vars from schema
+	applyTime := d.SettingsApplyTime.ValueString()
+	volumeJobTimeout := int(d.VolumeJobTimeout.ValueInt64())
 
-// func deleteRedfishStorageVolume(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
-// 	var diags diag.Diagnostics
+	jobID, err := deleteVolume(service, d.ID.ValueString())
+	if err != nil {
+		diags.AddError(fmt.Sprintf("Error. There was an error when deleting volume %s - %s", d.ID.ValueString(), err),"")
+		return diags
+	}
 
-// 	// Lock the mutex to avoid race conditions with other resources
-// 	redfishMutexKV.Lock(getRedfishServerEndpoint(d))
-// 	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
+	switch applyTime {
+	case string(redfishcommon.OnResetApplyTime): // OnReset case
+		// Get reset_timeout and reset_type from schema
+		resetType := d.ResetType.ValueString()
+		resetTimeout := int(d.ResetTimeout.ValueInt64())
 
-// 	// Get vars from schema
-// 	applyTime := d.Get("settings_apply_time")
-// 	volumeJobTimeout := d.Get("volume_job_timeout")
+		// Reboot the server
+		_, diags := PowerOperation(resetType, resetTimeout, intervalSimpleUpdateJobCheckTime, service)
+		if diags.HasError() {
+			// Handle this scenario - TBD
+			diags.AddError("there was an issue when restarting the server","")
+			return diags
+		}
+	}
 
-// 	jobID, err := deleteVolume(service, d.Id())
-// 	if err != nil {
-// 		return diag.Errorf("Error. There was an error when deleting volume %s - %s", d.Id(), err)
-// 	}
+	//WAIT FOR VOLUME TO DELETE
+	err = common.WaitForJobToFinish(service, jobID, intervalStorageVolumeJobCheckTime, volumeJobTimeout)
+	if err != nil {
+		diags.AddError(fmt.Sprintf("Error, timeout reached when waiting for job %s to finish. %s", jobID, err),"")
+		return diags
+	}
 
-// 	switch applyTime.(string) {
-// 	case string(redfishcommon.OnResetApplyTime): // OnReset case
-// 		// Get reset_timeout and reset_type from schema
-// 		resetType := d.Get("reset_type")
-// 		resetTimeout := d.Get("reset_timeout")
+	return diags
+}
 
-// 		// Reboot the server
-// 		_, diags := PowerOperation(resetType.(string), resetTimeout.(int), intervalSimpleUpdateJobCheckTime, service)
-// 		if diags.HasError() {
-// 			// Handle this scenario - TBD
-// 			return diag.Errorf("there was an issue when restarting the server")
-// 		}
-// 	}
+func getStorageController(storageControllers []*redfish.Storage, diskControllerID string) (*redfish.Storage, error) {
+	for _, storage := range storageControllers {
+		if storage.Entity.ID == diskControllerID {
+			return storage, nil
+		}
+	}
+	return nil, fmt.Errorf("error. Didn't find the storage controller %v", diskControllerID)
+}
 
-// 	//WAIT FOR VOLUME TO DELETE
-// 	err = common.WaitForJobToFinish(service, jobID, intervalStorageVolumeJobCheckTime, volumeJobTimeout.(int))
-// 	if err != nil {
-// 		return diag.Errorf("Error, timeout reached when waiting for job %s to finish. %s", jobID, err)
-// 	}
+func deleteVolume(service *gofish.Service, volumeURI string) (jobID string, err error) {
+	//TODO - Check if we can delete immediately or if we need to schedule a job
+	res, err := service.GetClient().Delete(volumeURI)
+	if err != nil {
+		return "", fmt.Errorf("error while deleting the volume %s", volumeURI)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusAccepted {
+		return "", fmt.Errorf("the operation was not successful. Return code was different from 202 ACCEPTED")
+	}
+	jobID = res.Header.Get("Location")
+	if len(jobID) == 0 {
+		return "", fmt.Errorf("there was some error when retreiving the jobID")
+	}
+	return jobID, nil
+}
 
-// 	return diags
-// }
+func getDrives(drives []*redfish.Drive, driveNames []string) ([]*redfish.Drive, error) {
+	drivesToReturn := []*redfish.Drive{}
+	for _, v := range drives {
+		for _, w := range driveNames {
+			if v.Name == w {
+				drivesToReturn = append(drivesToReturn, v)
+			}
+		}
+	}
+	if len(driveNames) != len(drivesToReturn) {
+		return nil, fmt.Errorf("any of the drives you inserted doesn't exist")
+	}
+	return drivesToReturn, nil
+}
 
-// func getStorageController(storageControllers []*redfish.Storage, diskControllerID string) (*redfish.Storage, error) {
-// 	for _, storage := range storageControllers {
-// 		if storage.Entity.ID == diskControllerID {
-// 			return storage, nil
-// 		}
-// 	}
-// 	return nil, fmt.Errorf("error. Didn't find the storage controller %v", diskControllerID)
-// }
+/*
+createVolume creates a virtualdisk on a disk controller by using the redfish API
+*/
+func createVolume(service *gofish.Service,
+	storageLink string,
+	volumeType string,
+	volumeName string,
+	optimumIOSizeBytes int,
+	capacityBytes int,
+	readCachePolicy string,
+	writeCachePolicy string,
+	diskCachePolicy string,
+	drives []*redfish.Drive,
+	applyTime string) (jobID string, err error) {
 
-// func deleteVolume(service *gofish.Service, volumeURI string) (jobID string, err error) {
-// 	//TODO - Check if we can delete immediately or if we need to schedule a job
-// 	res, err := service.GetClient().Delete(volumeURI)
-// 	if err != nil {
-// 		return "", fmt.Errorf("error while deleting the volume %s", volumeURI)
-// 	}
-// 	defer res.Body.Close()
-// 	if res.StatusCode != http.StatusAccepted {
-// 		return "", fmt.Errorf("the operation was not successful. Return code was different from 202 ACCEPTED")
-// 	}
-// 	jobID = res.Header.Get("Location")
-// 	if len(jobID) == 0 {
-// 		return "", fmt.Errorf("there was some error when retreiving the jobID")
-// 	}
-// 	return jobID, nil
-// }
+	newVolume := make(map[string]interface{})
+	newVolume["VolumeType"] = volumeType
+	newVolume["DisplayName"] = volumeName
+	newVolume["Name"] = volumeName
+	newVolume["ReadCachePolicy"] = readCachePolicy
+	newVolume["WriteCachePolicy"] = writeCachePolicy
+	newVolume["CapacityBytes"] = capacityBytes
+	newVolume["OptimumIOSizeBytes"] = optimumIOSizeBytes
+	newVolume["Oem"] = map[string]map[string]map[string]interface{}{
+		"Dell": {
+			"DellVolume": {
+				"DiskCachePolicy": diskCachePolicy,
+			},
+		},
+	}
+	newVolume["@Redfish.OperationApplyTime"] = applyTime
+	var listDrives []map[string]string
+	for _, drive := range drives {
+		storageDrive := make(map[string]string)
+		storageDrive["@odata.id"] = drive.Entity.ODataID
+		listDrives = append(listDrives, storageDrive)
+	}
+	newVolume["Drives"] = listDrives
+	volumesURL := fmt.Sprintf("%v/Volumes", storageLink)
 
-// func getDrives(drives []*redfish.Drive, driveNames []string) ([]*redfish.Drive, error) {
-// 	drivesToReturn := []*redfish.Drive{}
-// 	for _, v := range drives {
-// 		for _, w := range driveNames {
-// 			if v.Name == w {
-// 				drivesToReturn = append(drivesToReturn, v)
-// 			}
-// 		}
-// 	}
-// 	if len(driveNames) != len(drivesToReturn) {
-// 		return nil, fmt.Errorf("any of the drives you inserted doesn't exist")
-// 	}
-// 	return drivesToReturn, nil
-// }
+	res, err := service.GetClient().Post(volumesURL, newVolume)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusAccepted {
+		return "", fmt.Errorf("the query was unsucessfull")
+	}
+	jobID = res.Header.Get("Location")
+	if len(jobID) == 0 {
+		return "", fmt.Errorf("there was some error when retreiving the jobID")
+	}
+	return jobID, nil
+}
 
-// /*
-// createVolume creates a virtualdisk on a disk controller by using the redfish API
-// */
-// func createVolume(service *gofish.Service,
-// 	storageLink string,
-// 	volumeType string,
-// 	volumeName string,
-// 	optimumIOSizeBytes int,
-// 	capacityBytes int,
-// 	readCachePolicy string,
-// 	writeCachePolicy string,
-// 	diskCachePolicy string,
-// 	drives []*redfish.Drive,
-// 	applyTime string) (jobID string, err error) {
+func updateVolume(service *gofish.Service,
+	storageLink string,
+	readCachePolicy string,
+	writeCachePolicy string,
+	volumeName string,
+	diskCachePolicy string,
+	applyTime string) (jobID string, err error) {
 
-// 	newVolume := make(map[string]interface{})
-// 	newVolume["VolumeType"] = volumeType
-// 	newVolume["DisplayName"] = volumeName
-// 	newVolume["Name"] = volumeName
-// 	newVolume["ReadCachePolicy"] = readCachePolicy
-// 	newVolume["WriteCachePolicy"] = writeCachePolicy
-// 	newVolume["CapacityBytes"] = capacityBytes
-// 	newVolume["OptimumIOSizeBytes"] = optimumIOSizeBytes
-// 	newVolume["Oem"] = map[string]map[string]map[string]interface{}{
-// 		"Dell": {
-// 			"DellVolume": {
-// 				"DiskCachePolicy": diskCachePolicy,
-// 			},
-// 		},
-// 	}
-// 	newVolume["@Redfish.OperationApplyTime"] = applyTime
-// 	var listDrives []map[string]string
-// 	for _, drive := range drives {
-// 		storageDrive := make(map[string]string)
-// 		storageDrive["@odata.id"] = drive.Entity.ODataID
-// 		listDrives = append(listDrives, storageDrive)
-// 	}
-// 	newVolume["Drives"] = listDrives
-// 	volumesURL := fmt.Sprintf("%v/Volumes", storageLink)
+	payload := make(map[string]interface{})
+	payload["ReadCachePolicy"] = readCachePolicy
+	payload["WriteCachePolicy"] = writeCachePolicy
+	payload["DisplayName"] = volumeName
+	payload["Oem"] = map[string]map[string]map[string]interface{}{
+		"Dell": {
+			"DellVolume": {
+				"DiskCachePolicy": diskCachePolicy,
+			},
+		},
+	}
+	payload["Name"] = volumeName
+	payload["@Redfish.SettingsApplyTime"] = map[string]interface{}{
+		"ApplyTime": applyTime,
+	}
+	volumesURL := fmt.Sprintf("%v/Settings", storageLink)
 
-// 	res, err := service.GetClient().Post(volumesURL, newVolume)
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	defer res.Body.Close()
-// 	if res.StatusCode != http.StatusAccepted {
-// 		return "", fmt.Errorf("the query was unsucessfull")
-// 	}
-// 	jobID = res.Header.Get("Location")
-// 	if len(jobID) == 0 {
-// 		return "", fmt.Errorf("there was some error when retreiving the jobID")
-// 	}
-// 	return jobID, nil
-// }
+	res, err := service.GetClient().Patch(volumesURL, payload)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusAccepted {
+		return "", fmt.Errorf("the query was unsucessfull")
+	}
+	jobID = res.Header.Get("Location")
+	if len(jobID) == 0 {
+		return "", fmt.Errorf("there was some error when retreiving the jobID")
+	}
+	return jobID, nil
+}
 
-// func updateVolume(service *gofish.Service,
-// 	storageLink string,
-// 	readCachePolicy string,
-// 	writeCachePolicy string,
-// 	volumeName string,
-// 	diskCachePolicy string,
-// 	applyTime string) (jobID string, err error) {
+func getVolumeID(volumes []*redfish.Volume, volumeName string) (volumeLink string, err error) {
+	for _, v := range volumes {
+		if v.Name == volumeName {
+			volumeLink = v.ODataID
+			return volumeLink, nil
+		}
+	}
+	return "", fmt.Errorf("couldn't find a volume with the provided name")
+}
 
-// 	payload := make(map[string]interface{})
-// 	payload["ReadCachePolicy"] = readCachePolicy
-// 	payload["WriteCachePolicy"] = writeCachePolicy
-// 	payload["DisplayName"] = volumeName
-// 	payload["Oem"] = map[string]map[string]map[string]interface{}{
-// 		"Dell": {
-// 			"DellVolume": {
-// 				"DiskCachePolicy": diskCachePolicy,
-// 			},
-// 		},
-// 	}
-// 	payload["Name"] = volumeName
-// 	payload["@Redfish.SettingsApplyTime"] = map[string]interface{}{
-// 		"ApplyTime": applyTime,
-// 	}
-// 	volumesURL := fmt.Sprintf("%v/Settings", storageLink)
-
-// 	res, err := service.GetClient().Patch(volumesURL, payload)
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	defer res.Body.Close()
-// 	if res.StatusCode != http.StatusAccepted {
-// 		return "", fmt.Errorf("the query was unsucessfull")
-// 	}
-// 	jobID = res.Header.Get("Location")
-// 	if len(jobID) == 0 {
-// 		return "", fmt.Errorf("there was some error when retreiving the jobID")
-// 	}
-// 	return jobID, nil
-// }
-
-// func getVolumeID(volumes []*redfish.Volume, volumeName string) (volumeLink string, err error) {
-// 	for _, v := range volumes {
-// 		if v.Name == volumeName {
-// 			volumeLink = v.ODataID
-// 			return volumeLink, nil
-// 		}
-// 	}
-// 	return "", fmt.Errorf("couldn't find a volume with the provided name")
-// }
-
-// func checkOperationApplyTimes(optionToCheck string, storageOperationApplyTimes []redfishcommon.OperationApplyTime) (result bool) {
-// 	for _, v := range storageOperationApplyTimes {
-// 		if optionToCheck == string(v) {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }
+func checkOperationApplyTimes(optionToCheck string, storageOperationApplyTimes []redfishcommon.OperationApplyTime) (result bool) {
+	for _, v := range storageOperationApplyTimes {
+		if optionToCheck == string(v) {
+			return true
+		}
+	}
+	return false
+}
