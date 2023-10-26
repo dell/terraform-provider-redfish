@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+// Power to construct terraform schema for power resource.
 type Power struct {
 	PowerId            types.String  `tfsdk:"id"`
 	RedfishServer      RedfishServer `tfsdk:"redfish_server"`
