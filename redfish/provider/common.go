@@ -8,6 +8,7 @@ import (
 	"terraform-provider-redfish/redfish/models"
 	"time"
 
+	datasourceSchema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/stmcginnis/gofish"
@@ -30,6 +31,29 @@ func RedfishServerSchema() map[string]schema.Attribute {
 			Description: "Server BMC IP address or hostname",
 		},
 		"validate_cert": schema.BoolAttribute{
+			Optional:    true,
+			Description: "This field indicates whether the SSL/TLS certificate must be verified or not",
+		},
+	}
+}
+
+// RedfishServerDatasourceSchema to construct schema of redfish server
+func RedfishServerDatasourceSchema() map[string]datasourceSchema.Attribute {
+	return map[string]datasourceSchema.Attribute{
+		"user": datasourceSchema.StringAttribute{
+			Optional:    true,
+			Description: "User name for login",
+		},
+		"password": datasourceSchema.StringAttribute{
+			Optional:    true,
+			Description: "User password for login",
+			Sensitive:   true,
+		},
+		"endpoint": datasourceSchema.StringAttribute{
+			Required:    true,
+			Description: "Server BMC IP address or hostname",
+		},
+		"validate_cert": datasourceSchema.BoolAttribute{
 			Optional:    true,
 			Description: "This field indicates whether the SSL/TLS certificate must be verified or not",
 		},

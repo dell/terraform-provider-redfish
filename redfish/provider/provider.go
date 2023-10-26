@@ -101,7 +101,9 @@ func (p *redfishProvider) Resources(ctx context.Context) []func() resource.Resou
 }
 
 func (p *redfishProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{}
+	return []func() datasource.DataSource{
+		NewBiosDatasource,
+	}
 }
 
 // func Provider() *schema.Provider {
