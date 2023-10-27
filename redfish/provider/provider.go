@@ -103,7 +103,8 @@ func (*redfishProvider) Resources(_ context.Context) []func() resource.Resource 
 	}
 }
 
-func (p *redfishProvider) DataSources(_ context.Context) []func() datasource.DataSource {
+// DataSources function to add new data-source
+func (*redfishProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewBiosDatasource,
 		NewDellIdracAttributesDatasource,

@@ -122,8 +122,8 @@ func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (mod
 
 	// copy from the BIOS attributes to the new bios attributes map
 	for key, value := range bios.Attributes {
-		if attr_val, ok := value.(string); ok {
-			attributes[key] = types.StringValue(attr_val)
+		if attrVal, ok := value.(string); ok {
+			attributes[key] = types.StringValue(attrVal)
 		} else {
 			attributes[key] = types.StringValue(fmt.Sprintf("%v", value))
 		}
