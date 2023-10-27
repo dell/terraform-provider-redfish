@@ -180,7 +180,7 @@ func (p powerOperator) PowerOperation(resetType string, maximumWaitTime int64, c
 	}
 
 	// Wait for the server to be in the correct power state
-	var totalTime int64 = 0
+	var totalTime int64
 	for totalTime < maximumWaitTime {
 		time.Sleep(time.Duration(checkInterval) * time.Second)
 		totalTime += checkInterval
