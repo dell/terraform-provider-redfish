@@ -39,18 +39,18 @@ var (
 	_ resource.Resource = &simpleUpdateResource{}
 )
 
-// NewpowerResource is a helper function to simplify the provider implementation.
+// NewSimpleUpdateResource is a helper function to simplify the provider implementation.
 func NewSimpleUpdateResource() resource.Resource {
 	return &simpleUpdateResource{}
 }
 
-// powerResource is the resource implementation.
+// simpleUpdateResource is the resource implementation.
 type simpleUpdateResource struct {
 	p *redfishProvider
 }
 
 // Configure implements resource.ResourceWithConfigure
-func (r *simpleUpdateResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *simpleUpdateResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -58,11 +58,11 @@ func (r *simpleUpdateResource) Configure(ctx context.Context, req resource.Confi
 }
 
 // Metadata returns the resource type name.
-func (r *simpleUpdateResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (*simpleUpdateResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "simple_update"
 }
 
-func SimpleUpdateSchema() map[string]schema.Attribute {
+func simpleUpdateSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"id": schema.StringAttribute{
 			Description:         "ID of the simple update resource",
@@ -99,15 +99,10 @@ func SimpleUpdateSchema() map[string]schema.Attribute {
 		"target_firmware_image": schema.StringAttribute{
 			Required: true,
 			Description: "Target firmware image used for firmware update on the redfish instance. " +
-				"Make sure you place your firmware packages in the same folder as the module and set it as follows: \"${path.module}/BIOS_FXC54_WN64_1.15.0.EXE\"",
+				"Make sure you place your firmware packages in the same folder as the module and set " +
+				"it as follows: \"${path.module}/BIOS_FXC54_WN64_1.15.0.EXE\"",
 			// DiffSuppressFunc will allow moving fw packages through the filesystem without triggering an update if so.
 			// At the moment it uses filename to see if they're the same. We need to strengthen that by somehow using hashing
-			// DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			// 	if filepath.Base(old) == filepath.Base(new) {
-			// 		return true
-			// 	}
-			// 	return false
-			// },
 			PlanModifiers: []planmodifier.String{
 				stringplanmodifier.RequiresReplaceIf(
 					func(
@@ -129,7 +124,7 @@ func SimpleUpdateSchema() map[string]schema.Attribute {
 		"reset_type": schema.StringAttribute{
 			Required: true,
 			Description: "Reset type allows to choose the type of restart to apply when firmware upgrade is scheduled." +
-				"Possible values are: \"ForceRestart\", \"GracefulRestart\" or \"PowerCycle\"",
+				" Possible values are: \"ForceRestart\", \"GracefulRestart\" or \"PowerCycle\"",
 			Validators: []validator.String{
 				stringvalidator.OneOf([]string{
 					string(redfish.ForceRestartResetType),
@@ -145,13 +140,13 @@ func SimpleUpdateSchema() map[string]schema.Attribute {
 			Optional:    true,
 			Computed:    true,
 			Default:     int64default.StaticInt64(int64(defaultSimpleUpdateResetTimeout)),
-			Description: "reset_timeout is the time in seconds that the provider waits for the server to be reset before timing out.",
+			Description: "Time in seconds that the provider waits for the server to be reset before timing out.",
 		},
 		"simple_update_job_timeout": schema.Int64Attribute{
 			Optional:    true,
 			Computed:    true,
 			Default:     int64default.StaticInt64(int64(defaultSimpleUpdateJobTimeout)),
-			Description: "simple_update_job_timeout is the time in seconds that the provider waits for the simple update job to be completed before timing out.",
+			Description: "Time in seconds that the provider waits for the simple update job to be completed before timing out.",
 		},
 		"software_id": schema.StringAttribute{
 			Computed:    true,
@@ -171,11 +166,11 @@ func SimpleUpdateSchema() map[string]schema.Attribute {
 }
 
 // Schema defines the schema for the resource.
-func (r *simpleUpdateResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (*simpleUpdateResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Resource for managing power.",
 		Version:             1,
-		Attributes:          SimpleUpdateSchema(),
+		Attributes:          simpleUpdateSchema(),
 	}
 }
 
@@ -237,7 +232,7 @@ func (r *simpleUpdateResource) Read(ctx context.Context, req resource.ReadReques
 }
 
 // Update also refreshes the resource and writes to state
-func (r *simpleUpdateResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (*simpleUpdateResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// update can be triggerred by only a change in image path, where base name of image remains same
 	// So set plan to state.
 	tflog.Trace(ctx, "resource_simple_update update : Started")
@@ -252,7 +247,7 @@ func (r *simpleUpdateResource) Update(ctx context.Context, req resource.UpdateRe
 }
 
 // Delete removes resource from state
-func (r *simpleUpdateResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (*simpleUpdateResource) Delete(ctx context.Context, _ resource.DeleteRequest, resp *resource.DeleteResponse) {
 	resp.State.RemoveResource(ctx)
 }
 
@@ -280,7 +275,7 @@ type simpleUpdater struct {
 	updateService *redfish.UpdateService
 }
 
-func (u simpleUpdater) updateRedfishSimpleUpdate(d models.SimpleUpdateRes) (diag.Diagnostics, models.SimpleUpdateRes) {
+func (u *simpleUpdater) updateRedfishSimpleUpdate(d models.SimpleUpdateRes) (diag.Diagnostics, models.SimpleUpdateRes) {
 	var diags diag.Diagnostics
 	ret := d
 
@@ -371,7 +366,7 @@ func (u simpleUpdater) updateRedfishSimpleUpdate(d models.SimpleUpdateRes) (diag
 	return diags, ret
 }
 
-func (u simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.SoftwareInventory, error) {
+func (u *simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.SoftwareInventory, error) {
 	// Get ETag from FW inventory
 	service, updateService := u.service, u.updateService
 	response, err := service.GetClient().Get(updateService.FirmwareInventory)
@@ -491,7 +486,7 @@ func getFWfromInventory(softwareInventories []*redfish.SoftwareInventory, softwa
 	return nil, fmt.Errorf("couldn't find FW on Firmware inventory")
 }
 
-func (u simpleUpdater) pullUpdate(d models.SimpleUpdateRes) (models.SimpleUpdateRes, error) {
+func (u *simpleUpdater) pullUpdate(d models.SimpleUpdateRes) (models.SimpleUpdateRes, error) {
 	// Get update service from root
 	updateService := u.updateService
 	service := u.service
@@ -546,7 +541,7 @@ func (u simpleUpdater) pullUpdate(d models.SimpleUpdateRes) (models.SimpleUpdate
 	return d, nil
 }
 
-func (u simpleUpdater) updateJobStatus(d models.SimpleUpdateRes) error {
+func (u *simpleUpdater) updateJobStatus(d models.SimpleUpdateRes) error {
 	// Get jobid
 	jobID := d.Id.ValueString()
 

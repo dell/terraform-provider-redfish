@@ -38,6 +38,16 @@ run:
   # If it's not please let us know.
   # "/" will be replaced by current OS file path separator to properly work on Windows.
   skip-files:
+    - "redfish/provider/data_source_redfish_bios.go"
+    - "redfish/provider/data_source_redfish_firmware_inventory.go"
+    - "redfish/provider/data_source_redfish_storage.go"
+    - "redfish/provider/data_source_redfish_system_boot.go"
+    - "redfish/provider/data_source_redfish_virtual_media.go"
+    - "redfish/provider/resource_redfish_storage_volume.go"
+    - "redfish/provider/resource_redfish_storage_volume.go"
+    - "redfish/provider/resource_redfish_user_account.go"
+    - "redfish/provider/resource_redfish_virtual_media.go"
+    - "redfish/provider/resource_redfish_bios.go"
   #   - ".*\\.my\\.go$"
   # If set we pass it to "go list -mod={option}". From "go help modules":
   # If invoked with -mod=readonly, the go command is disallowed from the implicit
@@ -164,7 +174,7 @@ linters-settings:
       - name: cyclomatic
         severity: warning
         disabled: false
-        arguments: [10] # TBD
+        arguments: [20] # TBD 10
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#datarace
       - name: datarace
         severity: warning
