@@ -19,9 +19,9 @@ resource "redfish_UserAccount" "rr" {
   for_each = var.rack1
 
   redfish_server = {
-    user         = each.value.user
-    password     = each.value.password
-    endpoint     = each.value.endpoint
+    user          = each.value.user
+    password      = each.value.password
+    endpoint      = each.value.endpoint
     validate_cert = false
   }
 
