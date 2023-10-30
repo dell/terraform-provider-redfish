@@ -19,7 +19,7 @@ var (
 	_ datasource.DataSourceWithConfigure = &BiosDatasource{}
 )
 
-// NewBiosDatasource is new datasource for idrac attributes
+// NewBiosDatasource is new datasource for bios
 func NewBiosDatasource() datasource.DataSource {
 	return &BiosDatasource{}
 }
@@ -52,7 +52,7 @@ func (*BiosDatasource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 	}
 }
 
-// BiosDatasourceSchema to define the idrac attribute schema
+// BiosDatasourceSchema to define the bios data-source schema
 func BiosDatasourceSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"id": schema.StringAttribute{

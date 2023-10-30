@@ -4,7 +4,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// BiosDatasource to construct terraform schema for the idrac attributes resource.
+// BiosDatasource to is struct for bios data-source
 type BiosDatasource struct {
 	ID            types.String  `tfsdk:"id"`
 	OdataID       types.String  `tfsdk:"odata_id"`
