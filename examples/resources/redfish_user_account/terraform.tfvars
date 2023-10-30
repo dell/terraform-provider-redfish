@@ -20,12 +20,12 @@ rack1 = {
     user         = "admin"
     password     = "passw0rd"
     endpoint     = "https://my-server-1.myawesomecompany.org"
-    validate_cert = true
+    validate_cert = false
   },
   "my-server-2" = {
     user         = "admin"
     password     = "passw0rd"
     endpoint     = "https://my-server-2.myawesomecompany.org"
-    validate_cert = true
+    validate_cert = false
   },
 }
