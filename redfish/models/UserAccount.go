@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+// UserAccount struct
 type UserAccount struct {
 	ID            types.String  `tfsdk:"id"`
 	Enabled       types.Bool    `tfsdk:"enabled"`

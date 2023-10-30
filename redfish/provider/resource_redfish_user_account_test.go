@@ -10,7 +10,6 @@ import (
 
 // Test to create and update redfish user - Positive
 func TestAccRedfishUser_basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -45,7 +44,6 @@ func TestAccRedfishUser_basic(t *testing.T) {
 
 // Test to create user with invalid role-id - Negative
 func TestAccRedfishUserInvalid_basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -66,7 +64,6 @@ func TestAccRedfishUserInvalid_basic(t *testing.T) {
 
 // Test to create user with existing username - Negative
 func TestAccRedfishUserExisting_basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -87,7 +84,6 @@ func TestAccRedfishUserExisting_basic(t *testing.T) {
 
 // Test to update username to existing username - Negative
 func TestAccRedfishUserUpdateInvalid_basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -120,7 +116,6 @@ func TestAccRedfishUserUpdateInvalid_basic(t *testing.T) {
 
 // Test to create user with Invalid ID - Negative
 func TestAccRedfishUserUpdateInvalidId_basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -141,7 +136,6 @@ func TestAccRedfishUserUpdateInvalidId_basic(t *testing.T) {
 
 // Test to update user-id - Negative
 func TestAccRedfishUserUpdateId_basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -174,7 +168,6 @@ func TestAccRedfishUserUpdateId_basic(t *testing.T) {
 
 // Test to update username - positive
 func TestAccRedfishUserUpdateUser_basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -209,11 +202,30 @@ func TestAccRedfishUserUpdateUser_basic(t *testing.T) {
 
 // validation tests - Negative
 func TestAccRedfishUserValidation_basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test1234567890123456",
+					"Test@1234",
+					"Administrator",
+					false,
+					"15"),
+				ExpectError: regexp.MustCompile("Invalid Attribute Value Length"),
+			},
+			{
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test1",
+					"T@1",
+					"Administrator",
+					false,
+					"15"),
+				ExpectError: regexp.MustCompile("Attribute password string length must be between 4 and 40"),
+			},
 			{
 				Config: testAccRedfishResourceUserConfig(
 					creds,
@@ -256,26 +268,6 @@ func TestAccRedfishUserValidation_basic(t *testing.T) {
 					"15"),
 				ExpectError: regexp.MustCompile("Password validation failed"),
 			},
-			{
-				Config: testAccRedfishResourceUserConfig(
-					creds,
-					"test12345678901234",
-					"Test@1234",
-					"Administrator",
-					false,
-					"15"),
-				ExpectError: regexp.MustCompile("Invalid Attribute Value Length"),
-			},
-			{
-				Config: testAccRedfishResourceUserConfig(
-					creds,
-					"test1",
-					"T@1",
-					"Administrator",
-					false,
-					"15"),
-				ExpectError: regexp.MustCompile("Invalid Attribute Value Length"),
-			},
 		},
 	})
 }
@@ -285,7 +277,8 @@ func testAccRedfishResourceUserConfig(testingInfo TestingServerCredentials,
 	password string,
 	roleId string,
 	enabled bool,
-	userId string) string {
+	userId string,
+) string {
 	return fmt.Sprintf(`
 		
 		resource "redfish_UserAccount" "user_config" {

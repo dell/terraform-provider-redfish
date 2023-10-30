@@ -7,11 +7,13 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
 	"terraform-provider-redfish/redfish/models"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -55,8 +57,8 @@ func (r *UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest
 		Version:             1,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				MarkdownDescription: "The ID of the user. Cannot be updated.",
-				Description:         "The ID of the user. Cannot be updated.",
+				MarkdownDescription: "The ID of the resource. Cannot be updated.",
+				Description:         "The ID of the resource. Cannot be updated.",
 				Computed:            true,
 			},
 			"user_id": schema.StringAttribute{
@@ -94,6 +96,8 @@ func (r *UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest
 				Description: "Role of the user. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. " +
 					"Default is \"None\"",
 				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString("None"),
 				Validators: []validator.String{
 					stringvalidator.OneOf([]string{
 						"Operator",
@@ -116,7 +120,7 @@ func (r *UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest
 func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	tflog.Trace(ctx, "resource_UserAccount create : Started")
 
-	//Get Plan Data
+	// Get Plan Data
 	var plan models.UserAccount
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -177,7 +181,7 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 
 	payload := make(map[string]interface{})
 	for _, account := range accountList {
-		if len(account.UserName) == 0 && account.ID != "1" { //ID 1 is reserved
+		if len(account.UserName) == 0 && account.ID != "1" { // ID 1 is reserved
 			payload["UserName"] = userName
 			payload["Password"] = password
 			payload["Enabled"] = plan.Enabled.ValueBool()
@@ -190,10 +194,10 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 			} else {
 				userID = account.ID
 			}
-			//Ideally a go routine for each server should be done
+			// Ideally a go routine for each server should be done
 			res, err := service.GetClient().Patch(account.ODataID, payload)
 			if err != nil {
-				resp.Diagnostics.AddError("Error when contacting the redfish API", err.Error()) //This error might happen when a user was created outside terraform
+				resp.Diagnostics.AddError("Error when contacting the redfish API", err.Error()) // This error might happen when a user was created outside terraform
 				return
 			}
 			if res.StatusCode != 200 {
@@ -244,7 +248,7 @@ func (r *UserAccountResource) Read(ctx context.Context, req resource.ReadRequest
 		resp.Diagnostics.AddError("Unable to fetch updated details", err.Error())
 	}
 
-	if account == nil { //User doesn't exist. Needs to be recreated.
+	if account == nil { // User doesn't exist. Needs to be recreated.
 		resp.Diagnostics.AddError("Error when retrieving accounts", "User does not eists, needs to be recreated")
 		return
 	}
@@ -252,7 +256,7 @@ func (r *UserAccountResource) Read(ctx context.Context, req resource.ReadRequest
 	r.updateServer(nil, &state, account, operationRead)
 
 	tflog.Trace(ctx, "resource_UserAccount read: finished reading state")
-	//Save into State
+	// Save into State
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	tflog.Trace(ctx, "resource_UserAccount read: finished")
@@ -260,7 +264,7 @@ func (r *UserAccountResource) Read(ctx context.Context, req resource.ReadRequest
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *UserAccountResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	//Get state Data
+	// Get state Data
 	tflog.Trace(ctx, "resource_UserAccount update: started")
 
 	var state, plan models.UserAccount
@@ -334,7 +338,7 @@ func (r *UserAccountResource) Update(ctx context.Context, req resource.UpdateReq
 	r.updateServer(&plan, &state, account, operationUpdate)
 
 	tflog.Trace(ctx, "resource_UserAccount update: finished state update")
-	//Save into State
+	// Save into State
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	tflog.Trace(ctx, "resource_UserAccount update: finished")
@@ -401,9 +405,6 @@ func (r UserAccountResource) updateServer(plan, state *models.UserAccount, accou
 	if operation != operationRead {
 		state.Password = plan.Password
 		state.RedfishServer = plan.RedfishServer
-	} else {
-		state.Password = state.Password
-		state.RedfishServer = state.RedfishServer
 	}
 }
 
@@ -745,7 +746,7 @@ func getAccount(accountList []*redfish.ManagerAccount, id string) (*redfish.Mana
 			return account, nil
 		}
 	}
-	return nil, nil //This will be returned if there are no errors but the user does not exist
+	return nil, nil // This will be returned if there are no errors but the user does not exist
 }
 
 // To check if given username is equal to any existing username
