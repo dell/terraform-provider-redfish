@@ -98,6 +98,7 @@ func (p *redfishProvider) Configure(ctx context.Context, req provider.ConfigureR
 func (*redfishProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewPowerResource,
+		NewUserAccountResource,
 		NewSimpleUpdateResource,
 		NewDellIdracAttributesResource,
 	}
