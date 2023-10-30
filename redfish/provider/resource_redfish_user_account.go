@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
 	"terraform-provider-redfish/redfish/models"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -19,6 +18,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
+)
+
+const (
+	minUserNameLength = 1
+	maxUserNameLength = 16
+	minPasswordLength = 4
+	maxPasswordLength = 40
+	maxUserID         = 16
+	minUserID         = 2
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -37,7 +45,7 @@ type UserAccountResource struct {
 }
 
 // Configure implements resource.ResourceWithConfigure
-func (r *UserAccountResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *UserAccountResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -45,16 +53,18 @@ func (r *UserAccountResource) Configure(ctx context.Context, req resource.Config
 }
 
 // Metadata returns the resource type name.
-func (r *UserAccountResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (*UserAccountResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "UserAccount"
 }
 
 // Schema defines the schema for the resource.
-func (r *UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "This Terraform resource is used to manage user entity of the iDRAC Server. We can create, read, modify and delete an existing user using this resource.",
-		Description:         "This Terraform resource is used to manage user entity of the iDRAC Server. We can create, read, modify and delete an existing user using this resource.",
-		Version:             1,
+		MarkdownDescription: "This Terraform resource is used to manage user entity of the iDRAC Server. We can create, read, " +
+			"modify and delete an existing user using this resource.",
+		Description: "This Terraform resource is used to manage user entity of the iDRAC Server. We can create, read, " +
+			"modify and delete an existing user using this resource.",
+		Version: 1,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				MarkdownDescription: "The ID of the resource. Cannot be updated.",
@@ -72,7 +82,7 @@ func (r *UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest
 				Description:         "The name of the user",
 				Required:            true,
 				Validators: []validator.String{
-					stringvalidator.LengthBetween(1, 16),
+					stringvalidator.LengthBetween(minUserNameLength, maxUserNameLength),
 				},
 			},
 			"password": schema.StringAttribute{
@@ -81,7 +91,7 @@ func (r *UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest
 				Required:            true,
 				Sensitive:           true,
 				Validators: []validator.String{
-					stringvalidator.LengthBetween(4, 40),
+					stringvalidator.LengthBetween(minPasswordLength, maxPasswordLength),
 				},
 			},
 			"redfish_server": schema.SingleNestedAttribute{
@@ -130,7 +140,7 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 
 	service, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
-		resp.Diagnostics.AddError("service error", err.Error())
+		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
 
@@ -169,7 +179,7 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 	// check if user id is valid or not
 	if len(userID) > 0 {
 		userIdInt, err := strconv.Atoi(userID)
-		if !(userIdInt > 2 && userIdInt <= 16) {
+		if !(userIdInt > minUserID && userIdInt <= maxUserID) {
 			resp.Diagnostics.AddError("User_id can vary between 3 to 16 only", "Please update user ID")
 			return
 		}
@@ -195,13 +205,9 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 				userID = account.ID
 			}
 			// Ideally a go routine for each server should be done
-			res, err := service.GetClient().Patch(account.ODataID, payload)
+			_, err = service.GetClient().Patch(account.ODataID, payload)
 			if err != nil {
-				resp.Diagnostics.AddError("Error when contacting the redfish API", err.Error()) // This error might happen when a user was created outside terraform
-				return
-			}
-			if res.StatusCode != 200 {
-				resp.Diagnostics.AddError("There was an issue with the APIClient.", err.Error())
+				resp.Diagnostics.AddError(RedfishAPIErrorMsg, err.Error()) // This error might happen when a user was created outside terraform
 				return
 			}
 			break
@@ -214,7 +220,8 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 
 	_, account, err := getUserAccountFromID(service, userID)
 	if err != nil {
-		resp.Diagnostics.AddError("Unable to fetch updated details", err.Error())
+		resp.Diagnostics.AddError(RedfishFetchErrorMsg, err.Error())
+		return
 	}
 
 	result := models.UserAccount{}
@@ -239,13 +246,13 @@ func (r *UserAccountResource) Read(ctx context.Context, req resource.ReadRequest
 
 	service, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
-		resp.Diagnostics.AddError("service error", err.Error())
+		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
 
 	_, account, err := getUserAccountFromID(service, state.ID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Unable to fetch updated details", err.Error())
+		resp.Diagnostics.AddError(RedfishFetchErrorMsg, err.Error())
 	}
 
 	if account == nil { // User doesn't exist. Needs to be recreated.
@@ -285,7 +292,7 @@ func (r *UserAccountResource) Update(ctx context.Context, req resource.UpdateReq
 
 	service, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
-		resp.Diagnostics.AddError("service error", err.Error())
+		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
 
@@ -298,7 +305,7 @@ func (r *UserAccountResource) Update(ctx context.Context, req resource.UpdateReq
 
 	accountList, account, err := getUserAccountFromID(service, state.ID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Unable to fetch updated details", err.Error())
+		resp.Diagnostics.AddError(RedfishFetchErrorMsg, err.Error())
 	}
 
 	if plan.UserID.ValueString() != "" && plan.UserID.ValueString() != account.ID {
@@ -320,20 +327,16 @@ func (r *UserAccountResource) Update(ctx context.Context, req resource.UpdateReq
 	payload["Password"] = plan.Password.ValueString()
 	payload["Enabled"] = plan.Enabled.ValueBool()
 	payload["RoleId"] = plan.RoleID.ValueString()
-	res, err := service.GetClient().Patch(account.ODataID, payload)
+	_, err = service.GetClient().Patch(account.ODataID, payload)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when contacting the redfish API", err.Error())
-		return
-	}
-	if res.StatusCode != 200 {
-		resp.Diagnostics.AddError("There was an issue with the server.", err.Error())
+		resp.Diagnostics.AddError(RedfishAPIErrorMsg, err.Error())
 		return
 	}
 
 	// get user which is updated
 	_, account, err = getUserAccountFromID(service, account.ID)
 	if err != nil {
-		resp.Diagnostics.AddError("Unable to fetch updated details", err.Error())
+		resp.Diagnostics.AddError(RedfishFetchErrorMsg, err.Error())
 	}
 	r.updateServer(&plan, &state, account, operationUpdate)
 
@@ -357,46 +360,38 @@ func (r *UserAccountResource) Delete(ctx context.Context, req resource.DeleteReq
 
 	service, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
-		resp.Diagnostics.AddError("service error", err.Error())
+		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
 
 	_, account, err := getUserAccountFromID(service, state.ID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Unable to fetch updated details", err.Error())
+		resp.Diagnostics.AddError(RedfishFetchErrorMsg, err.Error())
 	}
 
 	// First set Role ID as "" and Enabled as false
 	payload := make(map[string]interface{})
 	payload["Enable"] = "false"
 	payload["RoleId"] = "None"
-	res, err := service.GetClient().Patch(account.ODataID, payload)
+	_, err = service.GetClient().Patch(account.ODataID, payload)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when contacting the redfish API", err.Error())
-		return
-	}
-	if res.StatusCode != 200 {
-		resp.Diagnostics.AddError("There was an issue with the server", err.Error())
+		resp.Diagnostics.AddError(RedfishAPIErrorMsg, err.Error())
 		return
 	}
 
 	// second PATCH call to remove username.
 	payload = make(map[string]interface{})
 	payload["UserName"] = ""
-	res, err = service.GetClient().Patch(account.ODataID, payload)
+	_, err = service.GetClient().Patch(account.ODataID, payload)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when contacting the redfish API", err.Error())
-		return
-	}
-	if res.StatusCode != 200 {
-		resp.Diagnostics.AddError("There was an issue with the server", err.Error())
+		resp.Diagnostics.AddError(RedfishAPIErrorMsg, err.Error())
 		return
 	}
 
 	tflog.Trace(ctx, "resource_UserAccount delete: finished")
 }
 
-func (r UserAccountResource) updateServer(plan, state *models.UserAccount, account *redfish.ManagerAccount, operation operation) {
+func (UserAccountResource) updateServer(plan, state *models.UserAccount, account *redfish.ManagerAccount, operation operation) {
 	state.ID = types.StringValue(account.ID)
 	state.Username = types.StringValue(account.UserName)
 	state.Enabled = types.BoolValue(account.Enabled)
@@ -592,7 +587,8 @@ func (r UserAccountResource) updateServer(plan, state *models.UserAccount, accou
 // 			//Ideally a go routine for each server should be done
 // 			res, err := service.GetClient().Patch(account.ODataID, payload)
 // 			if err != nil {
-// 				return diag.Errorf("Error when contacting the redfish API %v", err) //This error might happen when a user was created outside terraform
+//     		This error might happen when a user was created outside terraform
+// 				return diag.Errorf("Error when contacting the redfish API %v", err)
 // 			}
 // 			if res.StatusCode != 200 {
 // 				return diag.Errorf("There was an issue with the APIClient. HTTP error code %d", res.StatusCode)
