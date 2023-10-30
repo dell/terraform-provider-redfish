@@ -4,12 +4,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// providerConfig can be used to store data from the Terraform configuration.
+// ProviderConfig can be used to store data from the Terraform configuration.
 type ProviderConfig struct {
 	Username types.String `tfsdk:"user"`
 	Password types.String `tfsdk:"password"`
 }
 
+// RedfishServer to configure server config for resource/datasource.
 type RedfishServer struct {
 	User         types.String `tfsdk:"user"`
 	Password     types.String `tfsdk:"password"`

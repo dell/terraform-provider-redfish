@@ -1,436 +1,574 @@
 package provider
 
-// import (
-// 	"context"
-// 	"fmt"
-// 	"github.com/dell/terraform-provider-redfish/common"
-// 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-// 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-// 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-// 	"github.com/stmcginnis/gofish"
-// 	redfishcommon "github.com/stmcginnis/gofish/common"
-// 	"github.com/stmcginnis/gofish/redfish"
-// 	"io"
-// 	"log"
-// 	"net/http"
-// 	"os"
-// 	"path/filepath"
-// 	"strings"
-// )
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+	"terraform-provider-redfish/common"
+	"terraform-provider-redfish/redfish/models"
+	"time"
 
-// const (
-// 	defaultSimpleUpdateResetTimeout  int = 120
-// 	defaultSimpleUpdateJobTimeout    int = 1200
-// 	intervalSimpleUpdateJobCheckTime int = 10
-// )
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/stmcginnis/gofish"
+	redfishcommon "github.com/stmcginnis/gofish/common"
+	"github.com/stmcginnis/gofish/redfish"
+)
 
-// func resourceRedfishSimpleUpdate() *schema.Resource {
-// 	return &schema.Resource{
-// 		CreateContext: resourceRedfishSimpleUpdateCreate,
-// 		ReadContext:   resourceRedfishSimpleUpdateRead,
-// 		UpdateContext: resourceRedfishSimpleUpdateUpdate,
-// 		DeleteContext: resourceRedfishSimpleUpdateDelete,
-// 		Schema:        getResourceRedfishSimpleUpdateSchema(),
-// 	}
-// }
+const (
+	defaultSimpleUpdateResetTimeout  int   = 120
+	defaultSimpleUpdateJobTimeout    int   = 1200
+	intervalSimpleUpdateJobCheckTime int64 = 10
+)
 
-// func getResourceRedfishSimpleUpdateSchema() map[string]*schema.Schema {
-// 	return map[string]*schema.Schema{
-// 		"redfish_server": {
-// 			Type:        schema.TypeList,
-// 			Required:    true,
-// 			Description: "List of server BMCs and their respective user credentials",
-// 			Elem: &schema.Resource{
-// 				Schema: map[string]*schema.Schema{
-// 					"user": {
-// 						Type:        schema.TypeString,
-// 						Optional:    true,
-// 						Description: "User name for login",
-// 					},
-// 					"password": {
-// 						Type:        schema.TypeString,
-// 						Optional:    true,
-// 						Description: "User password for login",
-// 						Sensitive:   true,
-// 					},
-// 					"endpoint": {
-// 						Type:        schema.TypeString,
-// 						Required:    true,
-// 						Description: "Server BMC IP address or hostname",
-// 					},
-// 					"ssl_insecure": {
-// 						Type:        schema.TypeBool,
-// 						Optional:    true,
-// 						Description: "This field indicates whether the SSL/TLS certificate must be verified or not",
-// 					},
-// 				},
-// 			},
-// 		},
-// 		"transfer_protocol": {
-// 			Type:     schema.TypeString,
-// 			Required: true,
-// 			Description: "The network protocol that the Update Service uses to retrieve the software image file located at the URI provided " +
-// 				"in ImageURI, if the URI does not contain a scheme." +
-// 				" Accepted values: CIFS, FTP, SFTP, HTTP, HTTPS, NSF, SCP, TFTP, OEM, NFS." +
-// 				" Currently only HTTP, HTTPS and NFS are supported with local file path or HTTP(s)/NFS link.",
-// 		},
-// 		/* For the time being, target_firmware_image will be the local path for our firmware packages.
-// 		   It is intended to work along HTTP transfer protocol
-// 		   In the future it could be used for targetting FTP/CIFS/NFS images
-// 		   TBD - Think about a custom diff function that grabs only the file name and not the path, to avoid unneeded update triggers
-// 		*/
-// 		"target_firmware_image": {
-// 			Type:     schema.TypeString,
-// 			Required: true,
-// 			Description: "Target firmware image used for firmware update on the redfish instance. " +
-// 				"Make sure you place your firmware packages in the same folder as the module and set it as follows: \"${path.module}/BIOS_FXC54_WN64_1.15.0.EXE\"",
-// 			// DiffSuppressFunc will allow moving fw packages through the filesystem without triggering an update if so.
-// 			// At the moment it uses filename to see if they're the same. We need to strengthen that by somehow using hashing
-// 			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-// 				if filepath.Base(old) == filepath.Base(new) {
-// 					return true
-// 				}
-// 				return false
-// 			},
-// 		},
-// 		"reset_type": {
-// 			Type:     schema.TypeString,
-// 			Required: true,
-// 			Description: "Reset type allows to choose the type of restart to apply when firmware upgrade is scheduled." +
-// 				"Possible values are: \"ForceRestart\", \"GracefulRestart\" or \"PowerCycle\"",
-// 			ValidateFunc: validation.StringInSlice([]string{
-// 				string(redfish.ForceRestartResetType),
-// 				string(redfish.GracefulRestartResetType),
-// 				string(redfish.PowerCycleResetType),
-// 			}, false),
-// 		},
-// 		"reset_timeout": {
-// 			Type:        schema.TypeInt,
-// 			Optional:    true,
-// 			Description: "reset_timeout is the time in seconds that the provider waits for the server to be reset before timing out.",
-// 		},
-// 		"simple_update_job_timeout": {
-// 			Type:        schema.TypeInt,
-// 			Optional:    true,
-// 			Description: "simple_update_job_timeout is the time in seconds that the provider waits for the simple update job to be completed before timing out.",
-// 		},
-// 		"software_id": {
-// 			Type:        schema.TypeString,
-// 			Computed:    true,
-// 			Description: "Software ID from the firmware package uploaded",
-// 		},
-// 		"version": {
-// 			Type:        schema.TypeString,
-// 			Computed:    true,
-// 			Description: "Software version from the firmware package uploaded",
-// 		},
-// 	}
-// }
+// Ensure the implementation satisfies the expected interfaces.
+var (
+	_ resource.Resource = &simpleUpdateResource{}
+)
 
-// func resourceRedfishSimpleUpdateCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-// 	service, err := NewConfig(m.(*schema.ResourceData), d)
-// 	if err != nil {
-// 		return diag.Errorf(err.Error())
-// 	}
-// 	return updateRedfishSimpleUpdate(ctx, service, d, m)
-// }
+// NewSimpleUpdateResource is a helper function to simplify the provider implementation.
+func NewSimpleUpdateResource() resource.Resource {
+	return &simpleUpdateResource{}
+}
 
-// func resourceRedfishSimpleUpdateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-// 	service, err := NewConfig(m.(*schema.ResourceData), d)
-// 	if err != nil {
-// 		return diag.Errorf(err.Error())
-// 	}
-// 	return readRedfishSimpleUpdate(service, d)
-// }
+// simpleUpdateResource is the resource implementation.
+type simpleUpdateResource struct {
+	p *redfishProvider
+}
 
-// func resourceRedfishSimpleUpdateUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-// 	service, err := NewConfig(m.(*schema.ResourceData), d)
-// 	if err != nil {
-// 		return diag.Errorf(err.Error())
-// 	}
-// 	if diags := updateRedfishSimpleUpdate(ctx, service, d, m); diags.HasError() {
-// 		return diags
-// 	}
-// 	return resourceRedfishSimpleUpdateRead(ctx, d, m)
-// }
+// Configure implements resource.ResourceWithConfigure
+func (r *simpleUpdateResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+	r.p = req.ProviderData.(*redfishProvider)
+}
 
-// func resourceRedfishSimpleUpdateDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-// 	service, err := NewConfig(m.(*schema.ResourceData), d)
-// 	if err != nil {
-// 		return diag.Errorf(err.Error())
-// 	}
-// 	return deleteRedfishSimpleUpdate(service, d)
-// }
+// Metadata returns the resource type name.
+func (*simpleUpdateResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "simple_update"
+}
 
-// func readRedfishSimpleUpdate(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
-// 	var diags diag.Diagnostics
+func simpleUpdateSchema() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"id": schema.StringAttribute{
+			Description:         "ID of the simple update resource",
+			MarkdownDescription: "ID of the simple update resource",
+			Computed:            true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
+		},
+		"redfish_server": schema.SingleNestedAttribute{
+			MarkdownDescription: "Redfish Server",
+			Description:         "Redfish Server",
+			Required:            true,
+			Attributes:          RedfishServerSchema(),
+			PlanModifiers: []planmodifier.Object{
+				objectplanmodifier.RequiresReplace(),
+			},
+		},
+		"transfer_protocol": schema.StringAttribute{
+			Required: true,
+			Description: "The network protocol that the Update Service uses to retrieve the software image file located at the URI provided " +
+				"in ImageURI, if the URI does not contain a scheme." +
+				" Accepted values: CIFS, FTP, SFTP, HTTP, HTTPS, NSF, SCP, TFTP, OEM, NFS." +
+				" Currently only HTTP, HTTPS and NFS are supported with local file path or HTTP(s)/NFS link.",
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplace(),
+			},
+		},
+		/* For the time being, target_firmware_image will be the local path for our firmware packages.
+		   It is intended to work along HTTP transfer protocol
+		   In the future it could be used for targetting FTP/CIFS/NFS images
+		   TBD - Think about a custom diff function that grabs only the file name and not the path, to avoid unneeded update triggers
+		*/
+		"target_firmware_image": schema.StringAttribute{
+			Required: true,
+			Description: "Target firmware image used for firmware update on the redfish instance. " +
+				"Make sure you place your firmware packages in the same folder as the module and set " +
+				"it as follows: \"${path.module}/BIOS_FXC54_WN64_1.15.0.EXE\"",
+			// DiffSuppressFunc will allow moving fw packages through the filesystem without triggering an update if so.
+			// At the moment it uses filename to see if they're the same. We need to strengthen that by somehow using hashing
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplaceIf(
+					func(
+						_ context.Context,
+						req planmodifier.StringRequest,
+						resp *stringplanmodifier.RequiresReplaceIfFuncResponse,
+					) {
+						spath, ppath := req.StateValue.ValueString(), req.ConfigValue.ValueString()
+						resp.RequiresReplace = true
+						if filepath.Base(spath) == filepath.Base(ppath) {
+							resp.RequiresReplace = false
+						}
+					},
+					"",
+					"",
+				),
+			},
+		},
+		"reset_type": schema.StringAttribute{
+			Required: true,
+			Description: "Reset type allows to choose the type of restart to apply when firmware upgrade is scheduled." +
+				" Possible values are: \"ForceRestart\", \"GracefulRestart\" or \"PowerCycle\"",
+			Validators: []validator.String{
+				stringvalidator.OneOf([]string{
+					string(redfish.ForceRestartResetType),
+					string(redfish.GracefulRestartResetType),
+					string(redfish.PowerCycleResetType),
+				}...),
+			},
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplace(),
+			},
+		},
+		"reset_timeout": schema.Int64Attribute{
+			Optional:    true,
+			Computed:    true,
+			Default:     int64default.StaticInt64(int64(defaultSimpleUpdateResetTimeout)),
+			Description: "Time in seconds that the provider waits for the server to be reset before timing out.",
+		},
+		"simple_update_job_timeout": schema.Int64Attribute{
+			Optional:    true,
+			Computed:    true,
+			Default:     int64default.StaticInt64(int64(defaultSimpleUpdateJobTimeout)),
+			Description: "Time in seconds that the provider waits for the simple update job to be completed before timing out.",
+		},
+		"software_id": schema.StringAttribute{
+			Computed:    true,
+			Description: "Software ID from the firmware package uploaded",
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
+		},
+		"version": schema.StringAttribute{
+			Computed:    true,
+			Description: "Software version from the firmware package uploaded",
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
+		},
+	}
+}
 
-// 	// Try to get software inventory
-// 	_, err := redfish.GetSoftwareInventory(service.GetClient(), d.Id())
-// 	if err != nil {
-// 		_, ok := err.(*redfishcommon.Error)
-// 		if !ok {
-// 			return diag.Errorf("there was an issue with the API")
-// 		}
-// 		// the firmware package previously applied has changed, trigger update
-// 		d.SetId("")
-// 	}
+// Schema defines the schema for the resource.
+func (*simpleUpdateResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		MarkdownDescription: "Resource for managing power.",
+		Version:             1,
+		Attributes:          simpleUpdateSchema(),
+	}
+}
 
-// 	return diags
-// }
+// Create creates the resource and sets the initial Terraform state.
+func (r *simpleUpdateResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	tflog.Trace(ctx, "resource_simple_update create : Started")
+	// Get Plan Data
+	var plan models.SimpleUpdateRes
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	service, err := NewConfig(r.p, &plan.RedfishServer)
+	if err != nil {
+		resp.Diagnostics.AddError("service error", err.Error())
+		return
+	}
+	system, err := getSystemResource(service)
+	if err != nil {
+		resp.Diagnostics.AddError("system error", err.Error())
+		return
+	}
 
-// func updateRedfishSimpleUpdate(ctx context.Context, service *gofish.Service, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-// 	var diags diag.Diagnostics
+	plan.Id = types.StringValue(system.SerialNumber + "_simple_update")
 
-// 	// Lock the mutex to avoid race conditions with other resources
-// 	redfishMutexKV.Lock(getRedfishServerEndpoint(d))
-// 	defer redfishMutexKV.Unlock(getRedfishServerEndpoint(d))
+	// resetType := plan.DesiredPowerAction.ValueString()
+	updater := simpleUpdater{
+		ctx:     ctx,
+		service: service,
+	}
+	dia, state := updater.updateRedfishSimpleUpdate(plan)
+	resp.Diagnostics.Append(dia...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-// 	transferProtocol := d.Get("transfer_protocol").(string)
-// 	targetFirmwareImage := d.Get("target_firmware_image").(string)
-// 	resetType := d.Get("reset_type").(string)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
 
-// 	// Check if chosen reset type is supported before doing anything else
-// 	systems, err := service.Systems()
-// 	if err != nil {
-// 		return diag.Errorf("Couldn't retrieve allowed reset types from systems - %s", err)
-// 	}
-// 	if ok := checkResetType(resetType, systems[0].SupportedResetTypes); !ok {
-// 		return diag.Errorf("reset type %s is not available in this redfish implementation", resetType)
-// 	}
+// Read refreshes the resource and writes to state
+func (r *simpleUpdateResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	tflog.Trace(ctx, "resource_simple_update read : Started")
+	// Get Plan Data
+	var state models.SimpleUpdateRes
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	service, err := NewConfig(r.p, &state.RedfishServer)
+	if err != nil {
+		resp.Diagnostics.AddError("service error", err.Error())
+		return
+	}
+	dia, newState := readRedfishSimpleUpdate(service, state)
+	resp.Diagnostics.Append(dia...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &newState)...)
+}
 
-// 	// Get update service from root
-// 	updateService, err := service.UpdateService()
-// 	if err != nil {
-// 		return diag.Errorf("error while retrieving UpdateService - %s", err)
-// 	}
+// Update also refreshes the resource and writes to state
+func (*simpleUpdateResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	// update can be triggerred by only a change in image path, where base name of image remains same
+	// So set plan to state.
+	tflog.Trace(ctx, "resource_simple_update update : Started")
+	// Get Plan Data
+	var plan models.SimpleUpdateRes
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+}
 
-// 	//Check if the transfer protocol is available in the redfish instance
-// 	err = checkTransferProtocol(transferProtocol, updateService)
-// 	if err != nil {
-// 		var availableTransferProtocols string
-// 		for _, v := range updateService.TransferProtocol {
-// 			availableTransferProtocols += fmt.Sprintf("%s ", v)
-// 		}
-// 		return diag.Errorf("%s. Supported transfer protocols in this implementation: %s", err, availableTransferProtocols) // !!!! append list of supported transfer protocols
-// 	}
+// Delete removes resource from state
+func (*simpleUpdateResource) Delete(ctx context.Context, _ resource.DeleteRequest, resp *resource.DeleteResponse) {
+	resp.State.RemoveResource(ctx)
+}
 
-// 	if transferProtocol == "NFS" {
-// 		err := pullUpdate(service, d, resetType)
-// 		if err != nil {
-// 			return diag.Errorf(" %s", err)
-// 		}
-// 	} else if transferProtocol == "HTTP" || transferProtocol == "HTTPS" {
-// 		if strings.HasPrefix(targetFirmwareImage, "http") {
-// 			err := pullUpdate(service, d, resetType)
-// 			if err != nil {
-// 				return diag.Errorf(" %s", err)
-// 			}
-// 		} else {
-// 			// Get ETag from FW inventory
-// 			response, err := service.GetClient().Get(updateService.FirmwareInventory)
-// 			if err != nil {
-// 				diag.Errorf("error while retrieving Etag from FirmwareInventory")
-// 			}
-// 			response.Body.Close()
-// 			etag := response.Header.Get("ETag")
+func readRedfishSimpleUpdate(service *gofish.Service, d models.SimpleUpdateRes) (diag.Diagnostics, models.SimpleUpdateRes) {
+	var diags diag.Diagnostics
 
-// 			// Set custom headers
-// 			customHeaders := map[string]string{
-// 				"if-match": etag,
-// 			}
+	// Try to get software inventory
+	_, err := redfish.GetSoftwareInventory(service.GetClient(), d.Id.ValueString())
+	if err != nil {
+		_, ok := err.(*redfishcommon.Error)
+		if !ok {
+			diags.AddError("there was an issue with the API", err.Error())
+		} else {
+			// the firmware package previously applied has changed, trigger update
+			d.Image = types.StringNull()
+		}
+	}
 
-// 			// Open file to upload
-// 			file, err := openFile(targetFirmwareImage)
-// 			if err != nil {
-// 				return diag.Errorf("couldn't open FW file to upload - %s", err)
-// 			}
-// 			defer file.Close()
+	return diags, d
+}
 
-// 			// Set payload
-// 			payload := map[string]io.Reader{
-// 				"file": file,
-// 			}
+type simpleUpdater struct {
+	ctx           context.Context
+	service       *gofish.Service
+	updateService *redfish.UpdateService
+}
 
-// 			// Upload FW Package to FW inventory
-// 			response, err = service.GetClient().PostMultipartWithHeaders(updateService.HTTPPushURI, payload, customHeaders)
-// 			if err != nil {
-// 				return diag.Errorf("there was an issue when uploading FW package to redfish - %s", err)
-// 			}
-// 			response.Body.Close()
-// 			packageLocation := response.Header.Get("Location")
+func (u *simpleUpdater) updateRedfishSimpleUpdate(d models.SimpleUpdateRes) (diag.Diagnostics, models.SimpleUpdateRes) {
+	var diags diag.Diagnostics
+	ret := d
 
-// 			// Get package information ( SoftwareID - Version )
-// 			packageInformation, err := redfish.GetSoftwareInventory(service.GetClient(), packageLocation)
-// 			if err != nil {
-// 				return diag.Errorf("there was an issue when retrieving uploaded package information - %s", err)
-// 			}
+	transferProtocol := d.Protocol.ValueString()
+	targetFirmwareImage := d.Image.ValueString()
+	resetType := d.ResetType.ValueString()
 
-// 			// Set payload for POST call that'll trigger the update job scheduling
-// 			triggerUpdatePayload := struct {
-// 				ImageURI string
-// 			}{
-// 				ImageURI: packageLocation,
-// 			}
-// 			// Do the POST call against Simple.Update service
-// 			response, err = service.GetClient().Post(updateService.UpdateServiceTarget, triggerUpdatePayload)
-// 			if err != nil {
-// 				// Delete uploaded package - TBD
-// 				return diag.Errorf("there was an issue when scheduling the update job - %s", err)
-// 			}
-// 			response.Body.Close()
+	// Check if chosen reset type is supported before doing anything else
+	systems, err := u.service.Systems()
+	if err != nil {
+		diags.AddError(
+			"Couldn't retrieve allowed reset types from systems",
+			err.Error(),
+		)
+		return diags, ret
+	}
+	tflog.Debug(u.ctx, "resource_simple_update : found system")
 
-// 			err = updateJobStatus(service, d, response, resetType)
-// 			if err != nil {
-// 				diag.Errorf("Error running job %v", err)
-// 			}
-// 			// Get updated FW inventory
-// 			fwInventory, err := updateService.FirmwareInventories()
-// 			if err != nil {
-// 				// TBD - HOW TO HANDLE WHEN FAILS BUT FIRMWARE WAS INSTALLED?
-// 				return diag.Errorf("error when getting firmware inventory - %s", err)
-// 			}
+	if ok := checkResetType(resetType, systems[0].SupportedResetTypes); !ok {
+		diags.AddError(
+			fmt.Sprintf("Reset type %s is not available in this redfish implementation", resetType),
+			err.Error(),
+		)
+		return diags, ret
+	}
+	tflog.Debug(u.ctx, "resource_simple_update : reset type "+resetType+"is available")
 
-// 			// Get fw ID
-// 			fwPackage, err := getFWfromInventory(fwInventory, packageInformation.SoftwareID, packageInformation.Version)
-// 			if err != nil {
-// 				// TBD - HOW TO HANDLE WHEN FAILS BUT FIRMWARE WAS INSTALLED?
-// 				return diag.Errorf("error when retrieving fw package from fw inventory - %s", err)
-// 			}
-// 			d.Set("software_id", fwPackage.SoftwareID)
-// 			d.Set("version", fwPackage.Version)
-// 			d.SetId(fwPackage.ODataID)
+	// Get update service from root
+	updateService, err := u.service.UpdateService()
+	if err != nil {
+		diags.AddError("error while retrieving UpdateService", err.Error())
+		return diags, ret
+	}
+	tflog.Debug(u.ctx, "resource_simple_update : found update service")
+	u.updateService = updateService
 
-// 			diags = readRedfishSimpleUpdate(service, d)
+	// Check if the transfer protocol is available in the redfish instance
+	err = checkTransferProtocol(transferProtocol, updateService)
+	if err != nil {
+		var availableTransferProtocols string
+		for _, v := range updateService.TransferProtocol {
+			availableTransferProtocols += fmt.Sprintf("%s ", v)
+		}
+		diags.AddError(
+			err.Error(),
+			fmt.Sprintf("Supported transfer protocols in this implementation: %s", availableTransferProtocols),
+		)
+		return diags, ret // !!!! append list of supported transfer protocols
+	}
+	tflog.Debug(u.ctx, "resource_simple_update : update type "+transferProtocol+" is valid")
 
-// 			return diags
-// 		}
-// 	} else {
-// 		return diag.Errorf("Transfer protocol not available in this implementation")
-// 	}
+	if transferProtocol == "NFS" {
+		tflog.Info(u.ctx, "Remote NFS protocol detected")
+		ret, err = u.pullUpdate(ret)
+		if err != nil {
+			diags.AddError(err.Error(), "")
+		}
+		tflog.Debug(u.ctx, "Update Complete")
+	} else if transferProtocol == "HTTP" || transferProtocol == "HTTPS" {
+		if strings.HasPrefix(targetFirmwareImage, "http") {
+			tflog.Info(u.ctx, "Remote HTTP protocol detected")
+			ret, err = u.pullUpdate(ret)
+			if err != nil {
+				diags.AddError(err.Error(), "")
+			}
+			tflog.Debug(u.ctx, "Update Complete")
+		} else {
+			tflog.Info(u.ctx, "Local firmware detected")
+			fwPackage, err := u.uploadLocalFirmware(ret)
+			if err != nil {
+				// TBD - HOW TO HANDLE WHEN FAILS BUT FIRMWARE WAS INSTALLED?
+				diags.AddError(err.Error(), "")
+				return diags, ret
+			}
+			ret.SoftwareId = types.StringValue(fwPackage.SoftwareID)
+			ret.Version = types.StringValue(fwPackage.Version)
+			ret.Id = types.StringValue(fwPackage.ODataID)
+			tflog.Info(u.ctx, "Uploading Local Firmware Complete")
 
-// 	return diags
-// }
+			diagsRead, state := readRedfishSimpleUpdate(u.service, ret)
+			diags.Append(diagsRead...)
+			ret = state
+		}
+	} else {
+		diags.AddError("Transfer protocol not available in this implementation", "")
+	}
 
-// func deleteRedfishSimpleUpdate(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
-// 	var diags diag.Diagnostics
+	return diags, ret
+}
 
-// 	d.SetId("")
+func (u *simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.SoftwareInventory, error) {
+	// Get ETag from FW inventory
+	service, updateService := u.service, u.updateService
+	response, err := service.GetClient().Get(updateService.FirmwareInventory)
+	if err != nil {
+		return nil, fmt.Errorf("error while retrieving Etag from FirmwareInventory: %w", err)
+	}
+	response.Body.Close()
+	etag := response.Header.Get("ETag")
 
-// 	return diags
-// }
+	// Set custom headers
+	customHeaders := map[string]string{
+		"if-match": etag,
+	}
 
-// // checkResetType check if the resetType passed is within the allowableValues slice
-// func checkResetType(resetType string, allowableValues []redfish.ResetType) bool {
-// 	for _, v := range allowableValues {
-// 		if resetType == string(v) {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }
+	// Open file to upload
+	file, err := openFile(d.Image.ValueString())
+	if err != nil {
+		return nil, fmt.Errorf("couldn't open FW file to upload - %w", err)
+	}
+	defer file.Close()
 
-// // openFile is a simple function that opens a file
-// func openFile(filePath string) (*os.File, error) {
-// 	if f, err := os.Open(filePath); err != nil {
-// 		return nil, fmt.Errorf("error when opening %s file - %s", filePath, err)
-// 	} else {
-// 		return f, nil
-// 	}
-// }
+	// Set payload
+	payload := map[string]io.Reader{
+		"file": file,
+	}
 
-// // checkTransferProtocol checks if the chosen transfer protocol is available in the redfish instance
-// func checkTransferProtocol(transferProtocol string, updateService *redfish.UpdateService) error {
-// 	for _, v := range updateService.TransferProtocol {
-// 		if transferProtocol == v {
-// 			return nil
-// 		}
-// 	}
-// 	return fmt.Errorf("this transfer protocol is not available in this redfish instance")
-// }
+	// Upload FW Package to FW inventory
+	response, err = service.GetClient().PostMultipartWithHeaders(updateService.HTTPPushURI, payload, customHeaders)
+	if err != nil {
+		return nil, fmt.Errorf("there was an issue when uploading FW package to redfish - %w", err)
+	}
+	response.Body.Close()
+	packageLocation := response.Header.Get("Location")
 
-// // getFWfromInventory get the right SoftwareInventory struct if exists
-// func getFWfromInventory(softwareInventories []*redfish.SoftwareInventory, softwareID, version string) (*redfish.SoftwareInventory, error) {
-// 	for _, v := range softwareInventories {
-// 		if v.SoftwareID == softwareID && v.Version == version {
-// 			return v, nil
-// 		}
-// 	}
-// 	return nil, fmt.Errorf("couldn't find FW on Firmware inventory")
-// }
-// func pullUpdate(service *gofish.Service, d *schema.ResourceData, resetType string) error {
+	// Get package information ( SoftwareID - Version )
+	packageInformation, err := redfish.GetSoftwareInventory(service.GetClient(), packageLocation)
+	if err != nil {
+		return nil, fmt.Errorf("there was an issue when retrieving uploaded package information - %w", err)
+	}
 
-// 	// Get update service from root
-// 	updateService, err := service.UpdateService()
-// 	if err != nil {
-// 		return fmt.Errorf("error while retrieving UpdateService - %s", err)
-// 	}
+	// Set payload for POST call that'll trigger the update job scheduling
+	triggerUpdatePayload := struct {
+		ImageURI string
+	}{
+		ImageURI: packageLocation,
+	}
+	// Do the POST call against Simple.Update service
+	response, err = service.GetClient().Post(updateService.UpdateServiceTarget, triggerUpdatePayload)
+	if err != nil {
+		// Delete uploaded package - TBD
+		return nil, fmt.Errorf("there was an issue when scheduling the update job - %w", err)
+	}
+	response.Body.Close()
 
-// 	protocol := d.Get("transfer_protocol")
-// 	imagePath := d.Get("target_firmware_image")
-// 	httpURI := updateService.UpdateServiceTarget
+	// Get jobid
+	jobID := response.Header.Get("Location")
+	d.Id = types.StringValue(jobID)
+	err = u.updateJobStatus(d)
+	if err != nil {
+		return nil, fmt.Errorf("error running job %w", err)
+	}
+	tflog.Debug(u.ctx, "resource_simple_update : Job finished successfully")
+	// Get updated FW inventory
+	// sleep time to allow the inventory service to get started
+	time.Sleep(30 * time.Second)
+	fwInventory, err := updateService.FirmwareInventories()
+	if err != nil {
+		// TBD - HOW TO HANDLE WHEN FAILS BUT FIRMWARE WAS INSTALLED?
+		return nil, fmt.Errorf("error when getting firmware inventory - %w", err)
+	}
+	tflog.Debug(u.ctx, "resource_simple_update : Retrieved Firmware Inventories")
 
-// 	payload := make(map[string]interface{})
-// 	payload["ImageURI"] = imagePath
-// 	payload["TransferProtocol"] = protocol
+	inv, err := getFWfromInventory(fwInventory, packageInformation.SoftwareID, packageInformation.Version)
+	if err != nil {
+		err = fmt.Errorf("error when retrieving fw package from fw inventory - %w", err)
+	}
+	tflog.Debug(u.ctx, "resource_simple_update : Retrieved Status from Inventories")
+	return inv, err
+}
 
-// 	response, err := service.GetClient().Post(httpURI, payload)
-// 	if err != nil {
-// 		// Delete uploaded package - TBD
-// 		return fmt.Errorf("there was an issue when scheduling the update job - %s", err)
-// 	}
+// checkResetType check if the resetType passed is within the allowableValues slice
+func checkResetType(resetType string, allowableValues []redfish.ResetType) bool {
+	for _, v := range allowableValues {
+		if resetType == string(v) {
+			return true
+		}
+	}
+	return false
+}
 
-// 	// Get jobid
-// 	jobID := response.Header.Get("Location")
-// 	err = updateJobStatus(service, d, response, resetType)
-// 	if err != nil {
-// 		// Delete uploaded package - TBD
-// 		return fmt.Errorf("there was an issue when waiting for the job to complete - %s", err)
-// 	}
+// openFile is a simple function that opens a file
+func openFile(filePath string) (*os.File, error) {
+	f, err := os.Open(filePath)
+	if err != nil {
+		err = fmt.Errorf("error when opening %s file - %w", filePath, err)
+	}
+	return f, err
+}
 
-// 	job, err := redfish.GetTask(service.GetClient(), jobID)
-// 	if len(job.Messages) > 0 {
-// 		message := job.Messages[0].Message
-// 		if strings.Contains(message, "Unable to transfer") || strings.Contains(message, "Module took more time than expected.") {
-// 			return fmt.Errorf("please check the image path, download failed")
-// 		}
-// 	}
+// checkTransferProtocol checks if the chosen transfer protocol is available in the redfish instance
+func checkTransferProtocol(transferProtocol string, updateService *redfish.UpdateService) error {
+	for _, v := range updateService.TransferProtocol {
+		if transferProtocol == v {
+			return nil
+		}
+	}
+	return fmt.Errorf("this transfer protocol is not available in this redfish instance")
+}
 
-// 	swInventory, err := redfish.GetSoftwareInventory(service.GetClient(), d.Id())
-// 	if err != nil {
-// 		return fmt.Errorf("unable to fetch data %v", err)
-// 	}
-// 	d.SetId(swInventory.ODataID)
-// 	return nil
-// }
+// getFWfromInventory get the right SoftwareInventory struct if exists
+func getFWfromInventory(softwareInventories []*redfish.SoftwareInventory, softwareID, version string) (*redfish.SoftwareInventory, error) {
+	for _, v := range softwareInventories {
+		if v.SoftwareID == softwareID && v.Version == version {
+			return v, nil
+		}
+	}
+	return nil, fmt.Errorf("couldn't find FW on Firmware inventory")
+}
 
-// func updateJobStatus(service *gofish.Service, d *schema.ResourceData, response *http.Response, resetType string) error {
-// 	// Get jobid
-// 	jobID := response.Header.Get("Location")
+func (u *simpleUpdater) pullUpdate(d models.SimpleUpdateRes) (models.SimpleUpdateRes, error) {
+	// Get update service from root
+	updateService := u.updateService
+	service := u.service
 
-// 	resetTimeout, ok := d.GetOk("reset_timeout")
-// 	if !ok {
-// 		resetTimeout = defaultSimpleUpdateResetTimeout
-// 	}
-// 	simpleUpdateJobTimeout, ok := d.GetOk("simple_update_job_timeout")
-// 	if !ok {
-// 		simpleUpdateJobTimeout = defaultSimpleUpdateJobTimeout
-// 	}
-// 	log.Printf("[DEBUG] resetTimeout is set to %d and simpleUpdateJobTimeout to %d", resetTimeout.(int), simpleUpdateJobTimeout.(int))
+	protocol := d.Protocol.ValueString()
+	imagePath := d.Image.ValueString()
+	httpURI := updateService.UpdateServiceTarget
 
-// 	// Reboot the server
-// 	_, diags := PowerOperation(resetType, resetTimeout.(int), intervalSimpleUpdateJobCheckTime, service)
-// 	if diags.HasError() {
-// 		// Delete uploaded package - TBD
-// 		return fmt.Errorf("there was an issue when restarting the server")
-// 	}
+	payload := make(map[string]interface{})
+	payload["ImageURI"] = imagePath
+	payload["TransferProtocol"] = protocol
+	tflog.Trace(u.ctx, fmt.Sprintf("resource_simple_update : Job is scheduling payload %v", payload))
 
-// 	// Check JID
-// 	err := common.WaitForJobToFinish(service, jobID, intervalSimpleUpdateJobCheckTime, simpleUpdateJobTimeout.(int))
-// 	if err != nil {
-// 		// Delete uploaded package - TBD
-// 		return fmt.Errorf("there was an issue when waiting for the job to complete - %s", err)
-// 	}
+	response, err := service.GetClient().Post(httpURI, payload)
+	if err != nil {
+		// Delete uploaded package - TBD
+		return d, fmt.Errorf("there was an issue when scheduling the update job - %s", err)
+	}
 
-// 	return nil
-// }
+	// Get jobid
+	jobID := response.Header.Get("Location")
+	tflog.Info(u.ctx, "resource_simple_update : Job is scheduled with id "+jobID)
+
+	d.Id = types.StringValue(jobID)
+	err = u.updateJobStatus(d)
+	if err != nil {
+		// Delete uploaded package - TBD
+		return d, fmt.Errorf("there was an issue when waiting for the job to complete - %s", err)
+	}
+
+	job, err := redfish.GetTask(service.GetClient(), jobID)
+	if len(job.Messages) > 0 {
+		message := job.Messages[0].Message
+		if strings.Contains(message, "Unable to transfer") || strings.Contains(message, "Module took more time than expected.") {
+			err = errors.Join(err, fmt.Errorf("please check the image path, download failed"))
+		}
+	}
+	if err != nil {
+		return d, err
+	}
+	tflog.Info(u.ctx, "Retrieved successful task")
+
+	swInventory, err := redfish.GetSoftwareInventory(service.GetClient(), d.Id.ValueString())
+	if err != nil {
+		return d, fmt.Errorf("unable to fetch data %w", err)
+	}
+	tflog.Debug(u.ctx, "Retrieved inventory with ID "+swInventory.ODataID)
+
+	d.Id = types.StringValue(swInventory.ODataID)
+	d.Version = types.StringValue(swInventory.Version)
+	d.SoftwareId = types.StringValue(swInventory.SoftwareID)
+	return d, nil
+}
+
+func (u *simpleUpdater) updateJobStatus(d models.SimpleUpdateRes) error {
+	// Get jobid
+	jobID := d.Id.ValueString()
+
+	resetTimeout := d.ResetTimeout.ValueInt64()
+	simpleUpdateJobTimeout := d.JobTimeout.ValueInt64()
+	tflog.Debug(u.ctx, fmt.Sprintf(
+		"resource_simple_update : resetTimeout is set to %d and simpleUpdateJobTimeout to %d",
+		resetTimeout,
+		simpleUpdateJobTimeout))
+
+	// Reboot the server
+	tflog.Debug(u.ctx, "Rebooting the server")
+	pOp := powerOperator{u.ctx, u.service}
+	_, err := pOp.PowerOperation(d.ResetType.ValueString(), resetTimeout, intervalSimpleUpdateJobCheckTime)
+	if err != nil {
+		// Delete uploaded package - TBD
+		return fmt.Errorf("there was an issue when restarting the server: %w", err)
+	}
+	tflog.Debug(u.ctx, "Reboot Complete")
+
+	// Check JID
+	err = common.WaitForJobToFinish(u.service, jobID, intervalSimpleUpdateJobCheckTime, simpleUpdateJobTimeout)
+	if err != nil {
+		// Delete uploaded package - TBD
+		return fmt.Errorf("there was an issue when waiting for the job to complete - %w", err)
+	}
+	tflog.Debug(u.ctx, "Job has been completed")
+
+	return nil
+}
