@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -25,7 +26,7 @@ type TestingServerCredentials struct {
 func init() {
 	err := godotenv.Load("redfish_test.env")
 	if err != nil {
-		panic(err)
+		fmt.Println(err.Error())
 	}
 
 	testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
