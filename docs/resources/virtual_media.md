@@ -80,9 +80,15 @@ limitations under the License.
 
 rack1 = {
   "my-server-1" = {
-    user         = "root"
-    password     = "calvin"
-    endpoint     = "https://10.226.197.128"
+    user         = "admin"
+    password     = "passw0rd"
+    endpoint     = "https://my-server-1.myawesomecompany.org"
+    ssl_insecure = true
+  },
+  "my-server-2" = {
+    user         = "admin"
+    password     = "passw0rd"
+    endpoint     = "https://my-server-2.myawesomecompany.org"
     ssl_insecure = true
   },
 }
