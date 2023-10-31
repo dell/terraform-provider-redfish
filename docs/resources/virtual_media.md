@@ -150,11 +150,11 @@ resource "redfish_virtual_media" "vm" {
   }
   // Image to be attached to virtual media
   # image           = "http://inuxlib.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img"
-  image = "http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img"
-  # transfer_method = "Stream"
+  image           = "http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img"
+  transfer_method = "Stream"
   // Network protocol used to fetch the image
-  # transfer_protocol_type = "HTTP"
-  write_protected = true
+  transfer_protocol_type = "HTTP"
+  write_protected        = true
 }
 ```
 
