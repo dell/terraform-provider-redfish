@@ -129,8 +129,21 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
+	// Validate image extension
+	image := plan.Image.ValueString()
+	if !strings.HasSuffix(image, ".iso") && !strings.HasSuffix(image, ".img") {
+		resp.Diagnostics.AddError("Couldn't mount Virtual Media", "Unable to Process the request because the value entered for the parameter Image is not supported by the implementation.Please provide an image with extension iso or img.")
+		return
+	}
+
+	// Validate transfer method
+	if plan.TransferMethod.ValueString() == "Upload" {
+		resp.Diagnostics.AddError("Couldn't mount Virtual Media", "Unable to Process the request because the value entered for the parameter TransferMethod is not supported by the implementation.")
+		return
+	}
+
 	virtualMediaConfig := redfish.VirtualMediaConfig{
-		Image:                plan.Image.ValueString(),
+		Image:                image,
 		Inserted:             plan.Inserted.ValueBool(),
 		TransferMethod:       plan.TransferMethod.ValueString(),
 		TransferProtocolType: plan.TransferProtocolType.ValueString(),
@@ -173,7 +186,7 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 			if !virtualMedia.Inserted {
 				err = virtualMedia.InsertMediaConfig(virtualMediaConfig)
 				if err != nil {
-					resp.Diagnostics.AddError("Couldn't mount Virtual Media ", err.Error())
+					resp.Diagnostics.AddError("Couldn't mount Virtual Media", err.Error())
 					return
 				}
 
@@ -326,14 +339,16 @@ func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
+	// Validate image extension
 	image := plan.Image.ValueString()
 	if !strings.HasSuffix(image, ".iso") && !strings.HasSuffix(image, ".img") {
-		resp.Diagnostics.AddError("Error: ", "Unable to Process the request because the value entered for the parameter Image is not supported by the implementation. Please provide an image with extension iso or img.")
+		resp.Diagnostics.AddError("Couldn't mount Virtual Media", "Unable to Process the request because the value entered for the parameter Image is not supported by the implementation.Please provide an image with extension iso or img.")
 		return
 	}
 
+	// Validate transfer method
 	if plan.TransferMethod.ValueString() == "Upload" {
-		resp.Diagnostics.AddError("Error: ", "Unable to Process the request because the value entered for the parameter TransferMethod is not supported by the implementation.")
+		resp.Diagnostics.AddError("Couldn't mount Virtual Media", "Unable to Process the request because the value entered for the parameter TransferMethod is not supported by the implementation.")
 		return
 	}
 
@@ -353,7 +368,7 @@ func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRe
 		WriteProtected:       state.WriteProtected.ValueBool(),
 	}
 
-	// Hot update os not possible. Unmount and mount needs to be done to update
+	// Hot update is not possible. Unmount and mount needs to be done to update
 	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), state.VirtualMediaID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Virtual Media doesn't exist: %s", err.Error()) // This error won't be triggered ever
@@ -414,7 +429,7 @@ func (r *virtualMediaResource) Delete(ctx context.Context, req resource.DeleteRe
 		return
 	}
 
-	// Get virtual media deatails
+	// Get virtual media details
 	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), state.VirtualMediaID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Virtual Media doesn't exist: ", err.Error()) // This error won't be triggered ever
@@ -425,6 +440,15 @@ func (r *virtualMediaResource) Delete(ctx context.Context, req resource.DeleteRe
 	err = virtualMedia.EjectMedia()
 	if err != nil {
 		resp.Diagnostics.AddError("There was an error when ejecting media: ", err.Error())
+		return
+	}
+
+	// Save into State
+	result := models.VirtualMedia{}
+	r.updateVirtualMediaState(&result, *virtualMedia, &state)
+	diags = resp.State.Set(ctx, &result)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
