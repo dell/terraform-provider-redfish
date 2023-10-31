@@ -24,13 +24,11 @@ func TestAccRedfishBiosDataSource_basic(t *testing.T) {
 func testAccRedfishDataSourceBiosConfig(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
 		
-		data "redfish_bios" "bios" {
-		
-		  redfish_server {
+		data "redfish_bios" "bios" {		
+		  redfish_server = {
 			user = "%s"
 			password = "%s"
 			endpoint = "https://%s"
-			ssl_insecure = true
 		  }
 		}
 		`,

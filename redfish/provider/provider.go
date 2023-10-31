@@ -99,14 +99,16 @@ func (*redfishProvider) Resources(_ context.Context) []func() resource.Resource 
 	return []func() resource.Resource{
 		NewPowerResource,
 		NewVirtualMediaResource,
+		NewUserAccountResource,
 		NewSimpleUpdateResource,
 		NewDellIdracAttributesResource,
 	}
 }
 
-// DataSources function to add new datasource
+// DataSources function to add new data-source
 func (*redfishProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
+		NewBiosDatasource,
 		NewDellIdracAttributesDatasource,
 	}
 }
