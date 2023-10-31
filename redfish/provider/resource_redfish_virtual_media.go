@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
 )
 
@@ -152,7 +153,6 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		TransferProtocolType: plan.TransferProtocolType.ValueString(),
 		WriteProtected:       plan.WriteProtected.ValueBool(),
 	}
-
 	// Get service
 	service, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
@@ -175,27 +175,14 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		resp.Diagnostics.AddError("Couldn't retrieve virtual media collection from redfish API", err.Error())
 		return
 	}
-
 	if len(virtualMediaCollection) != 0 {
 		for index := range virtualMediaCollection {
-			// Get specific virtual media
-			virtualMedia, err := getVirtualMedia(virtualMediaCollection[index].ID, virtualMediaCollection)
+			virtualMedia, err := insertMedia(virtualMediaCollection[index].ID, virtualMediaCollection, virtualMediaConfig, service)
 			if err != nil {
-				resp.Diagnostics.AddError("Virtual Media selected doesn't exist: %s", err.Error())
+				resp.Diagnostics.AddError("Error: %s", err.Error())
 				return
 			}
-			if !virtualMedia.Inserted {
-				err = virtualMedia.InsertMediaConfig(virtualMediaConfig)
-				if err != nil {
-					resp.Diagnostics.AddError(mountError, err.Error())
-					return
-				}
-				// Get virtual media details
-				virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), virtualMedia.ODataID)
-				if err != nil {
-					resp.Diagnostics.AddError("Virtual Media selected doesn't exist: %s", err.Error())
-					return
-				}
+			if virtualMedia != nil {
 				// Save into State
 				result := models.VirtualMedia{}
 				r.updateVirtualMediaState(&result, *virtualMedia, &plan)
@@ -225,24 +212,13 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		} else {
 			virtualMediaID = "RemovableDisk"
 		}
-		// Get specific virtual media
-		virtualMedia, err := getVirtualMedia(virtualMediaID, virtualMediaCollection)
+
+		virtualMedia, err := insertMedia(virtualMediaID, virtualMediaCollection, virtualMediaConfig, service)
 		if err != nil {
-			resp.Diagnostics.AddError("Virtual Media selected doesn't exist: ", err.Error())
+			resp.Diagnostics.AddError("Error: %s", err.Error())
 			return
 		}
-		if !virtualMedia.Inserted {
-			err = virtualMedia.InsertMediaConfig(virtualMediaConfig)
-			if err != nil {
-				resp.Diagnostics.AddError("Couldn't mount Virtual Media ", err.Error())
-				return
-			}
-			// Get virtual media details
-			virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), virtualMedia.ODataID)
-			if err != nil {
-				resp.Diagnostics.AddError("Virtual Media selected doesn't exist: %s", err.Error())
-				return
-			}
+		if virtualMedia != nil {
 			// Save into State
 			result := models.VirtualMedia{}
 			r.updateVirtualMediaState(&result, *virtualMedia, &plan)
@@ -252,11 +228,10 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 			return
 		}
 	}
-
 	// if no virtual media is available
 	resp.Diagnostics.AddError("Error: There are no Virtual Medias to mount", "Please detach media and try again")
 	resp.Diagnostics.Append(diags...)
-	tflog.Trace(ctx, "resource_power update: finished")
+	tflog.Trace(ctx, "resource_virtual_media create: finished")
 }
 
 // Read refreshes the Terraform state with the latest data.
@@ -445,6 +420,25 @@ func getVirtualMedia(virtualMediaID string, vms []*redfish.VirtualMedia) (*redfi
 		}
 	}
 	return nil, fmt.Errorf("VirtualMedia with ID %s doesn't exist", virtualMediaID)
+}
+
+func insertMedia(id string, collection []*redfish.VirtualMedia, config redfish.VirtualMediaConfig, s *gofish.Service) (*redfish.VirtualMedia, error) {
+	virtualMedia, err := getVirtualMedia(id, collection)
+	if err != nil {
+		return nil, fmt.Errorf("Virtual Media selected doesn't exist: %v", err.Error())
+	}
+	if !virtualMedia.Inserted {
+		err = virtualMedia.InsertMediaConfig(config)
+		if err != nil {
+			return nil, fmt.Errorf("Couldn't mount Virtual Media: %v", err.Error())
+		}
+		virtualMedia, err := redfish.GetVirtualMedia(s.GetClient(), virtualMedia.ODataID)
+		if err != nil {
+			return nil, fmt.Errorf("Virtual Media selected doesn't exist: %s", err.Error())
+		}
+		return virtualMedia, nil
+	}
+	return nil, err
 }
 
 // updateVirtualMediaState - Update virtual media details from response to state
