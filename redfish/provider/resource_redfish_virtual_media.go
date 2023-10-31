@@ -179,7 +179,7 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		for index := range virtualMediaCollection {
 			virtualMedia, err := insertMedia(virtualMediaCollection[index].ID, virtualMediaCollection, virtualMediaConfig, service)
 			if err != nil {
-				resp.Diagnostics.AddError("Error: %s", err.Error())
+				resp.Diagnostics.AddError("Error while inserting virtual media", err.Error())
 				return
 			}
 			if virtualMedia != nil {
@@ -215,7 +215,7 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 
 		virtualMedia, err := insertMedia(virtualMediaID, virtualMediaCollection, virtualMediaConfig, service)
 		if err != nil {
-			resp.Diagnostics.AddError("Error: %s", err.Error())
+			resp.Diagnostics.AddError("Error while inserting virtual media", err.Error())
 			return
 		}
 		if virtualMedia != nil {
