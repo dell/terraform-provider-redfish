@@ -32,8 +32,13 @@ type virtualMediaResource struct {
 	p *redfishProvider
 }
 
+const (
+	serviceError = "service error"
+	mountError   = "Couldn't mount Virtual Media"
+)
+
 // Configure implements resource.ResourceWithConfigure
-func (r *virtualMediaResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *virtualMediaResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -41,10 +46,11 @@ func (r *virtualMediaResource) Configure(ctx context.Context, req resource.Confi
 }
 
 // Metadata returns the resource type name.
-func (r *virtualMediaResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (*virtualMediaResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "virtual_media"
 }
 
+// VirtualMediaSchema defines the schema for the resource.
 func VirtualMediaSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"redfish_server": schema.SingleNestedAttribute{
@@ -65,8 +71,8 @@ func VirtualMediaSchema() map[string]schema.Attribute {
 		},
 		"inserted": schema.BoolAttribute{
 			Computed:            true,
-			Description:         "The URI of the remote media to attach to the virtual media",
-			MarkdownDescription: "The URI of the remote media to attach to the virtual media",
+			Description:         "Describes whether virtual media is attached or detached",
+			MarkdownDescription: "Describes whether virtual media is attached or detached",
 		},
 		"transfer_method": schema.StringAttribute{
 			Optional:            true,
@@ -110,7 +116,7 @@ func VirtualMediaSchema() map[string]schema.Attribute {
 }
 
 // Schema defines the schema for the resource.
-func (r *virtualMediaResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (*virtualMediaResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Resource for managing virtual media.",
 		Version:             1,
@@ -128,20 +134,17 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
 	// Validate image extension
 	image := plan.Image.ValueString()
 	if !strings.HasSuffix(image, ".iso") && !strings.HasSuffix(image, ".img") {
-		resp.Diagnostics.AddError("Couldn't mount Virtual Media", "Unable to Process the request because the value entered for the parameter Image is not supported by the implementation.Please provide an image with extension iso or img.")
+		resp.Diagnostics.AddError(mountError, "Unable to Process the request. Image extension should be .iso or .img")
 		return
 	}
-
 	// Validate transfer method
 	if plan.TransferMethod.ValueString() == "Upload" {
-		resp.Diagnostics.AddError("Couldn't mount Virtual Media", "Unable to Process the request because the value entered for the parameter TransferMethod is not supported by the implementation.")
+		resp.Diagnostics.AddError(mountError, "Unable to Process the request. TransferMethod upload is not supported.")
 		return
 	}
-
 	virtualMediaConfig := redfish.VirtualMediaConfig{
 		Image:                image,
 		Inserted:             plan.Inserted.ValueBool(),
@@ -153,10 +156,9 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 	// Get service
 	service, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
-		resp.Diagnostics.AddError("service error", err.Error())
+		resp.Diagnostics.AddError(serviceError, err.Error())
 		return
 	}
-
 	// Get Systems details
 	systems, err := service.Systems()
 	if err != nil {
@@ -167,7 +169,6 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		resp.Diagnostics.AddError("There is no system available", err.Error())
 		return
 	}
-
 	// Get virtual media collection
 	virtualMediaCollection, err := systems[0].VirtualMedia()
 	if err != nil {
@@ -186,10 +187,9 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 			if !virtualMedia.Inserted {
 				err = virtualMedia.InsertMediaConfig(virtualMediaConfig)
 				if err != nil {
-					resp.Diagnostics.AddError("Couldn't mount Virtual Media", err.Error())
+					resp.Diagnostics.AddError(mountError, err.Error())
 					return
 				}
-
 				// Get virtual media details
 				virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), virtualMedia.ODataID)
 				if err != nil {
@@ -199,12 +199,8 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 				// Save into State
 				result := models.VirtualMedia{}
 				r.updateVirtualMediaState(&result, *virtualMedia, &plan)
-				log.Printf("result: %v\n", result)
 				diags = resp.State.Set(ctx, &result)
 				resp.Diagnostics.Append(diags...)
-				if resp.Diagnostics.HasError() {
-					return
-				}
 				tflog.Trace(ctx, "resource_virtual_media create: finished")
 				return
 			}
@@ -217,21 +213,18 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 			resp.Diagnostics.AddError("Couldn't retrieve managers from redfish API: ", err.Error())
 			return
 		}
-
 		// Get virtual media collection
 		virtualMediaCollection, err := managers[0].VirtualMedia()
 		if err != nil {
 			resp.Diagnostics.AddError("Couldn't retrieve virtual media collection from redfish API: ", err.Error())
 			return
 		}
-
 		var virtualMediaID string
 		if strings.HasSuffix(plan.Image.ValueString(), ".iso") {
 			virtualMediaID = "CD"
 		} else {
 			virtualMediaID = "RemovableDisk"
 		}
-
 		// Get specific virtual media
 		virtualMedia, err := getVirtualMedia(virtualMediaID, virtualMediaCollection)
 		if err != nil {
@@ -244,22 +237,17 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 				resp.Diagnostics.AddError("Couldn't mount Virtual Media ", err.Error())
 				return
 			}
-
 			// Get virtual media details
 			virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), virtualMedia.ODataID)
 			if err != nil {
 				resp.Diagnostics.AddError("Virtual Media selected doesn't exist: %s", err.Error())
 				return
 			}
-
 			// Save into State
 			result := models.VirtualMedia{}
 			r.updateVirtualMediaState(&result, *virtualMedia, &plan)
 			diags = resp.State.Set(ctx, &result)
 			resp.Diagnostics.Append(diags...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
 			tflog.Trace(ctx, "resource_virtual_media create: finished")
 			return
 		}
@@ -269,9 +257,9 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 	resp.Diagnostics.AddError("Error: There are no Virtual Medias to mount", "Please detach media and try again")
 	resp.Diagnostics.Append(diags...)
 	tflog.Trace(ctx, "resource_power update: finished")
-	return
 }
 
+// Read refreshes the Terraform state with the latest data.
 func (r *virtualMediaResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	tflog.Trace(ctx, "resource_virtual_media read: started")
 	// Get State
@@ -285,7 +273,7 @@ func (r *virtualMediaResource) Read(ctx context.Context, req resource.ReadReques
 	// Get service
 	service, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
-		resp.Diagnostics.AddError("service error", err.Error())
+		resp.Diagnostics.AddError(serviceError, err.Error())
 		return
 	}
 
@@ -311,6 +299,7 @@ func (r *virtualMediaResource) Read(ctx context.Context, req resource.ReadReques
 	tflog.Trace(ctx, "resource_virtual_media read: finished")
 }
 
+// Update updates the resource and sets the updated Terraform state on success.
 func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Lock the mutex to avoid race conditions with other resources
 	// redfishMutexKV.Lock(getRedfishServerEndpoint(d))
@@ -335,20 +324,20 @@ func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRe
 	// Get service
 	service, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
-		resp.Diagnostics.AddError("service error", err.Error())
+		resp.Diagnostics.AddError(serviceError, err.Error())
 		return
 	}
 
 	// Validate image extension
 	image := plan.Image.ValueString()
 	if !strings.HasSuffix(image, ".iso") && !strings.HasSuffix(image, ".img") {
-		resp.Diagnostics.AddError("Couldn't mount Virtual Media", "Unable to Process the request because the value entered for the parameter Image is not supported by the implementation.Please provide an image with extension iso or img.")
+		resp.Diagnostics.AddError(mountError, "Unable to Process the request. Image extension should be .iso or .img")
 		return
 	}
 
 	// Validate transfer method
 	if plan.TransferMethod.ValueString() == "Upload" {
-		resp.Diagnostics.AddError("Couldn't mount Virtual Media", "Unable to Process the request because the value entered for the parameter TransferMethod is not supported by the implementation.")
+		resp.Diagnostics.AddError(mountError, "Unable to Process the request. TransferMethod upload is not supported.")
 		return
 	}
 
@@ -406,12 +395,10 @@ func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRe
 	log.Printf("result: %v\n", result)
 	diags = resp.State.Set(ctx, &result)
 	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	return
+	tflog.Trace(ctx, "resource_virtual_media update: finished")
 }
 
+// Delete deletes the resource and removes the Terraform state on success.
 func (r *virtualMediaResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	tflog.Trace(ctx, "resource_virtual_media delete: started")
 	// Get State Data
@@ -425,7 +412,7 @@ func (r *virtualMediaResource) Delete(ctx context.Context, req resource.DeleteRe
 	// Get service
 	service, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
-		resp.Diagnostics.AddError("service error", err.Error())
+		resp.Diagnostics.AddError(serviceError, err.Error())
 		return
 	}
 
@@ -448,11 +435,7 @@ func (r *virtualMediaResource) Delete(ctx context.Context, req resource.DeleteRe
 	r.updateVirtualMediaState(&result, *virtualMedia, &state)
 	diags = resp.State.Set(ctx, &result)
 	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	return
+	tflog.Trace(ctx, "resource_virtual_media delete: finished")
 }
 
 func getVirtualMedia(virtualMediaID string, vms []*redfish.VirtualMedia) (*redfish.VirtualMedia, error) {
@@ -465,14 +448,14 @@ func getVirtualMedia(virtualMediaID string, vms []*redfish.VirtualMedia) (*redfi
 }
 
 // updateVirtualMediaState - Update virtual media details from response to state
-func (r virtualMediaResource) updateVirtualMediaState(virtualMediaState *models.VirtualMedia, virtualMediaResponse redfish.VirtualMedia, virtualMediaPlan *models.VirtualMedia) {
-	virtualMediaState.VirtualMediaID = types.StringValue(virtualMediaResponse.ODataID)
-	virtualMediaState.Image = types.StringValue(virtualMediaResponse.Image)
-	virtualMediaState.Inserted = types.BoolValue(virtualMediaResponse.Inserted)
-	virtualMediaState.TransferMethod = types.StringValue(string(virtualMediaResponse.TransferMethod))
-	virtualMediaState.TransferProtocolType = types.StringValue(string(virtualMediaResponse.TransferProtocolType))
-	virtualMediaState.WriteProtected = types.BoolValue(virtualMediaResponse.WriteProtected)
-	virtualMediaState.RedfishServer = virtualMediaPlan.RedfishServer
+func (virtualMediaResource) updateVirtualMediaState(state *models.VirtualMedia, response redfish.VirtualMedia, plan *models.VirtualMedia) {
+	state.VirtualMediaID = types.StringValue(response.ODataID)
+	state.Image = types.StringValue(response.Image)
+	state.Inserted = types.BoolValue(response.Inserted)
+	state.TransferMethod = types.StringValue(string(response.TransferMethod))
+	state.TransferProtocolType = types.StringValue(string(response.TransferProtocolType))
+	state.WriteProtected = types.BoolValue(response.WriteProtected)
+	state.RedfishServer = plan.RedfishServer
 }
 
 // func getResourceRedfishVirtualMediaSchema() map[string]*schema.Schema {
@@ -598,7 +581,7 @@ func (r virtualMediaResource) updateVirtualMediaState(virtualMediaState *models.
 // 	//Get terraform schema data
 // 	image := d.Get("image").(string)
 // 	if !strings.HasSuffix(image, ".iso") && !strings.HasSuffix(image, ".img") {
-// 		return diag.Errorf("Unable to Process the request because the value entered for the parameter Image is not supported by the implementation. Please provide an image with extension iso or img.")
+// 		return diag.Errorf("Unable to Process the request.")
 // 	}
 
 // 	var transferMethod string
@@ -606,7 +589,7 @@ func (r virtualMediaResource) updateVirtualMediaState(virtualMediaState *models.
 // 		transferMethod = v.(string)
 // 	}
 // 	if transferMethod == "Upload" {
-// 		return diag.Errorf("Unable to Process the request because the value entered for the parameter TransferMethod is not supported by the implementation.")
+// 		return diag.Errorf("Unable to Process the request.")
 // 	}
 // 	var transferProtocolType string
 // 	if v, ok := d.GetOk("transfer_protocol_type"); ok {
@@ -777,7 +760,7 @@ func (r virtualMediaResource) updateVirtualMediaState(virtualMediaState *models.
 // 	//Get terraform schema data
 // 	image := d.Get("image").(string)
 // 	if !strings.HasSuffix(image, ".iso") && !strings.HasSuffix(image, ".img") {
-// 		return diag.Errorf("Unable to Process the request because the value entered for the parameter Image is not supported by the implementation. Please provide an image with extension iso or img.")
+// 		return diag.Errorf("Unable to Process the request.")
 // 	}
 
 // 	var transferMethod string
@@ -785,7 +768,7 @@ func (r virtualMediaResource) updateVirtualMediaState(virtualMediaState *models.
 // 		transferMethod = v.(string)
 // 	}
 // 	if transferMethod == "Upload" {
-// 		return diag.Errorf("Unable to Process the request because the value entered for the parameter TransferMethod is not supported by the implementation.")
+// 		return diag.Errorf("Unable to Process the request.")
 // 	}
 // 	var transferProtocolType string
 // 	if v, ok := d.GetOk("transfer_protocol_type"); ok {
