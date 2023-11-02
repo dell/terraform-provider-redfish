@@ -33,11 +33,6 @@ type virtualMediaResource struct {
 	p *redfishProvider
 }
 
-const (
-	serviceError = "service error"
-	mountError   = "Couldn't mount Virtual Media"
-)
-
 // Configure implements resource.ResourceWithConfigure
 func (r *virtualMediaResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
@@ -138,12 +133,12 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 	// Validate image extension
 	image := plan.Image.ValueString()
 	if !strings.HasSuffix(image, ".iso") && !strings.HasSuffix(image, ".img") {
-		resp.Diagnostics.AddError(mountError, "Unable to Process the request. Image extension should be .iso or .img")
+		resp.Diagnostics.AddError(RedfishVirtualMediaMountError, "Unable to Process the request. Image extension should be .iso or .img")
 		return
 	}
 	// Validate transfer method
 	if plan.TransferMethod.ValueString() == "Upload" {
-		resp.Diagnostics.AddError(mountError, "Unable to Process the request. TransferMethod upload is not supported.")
+		resp.Diagnostics.AddError(RedfishVirtualMediaMountError, "Unable to Process the request. TransferMethod upload is not supported.")
 		return
 	}
 	virtualMediaConfig := redfish.VirtualMediaConfig{
@@ -156,7 +151,7 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 	// Get service
 	service, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
-		resp.Diagnostics.AddError(serviceError, err.Error())
+		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
 	// Get Systems details
@@ -248,7 +243,7 @@ func (r *virtualMediaResource) Read(ctx context.Context, req resource.ReadReques
 	// Get service
 	service, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
-		resp.Diagnostics.AddError(serviceError, err.Error())
+		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
 
@@ -299,20 +294,20 @@ func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRe
 	// Get service
 	service, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
-		resp.Diagnostics.AddError(serviceError, err.Error())
+		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
 
 	// Validate image extension
 	image := plan.Image.ValueString()
 	if !strings.HasSuffix(image, ".iso") && !strings.HasSuffix(image, ".img") {
-		resp.Diagnostics.AddError(mountError, "Unable to Process the request. Image extension should be .iso or .img")
+		resp.Diagnostics.AddError(RedfishVirtualMediaMountError, "Unable to Process the request. Image extension should be .iso or .img")
 		return
 	}
 
 	// Validate transfer method
 	if plan.TransferMethod.ValueString() == "Upload" {
-		resp.Diagnostics.AddError(mountError, "Unable to Process the request. TransferMethod upload is not supported.")
+		resp.Diagnostics.AddError(RedfishVirtualMediaMountError, "Unable to Process the request. TransferMethod upload is not supported.")
 		return
 	}
 
@@ -387,7 +382,7 @@ func (r *virtualMediaResource) Delete(ctx context.Context, req resource.DeleteRe
 	// Get service
 	service, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
-		resp.Diagnostics.AddError(serviceError, err.Error())
+		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
 

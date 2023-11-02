@@ -8,6 +8,9 @@ const (
 	// RedfishAPIErrorMsg specifies error details occured while calling a redfish API
 	RedfishAPIErrorMsg = "Error when contacting the redfish API"
 
-	// RedfishFetchErrorMsg pecifies error details occured while fetching details
+	// RedfishFetchErrorMsg specifies error details occured while fetching details
 	RedfishFetchErrorMsg = "Unable to fetch updated details"
+
+	// RedfishVirtualMediaMountError specifies error when there are issues while mounting virtual media
+	RedfishVirtualMediaMountError = "Couldn't mount Virtual Media"
 )
