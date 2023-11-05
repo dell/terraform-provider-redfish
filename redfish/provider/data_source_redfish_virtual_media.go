@@ -49,13 +49,15 @@ func (*DellVirtualMediaDatasource) Schema(ctx context.Context, req datasource.Sc
 		MarkdownDescription: "datasource for virtual media.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				MarkdownDescription: "ID of the iDRAC attributes resource",
-				Description:         "ID of the iDRAC attributes resource",
+				MarkdownDescription: "ID of the virtual media datasource",
+				Description:         "ID of the virtual media datasource",
 				Computed:            true,
 			},
 		},
 		Blocks: map[string]schema.Block{
 			"redfish_server": schema.ListNestedBlock{
+				MarkdownDescription: "List of server BMCs and their respective user credentials",
+				Description:         "List of server BMCs and their respective user credentials",
 				Validators: []validator.List{
 					listvalidator.SizeAtMost(1),
 					listvalidator.IsRequired(),
@@ -65,6 +67,8 @@ func (*DellVirtualMediaDatasource) Schema(ctx context.Context, req datasource.Sc
 				},
 			},
 			"virtual_media": schema.ListNestedBlock{
+				MarkdownDescription: "List of virtual media available on this instance",
+				Description:         "List of virtual media available on this instance",
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"odata_id": schema.StringAttribute{

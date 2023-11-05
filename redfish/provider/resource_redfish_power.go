@@ -117,12 +117,17 @@ func (*powerResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 		Attributes:          PowerSchema(),
 		Blocks: map[string]schema.Block{
 			"redfish_server": schema.ListNestedBlock{
+				MarkdownDescription: "List of server BMCs and their respective user credentials",
+				Description:         "List of server BMCs and their respective user credentials",
 				Validators: []validator.List{
 					listvalidator.SizeAtMost(1),
 					listvalidator.IsRequired(),
 				},
 				NestedObject: schema.NestedBlockObject{
-					Attributes: RedfishServerSchema()}}},
+					Attributes: RedfishServerSchema(),
+				},
+			},
+		},
 	}
 }
 

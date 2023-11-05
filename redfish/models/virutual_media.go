@@ -15,12 +15,14 @@ type VirtualMedia struct {
 	WriteProtected       types.Bool    `tfsdk:"write_protected"`
 }
 
+// VirtualMediaDataSource struct for datasource
 type VirtualMediaDataSource struct {
 	ID               types.String       `tfsdk:"id"`
 	RedfishServer    []RedfishServer    `tfsdk:"redfish_server"`
 	VirtualMediaData []VirtualMediaData `tfsdk:"virtual_media"`
 }
 
+// VirtualMediaData to get odata / id of virtual media
 type VirtualMediaData struct {
 	OdataId types.String `tfsdk:"odata_id"`
 	Id      types.String `tfsdk:"id"`
