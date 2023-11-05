@@ -1,110 +1,132 @@
 package provider
 
-// import (
-// 	"context"
-// 	"log"
-// 	"strconv"
-// 	"time"
+import (
+	"context"
+	"log"
+	"strconv"
+	"terraform-provider-redfish/redfish/models"
+	"time"
 
-// 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-// 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-// 	"github.com/stmcginnis/gofish"
-// )
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/stmcginnis/gofish"
+)
 
-// func dataSourceRedfishVirtualMedia() *schema.Resource {
-// 	return &schema.Resource{
-// 		ReadContext: dataSourceRedfishVirtualMediaRead,
-// 		Schema:      getDataSourceRedfishVirtualMediaSchema(),
-// 	}
-// }
+var (
+	_ datasource.DataSource              = &DellVirtualMediaDatasource{}
+	_ datasource.DataSourceWithConfigure = &DellVirtualMediaDatasource{}
+)
 
-// func getDataSourceRedfishVirtualMediaSchema() map[string]*schema.Schema {
-// 	return map[string]*schema.Schema{
-// 		"redfish_server": {
-// 			Type:        schema.TypeList,
-// 			Required:    true,
-// 			Description: "List of server BMCs and their respective user credentials",
-// 			Elem: &schema.Resource{
-// 				Schema: map[string]*schema.Schema{
-// 					"user": {
-// 						Type:        schema.TypeString,
-// 						Optional:    true,
-// 						Description: "User name for login",
-// 					},
-// 					"password": {
-// 						Type:        schema.TypeString,
-// 						Optional:    true,
-// 						Description: "User password for login",
-// 						Sensitive:   true,
-// 					},
-// 					"endpoint": {
-// 						Type:        schema.TypeString,
-// 						Required:    true,
-// 						Description: "Server BMC IP address or hostname",
-// 					},
-// 					"ssl_insecure": {
-// 						Type:        schema.TypeBool,
-// 						Optional:    true,
-// 						Description: "This field indicates whether the SSL/TLS certificate must be verified or not",
-// 					},
-// 				},
-// 			},
-// 		},
-// 		"virtual_media": {
-// 			Type:        schema.TypeList,
-// 			Description: "List of virtual media available on this instance",
-// 			Computed:    true,
-// 			Elem: &schema.Resource{
-// 				Schema: map[string]*schema.Schema{
-// 					"odata_id": {
-// 						Type:        schema.TypeString,
-// 						Description: "OData ID for the Virtual Media resource",
-// 						Computed:    true,
-// 					},
-// 					"id": {
-// 						Type:        schema.TypeString,
-// 						Description: "Id of the virtual media resource",
-// 						Computed:    true,
-// 					},
-// 				},
-// 			},
-// 		},
-// 	}
-// }
+// DellVirtualMediaDatasource is new datasource for group devices
+func NewDellVirtualMediaDatasource() datasource.DataSource {
+	return &DellVirtualMediaDatasource{}
+}
 
-// func dataSourceRedfishVirtualMediaRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-// 	service, err := NewConfig(m.(*schema.ResourceData), d)
-// 	if err != nil {
-// 		return diag.Errorf(err.Error())
-// 	}
-// 	return readRedfishVirtualMediaCollection(service, d)
-// }
+type DellVirtualMediaDatasource struct {
+	p *redfishProvider
+}
 
-// func readRedfishVirtualMediaCollection(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
-// 	var diags diag.Diagnostics
+// Configure implements datasource.DataSourceWithConfigure
+func (g *DellVirtualMediaDatasource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+	g.p = req.ProviderData.(*redfishProvider)
+}
 
-// 	//Get manager.Since this provider is thought to work with individual servers, should be only one.
-// 	manager, err := service.Managers()
-// 	if err != nil {
-// 		return diag.Errorf("Error retrieving the managers: %s", err)
-// 	}
+// Metadata implements datasource.DataSource
+func (*DellVirtualMediaDatasource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "virtual_media"
+}
 
-// 	//Get virtual media
-// 	virtualMedia, err := manager[0].VirtualMedia()
-// 	if err != nil {
-// 		return diag.Errorf("Error retrieving the virtual media instances: %s", err)
-// 	}
+// Schema implements datasource.DataSource
+func (*DellVirtualMediaDatasource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		MarkdownDescription: "datasource for virtual media.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				MarkdownDescription: "ID of the iDRAC attributes resource",
+				Description:         "ID of the iDRAC attributes resource",
+				Computed:            true,
+			},
+		},
+		Blocks: map[string]schema.Block{
+			"redfish_server": schema.ListNestedBlock{
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
+					listvalidator.IsRequired(),
+				},
+				NestedObject: schema.NestedBlockObject{
+					Attributes: RedfishServerDatasourceSchema(),
+				},
+			},
+			"virtual_media": schema.ListNestedBlock{
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"odata_id": schema.StringAttribute{
+							Computed:    true,
+							Description: "OData ID for the Virtual Media resource",
+						},
+						"id": schema.StringAttribute{
+							Computed:    true,
+							Description: "Id of the virtual media resource",
+						},
+					},
+				},
+			},
+		},
+	}
+}
 
-// 	vms := make([]map[string]interface{}, 0)
-// 	for _, v := range virtualMedia {
-// 		vmToAdd := make(map[string]interface{})
-// 		log.Printf("Adding %s - %s", v.ODataID, v.ID)
-// 		vmToAdd["odata_id"] = v.ODataID
-// 		vmToAdd["id"] = v.ID
-// 		vms = append(vms, vmToAdd)
-// 	}
-// 	d.Set("virtual_media", vms)
-// 	d.SetId(strconv.FormatInt(time.Now().Unix(), 10))
+// Read implements datasource.DataSource
+func (g *DellVirtualMediaDatasource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var state models.VirtualMediaDataSource
+	diag := req.Config.Get(ctx, &state)
+	resp.Diagnostics.Append(diag...)
+	if state.ID.IsUnknown() {
+		state.ID = types.StringValue("placeholder")
+	}
+	service, err := NewConfig(g.p, &state.RedfishServer[0])
+	if err != nil {
+		resp.Diagnostics.AddError("service error", err.Error())
+		return
+	}
+	diag = readRedfishDellVirtualMediaCollection(service, &state)
+	resp.Diagnostics.Append(diag...)
+	diag = resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diag...)
+}
 
-// 	return diags
-// }
+func readRedfishDellVirtualMediaCollection(service *gofish.Service, d *models.VirtualMediaDataSource) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	//Get manager.Since this provider is thought to work with individual servers, should be only one.
+	manager, err := service.Managers()
+	if err != nil {
+		diags.AddError("Error retrieving the managers:", err.Error())
+		return diags
+	}
+
+	//Get virtual media
+	DellvirtualMedia, err := manager[0].VirtualMedia()
+	if err != nil {
+		diags.AddError("Error retrieving the virtual media instances", err.Error())
+		return diags
+	}
+
+	vms := make([]models.VirtualMediaData, 0)
+	for _, v := range DellvirtualMedia {
+		var vmToAdd models.VirtualMediaData
+		log.Printf("Adding %s - %s", v.ODataID, v.ID)
+		vmToAdd.OdataId = types.StringValue(v.ODataID)
+		vmToAdd.Id = types.StringValue(v.ID)
+		vms = append(vms, vmToAdd)
+	}
+	d.VirtualMediaData = vms
+	d.ID = types.StringValue(strconv.FormatInt(time.Now().Unix(), 10))
+	return diags
+}

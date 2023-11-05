@@ -14,3 +14,14 @@ type VirtualMedia struct {
 	TransferProtocolType types.String  `tfsdk:"transfer_protocol_type"`
 	WriteProtected       types.Bool    `tfsdk:"write_protected"`
 }
+
+type VirtualMediaDataSource struct {
+	ID               types.String       `tfsdk:"id"`
+	RedfishServer    []RedfishServer    `tfsdk:"redfish_server"`
+	VirtualMediaData []VirtualMediaData `tfsdk:"virtual_media"`
+}
+
+type VirtualMediaData struct {
+	OdataId types.String `tfsdk:"odata_id"`
+	Id      types.String `tfsdk:"id"`
+}
