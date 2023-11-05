@@ -91,7 +91,7 @@ func testAccRedfishResourcePowerConfig(testingInfo TestingServerCredentials,
 		
 		resource "redfish_power" "system_power" {
 		
-		  redfish_server = {
+		  redfish_server {
 			user = "%s"
 			password = "%s"
 			endpoint = "https://%s"
@@ -123,7 +123,7 @@ func testAccRedfishResourcePowerConfig1(testingInfo TestingServerCredentials,
 
 		resource "redfish_power" "system_power" {
 
-			redfish_server = {
+			redfish_server {
 				user = "%s"
 				password = "%s"
 				endpoint = "https://%s"
