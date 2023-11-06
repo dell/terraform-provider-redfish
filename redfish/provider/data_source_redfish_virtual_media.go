@@ -21,17 +21,18 @@ var (
 	_ datasource.DataSourceWithConfigure = &DellVirtualMediaDatasource{}
 )
 
-// DellVirtualMediaDatasource is new datasource for group devices
+// NewDellVirtualMediaDatasource is new datasource for group devices
 func NewDellVirtualMediaDatasource() datasource.DataSource {
 	return &DellVirtualMediaDatasource{}
 }
 
+// DellVirtualMediaDatasource is struct for virtual media datasource
 type DellVirtualMediaDatasource struct {
 	p *redfishProvider
 }
 
 // Configure implements datasource.DataSourceWithConfigure
-func (g *DellVirtualMediaDatasource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (g *DellVirtualMediaDatasource) Configure(_ context.Context, req datasource.ConfigureRequest, _ *datasource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -39,12 +40,12 @@ func (g *DellVirtualMediaDatasource) Configure(ctx context.Context, req datasour
 }
 
 // Metadata implements datasource.DataSource
-func (*DellVirtualMediaDatasource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+func (*DellVirtualMediaDatasource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "virtual_media"
 }
 
 // Schema implements datasource.DataSource
-func (*DellVirtualMediaDatasource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (*DellVirtualMediaDatasource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "datasource for virtual media.",
 		Attributes: map[string]schema.Attribute{
@@ -89,8 +90,8 @@ func (*DellVirtualMediaDatasource) Schema(ctx context.Context, req datasource.Sc
 // Read implements datasource.DataSource
 func (g *DellVirtualMediaDatasource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var state models.VirtualMediaDataSource
-	diag := req.Config.Get(ctx, &state)
-	resp.Diagnostics.Append(diag...)
+	diags := req.Config.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
 	if state.ID.IsUnknown() {
 		state.ID = types.StringValue("placeholder")
 	}
@@ -99,31 +100,31 @@ func (g *DellVirtualMediaDatasource) Read(ctx context.Context, req datasource.Re
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
-	diag = readRedfishDellVirtualMediaCollection(service, &state)
-	resp.Diagnostics.Append(diag...)
-	diag = resp.State.Set(ctx, &state)
-	resp.Diagnostics.Append(diag...)
+	diags = readRedfishDellVirtualMediaCollection(service, &state)
+	resp.Diagnostics.Append(diags...)
+	diags = resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diags...)
 }
 
 func readRedfishDellVirtualMediaCollection(service *gofish.Service, d *models.VirtualMediaDataSource) diag.Diagnostics {
 	var diags diag.Diagnostics
-
-	//Get manager.Since this provider is thought to work with individual servers, should be only one.
+	const intBase = 10
+	// Get manager.Since this provider is thought to work with individual servers, should be only one.
 	manager, err := service.Managers()
 	if err != nil {
 		diags.AddError("Error retrieving the managers:", err.Error())
 		return diags
 	}
 
-	//Get virtual media
-	DellvirtualMedia, err := manager[0].VirtualMedia()
+	// Get virtual media
+	dellvirtualMedia, err := manager[0].VirtualMedia()
 	if err != nil {
 		diags.AddError("Error retrieving the virtual media instances", err.Error())
 		return diags
 	}
 
 	vms := make([]models.VirtualMediaData, 0)
-	for _, v := range DellvirtualMedia {
+	for _, v := range dellvirtualMedia {
 		var vmToAdd models.VirtualMediaData
 		log.Printf("Adding %s - %s", v.ODataID, v.ID)
 		vmToAdd.OdataId = types.StringValue(v.ODataID)
@@ -131,6 +132,6 @@ func readRedfishDellVirtualMediaCollection(service *gofish.Service, d *models.Vi
 		vms = append(vms, vmToAdd)
 	}
 	d.VirtualMediaData = vms
-	d.ID = types.StringValue(strconv.FormatInt(time.Now().Unix(), 10))
+	d.ID = types.StringValue(strconv.FormatInt(time.Now().Unix(), intBase))
 	return diags
 }
