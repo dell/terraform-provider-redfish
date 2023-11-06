@@ -145,7 +145,7 @@ func (r *powerResource) Create(ctx context.Context, req resource.CreateRequest, 
 	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
 	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
 
-	service, err := NewConfig(r.p, &plan.RedfishServer[0])
+	service, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
@@ -190,7 +190,7 @@ func (r *powerResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
-	service, err := NewConfig(r.p, &state.RedfishServer[0])
+	service, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return

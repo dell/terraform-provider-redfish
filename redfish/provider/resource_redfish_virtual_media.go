@@ -7,6 +7,7 @@ import (
 	"strings"
 	"terraform-provider-redfish/redfish/models"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -49,12 +50,6 @@ func (*virtualMediaResource) Metadata(_ context.Context, req resource.MetadataRe
 // VirtualMediaSchema defines the schema for the resource.
 func VirtualMediaSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
-		"redfish_server": schema.SingleNestedAttribute{
-			MarkdownDescription: "Redfish Server",
-			Description:         "Redfish Server",
-			Required:            true,
-			Attributes:          RedfishServerSchema(),
-		},
 		"id": schema.StringAttribute{
 			MarkdownDescription: "ID of the virtual media resource",
 			Description:         "ID of the virtual media resource",
@@ -117,6 +112,19 @@ func (*virtualMediaResource) Schema(_ context.Context, _ resource.SchemaRequest,
 		MarkdownDescription: "Resource for managing virtual media.",
 		Version:             1,
 		Attributes:          VirtualMediaSchema(),
+		Blocks: map[string]schema.Block{
+			"redfish_server": schema.ListNestedBlock{
+				MarkdownDescription: "List of server BMCs and their respective user credentials",
+				Description:         "List of server BMCs and their respective user credentials",
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
+					listvalidator.IsRequired(),
+				},
+				NestedObject: schema.NestedBlockObject{
+					Attributes: RedfishServerSchema(),
+				},
+			},
+		},
 	}
 }
 

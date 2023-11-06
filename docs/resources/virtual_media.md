@@ -172,10 +172,10 @@ After the successful execution of the above resource block, virutal media would 
 ### Required
 
 - `image` (String) The URI of the remote media to attach to the virtual media
-- `redfish_server` (Attributes) Redfish Server (see [below for nested schema](#nestedatt--redfish_server))
 
 ### Optional
 
+- `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
 - `transfer_method` (String) Indicates how the data is transferred
 - `transfer_protocol_type` (String) The protocol used to transfer.
 - `write_protected` (Boolean) Indicates whether the remote device media prevents writing to that media.
@@ -185,7 +185,7 @@ After the successful execution of the above resource block, virutal media would 
 - `id` (String) ID of the virtual media resource
 - `inserted` (Boolean) Describes whether virtual media is attached or detached
 
-<a id="nestedatt--redfish_server"></a>
+<a id="nestedblock--redfish_server"></a>
 ### Nested Schema for `redfish_server`
 
 Required:

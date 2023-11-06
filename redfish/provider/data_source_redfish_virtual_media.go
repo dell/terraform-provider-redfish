@@ -96,7 +96,7 @@ func (g *DellVirtualMediaDatasource) Read(ctx context.Context, req datasource.Re
 	if state.ID.IsUnknown() {
 		state.ID = types.StringValue("placeholder")
 	}
-	service, err := NewConfig(g.p, &state.RedfishServer[0])
+	service, err := NewConfig(g.p, &state.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
