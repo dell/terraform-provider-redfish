@@ -170,7 +170,7 @@ After the successful execution of the above data block, we can see the output in
 ### Read-Only
 
 - `id` (String) ID of the virtual media datasource
-- `virtual_media` (Block List) List of virtual media available on this instance (see [below for nested schema](#nestedblock--virtual_media))
+- `virtual_media` (Attributes List) List of virtual media available on this instance (see [below for nested schema](#nestedatt--virtual_media))
 
 <a id="nestedblock--redfish_server"></a>
 ### Nested Schema for `redfish_server`
@@ -186,7 +186,7 @@ Optional:
 - `validate_cert` (Boolean) This field indicates whether the SSL/TLS certificate must be verified or not
 
 
-<a id="nestedblock--virtual_media"></a>
+<a id="nestedatt--virtual_media"></a>
 ### Nested Schema for `virtual_media`
 
 Read-Only:

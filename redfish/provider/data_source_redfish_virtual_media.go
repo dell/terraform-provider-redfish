@@ -54,6 +54,23 @@ func (*DellVirtualMediaDatasource) Schema(_ context.Context, _ datasource.Schema
 				Description:         "ID of the virtual media datasource",
 				Computed:            true,
 			},
+			"virtual_media": schema.ListNestedAttribute{
+				MarkdownDescription: "List of virtual media available on this instance",
+				Description:         "List of virtual media available on this instance",
+				Computed:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"odata_id": schema.StringAttribute{
+							Computed:    true,
+							Description: "OData ID for the Virtual Media resource",
+						},
+						"id": schema.StringAttribute{
+							Computed:    true,
+							Description: "Id of the virtual media resource",
+						},
+					},
+				},
+			},
 		},
 		Blocks: map[string]schema.Block{
 			"redfish_server": schema.ListNestedBlock{
@@ -65,22 +82,6 @@ func (*DellVirtualMediaDatasource) Schema(_ context.Context, _ datasource.Schema
 				},
 				NestedObject: schema.NestedBlockObject{
 					Attributes: RedfishServerDatasourceSchema(),
-				},
-			},
-			"virtual_media": schema.ListNestedBlock{
-				MarkdownDescription: "List of virtual media available on this instance",
-				Description:         "List of virtual media available on this instance",
-				NestedObject: schema.NestedBlockObject{
-					Attributes: map[string]schema.Attribute{
-						"odata_id": schema.StringAttribute{
-							Computed:    true,
-							Description: "OData ID for the Virtual Media resource",
-						},
-						"id": schema.StringAttribute{
-							Computed:    true,
-							Description: "Id of the virtual media resource",
-						},
-					},
 				},
 			},
 		},
