@@ -7,7 +7,7 @@ import (
 // StorageDatasource is struct for storage data-source
 type StorageDatasource struct {
 	ID            types.String            `tfsdk:"id"`
-	RedfishServer RedfishServer           `tfsdk:"redfish_server"`
+	RedfishServer []RedfishServer         `tfsdk:"redfish_server"`
 	Storages      []StorageControllerData `tfsdk:"storage"`
 }
 

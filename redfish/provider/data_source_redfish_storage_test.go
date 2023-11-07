@@ -23,7 +23,7 @@ func TestAccRedfishStorageDataSource_fetch(t *testing.T) {
 func testAccRedfishDataSourceStorageConfig(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
 	data "redfish_storage" "storage" {	  
-		redfish_server = {
+		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
 		  endpoint     = "https://%s"

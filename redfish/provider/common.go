@@ -8,8 +8,10 @@ import (
 	"terraform-provider-redfish/redfish/models"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	datasourceSchema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	resourceSchema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
@@ -68,6 +70,23 @@ func RedfishServerDatasourceSchema() map[string]datasourceSchema.Attribute {
 		"validate_cert": datasourceSchema.BoolAttribute{
 			Optional:    true,
 			Description: "This field indicates whether the SSL/TLS certificate must be verified or not",
+		},
+	}
+}
+
+// RedfishServerDatasourceBlock to construct schema of redfish server
+func RedfishServerDatasourceBlockMap() map[string]datasourceSchema.Block {
+	return map[string]datasourceSchema.Block{
+		"redfish_server": datasourceSchema.ListNestedBlock{
+			MarkdownDescription: "List of server BMCs and their respective user credentials",
+			Description:         "List of server BMCs and their respective user credentials",
+			Validators: []validator.List{
+				listvalidator.SizeAtMost(1),
+				listvalidator.IsRequired(),
+			},
+			NestedObject: datasourceSchema.NestedBlockObject{
+				Attributes: RedfishServerDatasourceSchema(),
+			},
 		},
 	}
 }

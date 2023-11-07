@@ -49,6 +49,7 @@ func (*StorageDatasource) Schema(_ context.Context, _ datasource.SchemaRequest, 
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Data source to fetch storage details via RedFish.",
 		Attributes:          StorageDatasourceSchema(),
+		Blocks:              RedfishServerDatasourceBlockMap(),
 	}
 }
 
@@ -59,12 +60,6 @@ func StorageDatasourceSchema() map[string]schema.Attribute {
 			MarkdownDescription: "ID of the storage data-source",
 			Description:         "ID of the storage data-source",
 			Computed:            true,
-		},
-		"redfish_server": schema.SingleNestedAttribute{
-			MarkdownDescription: "Redfish Server",
-			Description:         "Redfish Server",
-			Required:            true,
-			Attributes:          RedfishServerDatasourceSchema(),
 		},
 		"storage": schema.ListNestedAttribute{
 			MarkdownDescription: "List of storage controllers",
