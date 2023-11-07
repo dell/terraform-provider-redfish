@@ -312,7 +312,7 @@ func testAccRedfishResourceVirtualMediaConfig(testingInfo TestingServerCredentia
 		
 		resource "redfish_virtual_media" "%s" {
 		
-		  redfish_server = {
+		  redfish_server {
 			user = "%s"
 			password = "%s"
 			endpoint = "https://%s"
@@ -345,7 +345,7 @@ func testAccRedfishResourceVirtualMediaConfigServer5x(testingInfo TestingServerC
 		
 		resource "redfish_virtual_media" "%s" {
 		
-		  redfish_server = {
+		  redfish_server {
 			user = "%s"
 			password = "%s"
 			endpoint = "https://%s"
@@ -378,7 +378,7 @@ func testAccRedfishResourceVirtualMediaConfigDependency(testingInfo TestingServe
 	return fmt.Sprintf(`
 		resource "redfish_virtual_media" "%s" {
 
-		  redfish_server = {
+		  redfish_server {
 			user = "%s"
 			password = "%s"
 			endpoint = "https://%s"

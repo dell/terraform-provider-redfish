@@ -144,7 +144,7 @@ limitations under the License.
 resource "redfish_dell_idrac_attributes" "idrac" {
   for_each = var.rack1
 
-  redfish_server = {
+  redfish_server {
     user          = each.value.user
     password      = each.value.password
     endpoint      = each.value.endpoint

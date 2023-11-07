@@ -25,7 +25,7 @@ func testAccRedfishDataSourceBiosConfig(testingInfo TestingServerCredentials) st
 	return fmt.Sprintf(`
 		
 		data "redfish_bios" "bios" {		
-		  redfish_server = {
+		  redfish_server {
 			user = "%s"
 			password = "%s"
 			endpoint = "https://%s"
