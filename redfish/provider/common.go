@@ -74,7 +74,7 @@ func RedfishServerDatasourceSchema() map[string]datasourceSchema.Attribute {
 	}
 }
 
-// RedfishServerDatasourceBlock to construct schema of redfish server
+// RedfishServerDatasourceBlockMap to construct common block map for data sources
 func RedfishServerDatasourceBlockMap() map[string]datasourceSchema.Block {
 	return map[string]datasourceSchema.Block{
 		"redfish_server": datasourceSchema.ListNestedBlock{
