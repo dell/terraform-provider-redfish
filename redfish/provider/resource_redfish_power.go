@@ -5,7 +5,6 @@ import (
 	"terraform-provider-redfish/redfish/models"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -113,21 +112,9 @@ func PowerSchema() map[string]schema.Attribute {
 func (*powerResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Resource for managing power.",
-		Version:             1,
-		Attributes:          PowerSchema(),
-		Blocks: map[string]schema.Block{
-			"redfish_server": schema.ListNestedBlock{
-				MarkdownDescription: "List of server BMCs and their respective user credentials",
-				Description:         "List of server BMCs and their respective user credentials",
-				Validators: []validator.List{
-					listvalidator.SizeAtMost(1),
-					listvalidator.IsRequired(),
-				},
-				NestedObject: schema.NestedBlockObject{
-					Attributes: RedfishServerSchema(),
-				},
-			},
-		},
+
+		Attributes: PowerSchema(),
+		Blocks:     RedfishServerResourceBlockMap(),
 	}
 }
 

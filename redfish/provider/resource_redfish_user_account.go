@@ -9,7 +9,6 @@ import (
 	"strings"
 	"terraform-provider-redfish/redfish/models"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -65,7 +64,6 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"modify and delete an existing user using this resource.",
 		Description: "This Terraform resource is used to manage user entity of the iDRAC Server. We can create, read, " +
 			"modify and delete an existing user using this resource.",
-		Version: 1,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				MarkdownDescription: "The ID of the resource. Cannot be updated.",
@@ -118,19 +116,7 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Optional:            true,
 			},
 		},
-		Blocks: map[string]schema.Block{
-			"redfish_server": schema.ListNestedBlock{
-				MarkdownDescription: "List of server BMCs and their respective user credentials",
-				Description:         "List of server BMCs and their respective user credentials",
-				Validators: []validator.List{
-					listvalidator.SizeAtMost(1),
-					listvalidator.IsRequired(),
-				},
-				NestedObject: schema.NestedBlockObject{
-					Attributes: RedfishServerSchema(),
-				},
-			},
-		},
+		Blocks: RedfishServerResourceBlockMap(),
 	}
 }
 

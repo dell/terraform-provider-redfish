@@ -316,7 +316,7 @@ func testAccRedfishResourceVirtualMediaConfig(testingInfo TestingServerCredentia
 			user = "%s"
 			password = "%s"
 			endpoint = "https://%s"
-			validate_cert = false
+			ssl_insecure = true
 		  }
 		  image = "%s"
 		  write_protected = %t
@@ -349,7 +349,7 @@ func testAccRedfishResourceVirtualMediaConfigServer5x(testingInfo TestingServerC
 			user = "%s"
 			password = "%s"
 			endpoint = "https://%s"
-			validate_cert = false
+			ssl_insecure = true
 		  }
 		  image = "%s"
 		  write_protected = %t
@@ -382,7 +382,7 @@ func testAccRedfishResourceVirtualMediaConfigDependency(testingInfo TestingServe
 			user = "%s"
 			password = "%s"
 			endpoint = "https://%s"
-			validate_cert = false
+			ssl_insecure = true
 		  }
 		  image = "%s"
 		  write_protected = %t

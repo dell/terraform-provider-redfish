@@ -95,7 +95,7 @@ func testAccRedfishResourcePowerConfig(testingInfo TestingServerCredentials,
 			user = "%s"
 			password = "%s"
 			endpoint = "https://%s"
-			validate_cert = false
+			ssl_insecure = true
 		  }
 
 		  desired_power_action = "%s"
@@ -127,7 +127,7 @@ func testAccRedfishResourcePowerConfig1(testingInfo TestingServerCredentials,
 				user = "%s"
 				password = "%s"
 				endpoint = "https://%s"
-				validate_cert = false
+				ssl_insecure = true
 			  }
 
 		  desired_power_action = "%s"

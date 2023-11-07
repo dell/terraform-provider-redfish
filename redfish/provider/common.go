@@ -26,6 +26,7 @@ const (
 	operationUpdate
 	operationDelete
 	operationImport
+	redfishServerMD string = "List of server BMCs and their respective user credentials"
 )
 
 // RedfishServerSchema to construct schema of redfish server
@@ -44,7 +45,7 @@ func RedfishServerSchema() map[string]resourceSchema.Attribute {
 			Required:    true,
 			Description: "Server BMC IP address or hostname",
 		},
-		"validate_cert": resourceSchema.BoolAttribute{
+		"ssl_insecure": resourceSchema.BoolAttribute{
 			Optional:    true,
 			Description: "This field indicates whether the SSL/TLS certificate must be verified or not",
 		},
@@ -67,9 +68,26 @@ func RedfishServerDatasourceSchema() map[string]datasourceSchema.Attribute {
 			Required:    true,
 			Description: "Server BMC IP address or hostname",
 		},
-		"validate_cert": datasourceSchema.BoolAttribute{
+		"ssl_insecure": datasourceSchema.BoolAttribute{
 			Optional:    true,
 			Description: "This field indicates whether the SSL/TLS certificate must be verified or not",
+		},
+	}
+}
+
+// RedfishServerResourceBlockMap to construct common block map for data sources
+func RedfishServerResourceBlockMap() map[string]resourceSchema.Block {
+	return map[string]resourceSchema.Block{
+		"redfish_server": resourceSchema.ListNestedBlock{
+			MarkdownDescription: redfishServerMD,
+			Description:         redfishServerMD,
+			Validators: []validator.List{
+				listvalidator.SizeAtMost(1),
+				listvalidator.IsRequired(),
+			},
+			NestedObject: resourceSchema.NestedBlockObject{
+				Attributes: RedfishServerSchema(),
+			},
 		},
 	}
 }
@@ -78,8 +96,8 @@ func RedfishServerDatasourceSchema() map[string]datasourceSchema.Attribute {
 func RedfishServerDatasourceBlockMap() map[string]datasourceSchema.Block {
 	return map[string]datasourceSchema.Block{
 		"redfish_server": datasourceSchema.ListNestedBlock{
-			MarkdownDescription: "List of server BMCs and their respective user credentials",
-			Description:         "List of server BMCs and their respective user credentials",
+			MarkdownDescription: redfishServerMD,
+			Description:         redfishServerMD,
 			Validators: []validator.List{
 				listvalidator.SizeAtMost(1),
 				listvalidator.IsRequired(),
@@ -138,7 +156,7 @@ func NewConfig(pconfig *redfishProvider, rserver *[]models.RedfishServer) (*gofi
 		Username:  redfishClientUser,
 		Password:  redfishClientPass,
 		BasicAuth: true,
-		Insecure:  !rserver1.ValidateCert.ValueBool(),
+		Insecure:  rserver1.SslInsecure.ValueBool(),
 	}
 	api, err := gofish.Connect(clientConfig)
 	if err != nil {

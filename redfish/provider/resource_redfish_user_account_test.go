@@ -287,7 +287,7 @@ func testAccRedfishResourceUserConfig(testingInfo TestingServerCredentials,
 			user = "%s"
 			password = "%s"
 			endpoint = "https://%s"
-			validate_cert = false
+			ssl_insecure = true
 		  }
 
 		  username = "%s"

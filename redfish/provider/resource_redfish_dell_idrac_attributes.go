@@ -8,13 +8,11 @@ import (
 	"terraform-provider-redfish/gofish/dell"
 	"terraform-provider-redfish/redfish/models"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/stmcginnis/gofish"
@@ -36,9 +34,8 @@ type dellIdracAttributesResource struct {
 }
 
 // Configure implements resource.ResourceWithConfigure
-func (r *dellIdracAttributesResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *dellIdracAttributesResource) Configure(ctx context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
-		resp.Diagnostics.AddError("error", "provider data is empty")
 		return
 	}
 	r.p = req.ProviderData.(*redfishProvider)
@@ -54,21 +51,9 @@ func (*dellIdracAttributesResource) Metadata(_ context.Context, req resource.Met
 func (*dellIdracAttributesResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Resource for managing DellIdracAttributes on OpenManage Enterprise.",
-		Version:             1,
-		Attributes:          DellIdracAttributesSchema(),
-		Blocks: map[string]schema.Block{
-			"redfish_server": schema.ListNestedBlock{
-				MarkdownDescription: "List of server BMCs and their respective user credentials",
-				Description:         "List of server BMCs and their respective user credentials",
-				Validators: []validator.List{
-					listvalidator.SizeAtMost(1),
-					listvalidator.IsRequired(),
-				},
-				NestedObject: schema.NestedBlockObject{
-					Attributes: RedfishServerSchema(),
-				},
-			},
-		},
+
+		Attributes: DellIdracAttributesSchema(),
+		Blocks:     RedfishServerResourceBlockMap(),
 	}
 }
 

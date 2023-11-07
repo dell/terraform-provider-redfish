@@ -54,6 +54,7 @@ func testAccRedfishResourceIDracAttributesConfig(testingInfo TestingServerCreden
 		  user         = "%s"
 		  password     = "%s"
 		  endpoint     = "https://%s"
+		  ssl_insecure = true
 		}
 	  
 		attributes = {
@@ -80,6 +81,7 @@ func testAccRedfishResourceIDracAttributesConfigInvalid(testingInfo TestingServe
 		  user         = "%s"
 		  password     = "%s"
 		  endpoint     = "https://%s"
+		  ssl_insecure = true
 		}
 	  
 		attributes = {
