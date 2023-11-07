@@ -18,12 +18,12 @@ This Terraform resource is used to manage user entity of the iDRAC Server. We ca
 ### Required
 
 - `password` (String, Sensitive) Password of the user
-- `redfish_server` (Attributes) Redfish Server (see [below for nested schema](#nestedatt--redfish_server))
 - `username` (String) The name of the user
 
 ### Optional
 
 - `enabled` (Boolean) If the user is currently active or not.
+- `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
 - `role_id` (String) Role of the user. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. Default is "None"
 - `user_id` (String) The ID of the user. Cannot be updated.
 
@@ -31,7 +31,7 @@ This Terraform resource is used to manage user entity of the iDRAC Server. We ca
 
 - `id` (String) The ID of the resource. Cannot be updated.
 
-<a id="nestedatt--redfish_server"></a>
+<a id="nestedblock--redfish_server"></a>
 ### Nested Schema for `redfish_server`
 
 Required:

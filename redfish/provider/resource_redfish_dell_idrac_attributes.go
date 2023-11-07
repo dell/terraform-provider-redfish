@@ -8,11 +8,13 @@ import (
 	"terraform-provider-redfish/gofish/dell"
 	"terraform-provider-redfish/redfish/models"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/stmcginnis/gofish"
@@ -54,6 +56,19 @@ func (*dellIdracAttributesResource) Schema(_ context.Context, _ resource.SchemaR
 		MarkdownDescription: "Resource for managing DellIdracAttributes on OpenManage Enterprise.",
 		Version:             1,
 		Attributes:          DellIdracAttributesSchema(),
+		Blocks: map[string]schema.Block{
+			"redfish_server": schema.ListNestedBlock{
+				MarkdownDescription: "List of server BMCs and their respective user credentials",
+				Description:         "List of server BMCs and their respective user credentials",
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
+					listvalidator.IsRequired(),
+				},
+				NestedObject: schema.NestedBlockObject{
+					Attributes: RedfishServerSchema(),
+				},
+			},
+		},
 	}
 }
 
@@ -64,12 +79,6 @@ func DellIdracAttributesSchema() map[string]schema.Attribute {
 			MarkdownDescription: "ID of the iDRAC attributes resource",
 			Description:         "ID of the iDRAC attributes resource",
 			Computed:            true,
-		},
-		"redfish_server": schema.SingleNestedAttribute{
-			MarkdownDescription: "Redfish Server",
-			Description:         "Redfish Server",
-			Required:            true,
-			Attributes:          RedfishServerSchema(),
 		},
 		"attributes": schema.MapAttribute{
 			MarkdownDescription: "iDRAC attributes. " +

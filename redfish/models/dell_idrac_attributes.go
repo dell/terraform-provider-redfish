@@ -6,7 +6,7 @@ import (
 
 // DellIdracAttributes to construct terraform schema for the idrac attributes resource.
 type DellIdracAttributes struct {
-	ID            types.String  `tfsdk:"id"`
-	RedfishServer RedfishServer `tfsdk:"redfish_server"`
-	Attributes    types.Map     `tfsdk:"attributes"`
+	ID            types.String    `tfsdk:"id"`
+	RedfishServer []RedfishServer `tfsdk:"redfish_server"`
+	Attributes    types.Map       `tfsdk:"attributes"`
 }

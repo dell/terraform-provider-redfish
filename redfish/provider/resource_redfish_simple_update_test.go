@@ -84,7 +84,7 @@ func testAccRedfishResourceUpdateConfig(testingInfo TestingServerCredentials,
 		
 		resource "redfish_simple_update" "update" {
 		
-		  redfish_server = {
+		  redfish_server {
 			user = "%s"
 			password = "%s"
 			endpoint = "https://%s"

@@ -88,19 +88,22 @@ func getSystemResource(service *gofish.Service) (*redfish.ComputerSystem, error)
 // NewConfig function creates the needed gofish structs to query the redfish API
 // See https://github.com/stmcginnis/gofish for details. This function returns a Service struct which can then be
 // used to make any required API calls.
-func NewConfig(pconfig *redfishProvider, rserver *models.RedfishServer) (*gofish.Service, error) {
+// To-Do: Verify from plan modifier, if required implement wrapper for validation of unknown in redfish_server.
+func NewConfig(pconfig *redfishProvider, rserver *[]models.RedfishServer) (*gofish.Service, error) {
+	// first redfish server block
+	rserver1 := (*rserver)[0]
 	var redfishClientUser, redfishClientPass string
 
-	if len(rserver.User.ValueString()) > 0 {
-		redfishClientUser = rserver.User.ValueString()
+	if len(rserver1.User.ValueString()) > 0 {
+		redfishClientUser = rserver1.User.ValueString()
 	} else if len(pconfig.Username) > 0 {
 		redfishClientUser = pconfig.Username
 	} else {
 		return nil, fmt.Errorf("error. Either provide username at provider level or resource level. Please check your configuration")
 	}
 
-	if len(rserver.Password.ValueString()) > 0 {
-		redfishClientPass = rserver.Password.ValueString()
+	if len(rserver1.Password.ValueString()) > 0 {
+		redfishClientPass = rserver1.Password.ValueString()
 	} else if len(pconfig.Password) > 0 {
 		redfishClientPass = pconfig.Password
 	} else {
@@ -112,17 +115,17 @@ func NewConfig(pconfig *redfishProvider, rserver *models.RedfishServer) (*gofish
 	}
 
 	clientConfig := gofish.ClientConfig{
-		Endpoint:  rserver.Endpoint.ValueString(),
+		Endpoint:  rserver1.Endpoint.ValueString(),
 		Username:  redfishClientUser,
 		Password:  redfishClientPass,
 		BasicAuth: true,
-		Insecure:  !rserver.ValidateCert.ValueBool(),
+		Insecure:  !rserver1.ValidateCert.ValueBool(),
 	}
 	api, err := gofish.Connect(clientConfig)
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to redfish API: %v", err)
 	}
-	log.Printf("Connection with the redfish endpoint %v was sucessful\n", rserver.Endpoint.ValueString())
+	log.Printf("Connection with the redfish endpoint %v was sucessful\n", rserver1.Endpoint.ValueString())
 	return api.Service, nil
 }
 

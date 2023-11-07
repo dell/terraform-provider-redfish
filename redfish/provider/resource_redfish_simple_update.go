@@ -12,12 +12,13 @@ import (
 	"terraform-provider-redfish/redfish/models"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -70,15 +71,6 @@ func simpleUpdateSchema() map[string]schema.Attribute {
 			Computed:            true,
 			PlanModifiers: []planmodifier.String{
 				stringplanmodifier.UseStateForUnknown(),
-			},
-		},
-		"redfish_server": schema.SingleNestedAttribute{
-			MarkdownDescription: "Redfish Server",
-			Description:         "Redfish Server",
-			Required:            true,
-			Attributes:          RedfishServerSchema(),
-			PlanModifiers: []planmodifier.Object{
-				objectplanmodifier.RequiresReplace(),
 			},
 		},
 		"transfer_protocol": schema.StringAttribute{
@@ -171,6 +163,22 @@ func (*simpleUpdateResource) Schema(_ context.Context, _ resource.SchemaRequest,
 		MarkdownDescription: "Resource for managing power.",
 		Version:             1,
 		Attributes:          simpleUpdateSchema(),
+		Blocks: map[string]schema.Block{
+			"redfish_server": schema.ListNestedBlock{
+				MarkdownDescription: "List of server BMCs and their respective user credentials",
+				Description:         "List of server BMCs and their respective user credentials",
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
+					listvalidator.IsRequired(),
+				},
+				NestedObject: schema.NestedBlockObject{
+					Attributes: RedfishServerSchema(),
+				},
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
+				},
+			},
+		},
 	}
 }
 

@@ -6,8 +6,8 @@ import (
 
 // BiosDatasource to is struct for bios data-source
 type BiosDatasource struct {
-	ID            types.String  `tfsdk:"id"`
-	OdataID       types.String  `tfsdk:"odata_id"`
-	RedfishServer RedfishServer `tfsdk:"redfish_server"`
-	Attributes    types.Map     `tfsdk:"attributes"`
+	ID            types.String    `tfsdk:"id"`
+	OdataID       types.String    `tfsdk:"odata_id"`
+	RedfishServer []RedfishServer `tfsdk:"redfish_server"`
+	Attributes    types.Map       `tfsdk:"attributes"`
 }

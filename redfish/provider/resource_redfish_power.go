@@ -5,6 +5,7 @@ import (
 	"terraform-provider-redfish/redfish/models"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -56,14 +57,6 @@ func PowerSchema() map[string]schema.Attribute {
 			Description:         "ID of the power resource",
 			Computed:            true,
 		},
-
-		"redfish_server": schema.SingleNestedAttribute{
-			MarkdownDescription: "Redfish Server",
-			Description:         "Redfish Server",
-			Required:            true,
-			Attributes:          RedfishServerSchema(),
-		},
-
 		"desired_power_action": schema.StringAttribute{
 			MarkdownDescription: "Desired power setting. Applicable values are 'On','ForceOn','ForceOff','ForceRestart'," +
 				"'GracefulRestart','GracefulShutdown','PowerCycle', 'PushPowerButton', 'Nmi'",
@@ -122,6 +115,19 @@ func (*powerResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 		MarkdownDescription: "Resource for managing power.",
 		Version:             1,
 		Attributes:          PowerSchema(),
+		Blocks: map[string]schema.Block{
+			"redfish_server": schema.ListNestedBlock{
+				MarkdownDescription: "List of server BMCs and their respective user credentials",
+				Description:         "List of server BMCs and their respective user credentials",
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
+					listvalidator.IsRequired(),
+				},
+				NestedObject: schema.NestedBlockObject{
+					Attributes: RedfishServerSchema(),
+				},
+			},
+		},
 	}
 }
 
@@ -136,8 +142,8 @@ func (r *powerResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 	// 	// Lock the mutex to avoid race conditions with other resources
-	redfishMutexKV.Lock(plan.RedfishServer.Endpoint.ValueString())
-	defer redfishMutexKV.Unlock(plan.RedfishServer.Endpoint.ValueString())
+	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
+	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
 
 	service, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
