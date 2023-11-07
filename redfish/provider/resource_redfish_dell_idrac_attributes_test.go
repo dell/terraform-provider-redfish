@@ -50,7 +50,7 @@ func TestAccRedfishIDRACAttributesInvalidAttribute(t *testing.T) {
 func testAccRedfishResourceIDracAttributesConfig(testingInfo TestingServerCredentials, username string) string {
 	return fmt.Sprintf(`
 	resource "redfish_dell_idrac_attributes" "idrac" {
-		redfish_server = {
+		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
 		  endpoint     = "https://%s"
@@ -76,7 +76,7 @@ func testAccRedfishResourceIDracAttributesConfig(testingInfo TestingServerCreden
 func testAccRedfishResourceIDracAttributesConfigInvalid(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
 	resource "redfish_dell_idrac_attributes" "idrac" {
-		redfish_server = {
+		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
 		  endpoint     = "https://%s"

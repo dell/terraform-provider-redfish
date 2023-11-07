@@ -9,6 +9,7 @@ import (
 	"strings"
 	"terraform-provider-redfish/redfish/models"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -94,12 +95,6 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 					stringvalidator.LengthBetween(minPasswordLength, maxPasswordLength),
 				},
 			},
-			"redfish_server": schema.SingleNestedAttribute{
-				MarkdownDescription: "Redfish Server",
-				Description:         "Redfish Server",
-				Required:            true,
-				Attributes:          RedfishServerSchema(),
-			},
 			"role_id": schema.StringAttribute{
 				MarkdownDescription: "Role of the user. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. " +
 					"Default is \"None\"",
@@ -121,6 +116,19 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				MarkdownDescription: "If the user is currently active or not.",
 				Description:         "If the user is currently active or not.",
 				Optional:            true,
+			},
+		},
+		Blocks: map[string]schema.Block{
+			"redfish_server": schema.ListNestedBlock{
+				MarkdownDescription: "List of server BMCs and their respective user credentials",
+				Description:         "List of server BMCs and their respective user credentials",
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
+					listvalidator.IsRequired(),
+				},
+				NestedObject: schema.NestedBlockObject{
+					Attributes: RedfishServerSchema(),
+				},
 			},
 		},
 	}

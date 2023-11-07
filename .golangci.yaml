@@ -40,7 +40,6 @@ run:
   skip-files:
     - "redfish/provider/data_source_redfish_firmware_inventory.go"
     - "redfish/provider/data_source_redfish_system_boot.go"
-    - "redfish/provider/data_source_redfish_virtual_media.go"
     - "redfish/provider/resource_redfish_storage_volume.go"
     - "redfish/provider/resource_redfish_storage_volume.go"
     - "redfish/provider/resource_redfish_bios.go"

@@ -144,7 +144,7 @@ limitations under the License.
 resource "redfish_dell_idrac_attributes" "idrac" {
   for_each = var.rack1
 
-  redfish_server = {
+  redfish_server {
     user          = each.value.user
     password      = each.value.password
     endpoint      = each.value.endpoint
@@ -172,13 +172,16 @@ After the successful execution of the above resource block, iDRAC attributes con
 ### Required
 
 - `attributes` (Map of String) iDRAC attributes. To check allowed attributes please either use the datasource for dell idrac attributes or query /redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/iDRAC.Embedded.1. To get allowed values for those attributes, check /redfish/v1/Registries/ManagerAttributeRegistry/ManagerAttributeRegistry.v1_0_0.json from a Redfish Instance
-- `redfish_server` (Attributes) Redfish Server (see [below for nested schema](#nestedatt--redfish_server))
+
+### Optional
+
+- `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
 
 ### Read-Only
 
 - `id` (String) ID of the iDRAC attributes resource
 
-<a id="nestedatt--redfish_server"></a>
+<a id="nestedblock--redfish_server"></a>
 ### Nested Schema for `redfish_server`
 
 Required:

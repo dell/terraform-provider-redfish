@@ -169,13 +169,13 @@ After the successful execution of the above resource block, firmware would have 
 
 ### Required
 
-- `redfish_server` (Attributes) Redfish Server (see [below for nested schema](#nestedatt--redfish_server))
 - `reset_type` (String) Reset type allows to choose the type of restart to apply when firmware upgrade is scheduled. Possible values are: "ForceRestart", "GracefulRestart" or "PowerCycle"
 - `target_firmware_image` (String) Target firmware image used for firmware update on the redfish instance. Make sure you place your firmware packages in the same folder as the module and set it as follows: "${path.module}/BIOS_FXC54_WN64_1.15.0.EXE"
 - `transfer_protocol` (String) The network protocol that the Update Service uses to retrieve the software image file located at the URI provided in ImageURI, if the URI does not contain a scheme. Accepted values: CIFS, FTP, SFTP, HTTP, HTTPS, NSF, SCP, TFTP, OEM, NFS. Currently only HTTP, HTTPS and NFS are supported with local file path or HTTP(s)/NFS link.
 
 ### Optional
 
+- `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
 - `reset_timeout` (Number) Time in seconds that the provider waits for the server to be reset before timing out.
 - `simple_update_job_timeout` (Number) Time in seconds that the provider waits for the simple update job to be completed before timing out.
 
@@ -185,7 +185,7 @@ After the successful execution of the above resource block, firmware would have 
 - `software_id` (String) Software ID from the firmware package uploaded
 - `version` (String) Software version from the firmware package uploaded
 
-<a id="nestedatt--redfish_server"></a>
+<a id="nestedblock--redfish_server"></a>
 ### Nested Schema for `redfish_server`
 
 Required:

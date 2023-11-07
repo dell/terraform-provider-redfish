@@ -111,5 +111,6 @@ func (*redfishProvider) DataSources(_ context.Context) []func() datasource.DataS
 		NewBiosDatasource,
 		NewDellIdracAttributesDatasource,
 		NewStorageDatasource,
+		NewDellVirtualMediaDatasource,
 	}
 }
