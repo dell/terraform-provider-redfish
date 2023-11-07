@@ -88,10 +88,8 @@ func getSystemResource(service *gofish.Service) (*redfish.ComputerSystem, error)
 // NewConfig function creates the needed gofish structs to query the redfish API
 // See https://github.com/stmcginnis/gofish for details. This function returns a Service struct which can then be
 // used to make any required API calls.
+// To-Do: Verify from plan modifier, if required implement wrapper for validation of unknown in redfish_server.
 func NewConfig(pconfig *redfishProvider, rserver *[]models.RedfishServer) (*gofish.Service, error) {
-	if len(*rserver) < 1 {
-		return nil, fmt.Errorf("error: empty redfish server block")
-	}
 	// first redfish server block
 	rserver1 := (*rserver)[0]
 	var redfishClientUser, redfishClientPass string
