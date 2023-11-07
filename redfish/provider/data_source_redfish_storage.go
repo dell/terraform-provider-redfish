@@ -1,119 +1,147 @@
 package provider
 
-// import (
-// 	"context"
-// 	"strconv"
-// 	"time"
+import (
+	"context"
+	"fmt"
+	"terraform-provider-redfish/redfish/models"
+	"time"
 
-// 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-// 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-// 	"github.com/stmcginnis/gofish"
-// )
+	"github.com/stmcginnis/gofish"
 
-// func dataSourceRedfishStorage() *schema.Resource {
-// 	return &schema.Resource{
-// 		ReadContext: dataSourceRedfishStorageRead,
-// 		Schema:      getDataSourceRedfishStorageSchema(),
-// 	}
-// }
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+)
 
-// func getDataSourceRedfishStorageSchema() map[string]*schema.Schema {
-// 	return map[string]*schema.Schema{
-// 		"redfish_server": {
-// 			Type:        schema.TypeList,
-// 			Required:    true,
-// 			Description: "List of server BMCs and their respective user credentials",
-// 			Elem: &schema.Resource{
-// 				Schema: map[string]*schema.Schema{
-// 					"user": {
-// 						Type:        schema.TypeString,
-// 						Optional:    true,
-// 						Description: "User name for login",
-// 					},
-// 					"password": {
-// 						Type:        schema.TypeString,
-// 						Optional:    true,
-// 						Description: "User password for login",
-// 						Sensitive:   true,
-// 					},
-// 					"endpoint": {
-// 						Type:        schema.TypeString,
-// 						Required:    true,
-// 						Description: "Server BMC IP address or hostname",
-// 					},
-// 					"ssl_insecure": {
-// 						Type:        schema.TypeBool,
-// 						Optional:    true,
-// 						Description: "This field indicates whether the SSL/TLS certificate must be verified or not",
-// 					},
-// 				},
-// 			},
-// 		},
-// 		"storage": {
-// 			Type:        schema.TypeList,
-// 			Description: "List of storage and disks attached available on this instance",
-// 			Computed:    true,
-// 			Elem: &schema.Resource{
-// 				Schema: map[string]*schema.Schema{
-// 					"storage_controller_id": {
-// 						Description: "Disks attached to the storage resource",
-// 						Computed:    true,
-// 						Type:        schema.TypeString,
-// 					},
-// 					"drives": {
-// 						Type:        schema.TypeList,
-// 						Description: "Disks attached to the storage resource",
-// 						Computed:    true,
-// 						Elem: &schema.Schema{
-// 							Type: schema.TypeString,
-// 						},
-// 					},
-// 				},
-// 			},
-// 		},
-// 	}
-// }
+var (
+	_ datasource.DataSource              = &StorageDatasource{}
+	_ datasource.DataSourceWithConfigure = &StorageDatasource{}
+)
 
-// func dataSourceRedfishStorageRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-// 	service, err := NewConfig(m.(*schema.ResourceData), d)
-// 	if err != nil {
-// 		return diag.Errorf(err.Error())
-// 	}
-// 	return readRedfishStorageCollection(service, d)
-// }
+// NewStorageDatasource is new datasource for storage
+func NewStorageDatasource() datasource.DataSource {
+	return &StorageDatasource{}
+}
 
-// func readRedfishStorageCollection(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
-// 	var diags diag.Diagnostics
-// 	m := make([]map[string]interface{}, 0) //List where all storage controller will be held
+// StorageDatasource to construct datasource
+type StorageDatasource struct {
+	p       *redfishProvider
+	ctx     context.Context
+	service *gofish.Service
+}
 
-// 	systems, err := service.Systems()
-// 	if err != nil {
-// 		return diag.Errorf("Error when retrieving systems: %s", err)
-// 	}
-// 	storage, err := systems[0].Storage()
-// 	if err != nil {
-// 		return diag.Errorf("Error when retrieving storage: %s", err)
-// 	}
+// Configure implements datasource.DataSourceWithConfigure
+func (g *StorageDatasource) Configure(_ context.Context, req datasource.ConfigureRequest, _ *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+	g.p = req.ProviderData.(*redfishProvider)
+}
 
-// 	var mToAdd map[string]interface{} //Map where each controller and its disks will be written
-// 	for _, s := range storage {
-// 		mToAdd = make(map[string]interface{}) //Create new mToAdd instace
-// 		mToAdd["storage_controller_id"] = s.ID
-// 		drives, err := s.Drives()
-// 		if err != nil {
-// 			return diag.Errorf("Error when retrieving drives: %s", err)
-// 		}
+// Metadata implements datasource.DataSource
+func (*StorageDatasource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "storage"
+}
 
-// 		driveNames := make([]interface{}, 0)
-// 		for _, d := range drives {
-// 			driveNames = append(driveNames, d.Name)
-// 		}
-// 		mToAdd["drives"] = driveNames
-// 		m = append(m, mToAdd) //Insert controller into list
-// 	}
+// Schema implements datasource.DataSource
+func (*StorageDatasource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		MarkdownDescription: "Data source to fetch storage details via RedFish.",
+		Attributes:          StorageDatasourceSchema(),
+		Blocks:              RedfishServerDatasourceBlockMap(),
+	}
+}
 
-// 	d.Set("storage", m)
-// 	d.SetId(strconv.FormatInt(time.Now().Unix(), 10))
+// StorageDatasourceSchema to define the storage data-source schema
+func StorageDatasourceSchema() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"id": schema.StringAttribute{
+			MarkdownDescription: "ID of the storage data-source",
+			Description:         "ID of the storage data-source",
+			Computed:            true,
+		},
+		"storage": schema.ListNestedAttribute{
+			MarkdownDescription: "List of storage controllers",
+			Description:         "List of storage controllers",
+			NestedObject: schema.NestedAttributeObject{
+				Attributes: StorageControllerSchema(),
+			},
+			Computed: true,
+		},
+	}
+}
 
-// 	return diags
-// }
+// StorageControllerSchema to define the storage data-source schema
+func StorageControllerSchema() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"storage_controller_id": schema.StringAttribute{
+			MarkdownDescription: "ID of the storage controller",
+			Description:         "ID of the storage controller",
+			Computed:            true,
+		},
+		"drives": schema.ListAttribute{
+			MarkdownDescription: "List of drives on the storage controller",
+			Description:         "List of drives on the storage controller",
+			Computed:            true,
+			ElementType:         types.StringType,
+		},
+	}
+}
+
+// Read implements datasource.DataSource
+func (g *StorageDatasource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var plan models.StorageDatasource
+	diags := req.Config.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	service, err := NewConfig(g.p, &plan.RedfishServer)
+	if err != nil {
+		resp.Diagnostics.AddError("service error", err.Error())
+		return
+	}
+	g.ctx = ctx
+	g.service = service
+	state, diags := g.readDatasourceRedfishStorage(plan)
+	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+func (g *StorageDatasource) readDatasourceRedfishStorage(d models.StorageDatasource) (models.StorageDatasource, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// write the current time as ID
+	d.ID = types.StringValue(fmt.Sprintf("%d", time.Now().Unix()))
+
+	systems, err := g.service.Systems()
+	if err != nil {
+		diags.AddError("Error fetching computer systems collection", err.Error())
+		return d, diags
+	}
+
+	storage, err := systems[0].Storage()
+	if err != nil {
+		diags.AddError("Error fetching storage", err.Error())
+		return d, diags
+	}
+
+	d.Storages = make([]models.StorageControllerData, 0)
+	for _, s := range storage {
+		mToAdd := models.StorageControllerData{
+			ID: types.StringValue(s.ID),
+		}
+		drives, err := s.Drives()
+		if err != nil {
+			diags.AddError(fmt.Sprintf("Error when retrieving drives: %s", s.ID), err.Error())
+			continue
+		}
+
+		driveNames := make([]types.String, 0)
+		for _, d := range drives {
+			driveNames = append(driveNames, types.StringValue(d.Name))
+		}
+		mToAdd.Drives = driveNames
+		d.Storages = append(d.Storages, mToAdd)
+	}
+
+	return d, diags
+}

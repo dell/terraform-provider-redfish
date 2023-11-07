@@ -6,12 +6,10 @@ import (
 	"terraform-provider-redfish/gofish/dell"
 	"terraform-provider-redfish/redfish/models"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stmcginnis/gofish"
 )
@@ -49,19 +47,7 @@ func (*DellIdracAttributesDatasource) Schema(_ context.Context, _ datasource.Sch
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Data source to provide redfish infiziya",
 		Attributes:          DellIdracAttributesSchemaDatasource(),
-		Blocks: map[string]schema.Block{
-			"redfish_server": schema.ListNestedBlock{
-				MarkdownDescription: "List of server BMCs and their respective user credentials",
-				Description:         "List of server BMCs and their respective user credentials",
-				Validators: []validator.List{
-					listvalidator.SizeAtMost(1),
-					listvalidator.IsRequired(),
-				},
-				NestedObject: schema.NestedBlockObject{
-					Attributes: RedfishServerDatasourceSchema(),
-				},
-			},
-		},
+		Blocks:              RedfishServerDatasourceBlockMap(),
 	}
 }
 

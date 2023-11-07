@@ -110,6 +110,7 @@ func (*redfishProvider) DataSources(_ context.Context) []func() datasource.DataS
 	return []func() datasource.DataSource{
 		NewBiosDatasource,
 		NewDellIdracAttributesDatasource,
+		NewStorageDatasource,
 		NewDellVirtualMediaDatasource,
 	}
 }

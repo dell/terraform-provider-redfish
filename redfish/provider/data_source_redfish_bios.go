@@ -7,12 +7,10 @@ import (
 
 	"github.com/stmcginnis/gofish"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -51,19 +49,7 @@ func (*BiosDatasource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Data source to fetch bios details via RedFish.",
 		Attributes:          BiosDatasourceSchema(),
-		Blocks: map[string]schema.Block{
-			"redfish_server": schema.ListNestedBlock{
-				MarkdownDescription: "List of server BMCs and their respective user credentials",
-				Description:         "List of server BMCs and their respective user credentials",
-				Validators: []validator.List{
-					listvalidator.SizeAtMost(1),
-					listvalidator.IsRequired(),
-				},
-				NestedObject: schema.NestedBlockObject{
-					Attributes: RedfishServerDatasourceSchema(),
-				},
-			},
-		},
+		Blocks:              RedfishServerDatasourceBlockMap(),
 	}
 }
 

@@ -27,7 +27,6 @@ func testAccRedfishDataSourceStorageConfig(testingInfo TestingServerCredentials)
 		  user         = "%s"
 		  password     = "%s"
 		  endpoint     = "https://%s"
-		  ssl_insecure = true
 		}
 	  }
 		`,
