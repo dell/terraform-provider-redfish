@@ -1,173 +1,144 @@
 package provider
 
-// import (
-// 	"context"
-// 	"strings"
+import (
+	"context"
+	"fmt"
+	"strings"
+	"terraform-provider-redfish/redfish/models"
 
-// 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-// 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-// 	"github.com/stmcginnis/gofish"
-// 	"github.com/stmcginnis/gofish/redfish"
-// )
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/stmcginnis/gofish"
+	"github.com/stmcginnis/gofish/redfish"
+)
 
-// type InventoryItem struct {
-// 	entityID   string
-// 	entityName string
-// 	version    string
-// }
+var (
+	_ datasource.DataSource              = &FirmwareInventoryDatasource{}
+	_ datasource.DataSourceWithConfigure = &FirmwareInventoryDatasource{}
+)
 
-// func dataSourceRedfishFirmwareInventory() *schema.Resource {
-// 	return &schema.Resource{
-// 		ReadContext: dataSourceRedfishFirmwareInventoryRead,
-// 		Schema:      getDataSourceRedfishFirmwareInventorySchema(),
-// 	}
-// }
+// NewFirmwareInventoryDatasource is new datasource for FirmwareInventory
+func NewFirmwareInventoryDatasource() datasource.DataSource {
+	return &FirmwareInventoryDatasource{}
+}
 
-// func getDataSourceRedfishFirmwareInventorySchema() map[string]*schema.Schema {
-// 	return map[string]*schema.Schema{
-// 		"redfish_server": {
-// 			Type:        schema.TypeList,
-// 			Required:    true,
-// 			Description: "List of server BMCs and their respective user credentials",
-// 			Elem: &schema.Resource{
-// 				Schema: map[string]*schema.Schema{
-// 					"user": {
-// 						Type:        schema.TypeString,
-// 						Optional:    true,
-// 						Description: "User name for login",
-// 					},
-// 					"password": {
-// 						Type:        schema.TypeString,
-// 						Optional:    true,
-// 						Description: "User password for login",
-// 						Sensitive:   true,
-// 					},
-// 					"endpoint": {
-// 						Type:        schema.TypeString,
-// 						Required:    true,
-// 						Description: "Server BMC IP address or hostname",
-// 					},
-// 					"ssl_insecure": {
-// 						Type:        schema.TypeBool,
-// 						Optional:    true,
-// 						Description: "This field indicates whether the SSL/TLS certificate must be verified or not",
-// 					},
-// 				},
-// 			},
-// 		},
-// 		"odata_id": {
-// 			Type:        schema.TypeString,
-// 			Description: "OData ID for the Firmware Inventory resource",
-// 			Computed:    true,
-// 		},
-// 		"id": {
-// 			Type:        schema.TypeString,
-// 			Description: "Id",
-// 			Computed:    true,
-// 		},
-// 		"inventory": {
-// 			Type:        schema.TypeList,
-// 			Description: "Firmware Inventory",
-// 			Computed:    true,
-// 			Elem: &schema.Resource{
-// 				Schema: map[string]*schema.Schema{
-// 					"entity_name": {
-// 						Type:     schema.TypeString,
-// 						Computed: true,
-// 					},
-// 					"entity_id": {
-// 						Type:     schema.TypeString,
-// 						Computed: true,
-// 					},
-// 					"version": {
-// 						Type:     schema.TypeString,
-// 						Computed: true,
-// 					},
-// 				},
-// 			},
-// 		},
-// 	}
-// }
+// FirmwareInventoryDatasource to construct datasource
+type FirmwareInventoryDatasource struct {
+	p *redfishProvider
+}
 
-// func dataSourceRedfishFirmwareInventoryRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-// 	service, err := NewConfig(m.(*schema.ResourceData), d)
-// 	if err != nil {
-// 		return diag.Errorf(err.Error())
-// 	}
-// 	return readRedfishFirmwareInventory(service, d)
-// }
+// Configure implements datasource.DataSourceWithConfigure
+func (g *FirmwareInventoryDatasource) Configure(_ context.Context, req datasource.ConfigureRequest, _ *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+	g.p = req.ProviderData.(*redfishProvider)
+}
 
-// func flattenInventoryItems(inventoryItems *[]InventoryItem) []interface{} {
-// 	if inventoryItems != nil {
-// 		inv := make([]interface{}, len(*inventoryItems), len(*inventoryItems))
+// Metadata implements datasource.DataSource
+func (*FirmwareInventoryDatasource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "firmware_inventory"
+}
 
-// 		for i, invItem := range *inventoryItems {
-// 			item := make(map[string]interface{})
+// Schema implements datasource.DataSource
+func (*FirmwareInventoryDatasource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		MarkdownDescription: "Data source to fetch Firmware Inventory details via RedFish.",
+		Attributes:          FirmwareInventoryDatasourceSchema(),
+		Blocks:              RedfishServerDatasourceBlockMap(),
+	}
+}
 
-// 			item["entity_name"] = invItem.entityID
-// 			item["entity_id"] = invItem.entityName
-// 			item["version"] = invItem.version
+// FirmwareInventoryDatasourceSchema to define the Firmware Inventory data-source schema
+func FirmwareInventoryDatasourceSchema() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"id": schema.StringAttribute{
+			MarkdownDescription: "ID of the Firmware Inventory data-source",
+			Description:         "ID of the Firmware Inventory data-source",
+			Computed:            true,
+		},
+		"odata_id": schema.StringAttribute{
+			MarkdownDescription: "OData ID of the Firmware Inventory data-source",
+			Description:         "OData ID of the Firmware Inventory data-source",
+			Computed:            true,
+		},
+		"inventory": schema.ListNestedAttribute{
+			MarkdownDescription: "Firmware Inventory.",
+			Description:         "Firmware Inventory.",
+			Computed:            true,
+			NestedObject: schema.NestedAttributeObject{
+				Attributes: map[string]schema.Attribute{
+					"entity_name": schema.StringAttribute{
+						Computed: true,
+					},
+					"entity_id": schema.StringAttribute{
+						Computed: true,
+					},
+					"version": schema.StringAttribute{
+						Computed: true,
+					},
+				},
+			},
+		},
+	}
+}
 
-// 			inv[i] = item
-// 		}
-// 		return inv
-// 	}
-// 	return make([]interface{}, 0)
-// }
+// Read implements datasource.DataSource
+func (g *FirmwareInventoryDatasource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var plan models.FirmwareInventory
+	diags := req.Config.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	service, err := NewConfig(g.p, &plan.RedfishServer)
+	if err != nil {
+		resp.Diagnostics.AddError("service error", err.Error())
+		return
+	}
+	state, err := readRedfishFirmwareInventory(service)
+	if err != nil {
+		diags.AddError("failed to fetch firmware inventory details", err.Error())
+	}
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
 
-// func getInventoryItems(fwInventories []*redfish.SoftwareInventory) []InventoryItem {
-// 	var inv InventoryItem
+func getInventoryItems(fwInventories []*redfish.SoftwareInventory) []models.Inventory {
+	var inv models.Inventory
 
-// 	inventoryItemList := make([]InventoryItem, 0)
+	inventoryItemList := make([]models.Inventory, 0)
 
-// 	for _, fwInv := range fwInventories {
+	for _, fwInv := range fwInventories {
+		if strings.HasPrefix(fwInv.Entity.ID, "Installed") {
+			inv.EntityId = types.StringValue(fwInv.Entity.ID)
+			inv.EntityName = types.StringValue(fwInv.Entity.Name)
+			inv.Version = types.StringValue(fwInv.Version)
+			inventoryItemList = append(inventoryItemList, inv)
+		}
+	}
+	return inventoryItemList
+}
 
-// 		if strings.HasPrefix(fwInv.Entity.ID, "Installed") {
-// 			inv.entityID = fwInv.Entity.ID
-// 			inv.entityName = fwInv.Entity.Name
-// 			inv.version = fwInv.Version
+func readRedfishFirmwareInventory(service *gofish.Service) (*models.FirmwareInventory, error) {
+	updateService, err := service.UpdateService()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching UpdateService collection: %s", err.Error())
+	}
 
-// 			inventoryItemList = append(inventoryItemList, inv)
-// 		}
-// 	}
-// 	return inventoryItemList
-// }
+	fwInventories, err := updateService.FirmwareInventories()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching Firmware Inventory: %s", err)
+	}
 
-// func readRedfishFirmwareInventory(service *gofish.Service, d *schema.ResourceData) diag.Diagnostics {
-// 	var diags diag.Diagnostics
+	// Filter inventory which are prefixed as "Installed"
+	inventoryItems := getInventoryItems(fwInventories)
 
-// 	updateService, err := service.UpdateService()
-// 	if err != nil {
-// 		return diag.Errorf("Error fetching UpdateService collection: %s", err)
-// 	}
-
-// 	fwInventories, err := updateService.FirmwareInventories()
-// 	if err != nil {
-// 		return diag.Errorf("Error fetching Firmware Inventory: %s", err)
-// 	}
-
-// 	// Filter inventory which are prefixed as "Installed"
-// 	inventoryItems := getInventoryItems(fwInventories)
-
-// 	// Flatten array of InventoryItem to array of key-value pair objects
-// 	inventoryList := flattenInventoryItems(&inventoryItems)
-
-// 	if err := d.Set("odata_id", updateService.ODataID); err != nil {
-// 		return diag.Errorf("error setting UpdateService OData ID: %s", err)
-// 	}
-
-// 	if err := d.Set("id", updateService.ID); err != nil {
-// 		return diag.Errorf("error setting UpdateService ID: %s", err)
-// 	}
-
-// 	if err := d.Set("inventory", inventoryList); err != nil {
-// 		return diag.Errorf("error setting Firmware Inventory: %s", err)
-// 	}
-
-// 	serverConfig := d.Get("redfish_server").([]interface{})
-// 	endpoint := serverConfig[0].(map[string]interface{})["endpoint"].(string)
-// 	fwResourceID := endpoint + updateService.ODataID
-// 	d.SetId(fwResourceID)
-
-// 	return diags
-// }
+	firmwareState := models.FirmwareInventory{
+		OdataID:   types.StringValue(updateService.ODataID),
+		ID:        types.StringValue(updateService.ID),
+		Inventory: inventoryItems,
+	}
+	return &firmwareState, nil
+}
