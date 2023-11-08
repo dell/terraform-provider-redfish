@@ -71,12 +71,18 @@ func FirmwareInventoryDatasourceSchema() map[string]schema.Attribute {
 				Attributes: map[string]schema.Attribute{
 					"entity_name": schema.StringAttribute{
 						Computed: true,
+						Description: "entity name of the firmware inventory",
+						MarkdownDescription: "entity name of the firmware inventory",
 					},
 					"entity_id": schema.StringAttribute{
 						Computed: true,
+						Description: "entity id of the firmware inventory",
+						MarkdownDescription: "entity id of the firmware inventory",
 					},
 					"version": schema.StringAttribute{
 						Computed: true,
+						Description: "firmware inventory version",
+						MarkdownDescription: "firmware inventory version",
 					},
 				},
 			},
