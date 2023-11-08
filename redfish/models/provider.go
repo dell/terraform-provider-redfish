@@ -12,8 +12,8 @@ type ProviderConfig struct {
 
 // RedfishServer to configure server config for resource/datasource.
 type RedfishServer struct {
-	User         types.String `tfsdk:"user"`
-	Password     types.String `tfsdk:"password"`
-	Endpoint     types.String `tfsdk:"endpoint"`
-	ValidateCert types.Bool   `tfsdk:"validate_cert"`
+	User        types.String `tfsdk:"user"`
+	Password    types.String `tfsdk:"password"`
+	Endpoint    types.String `tfsdk:"endpoint"`
+	SslInsecure types.Bool   `tfsdk:"ssl_insecure"`
 }

@@ -161,8 +161,8 @@ func simpleUpdateSchema() map[string]schema.Attribute {
 func (*simpleUpdateResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Resource for managing power.",
-		Version:             1,
-		Attributes:          simpleUpdateSchema(),
+
+		Attributes: simpleUpdateSchema(),
 		Blocks: map[string]schema.Block{
 			"redfish_server": schema.ListNestedBlock{
 				MarkdownDescription: "List of server BMCs and their respective user credentials",
