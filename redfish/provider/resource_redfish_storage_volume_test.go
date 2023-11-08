@@ -8,59 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccRedfishStorageVolumeCreate_basic(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccRedfishResourceStorageVolumeMinConfig(
-					creds,
-					"RAID.Integrated.1-1",
-					"TerraformVol1",
-					"NonRedundant",
-					"Solid State Disk 0:0:1",
-				),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
-					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "volume_type", "NonRedundant"),
-				),
-			},
-		},
-	})
-}
-
-func TestAccRedfishStorageVolume_basic(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccRedfishResourceStorageVolumeConfig(
-					creds,
-					"RAID.Integrated.1-1",
-					"TerraformVol1",
-					"NonRedundant",
-					"Solid State Disk 0:0:1",
-					"Immediate",
-					"Off",
-					"UnprotectedWriteBack",
-					"PowerCycle",
-					100,
-					200,
-					1073323223,
-					131072,
-				),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
-					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "write_cache_policy", "UnprotectedWriteBack"),
-				),
-			},
-		},
-	})
-}
-
-func TestAccRedfishStorageVolume_InvaldiController(t *testing.T) {
+func TestAccRedfishStorageVolume_InvalidController(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -71,7 +19,7 @@ func TestAccRedfishStorageVolume_InvaldiController(t *testing.T) {
 					"Invalid-ID",
 					"TerraformVol1",
 					"NonRedundant",
-					"Solid State Disk 0:0:1",
+					"Physical Disk 0:1:0",
 					"Immediate",
 					"Off",
 					"UnprotectedWriteBack",
@@ -87,7 +35,7 @@ func TestAccRedfishStorageVolume_InvaldiController(t *testing.T) {
 	})
 }
 
-func TestAccRedfishStorageVolume_InvaldiDrive(t *testing.T) {
+func TestAccRedfishStorageVolume_InvalidDrive(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -114,7 +62,7 @@ func TestAccRedfishStorageVolume_InvaldiDrive(t *testing.T) {
 	})
 }
 
-func TestAccRedfishStorageVolume_InvaldiVolumeType(t *testing.T) {
+func TestAccRedfishStorageVolume_InvalidVolumeType(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -125,7 +73,7 @@ func TestAccRedfishStorageVolume_InvaldiVolumeType(t *testing.T) {
 					"RAID.Integrated.1-1",
 					"TerraformVol1",
 					"Mirrored",
-					"Solid State Disk 0:0:1",
+					"Physical Disk 0:1:0",
 					"Immediate",
 					"Off",
 					"UnprotectedWriteBack",
@@ -136,6 +84,58 @@ func TestAccRedfishStorageVolume_InvaldiVolumeType(t *testing.T) {
 					131072,
 				),
 				ExpectError: regexp.MustCompile("Error when creating the virtual disk on disk controller"),
+			},
+		},
+	})
+}
+
+func TestAccRedfishStorageVolumeCreate_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceStorageVolumeMinConfig(
+					creds,
+					"RAID.Integrated.1-1",
+					"TerraformVol1",
+					"NonRedundant",
+					"Physical Disk 0:1:1",
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "volume_type", "NonRedundant"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccRedfishStorageVolume_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceStorageVolumeConfig(
+					creds,
+					"RAID.Integrated.1-1",
+					"TerraformVol1",
+					"NonRedundant",
+					"Physical Disk 0:1:1",
+					"Immediate",
+					"AdaptiveReadAhead",
+					"UnprotectedWriteBack",
+					"PowerCycle",
+					100,
+					1200,
+					1073323222,
+					131072,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "write_cache_policy", "UnprotectedWriteBack"),
+				),
 			},
 		},
 	})
@@ -152,20 +152,19 @@ func TestAccRedfishStorageVolumeUpdate_basic(t *testing.T) {
 					"RAID.Integrated.1-1",
 					"TerraformVol1",
 					"NonRedundant",
-					"Solid State Disk 0:0:1",
+					"Physical Disk 0:1:1",
 					"Immediate",
-					"Off",
+					"AdaptiveReadAhead",
 					"UnprotectedWriteBack",
 					"PowerCycle",
 					100,
-					200,
-					1073323223,
+					1200,
+					1073323222,
 					131072,
 				),
-
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "volume_name", "TerraformVol1"),
-					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "read_cache_policy", "Off"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "read_cache_policy", "AdaptiveReadAhead"),
 				),
 			},
 
@@ -175,20 +174,49 @@ func TestAccRedfishStorageVolumeUpdate_basic(t *testing.T) {
 					"RAID.Integrated.1-1",
 					"TerraformVol1",
 					"NonRedundant",
-					"Solid State Disk 0:0:1",
+					"Physical Disk 0:1:1",
 					"Immediate",
+					"ReadAhead",
+					"UnprotectedWriteBack",
+					"PowerCycle",
+					100,
+					1200,
+					1073323222,
+					131072,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "read_cache_policy", "ReadAhead"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccRedfishStorageVolume_OnReset(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceStorageVolumeConfig(
+					creds,
+					"RAID.Integrated.1-1",
+					"TerraformVol1",
+					"NonRedundant",
+					"Physical Disk 0:1:1",
+					"OnReset",
 					"AdaptiveReadAhead",
 					"UnprotectedWriteBack",
 					"PowerCycle",
 					100,
-					200,
-					1073323223,
+					12000,
+					1073323222,
 					131072,
 				),
-
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "volume_name", "TerraformVol1"),
-					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "read_cache_policy", "AdaptiveReadAhead"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "write_cache_policy", "UnprotectedWriteBack"),
 				),
 			},
 		},
@@ -212,7 +240,7 @@ func testAccRedfishResourceStorageVolumeConfig(testingInfo TestingServerCredenti
 ) string {
 	return fmt.Sprintf(`
 	resource "redfish_storage_volume" "volume" {
-		redfish_server {
+		redfish_server = {
 		  user         = "%s"
 		  password     = "%s"
 		  endpoint     = "https://%s"
@@ -259,7 +287,7 @@ func testAccRedfishResourceStorageVolumeMinConfig(testingInfo TestingServerCrede
 ) string {
 	return fmt.Sprintf(`
 	resource "redfish_storage_volume" "volume" {
-		redfish_server {
+		redfish_server = {
 		  user         = "%s"
 		  password     = "%s"
 		  endpoint     = "https://%s"
