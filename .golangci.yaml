@@ -42,7 +42,6 @@ run:
     - "redfish/provider/data_source_redfish_system_boot.go"
     - "redfish/provider/resource_redfish_storage_volume.go"
     - "redfish/provider/resource_redfish_storage_volume.go"
-    - "redfish/provider/resource_redfish_bios.go"
   #   - ".*\\.my\\.go$"
   # If set we pass it to "go list -mod={option}". From "go help modules":
   # If invoked with -mod=readonly, the go command is disallowed from the implicit
