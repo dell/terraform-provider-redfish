@@ -240,7 +240,7 @@ func testAccRedfishResourceStorageVolumeConfig(testingInfo TestingServerCredenti
 ) string {
 	return fmt.Sprintf(`
 	resource "redfish_storage_volume" "volume" {
-		redfish_server = {
+		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
 		  endpoint     = "https://%s"
@@ -287,7 +287,7 @@ func testAccRedfishResourceStorageVolumeMinConfig(testingInfo TestingServerCrede
 ) string {
 	return fmt.Sprintf(`
 	resource "redfish_storage_volume" "volume" {
-		redfish_server = {
+		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
 		  endpoint     = "https://%s"

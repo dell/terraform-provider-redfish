@@ -2,6 +2,7 @@ package models
 
 import "github.com/hashicorp/terraform-plugin-framework/types"
 
+// RedfishStorageVolume is struct for storage volume resource
 type RedfishStorageVolume struct {
 	CapacityBytes       types.Int64     `tfsdk:"capacity_bytes"`
 	DiskCachePolicy     types.String    `tfsdk:"disk_cache_policy"`
