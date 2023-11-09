@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// redfish.Power represents a concrete Go type that represents an API resource
+// test redfish bios settings
 func TestAccRedfishBios_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
@@ -17,24 +17,14 @@ func TestAccRedfishBios_basic(t *testing.T) {
 			{
 				Config: testAccRedfishResourceBiosConfigOn(
 					creds),
-				Check: resource.ComposeTestCheckFunc(
+				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_bios.bios", "attributes.NumLock", "On"),
 				),
 			},
-		},
-	})
-}
-
-func TestAccRedfishBios_NumLockOff(t *testing.T) {
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceBiosConfigOff(
 					creds),
-				Check: resource.ComposeTestCheckFunc(
+				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_bios.bios", "attributes.NumLock", "Off"),
 				),
 			},
@@ -42,7 +32,7 @@ func TestAccRedfishBios_NumLockOff(t *testing.T) {
 	})
 }
 
-func TestAccRedfishBios_basic_InvalidSettings(t *testing.T) {
+func TestAccRedfishBios_InvalidSettings(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -51,13 +41,13 @@ func TestAccRedfishBios_basic_InvalidSettings(t *testing.T) {
 			{
 				Config: testAccRedfishResourceBiosConfigInvalidSettingsApplyTime(
 					creds),
-				ExpectError: regexp.MustCompile(" expected settings_apply_time to be one of "),
+				ExpectError: regexp.MustCompile("Attribute settings_apply_time value must be one of"),
 			},
 		},
 	})
 }
 
-func TestAccRedfishBios_basic_InvalidAttributes(t *testing.T) {
+func TestAccRedfishBios_InvalidAttributes(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -66,7 +56,7 @@ func TestAccRedfishBios_basic_InvalidAttributes(t *testing.T) {
 			{
 				Config: testAccRedfishResourceBiosConfigInvalidAttributes(
 					creds),
-				ExpectError: regexp.MustCompile(" expected settings_apply_time to be one of "),
+				ExpectError: regexp.MustCompile("Attribute settings_apply_time value must be one of"),
 			},
 		},
 	})
@@ -110,6 +100,7 @@ func testAccRedfishResourceBiosConfigOff(testingInfo TestingServerCredentials) s
 
 		  attributes = {
 			"NumLock" = "Off"
+			"AcPwrRcvryUserDelay" = 70
 		  }
 		  reset_type = "ForceRestart"
    		  bios_job_timeout = 1200
