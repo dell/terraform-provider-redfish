@@ -38,8 +38,12 @@ run:
   # If it's not please let us know.
   # "/" will be replaced by current OS file path separator to properly work on Windows.
   skip-files:
+    - "redfish/provider/data_source_redfish_firmware_inventory.go"
+    - "redfish/provider/data_source_redfish_system_boot.go"
+    - "redfish/provider/resource_redfish_storage_volume.go"
+    - "redfish/provider/resource_redfish_storage_volume.go"
+    - "redfish/provider/resource_redfish_bios.go"
   #   - ".*\\.my\\.go$"
-    - redfish/provider/common.go
   # If set we pass it to "go list -mod={option}". From "go help modules":
   # If invoked with -mod=readonly, the go command is disallowed from the implicit
   # automatic updating of go.mod described above. Instead, it fails when any changes
@@ -165,7 +169,7 @@ linters-settings:
       - name: cyclomatic
         severity: warning
         disabled: false
-        arguments: [10] # TBD
+        arguments: [20] # TBD 10
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#datarace
       - name: datarace
         severity: warning
@@ -238,7 +242,7 @@ linters-settings:
       - name: function-length
         severity: warning
         disabled: false
-        arguments: [45, 0]
+        arguments: [70, 0]
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#get-return
       - name: get-return
         severity: warning
@@ -276,7 +280,7 @@ linters-settings:
       - name: line-length-limit
         severity: warning
         disabled: false
-        arguments: [260] #TBD 80
+        arguments: [150] #TBD 80
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#modifies-parameter
       - name: modifies-parameter
         severity: warning

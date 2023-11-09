@@ -47,6 +47,7 @@ func (*DellIdracAttributesDatasource) Schema(_ context.Context, _ datasource.Sch
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Data source to provide redfish infiziya",
 		Attributes:          DellIdracAttributesSchemaDatasource(),
+		Blocks:              RedfishServerDatasourceBlockMap(),
 	}
 }
 
@@ -58,18 +59,16 @@ func DellIdracAttributesSchemaDatasource() map[string]schema.Attribute {
 			Description:         "ID of the iDRAC attributes resource",
 			Computed:            true,
 		},
-		"redfish_server": schema.SingleNestedAttribute{
-			MarkdownDescription: "Redfish Server",
-			Description:         "Redfish Server",
-			Required:            true,
-			Attributes:          RedfishServerDatasourceSchema(),
-		},
 		"attributes": schema.MapAttribute{
-			MarkdownDescription: "iDRAC attributes. To check allowed attributes please either use the datasource for dell idrac attributes or query " +
-				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/iDRAC.Embedded.1. To get allowed values for those attributes, check " +
+			MarkdownDescription: "iDRAC attributes. " +
+				"To check allowed attributes please either use the datasource for dell idrac attributes or query " +
+				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/iDRAC.Embedded.1. " +
+				"To get allowed values for those attributes, check " +
 				"/redfish/v1/Registries/ManagerAttributeRegistry/ManagerAttributeRegistry.v1_0_0.json from a Redfish Instance",
-			Description: "iDRAC attributes. To check allowed attributes please either use the datasource for dell idrac attributes or query " +
-				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/iDRAC.Embedded.1. To get allowed values for those attributes, check " +
+			Description: "iDRAC attributes. " +
+				"To check allowed attributes please either use the datasource for dell idrac attributes or query " +
+				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/iDRAC.Embedded.1. " +
+				"To get allowed values for those attributes, check " +
 				"/redfish/v1/Registries/ManagerAttributeRegistry/ManagerAttributeRegistry.v1_0_0.json from a Redfish Instance",
 			ElementType: types.StringType,
 			Computed:    true,

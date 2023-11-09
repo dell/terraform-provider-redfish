@@ -27,7 +27,6 @@ func testAccRedfishDatasourceVirtualMediaConfig(testingInfo TestingServerCredent
 		  user         = "%s"
 		  password     = "%s"
 		  endpoint     = "https://%s"
-		  ssl_insecure = true
 		}
 	  }
 	  

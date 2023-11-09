@@ -2,10 +2,11 @@ package provider
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"os"
 	"regexp"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 // Test to create and update Simple update - Positive
@@ -75,6 +76,7 @@ func TestAccRedfishSimpleUpdate_InvalidProto(t *testing.T) {
 		},
 	})
 }
+
 func testAccRedfishResourceUpdateConfig(testingInfo TestingServerCredentials,
 	transferProtocol string,
 	imagePath string) string {

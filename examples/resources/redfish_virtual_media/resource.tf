@@ -25,7 +25,8 @@ resource "redfish_virtual_media" "vm" {
     ssl_insecure = each.value.ssl_insecure
   }
   // Image to be attached to virtual media
-  image           = "http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/iso/RHEL-8.8.0-20230411.3-x86_64-boot.iso"
+  # image           = "http://inuxlib.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img"
+  image           = "http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img"
   transfer_method = "Stream"
   // Network protocol used to fetch the image
   transfer_protocol_type = "HTTP"

@@ -34,9 +34,8 @@ type dellIdracAttributesResource struct {
 }
 
 // Configure implements resource.ResourceWithConfigure
-func (r *dellIdracAttributesResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *dellIdracAttributesResource) Configure(ctx context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
-		resp.Diagnostics.AddError("error", "provider data is empty")
 		return
 	}
 	r.p = req.ProviderData.(*redfishProvider)
@@ -52,8 +51,9 @@ func (*dellIdracAttributesResource) Metadata(_ context.Context, req resource.Met
 func (*dellIdracAttributesResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Resource for managing DellIdracAttributes on OpenManage Enterprise.",
-		Version:             1,
-		Attributes:          DellIdracAttributesSchema(),
+
+		Attributes: DellIdracAttributesSchema(),
+		Blocks:     RedfishServerResourceBlockMap(),
 	}
 }
 
@@ -65,18 +65,16 @@ func DellIdracAttributesSchema() map[string]schema.Attribute {
 			Description:         "ID of the iDRAC attributes resource",
 			Computed:            true,
 		},
-		"redfish_server": schema.SingleNestedAttribute{
-			MarkdownDescription: "Redfish Server",
-			Description:         "Redfish Server",
-			Required:            true,
-			Attributes:          RedfishServerSchema(),
-		},
 		"attributes": schema.MapAttribute{
-			MarkdownDescription: "iDRAC attributes. To check allowed attributes please either use the datasource for dell idrac attributes or query " +
-				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/iDRAC.Embedded.1. To get allowed values for those attributes, check " +
+			MarkdownDescription: "iDRAC attributes. " +
+				"To check allowed attributes please either use the datasource for dell idrac attributes or query " +
+				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/iDRAC.Embedded.1. " +
+				"To get allowed values for those attributes, check " +
 				"/redfish/v1/Registries/ManagerAttributeRegistry/ManagerAttributeRegistry.v1_0_0.json from a Redfish Instance",
-			Description: "iDRAC attributes. To check allowed attributes please either use the datasource for dell idrac attributes or query " +
-				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/iDRAC.Embedded.1. To get allowed values for those attributes, check " +
+			Description: "iDRAC attributes. " +
+				"To check allowed attributes please either use the datasource for dell idrac attributes or query " +
+				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/iDRAC.Embedded.1. " +
+				"To get allowed values for those attributes, check " +
 				"/redfish/v1/Registries/ManagerAttributeRegistry/ManagerAttributeRegistry.v1_0_0.json from a Redfish Instance",
 			ElementType: types.StringType,
 			Required:    true,
@@ -292,8 +290,11 @@ func readRedfishDellIdracAttributes(_ context.Context, service *gofish.Service, 
 	readAttributes := make(map[string]attr.Value)
 
 	for k, v := range old {
-		attrValue := idracAttributes.Attributes[k] // Check if attribute from config exists in idrac attributes
-		if attrValue != nil {                      // This is done to avoid triggering an update when reading Password values, that are shown as null (nil to Go)
+		// Check if attribute from config exists in idrac attributes
+		attrValue := idracAttributes.Attributes[k]
+		// This is done to avoid triggering an update when reading Password values,
+		// that are shown as null (nil to Go)
+		if attrValue != nil {
 			readAttributes[k] = v
 		} else {
 			readAttributes[k] = v.(types.String)

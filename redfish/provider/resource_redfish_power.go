@@ -56,14 +56,6 @@ func PowerSchema() map[string]schema.Attribute {
 			Description:         "ID of the power resource",
 			Computed:            true,
 		},
-
-		"redfish_server": schema.SingleNestedAttribute{
-			MarkdownDescription: "Redfish Server",
-			Description:         "Redfish Server",
-			Required:            true,
-			Attributes:          RedfishServerSchema(),
-		},
-
 		"desired_power_action": schema.StringAttribute{
 			MarkdownDescription: "Desired power setting. Applicable values are 'On','ForceOn','ForceOff','ForceRestart'," +
 				"'GracefulRestart','GracefulShutdown','PowerCycle', 'PushPowerButton', 'Nmi'",
@@ -120,8 +112,9 @@ func PowerSchema() map[string]schema.Attribute {
 func (*powerResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Resource for managing power.",
-		Version:             1,
-		Attributes:          PowerSchema(),
+
+		Attributes: PowerSchema(),
+		Blocks:     RedfishServerResourceBlockMap(),
 	}
 }
 
@@ -136,8 +129,8 @@ func (r *powerResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 	// 	// Lock the mutex to avoid race conditions with other resources
-	redfishMutexKV.Lock(plan.RedfishServer.Endpoint.ValueString())
-	defer redfishMutexKV.Unlock(plan.RedfishServer.Endpoint.ValueString())
+	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
+	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
 
 	service, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
@@ -153,8 +146,9 @@ func (r *powerResource) Create(ctx context.Context, req resource.CreateRequest, 
 	plan.PowerId = types.StringValue(system.SerialNumber + "_power")
 
 	resetType := plan.DesiredPowerAction.ValueString()
-	powerState, diags1 := PowerOperation(resetType, int(plan.MaximumWaitTime.ValueInt64()), int(plan.CheckInterval.ValueInt64()), service)
-	if diags1.HasError() {
+	pOp := powerOperator{ctx, service}
+	powerState, pErr := pOp.PowerOperation(resetType, plan.MaximumWaitTime.ValueInt64(), plan.CheckInterval.ValueInt64())
+	if pErr != nil {
 		return
 	}
 	// time to allow changes to get reflected
