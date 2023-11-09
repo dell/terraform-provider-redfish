@@ -30,7 +30,7 @@ func TestAccRedfishSystemBoot_fetchInvalidID(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccRedfishDatasourceSystemBootConfig(creds, "invalid-id"),
-				ExpectError: regexp.MustCompile(" Could not find a ComputerSystem resource with resource ID"),
+				ExpectError: regexp.MustCompile("Could not find a ComputerSystem"),
 			},
 		},
 	})
@@ -39,7 +39,7 @@ func TestAccRedfishSystemBoot_fetchInvalidID(t *testing.T) {
 func testAccRedfishDatasourceSystemBootConfig(testingInfo TestingServerCredentials, id string) string {
 	return fmt.Sprintf(`
 	data "redfish_system_boot" "system_boot" {
-		resource_id = "%s"
+		id = "%s"
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
