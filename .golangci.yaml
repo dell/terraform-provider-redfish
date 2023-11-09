@@ -38,7 +38,6 @@ run:
   # If it's not please let us know.
   # "/" will be replaced by current OS file path separator to properly work on Windows.
   skip-files:
-    - "redfish/provider/data_source_redfish_firmware_inventory.go"
     - "redfish/provider/resource_redfish_storage_volume.go"
     - "redfish/provider/resource_redfish_storage_volume.go"
     - "redfish/provider/resource_redfish_bios.go"
