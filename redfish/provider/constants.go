@@ -13,4 +13,7 @@ const (
 
 	// RedfishVirtualMediaMountError specifies error when there are issues while mounting virtual media
 	RedfishVirtualMediaMountError = "Couldn't mount Virtual Media"
+
+	// RedfishJobErrorMsg specifies error details occured while tracking job details
+	RedfishJobErrorMsg = "Error, job wasn't able to complete"
 )

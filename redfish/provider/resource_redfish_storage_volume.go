@@ -35,6 +35,7 @@ const (
 	defaultStorageVolumeResetTimeout  int64 = 120
 	defaultStorageVolumeJobTimeout    int64 = 1200
 	intervalStorageVolumeJobCheckTime int64 = 10
+	maxCapacityBytes                  int64 = 1000000000
 )
 
 // NewRedfishStorageVolumeResource is a helper function to simplify the provider implementation.
@@ -56,10 +57,11 @@ func (r *RedfishStorageVolumeResource) Configure(_ context.Context, req resource
 }
 
 // Metadata returns the resource type name.
-func (r *RedfishStorageVolumeResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (*RedfishStorageVolumeResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "storage_volume"
 }
 
+// VolumeSchema defines the schema for the storage volume resource.
 func VolumeSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"capacity_bytes": schema.Int64Attribute{
@@ -67,7 +69,7 @@ func VolumeSchema() map[string]schema.Attribute {
 			Description:         "Capacity Bytes",
 			Optional:            true,
 			Validators: []validator.Int64{
-				int64validator.AtLeast(1000000000),
+				int64validator.AtLeast(maxCapacityBytes),
 			},
 		},
 		"disk_cache_policy": schema.StringAttribute{
@@ -79,7 +81,8 @@ func VolumeSchema() map[string]schema.Attribute {
 			Validators: []validator.String{
 				stringvalidator.OneOf([]string{
 					"Enabled",
-					"Disabled"}...),
+					"Disabled",
+				}...),
 			},
 		},
 		"drives": schema.ListAttribute{
@@ -111,7 +114,8 @@ func VolumeSchema() map[string]schema.Attribute {
 				stringvalidator.OneOf([]string{
 					string(redfish.ReadAheadReadCachePolicyType),
 					string(redfish.AdaptiveReadAheadReadCachePolicyType),
-					string(redfish.OffReadCachePolicyType)}...),
+					string(redfish.OffReadCachePolicyType),
+				}...),
 			},
 		},
 		"reset_timeout": schema.Int64Attribute{
@@ -131,7 +135,8 @@ func VolumeSchema() map[string]schema.Attribute {
 				stringvalidator.OneOf([]string{
 					string(redfish.ForceRestartResetType),
 					string(redfish.GracefulRestartResetType),
-					string(redfish.PowerCycleResetType)}...),
+					string(redfish.PowerCycleResetType),
+				}...),
 			},
 		},
 		"settings_apply_time": schema.StringAttribute{
@@ -143,7 +148,8 @@ func VolumeSchema() map[string]schema.Attribute {
 			Validators: []validator.String{
 				stringvalidator.OneOf([]string{
 					string(redfishcommon.ImmediateApplyTime),
-					string(redfishcommon.OnResetApplyTime)}...),
+					string(redfishcommon.OnResetApplyTime),
+				}...),
 			},
 		},
 		"storage_controller_id": schema.StringAttribute{
@@ -176,7 +182,8 @@ func VolumeSchema() map[string]schema.Attribute {
 					string(redfish.MirroredVolumeType),
 					string(redfish.StripedWithParityVolumeType),
 					string(redfish.SpannedMirrorsVolumeType),
-					string(redfish.SpannedStripesWithParityVolumeType)}...),
+					string(redfish.SpannedStripesWithParityVolumeType),
+				}...),
 			},
 		},
 		"write_cache_policy": schema.StringAttribute{
@@ -189,7 +196,8 @@ func VolumeSchema() map[string]schema.Attribute {
 				stringvalidator.OneOf([]string{
 					string(redfish.WriteThroughWriteCachePolicyType),
 					string(redfish.ProtectedWriteBackWriteCachePolicyType),
-					string(redfish.UnprotectedWriteBackWriteCachePolicyType)}...),
+					string(redfish.UnprotectedWriteBackWriteCachePolicyType),
+				}...),
 			},
 		},
 	}
@@ -223,7 +231,7 @@ func (*RedfishStorageVolumeResource) Schema(_ context.Context, _ resource.Schema
 // Create creates the resource and sets the initial Terraform state.
 func (r *RedfishStorageVolumeResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	tflog.Trace(ctx, "resource_RedfishStorageVolume create : Started")
-	//Get Plan Data
+	// Get Plan Data
 	var plan models.RedfishStorageVolume
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -233,7 +241,7 @@ func (r *RedfishStorageVolumeResource) Create(ctx context.Context, req resource.
 
 	service, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
-		resp.Diagnostics.AddError("service error", err.Error())
+		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
 
@@ -262,7 +270,7 @@ func (r *RedfishStorageVolumeResource) Read(ctx context.Context, req resource.Re
 
 	service, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
-		resp.Diagnostics.AddError("service error", err.Error())
+		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
 
@@ -270,7 +278,7 @@ func (r *RedfishStorageVolumeResource) Read(ctx context.Context, req resource.Re
 	resp.Diagnostics.Append(diags...)
 
 	tflog.Trace(ctx, "resource_RedfishStorageVolume read: finished reading state")
-	//Save into State
+	// Save into State
 	if diags.HasError() {
 		return
 	}
@@ -281,7 +289,7 @@ func (r *RedfishStorageVolumeResource) Read(ctx context.Context, req resource.Re
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *RedfishStorageVolumeResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	//Get state Data
+	// Get state Data
 	tflog.Trace(ctx, "resource_RedfishStorageVolume update: started")
 	var state, plan models.RedfishStorageVolume
 	diags := req.State.Get(ctx, &state)
@@ -299,7 +307,7 @@ func (r *RedfishStorageVolumeResource) Update(ctx context.Context, req resource.
 
 	service, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
-		resp.Diagnostics.AddError("service error", err.Error())
+		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
 
@@ -307,7 +315,7 @@ func (r *RedfishStorageVolumeResource) Update(ctx context.Context, req resource.
 	resp.Diagnostics.Append(diags...)
 
 	tflog.Trace(ctx, "resource_RedfishStorageVolume update: finished state update")
-	//Save into State
+	// Save into State
 	if diags.HasError() {
 		return
 	}
@@ -328,7 +336,7 @@ func (r *RedfishStorageVolumeResource) Delete(ctx context.Context, req resource.
 	}
 	service, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
-		resp.Diagnostics.AddError("service error", err.Error())
+		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
 
@@ -382,17 +390,13 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 	}
 
 	// Check if settings_apply_time is doable on this controller
-	operationApplyTimes, err := storage.GetOperationApplyTimeValues()
+	err = checkSettingsApplyTime(storage, applyTime)
 	if err != nil {
-		diags.AddError("couldn't retrieve operationApplyTimes from controller", err.Error())
-		return diags
-	}
-	if !checkOperationApplyTimes(applyTime, operationApplyTimes) {
-		diags.AddError("Storage controller does not support settings_apply_time", "")
+		diags.AddError("Error while checking support for settings_apply_time", err.Error())
 		return diags
 	}
 
-	//Get drives
+	// Get drives
 	allStorageDrives, err := storage.Drives()
 	if err != nil {
 		diags.AddError("Error when getting the drives attached to controller", err.Error())
@@ -404,16 +408,40 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 		return diags
 	}
 
+	newVolume := make(map[string]interface{})
+	newVolume["VolumeType"] = volumeType
+	newVolume["DisplayName"] = volumeName
+	newVolume["Name"] = volumeName
+	newVolume["ReadCachePolicy"] = readCachePolicy
+	newVolume["WriteCachePolicy"] = writeCachePolicy
+	newVolume["CapacityBytes"] = capacityBytes
+	newVolume["OptimumIOSizeBytes"] = optimumIOSizeBytes
+	newVolume["Oem"] = map[string]map[string]map[string]interface{}{
+		"Dell": {
+			"DellVolume": {
+				"DiskCachePolicy": diskCachePolicy,
+			},
+		},
+	}
+	newVolume["@Redfish.OperationApplyTime"] = applyTime
+	var listDrives []map[string]string
+	for _, drive := range drives {
+		storageDrive := make(map[string]string)
+		storageDrive["@odata.id"] = drive.Entity.ODataID
+		listDrives = append(listDrives, storageDrive)
+	}
+	newVolume["Drives"] = listDrives
+
 	// Create volume job
-	jobID, err := createVolume(service, storage.ODataID, volumeType, volumeName, optimumIOSizeBytes, capacityBytes, readCachePolicy, writeCachePolicy, diskCachePolicy, drives, applyTime)
+	jobID, err := createVolume(service, storage.ODataID, newVolume)
 	if err != nil {
 		diags.AddError("Error when creating the virtual disk on disk controller", err.Error())
 		return diags
 	}
 
 	// Immediate or OnReset scenarios
-	switch applyTime {
-	case string(redfishcommon.OnResetApplyTime): // OnReset case
+	if applyTime == string(redfishcommon.OnResetApplyTime) { // OnReset case
+		// case string(redfishcommon.OnResetApplyTime): // OnReset case
 		// Get reset_timeout and reset_type from schema
 		resetType := d.ResetType.ValueString()
 		resetTimeout := d.ResetTimeout.ValueInt64()
@@ -422,20 +450,19 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 		pOp := powerOperator{ctx, service}
 		_, err := pOp.PowerOperation(resetType, resetTimeout, intervalStorageVolumeJobCheckTime)
 		if err != nil {
-			diags.AddError("Error, job %s wasn't able to complete", err.Error())
+			diags.AddError(RedfishJobErrorMsg, err.Error())
 			return diags
 		}
-
 	}
 
 	// Wait for the job to finish
 	err = common.WaitForJobToFinish(service, jobID, intervalStorageVolumeJobCheckTime, volumeJobTimeout)
 	if err != nil {
-		diags.AddError("Error, job %s wasn't able to complete", err.Error())
+		diags.AddError(RedfishJobErrorMsg, err.Error())
 		return diags
 	}
 
-	//Get storage volumes
+	// Get storage volumes
 	volumes, err := storage.Volumes()
 	if err != nil {
 		diags.AddError("there was an issue when retrieving volumes", err.Error())
@@ -450,13 +477,12 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 	d.ID = types.StringValue(volumeID)
 	diags = readRedfishStorageVolume(service, d)
 	return diags
-
 }
 
 func readRedfishStorageVolume(service *gofish.Service, d *models.RedfishStorageVolume) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	//Check if the volume exists
+	// Check if the volume exists
 	_, err := redfish.GetVolume(service.GetClient(), d.ID.ValueString())
 	if err != nil {
 		e, ok := err.(*redfishcommon.Error)
@@ -481,7 +507,9 @@ func readRedfishStorageVolume(service *gofish.Service, d *models.RedfishStorageV
 	return diags
 }
 
-func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service, d *models.RedfishStorageVolume, state *models.RedfishStorageVolume) diag.Diagnostics {
+func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service,
+	d *models.RedfishStorageVolume, state *models.RedfishStorageVolume,
+) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	// Lock the mutex to avoid race conditions with other resources
@@ -521,27 +549,37 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 	}
 
 	// Check if settings_apply_time is doable on this controller
-	operationApplyTimes, err := storage.GetOperationApplyTimeValues()
+	err = checkSettingsApplyTime(storage, applyTime)
 	if err != nil {
-		diags.AddError("couldn't retrieve operationApplyTimes from controller", err.Error())
-		return diags
-	}
-	if !checkOperationApplyTimes(applyTime, operationApplyTimes) {
-		diags.AddError("Storage controller does not support settings_apply_time", err.Error())
+		diags.AddError("Error while checking support for settings_apply_time", err.Error())
 		return diags
 	}
 
+	payload := make(map[string]interface{})
+	payload["ReadCachePolicy"] = readCachePolicy
+	payload["WriteCachePolicy"] = writeCachePolicy
+	payload["DisplayName"] = volumeName
+	payload["Oem"] = map[string]map[string]map[string]interface{}{
+		"Dell": {
+			"DellVolume": {
+				"DiskCachePolicy": diskCachePolicy,
+			},
+		},
+	}
+	payload["Name"] = volumeName
+	payload["@Redfish.SettingsApplyTime"] = map[string]interface{}{
+		"ApplyTime": applyTime,
+	}
+
 	// Update volume job
-	jobID, err := updateVolume(service, state.ID.ValueString(), readCachePolicy, writeCachePolicy, volumeName, diskCachePolicy, applyTime)
+	jobID, err := updateVolume(service, state.ID.ValueString(), payload)
 	if err != nil {
 		diags.AddError("Error when updating the virtual disk on disk controller", err.Error())
 		return diags
 	}
 
 	// Immediate or OnReset scenarios
-	switch applyTime {
-	case string(redfishcommon.OnResetApplyTime): // OnReset case
-		// Get reset_timeout and reset_type from schema
+	if applyTime == string(redfishcommon.OnResetApplyTime) { // OnReset case
 		resetType := d.ResetType.ValueString()
 		resetTimeout := d.ResetTimeout.ValueInt64()
 
@@ -549,20 +587,19 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 		pOp := powerOperator{ctx, service}
 		_, err := pOp.PowerOperation(resetType, resetTimeout, intervalStorageVolumeJobCheckTime)
 		if err != nil {
-			diags.AddError("Error, job %s wasn't able to complete", err.Error())
+			diags.AddError(RedfishJobErrorMsg, err.Error())
 			return diags
 		}
-
 	}
 
 	// Wait for the job to finish
 	err = common.WaitForJobToFinish(service, jobID, intervalStorageVolumeJobCheckTime, volumeJobTimeout)
 	if err != nil {
-		diags.AddError("Error, job %s wasn't able to complete", err.Error())
+		diags.AddError(RedfishJobErrorMsg, err.Error())
 		return diags
 	}
 
-	//Get storage volumes
+	// Get storage volumes
 	volumes, err := storage.Volumes()
 	if err != nil {
 		diags.AddError("there was an issue when retrieving volumes", err.Error())
@@ -597,8 +634,9 @@ func deleteRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 		return diags
 	}
 
-	switch applyTime {
-	case string(redfishcommon.OnResetApplyTime): // OnReset case
+	if applyTime == string(redfishcommon.OnResetApplyTime) { // OnReset case
+		// switch applyTime {
+		// case string(redfishcommon.OnResetApplyTime): // OnReset case
 		// Get reset_timeout and reset_type from schema
 		resetType := d.ResetType.ValueString()
 		resetTimeout := d.ResetTimeout.ValueInt64()
@@ -607,12 +645,12 @@ func deleteRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 		pOp := powerOperator{ctx, service}
 		_, err := pOp.PowerOperation(resetType, resetTimeout, intervalStorageVolumeJobCheckTime)
 		if err != nil {
-			diags.AddError("Error, job %s wasn't able to complete", err.Error())
+			diags.AddError(RedfishJobErrorMsg, err.Error())
 			return diags
 		}
 	}
 
-	//WAIT FOR VOLUME TO DELETE
+	// WAIT FOR VOLUME TO DELETE
 	err = common.WaitForJobToFinish(service, jobID, intervalStorageVolumeJobCheckTime, volumeJobTimeout)
 	if err != nil {
 		diags.AddError("Error, timeout reached when waiting for job to finish", err.Error())
@@ -632,7 +670,7 @@ func getStorageController(storageControllers []*redfish.Storage, diskControllerI
 }
 
 func deleteVolume(service *gofish.Service, volumeURI string) (jobID string, err error) {
-	//TODO - Check if we can delete immediately or if we need to schedule a job
+	// TODO - Check if we can delete immediately or if we need to schedule a job
 	res, err := service.GetClient().Delete(volumeURI)
 	if err != nil {
 		return "", fmt.Errorf("error while deleting the volume %s", volumeURI)
@@ -663,44 +701,24 @@ func getDrives(drives []*redfish.Drive, driveNames []string) ([]*redfish.Drive, 
 	return drivesToReturn, nil
 }
 
+func checkSettingsApplyTime(storage *redfish.Storage, applyTime string) error {
+	operationApplyTimes, err := storage.GetOperationApplyTimeValues()
+	if err != nil {
+		return fmt.Errorf("couldn't retrieve operationApplyTimes from controller")
+	}
+	if !checkOperationApplyTimes(applyTime, operationApplyTimes) {
+		return fmt.Errorf("Storage controller does not support settings_apply_time")
+	}
+	return nil
+}
+
 /*
 createVolume creates a virtualdisk on a disk controller by using the redfish API
 */
 func createVolume(service *gofish.Service,
 	storageLink string,
-	volumeType string,
-	volumeName string,
-	optimumIOSizeBytes int,
-	capacityBytes int,
-	readCachePolicy string,
-	writeCachePolicy string,
-	diskCachePolicy string,
-	drives []*redfish.Drive,
-	applyTime string) (jobID string, err error) {
-
-	newVolume := make(map[string]interface{})
-	newVolume["VolumeType"] = volumeType
-	newVolume["DisplayName"] = volumeName
-	newVolume["Name"] = volumeName
-	newVolume["ReadCachePolicy"] = readCachePolicy
-	newVolume["WriteCachePolicy"] = writeCachePolicy
-	newVolume["CapacityBytes"] = capacityBytes
-	newVolume["OptimumIOSizeBytes"] = optimumIOSizeBytes
-	newVolume["Oem"] = map[string]map[string]map[string]interface{}{
-		"Dell": {
-			"DellVolume": {
-				"DiskCachePolicy": diskCachePolicy,
-			},
-		},
-	}
-	newVolume["@Redfish.OperationApplyTime"] = applyTime
-	var listDrives []map[string]string
-	for _, drive := range drives {
-		storageDrive := make(map[string]string)
-		storageDrive["@odata.id"] = drive.Entity.ODataID
-		listDrives = append(listDrives, storageDrive)
-	}
-	newVolume["Drives"] = listDrives
+	newVolume map[string]interface{},
+) (jobID string, err error) {
 	volumesURL := fmt.Sprintf("%v/Volumes", storageLink)
 
 	res, err := service.GetClient().Post(volumesURL, newVolume)
@@ -720,27 +738,8 @@ func createVolume(service *gofish.Service,
 
 func updateVolume(service *gofish.Service,
 	storageLink string,
-	readCachePolicy string,
-	writeCachePolicy string,
-	volumeName string,
-	diskCachePolicy string,
-	applyTime string) (jobID string, err error) {
-
-	payload := make(map[string]interface{})
-	payload["ReadCachePolicy"] = readCachePolicy
-	payload["WriteCachePolicy"] = writeCachePolicy
-	payload["DisplayName"] = volumeName
-	payload["Oem"] = map[string]map[string]map[string]interface{}{
-		"Dell": {
-			"DellVolume": {
-				"DiskCachePolicy": diskCachePolicy,
-			},
-		},
-	}
-	payload["Name"] = volumeName
-	payload["@Redfish.SettingsApplyTime"] = map[string]interface{}{
-		"ApplyTime": applyTime,
-	}
+	payload map[string]interface{},
+) (jobID string, err error) {
 	volumesURL := fmt.Sprintf("%v/Settings", storageLink)
 
 	res, err := service.GetClient().Patch(volumesURL, payload)
@@ -853,7 +852,7 @@ func checkOperationApplyTimes(optionToCheck string, storageOperationApplyTimes [
 // 		"volume_type": {
 // 			Type:        schema.TypeString,
 // 			Required:    true,
-// 			Description: "This value specifies the raid level the virtual disk is going to have. Possible values are: NonRedundant (RAID-0), Mirrored (RAID-1), StripedWithParity (RAID-5), SpannedMirrors (RAID-10) or SpannedStripesWithParity (RAID-50)",
+// 			Description: "This value specifies the raid level the virtual disk is going to have.",
 // 			ValidateFunc: validation.StringInSlice([]string{
 // 				string(redfish.NonRedundantVolumeType),
 // 				string(redfish.MirroredVolumeType),
@@ -901,7 +900,7 @@ func checkOperationApplyTimes(optionToCheck string, storageOperationApplyTimes [
 // 		"volume_job_timeout": {
 // 			Type:     schema.TypeInt,
 // 			Optional: true,
-// 			Description: "volume_job_timeout is the time in seconds that the provider waits for the volume job to be completed before timing out." +
+// 			Description: "volume_job_timeout is the time in seconds that the provider waits for the volume job" +
 // 				"Default is 1200s",
 // 			Default: defaultStorageVolumeJobTimeout,
 // 		},
