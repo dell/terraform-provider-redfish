@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/url"
 	"path"
 	"strconv"
@@ -12,7 +11,6 @@ import (
 	"terraform-provider-redfish/redfish/models"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -49,7 +47,8 @@ func NewBiosResource() resource.Resource {
 
 // BiosResource is the resource implementation.
 type BiosResource struct {
-	p *redfishProvider
+	p   *redfishProvider
+	ctx context.Context
 }
 
 // Configure implements resource.ResourceWithConfigure
@@ -131,24 +130,13 @@ func (*BiosResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				Computed: true,
 			},
 		},
-		Blocks: map[string]schema.Block{
-			"redfish_server": schema.ListNestedBlock{
-				MarkdownDescription: "List of server BMCs and their respective user credentials",
-				Description:         "List of server BMCs and their respective user credentials",
-				Validators: []validator.List{
-					listvalidator.SizeAtMost(1),
-					listvalidator.IsRequired(),
-				},
-				NestedObject: schema.NestedBlockObject{
-					Attributes: RedfishServerSchema(),
-				},
-			},
-		},
+		Blocks: RedfishServerResourceBlockMap(),
 	}
 }
 
 // Create creates the resource and sets the initial Terraform state.
 func (r *BiosResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	r.ctx = ctx
 	tflog.Trace(ctx, "resource_Bios create : Started")
 	// Get Plan Data
 	var plan models.Bios
@@ -166,7 +154,7 @@ func (r *BiosResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	state, diags := r.updateRedfishDellBiosAttributes(ctx, service, &plan)
 	if err != nil {
-		diags.AddError("Error running job %w", err.Error())
+		diags.AddError("Error running job", err.Error())
 	}
 	resp.Diagnostics.Append(diags...)
 
@@ -180,6 +168,7 @@ func (r *BiosResource) Create(ctx context.Context, req resource.CreateRequest, r
 // Read refreshes the Terraform state with the latest data.
 func (r *BiosResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	tflog.Trace(ctx, "resource_Bios read: started")
+	r.ctx = ctx
 	var state models.Bios
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -195,7 +184,7 @@ func (r *BiosResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 	err = r.readRedfishDellBiosAttributes(service, &state)
 	if err != nil {
-		diags.AddError("Error running job %w", err.Error())
+		diags.AddError("Error running job", err.Error())
 	}
 	resp.Diagnostics.Append(diags...)
 
@@ -208,6 +197,8 @@ func (r *BiosResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *BiosResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	r.ctx = ctx
+
 	// Get state Data
 	tflog.Trace(ctx, "resource_Bios update: started")
 	var plan models.Bios
@@ -227,7 +218,7 @@ func (r *BiosResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	state, diags := r.updateRedfishDellBiosAttributes(ctx, service, &plan)
 	if err != nil {
-		diags.AddError("Error running job %v", err.Error())
+		diags.AddError("Error running job ", err.Error())
 	}
 	resp.Diagnostics.Append(diags...)
 
@@ -262,7 +253,7 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
 	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
 
-	bios, err := getBiosResource(service)
+	bios, err := r.getBiosResource(service)
 	if err != nil {
 		diags.AddError("error fetching bios resource", err.Error())
 		return nil, diags
@@ -285,11 +276,11 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 	biosConfigJobTimeout := plan.JobTimeout.ValueInt64()
 	resetType := plan.ResetType.ValueString()
 
-	log.Printf("[DEBUG] resetTimeout is set to %d  and Bios Config Job timeout is set to %d", resetTimeout, biosConfigJobTimeout)
+	tflog.Debug(ctx, fmt.Sprintf("resetTimeout is set to %d and Bios Config Job timeout is set to %d", resetTimeout, biosConfigJobTimeout))
 
 	var biosTaskURI string
 	if len(attrsPayload) != 0 {
-		biosTaskURI, err = patchBiosAttributes(plan, bios, attrsPayload)
+		biosTaskURI, err = r.patchBiosAttributes(plan, bios, attrsPayload)
 		if err != nil {
 			diags.AddError("error updating bios attributes", err.Error())
 			return nil, diags
@@ -312,7 +303,7 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 		}
 		time.Sleep(60 * time.Second)
 	} else {
-		log.Printf("[DEBUG] BIOS attributes are already set")
+		tflog.Trace(ctx, "[DEBUG] BIOS attributes are already set")
 	}
 
 	state.ID = types.StringValue(bios.ODataID)
@@ -323,14 +314,14 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 		return nil, diags
 	}
 
-	log.Printf("[DEBUG] %s: Update finished successfully", state.ID)
+	tflog.Debug(ctx, state.ID.ValueString()+": Update finished successfully")
 	return state, nil
 }
 
-func (*BiosResource) readRedfishDellBiosAttributes(service *gofish.Service, d *models.Bios) error {
-	bios, err := getBiosResource(service)
+func (r *BiosResource) readRedfishDellBiosAttributes(service *gofish.Service, d *models.Bios) error {
+	bios, err := r.getBiosResource(service)
 	if err != nil {
-		return fmt.Errorf("error fetching BIOS resource: %w", err)
+		return fmt.Errorf("error fetching BIOS resource: %s", err)
 	}
 
 	old := d.Attributes.Elements()
@@ -338,7 +329,7 @@ func (*BiosResource) readRedfishDellBiosAttributes(service *gofish.Service, d *m
 	attributes := make(map[string]string)
 	err = copyBiosAttributes(bios, attributes)
 	if err != nil {
-		return fmt.Errorf("error fetching BIOS attributes: %w", err)
+		return fmt.Errorf("error fetching BIOS attributes: %s", err)
 	}
 
 	attributesTF := make(map[string]attr.Value)
@@ -349,20 +340,19 @@ func (*BiosResource) readRedfishDellBiosAttributes(service *gofish.Service, d *m
 	}
 
 	d.Attributes = types.MapValueMust(types.StringType, attributesTF)
-
 	return nil
 }
 
-func getBiosResource(service *gofish.Service) (*redfish.Bios, error) {
+func (r *BiosResource) getBiosResource(service *gofish.Service) (*redfish.Bios, error) {
 	system, err := getSystemResource(service)
 	if err != nil {
-		log.Printf("[ERROR]: Failed to get system resource: %s", err)
+		tflog.Trace(r.ctx, "[ERROR]: Failed to get system resource: "+err.Error())
 		return nil, err
 	}
 
 	bios, err := system.Bios()
 	if err != nil {
-		log.Printf("[ERROR]: Failed to get Bios resource: %s", err)
+		tflog.Trace(r.ctx, "[ERROR]: Failed to get Bios resource: "+err.Error())
 		return nil, err
 	}
 
@@ -420,7 +410,7 @@ func getBiosAttrsToPatch(ctx context.Context, d *models.Bios, attributes map[str
 	return attrsToPatch, nil
 }
 
-func patchBiosAttributes(d *models.Bios, bios *redfish.Bios, attributes map[string]interface{}) (biosTaskURI string, err error) {
+func (r *BiosResource) patchBiosAttributes(d *models.Bios, bios *redfish.Bios, attributes map[string]interface{}) (biosTaskURI string, err error) {
 	payload := make(map[string]interface{})
 	payload["Attributes"] = attributes
 
@@ -446,7 +436,7 @@ func patchBiosAttributes(d *models.Bios, bios *redfish.Bios, attributes map[stri
 
 	oDataURI, err := url.Parse(bios.ODataID)
 	if err != nil {
-		log.Printf("error fetching data: %s", err)
+		tflog.Trace(r.ctx, "error fetching data: "+err.Error())
 		return "", err
 	}
 	oDataURI.Path = path.Join(oDataURI.Path, "Settings")
@@ -454,13 +444,13 @@ func patchBiosAttributes(d *models.Bios, bios *redfish.Bios, attributes map[stri
 
 	resp, err := bios.GetClient().Patch(settingsObjectURI, payload)
 	if err != nil {
-		log.Printf("[DEBUG] error sending the patch request: %s", err)
+		tflog.Trace(r.ctx, "[DEBUG] error sending the patch request:"+err.Error())
 		return "", err
 	}
 
 	// check if location is present in the response header
 	if location, err := resp.Location(); err == nil {
-		log.Printf("[DEBUG] BIOS configuration job uri: %s", location.String())
+		tflog.Trace(r.ctx, "[DEBUG] BIOS configuration job uri: "+location.String())
 		taskURI := location.EscapedPath()
 		return taskURI, nil
 	}
