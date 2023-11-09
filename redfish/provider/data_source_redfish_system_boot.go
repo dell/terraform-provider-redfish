@@ -18,17 +18,18 @@ var (
 	_ datasource.DataSourceWithConfigure = &SystemBootDatasource{}
 )
 
-// DellSystemBootDatasource is new datasource for group devices
+// NewSystemBootDatasource is new datasource for group devices
 func NewSystemBootDatasource() datasource.DataSource {
 	return &SystemBootDatasource{}
 }
 
+// SystemBootDatasource to construct datasource
 type SystemBootDatasource struct {
 	p *redfishProvider
 }
 
 // Configure implements datasource.DataSourceWithConfigure
-func (g *SystemBootDatasource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (g *SystemBootDatasource) Configure(_ context.Context, req datasource.ConfigureRequest, _ *datasource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -36,7 +37,7 @@ func (g *SystemBootDatasource) Configure(ctx context.Context, req datasource.Con
 }
 
 // Metadata implements datasource.DataSource
-func (*SystemBootDatasource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+func (*SystemBootDatasource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "system_boot"
 }
 
@@ -49,12 +50,12 @@ func (*SystemBootDatasource) Schema(_ context.Context, _ datasource.SchemaReques
 	}
 }
 
-// Schema implements datasource.DataSource
+// SystemBootDatasourceSchema to define the system boot datasource schema
 func SystemBootDatasourceSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"id": schema.StringAttribute{
-			MarkdownDescription: "Resource ID of the computer system resource. If not provided, then the first system resource is used from the computer system collection",
-			Description:         "Resource ID of the computer system resource. If not provided, then the first system resource is used from the computer system collection",
+			MarkdownDescription: "Resource ID of the computer system. If not provided, the first system resource is used",
+			Description:         "Resource ID of the computer system. If not provided, the first system resource is used",
 			Optional:            true,
 		},
 		"boot_order": schema.ListAttribute{
@@ -74,8 +75,8 @@ func SystemBootDatasourceSchema() map[string]schema.Attribute {
 			Computed:            true,
 		},
 		"boot_source_override_target": schema.StringAttribute{
-			MarkdownDescription: "The current boot source to use at the next boot instead of the normal boot device, if BootSourceOverrideEnabled is true",
-			Description:         "The current boot source to use at the next boot instead of the normal boot device, if BootSourceOverrideEnabled is true",
+			MarkdownDescription: "Current boot source to use at next boot instead of the normal boot device, if BootSourceOverrideEnabled is true",
+			Description:         "Current boot source to use at next boot instead of the normal boot device, if BootSourceOverrideEnabled is true",
 			Computed:            true,
 		},
 		"uefi_target_boot_source_override": schema.StringAttribute{
@@ -205,7 +206,7 @@ func readRedfishSystemBoot(service *gofish.Service, d *models.SystemBootDataSour
 // 		"resource_id": {
 // 			Type:        schema.TypeString,
 // 			Optional:    true,
-// 			Description: "Resource ID of the computer system resource. If not provided, then the first system resource is used from the computer system collection",
+// 			Description: "Resource ID of the computer system resource.",
 // 		},
 // 		"boot_order": {
 // 			Type:        schema.TypeList,
