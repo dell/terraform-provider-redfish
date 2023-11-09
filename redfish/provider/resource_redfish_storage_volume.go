@@ -119,7 +119,7 @@ func VolumeSchema() map[string]schema.Attribute {
 			Description:         "Reset Timeout",
 			Optional:            true,
 			Computed:            true,
-			Default:             int64default.StaticInt64(int64(defaultStorageVolumeResetTimeout)),
+			Default:             int64default.StaticInt64(defaultStorageVolumeResetTimeout),
 		},
 		"reset_type": schema.StringAttribute{
 			MarkdownDescription: "Reset Type",
@@ -156,7 +156,7 @@ func VolumeSchema() map[string]schema.Attribute {
 			Description:         "Volume Job Timeout",
 			Optional:            true,
 			Computed:            true,
-			Default:             int64default.StaticInt64(int64(defaultStorageVolumeJobTimeout)),
+			Default:             int64default.StaticInt64(defaultStorageVolumeJobTimeout),
 		},
 		"volume_name": schema.StringAttribute{
 			MarkdownDescription: "Volume Name",
@@ -237,7 +237,7 @@ func (r *RedfishStorageVolumeResource) Create(ctx context.Context, req resource.
 		return
 	}
 
-	diags = createRedfishStorageVolume(service, &plan)
+	diags = createRedfishStorageVolume(ctx, service, &plan)
 	resp.Diagnostics.Append(diags...)
 
 	tflog.Trace(ctx, "resource_RedfishStorageVolume create: updating state finished, saving ...")
@@ -341,9 +341,8 @@ func (r *RedfishStorageVolumeResource) Delete(ctx context.Context, req resource.
 	tflog.Trace(ctx, "resource_RedfishStorageVolume delete: finished")
 }
 
-func createRedfishStorageVolume(service *gofish.Service, d *models.RedfishStorageVolume) diag.Diagnostics {
+func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d *models.RedfishStorageVolume) diag.Diagnostics {
 	var diags diag.Diagnostics
-	var ctx context.Context
 	// Lock the mutex to avoid race conditions with other resources
 	redfishMutexKV.Lock(d.RedfishServer[0].Endpoint.ValueString())
 	defer redfishMutexKV.Unlock(d.RedfishServer[0].Endpoint.ValueString())
@@ -359,8 +358,6 @@ func createRedfishStorageVolume(service *gofish.Service, d *models.RedfishStorag
 	diskCachePolicy := d.DiskCachePolicy.ValueString()
 	applyTime := d.SettingsApplyTime.ValueString()
 	volumeJobTimeout := int64(d.VolumeJobTimeout.ValueInt64())
-
-	d.ID = types.StringValue("invalid-id")
 
 	var driveNames []string
 	diags.Append(d.Drives.ElementsAs(ctx, &driveNames, true)...)
@@ -419,11 +416,11 @@ func createRedfishStorageVolume(service *gofish.Service, d *models.RedfishStorag
 	case string(redfishcommon.OnResetApplyTime): // OnReset case
 		// Get reset_timeout and reset_type from schema
 		resetType := d.ResetType.ValueString()
-		resetTimeout := int(d.ResetTimeout.ValueInt64())
+		resetTimeout := d.ResetTimeout.ValueInt64()
 
 		// Reboot the server
 		pOp := powerOperator{ctx, service}
-		_, err := pOp.PowerOperation(resetType, int64(resetTimeout), intervalSimpleUpdateJobCheckTime)
+		_, err := pOp.PowerOperation(resetType, resetTimeout, intervalStorageVolumeJobCheckTime)
 		if err != nil {
 			diags.AddError("Error, job %s wasn't able to complete", err.Error())
 			return diags
@@ -502,7 +499,7 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 	var driveNames []string
 	diags.Append(d.Drives.ElementsAs(ctx, &driveNames, true)...)
 
-	volumeJobTimeout := int64(d.ResetTimeout.ValueInt64())
+	volumeJobTimeout := d.ResetTimeout.ValueInt64()
 
 	// Get storage
 	systems, err := service.Systems()
@@ -550,7 +547,7 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 
 		// Reboot the server
 		pOp := powerOperator{ctx, service}
-		_, err := pOp.PowerOperation(resetType, int64(resetTimeout), intervalSimpleUpdateJobCheckTime)
+		_, err := pOp.PowerOperation(resetType, resetTimeout, intervalStorageVolumeJobCheckTime)
 		if err != nil {
 			diags.AddError("Error, job %s wasn't able to complete", err.Error())
 			return diags
@@ -604,11 +601,11 @@ func deleteRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 	case string(redfishcommon.OnResetApplyTime): // OnReset case
 		// Get reset_timeout and reset_type from schema
 		resetType := d.ResetType.ValueString()
-		resetTimeout := int(d.ResetTimeout.ValueInt64())
+		resetTimeout := d.ResetTimeout.ValueInt64()
 
 		// Reboot the server
 		pOp := powerOperator{ctx, service}
-		_, err := pOp.PowerOperation(resetType, int64(resetTimeout), intervalSimpleUpdateJobCheckTime)
+		_, err := pOp.PowerOperation(resetType, resetTimeout, intervalStorageVolumeJobCheckTime)
 		if err != nil {
 			diags.AddError("Error, job %s wasn't able to complete", err.Error())
 			return diags
