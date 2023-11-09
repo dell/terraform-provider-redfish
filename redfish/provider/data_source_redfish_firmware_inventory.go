@@ -112,17 +112,16 @@ func (g *FirmwareInventoryDatasource) Read(ctx context.Context, req datasource.R
 }
 
 func getInventoryItems(fwInventories []*redfish.SoftwareInventory) []models.Inventory {
-	var inv models.Inventory
-
 	inventoryItemList := make([]models.Inventory, 0)
-
 	for _, fwInv := range fwInventories {
-		if strings.HasPrefix(fwInv.Entity.ID, "Installed") {
-			inv.EntityId = types.StringValue(fwInv.Entity.ID)
-			inv.EntityName = types.StringValue(fwInv.Entity.Name)
-			inv.Version = types.StringValue(fwInv.Version)
-			inventoryItemList = append(inventoryItemList, inv)
+		if !strings.HasPrefix(fwInv.Entity.ID, "Installed") {
+			continue
 		}
+		inventoryItemList = append(inventoryItemList, models.Inventory{
+			EntityId:   types.StringValue(fwInv.Entity.ID),
+			EntityName: types.StringValue(fwInv.Entity.Name),
+			Version:    types.StringValue(fwInv.Version),
+		})
 	}
 	return inventoryItemList
 }
@@ -130,12 +129,12 @@ func getInventoryItems(fwInventories []*redfish.SoftwareInventory) []models.Inve
 func readRedfishFirmwareInventory(service *gofish.Service) (*models.FirmwareInventory, error) {
 	updateService, err := service.UpdateService()
 	if err != nil {
-		return nil, fmt.Errorf("error fetching UpdateService collection: %s", err.Error())
+		return nil, fmt.Errorf("error fetching UpdateService collection: %w", err)
 	}
 
 	fwInventories, err := updateService.FirmwareInventories()
 	if err != nil {
-		return nil, fmt.Errorf("error fetching Firmware Inventory: %s", err)
+		return nil, fmt.Errorf("error fetching Firmware Inventory: %w", err)
 	}
 
 	// Filter inventory which are prefixed as "Installed"
