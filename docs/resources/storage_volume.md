@@ -41,14 +41,12 @@ resource "redfish_storage_volume" "volume" {
   }
 
   storage_controller_id = "RAID.Integrated.1-1"
-  volume_name           = "TerraformVol22"
+  volume_name           = "TerraformVol"
   volume_type           = "NonRedundant"
   // Name of the physical disk on which virtual disk should get created.
-  # drives = ["Solid State Disk 0:0:1"]
-  drives = ["Physical Disk 0:1:1"]
+  drives = ["Solid State Disk 0:0:1"]
   // Flag stating when to create virtual disk either "Immediate" or "OnReset"
   settings_apply_time = "Immediate"
-  # settings_apply_time = "OnReset"
   // Reset parameters to be applied when upgrade is completed
   reset_type    = "PowerCycle"
   reset_timeout = 100
