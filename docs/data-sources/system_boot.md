@@ -56,7 +56,7 @@ output "system_boot" {
 
 ### Optional
 
-- `id` (String) Resource ID of the computer system resource. If not provided, then the first system resource is used from the computer system collection
+- `id` (String) Resource ID of the computer system. If not provided, the first system resource is used
 - `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
 
 ### Read-Only
@@ -64,7 +64,7 @@ output "system_boot" {
 - `boot_order` (List of String) An array of BootOptionReference strings that represent the persistent boot order for this computer system
 - `boot_source_override_enabled` (String) The state of the boot source override feature
 - `boot_source_override_mode` (String) The BIOS boot mode to use when the system boots from the BootSourceOverrideTarget boot source
-- `boot_source_override_target` (String) The current boot source to use at the next boot instead of the normal boot device, if BootSourceOverrideEnabled is true
+- `boot_source_override_target` (String) Current boot source to use at next boot instead of the normal boot device, if BootSourceOverrideEnabled is true
 - `uefi_target_boot_source_override` (String) The UEFI device path of the device from which to boot when BootSourceOverrideTarget is UefiTarget
 
 <a id="nestedblock--redfish_server"></a>
