@@ -103,6 +103,7 @@ func (*redfishProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewSimpleUpdateResource,
 		NewDellIdracAttributesResource,
 		NewRedfishStorageVolumeResource,
+		NewBiosResource,
 	}
 }
 
@@ -113,5 +114,6 @@ func (*redfishProvider) DataSources(_ context.Context) []func() datasource.DataS
 		NewDellIdracAttributesDatasource,
 		NewStorageDatasource,
 		NewDellVirtualMediaDatasource,
+		NewFirmwareInventoryDatasource,
 	}
 }
