@@ -15,8 +15,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -207,24 +205,8 @@ func VolumeSchema() map[string]schema.Attribute {
 func (*RedfishStorageVolumeResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Resource for managing storage volume.",
-
-		Attributes: VolumeSchema(),
-		Blocks: map[string]schema.Block{
-			"redfish_server": schema.ListNestedBlock{
-				MarkdownDescription: "List of server BMCs and their respective user credentials",
-				Description:         "List of server BMCs and their respective user credentials",
-				Validators: []validator.List{
-					listvalidator.SizeAtMost(1),
-					listvalidator.IsRequired(),
-				},
-				NestedObject: schema.NestedBlockObject{
-					Attributes: RedfishServerSchema(),
-				},
-				PlanModifiers: []planmodifier.List{
-					listplanmodifier.RequiresReplace(),
-				},
-			},
-		},
+		Attributes:          VolumeSchema(),
+		Blocks:              RedfishServerResourceBlockMap(),
 	}
 }
 
@@ -371,21 +353,9 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 	diags.Append(d.Drives.ElementsAs(ctx, &driveNames, true)...)
 
 	// Get storage
-	systems, err := service.Systems()
-	if err != nil {
-		diags.AddError("Error when retreiving the Systems from the Redfish API", "")
-		return diags
-	}
-
-	storageControllers, err := systems[0].Storage()
+	storage, err := getStorage(service, storageID)
 	if err != nil {
 		diags.AddError("Error when retreiving the Storage from the Redfish API", err.Error())
-		return diags
-	}
-
-	storage, err := getStorageController(storageControllers, storageID)
-	if err != nil {
-		diags.AddError("Error when getting the storage struct", err.Error())
 		return diags
 	}
 
@@ -408,22 +378,24 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 		return diags
 	}
 
-	newVolume := make(map[string]interface{})
-	newVolume["VolumeType"] = volumeType
-	newVolume["DisplayName"] = volumeName
-	newVolume["Name"] = volumeName
-	newVolume["ReadCachePolicy"] = readCachePolicy
-	newVolume["WriteCachePolicy"] = writeCachePolicy
-	newVolume["CapacityBytes"] = capacityBytes
-	newVolume["OptimumIOSizeBytes"] = optimumIOSizeBytes
-	newVolume["Oem"] = map[string]map[string]map[string]interface{}{
-		"Dell": {
-			"DellVolume": {
-				"DiskCachePolicy": diskCachePolicy,
+	newVolume := map[string]interface{}{
+		"VolumeType":         volumeType,
+		"DisplayName":        volumeName,
+		"Name":               volumeName,
+		"ReadCachePolicy":    readCachePolicy,
+		"WriteCachePolicy":   writeCachePolicy,
+		"CapacityBytes":      capacityBytes,
+		"OptimumIOSizeBytes": optimumIOSizeBytes,
+		"Oem": map[string]map[string]map[string]interface{}{
+			"Dell": {
+				"DellVolume": {
+					"DiskCachePolicy": diskCachePolicy,
+				},
 			},
 		},
+		"@Redfish.OperationApplyTime": applyTime,
 	}
-	newVolume["@Redfish.OperationApplyTime"] = applyTime
+
 	var listDrives []map[string]string
 	for _, drive := range drives {
 		storageDrive := make(map[string]string)
@@ -441,7 +413,6 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 
 	// Immediate or OnReset scenarios
 	if applyTime == string(redfishcommon.OnResetApplyTime) { // OnReset case
-		// case string(redfishcommon.OnResetApplyTime): // OnReset case
 		// Get reset_timeout and reset_type from schema
 		resetType := d.ResetType.ValueString()
 		resetTimeout := d.ResetTimeout.ValueInt64()
@@ -530,21 +501,9 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service,
 	volumeJobTimeout := d.ResetTimeout.ValueInt64()
 
 	// Get storage
-	systems, err := service.Systems()
+	storage, err := getStorage(service, storageID)
 	if err != nil {
-		diags.AddError("Error when retreiving the Systems from the Redfish API", "")
-		return diags
-	}
-
-	storageControllers, err := systems[0].Storage()
-	if err != nil {
-		diags.AddError("Error when retreiving the Storage from the Redfish API", err.Error())
-		return diags
-	}
-
-	storage, err := getStorageController(storageControllers, storageID)
-	if err != nil {
-		diags.AddError("Error when getting the storage struct", err.Error())
+		diags.AddError("Error when retreiving the Systems from the Redfish API", err.Error())
 		return diags
 	}
 
@@ -555,20 +514,21 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service,
 		return diags
 	}
 
-	payload := make(map[string]interface{})
-	payload["ReadCachePolicy"] = readCachePolicy
-	payload["WriteCachePolicy"] = writeCachePolicy
-	payload["DisplayName"] = volumeName
-	payload["Oem"] = map[string]map[string]map[string]interface{}{
-		"Dell": {
-			"DellVolume": {
-				"DiskCachePolicy": diskCachePolicy,
+	payload := map[string]interface{}{
+		"ReadCachePolicy":  readCachePolicy,
+		"WriteCachePolicy": writeCachePolicy,
+		"DisplayName":      volumeName,
+		"Oem": map[string]map[string]map[string]interface{}{
+			"Dell": {
+				"DellVolume": {
+					"DiskCachePolicy": diskCachePolicy,
+				},
 			},
 		},
-	}
-	payload["Name"] = volumeName
-	payload["@Redfish.SettingsApplyTime"] = map[string]interface{}{
-		"ApplyTime": applyTime,
+		"Name": volumeName,
+		"@Redfish.SettingsApplyTime": map[string]interface{}{
+			"ApplyTime": applyTime,
+		},
 	}
 
 	// Update volume job
@@ -635,8 +595,6 @@ func deleteRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 	}
 
 	if applyTime == string(redfishcommon.OnResetApplyTime) { // OnReset case
-		// switch applyTime {
-		// case string(redfishcommon.OnResetApplyTime): // OnReset case
 		// Get reset_timeout and reset_type from schema
 		resetType := d.ResetType.ValueString()
 		resetTimeout := d.ResetTimeout.ValueInt64()
@@ -704,12 +662,30 @@ func getDrives(drives []*redfish.Drive, driveNames []string) ([]*redfish.Drive, 
 func checkSettingsApplyTime(storage *redfish.Storage, applyTime string) error {
 	operationApplyTimes, err := storage.GetOperationApplyTimeValues()
 	if err != nil {
-		return fmt.Errorf("couldn't retrieve operationApplyTimes from controller")
+		return fmt.Errorf("couldn't retrieve operationApplyTimes from controller: %w", err)
 	}
 	if !checkOperationApplyTimes(applyTime, operationApplyTimes) {
-		return fmt.Errorf("Storage controller does not support settings_apply_time")
+		return fmt.Errorf("Storage controller does not support settings_apply_time: %s", applyTime)
 	}
 	return nil
+}
+
+func getStorage(service *gofish.Service, storageID string) (*redfish.Storage, error) {
+	systems, err := service.Systems()
+	if err != nil {
+		return nil, fmt.Errorf("Error when retreiving the Systems from the Redfish API: %w", err)
+	}
+
+	storageControllers, err := systems[0].Storage()
+	if err != nil {
+		return nil, fmt.Errorf("Error when retreiving the Storage from the Redfish API: %w", err)
+	}
+
+	storage, err := getStorageController(storageControllers, storageID)
+	if err != nil {
+		return nil, fmt.Errorf("Error when getting the storage struct: %w", err)
+	}
+	return storage, nil
 }
 
 /*
