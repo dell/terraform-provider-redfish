@@ -38,8 +38,7 @@ run:
   # If it's not please let us know.
   # "/" will be replaced by current OS file path separator to properly work on Windows.
   skip-files:
-    - "redfish/provider/resource_redfish_storage_volume.go"
-    - "redfish/provider/resource_redfish_storage_volume.go"
+    - "redfish/provider/data_source_redfish_system_boot.go"
   #   - ".*\\.my\\.go$"
   # If set we pass it to "go list -mod={option}". From "go help modules":
   # If invoked with -mod=readonly, the go command is disallowed from the implicit

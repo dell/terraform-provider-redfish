@@ -102,6 +102,7 @@ func (*redfishProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewUserAccountResource,
 		NewSimpleUpdateResource,
 		NewDellIdracAttributesResource,
+		NewRedfishStorageVolumeResource,
 		NewBiosResource,
 	}
 }
