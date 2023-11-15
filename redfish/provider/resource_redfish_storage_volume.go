@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"terraform-provider-redfish/common"
 	"terraform-provider-redfish/redfish/models"
@@ -256,7 +255,11 @@ func (r *RedfishStorageVolumeResource) Read(ctx context.Context, req resource.Re
 		return
 	}
 
-	diags = readRedfishStorageVolume(service, &state)
+	diags, cleanup := readRedfishStorageVolume(service, &state)
+	if cleanup {
+		resp.State.RemoveResource(ctx)
+		return
+	}
 	resp.Diagnostics.Append(diags...)
 
 	tflog.Trace(ctx, "resource_RedfishStorageVolume read: finished reading state")
@@ -441,17 +444,16 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 	}
 	volumeID, err := getVolumeID(volumes, volumeName)
 	if err != nil {
-		diags.AddError("Error. The volume ID with volume name %s on %s controller was not found", err.Error())
+		diags.AddError("Error. The volume ID with given volume name was not found", err.Error())
 		return diags
 	}
 
 	d.ID = types.StringValue(volumeID)
-	diags = readRedfishStorageVolume(service, d)
 	return diags
 }
 
-func readRedfishStorageVolume(service *gofish.Service, d *models.RedfishStorageVolume) diag.Diagnostics {
-	var diags diag.Diagnostics
+func readRedfishStorageVolume(service *gofish.Service, d *models.RedfishStorageVolume) (diags diag.Diagnostics, cleanup bool) {
+	// var diags diag.Diagnostics
 
 	// Check if the volume exists
 	_, err := redfish.GetVolume(service.GetClient(), d.ID.ValueString())
@@ -459,15 +461,14 @@ func readRedfishStorageVolume(service *gofish.Service, d *models.RedfishStorageV
 		e, ok := err.(*redfishcommon.Error)
 		if !ok {
 			diags.AddError("There was an error with the API", err.Error())
-			return diags
+			return diags, false
 		}
 		if e.HTTPReturnedStatusCode == http.StatusNotFound {
-			log.Printf("Volume %s doesn't exist", d.ID.ValueString())
-			d.ID = types.StringValue("")
-			return diags
+			diags.AddError("Volume doesn't exist", "")
+			return diags, true
 		}
 		diags.AddError("Status code", err.Error())
-		return diags
+		return diags, false
 	}
 
 	/*
@@ -475,7 +476,7 @@ func readRedfishStorageVolume(service *gofish.Service, d *models.RedfishStorageV
 		Also never EVER trigger an update regarding disk properties for safety reasons
 	*/
 
-	return diags
+	return diags, false
 }
 
 func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service,
@@ -503,7 +504,7 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service,
 	// Get storage
 	storage, err := getStorage(service, storageID)
 	if err != nil {
-		diags.AddError("Error when retreiving the Systems from the Redfish API", err.Error())
+		diags.AddError("Error when retreiving storage details from the Redfish API", err.Error())
 		return diags
 	}
 
@@ -567,13 +568,11 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service,
 	}
 	volumeID, err := getVolumeID(volumes, volumeName)
 	if err != nil {
-		diags.AddError("Error. The volume ID with volume name %s on %s controller was not found", err.Error())
+		diags.AddError("Error. The volume ID with given volume name was not found", err.Error())
 		return diags
 	}
 
 	d.ID = types.StringValue(volumeID)
-	diags = readRedfishStorageVolume(service, d)
-
 	return diags
 }
 
@@ -586,7 +585,7 @@ func deleteRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 
 	// Get vars from schema
 	applyTime := d.SettingsApplyTime.ValueString()
-	volumeJobTimeout := int64(d.VolumeJobTimeout.ValueInt64())
+	volumeJobTimeout := d.VolumeJobTimeout.ValueInt64()
 
 	jobID, err := deleteVolume(service, d.ID.ValueString())
 	if err != nil {
@@ -740,7 +739,7 @@ func getVolumeID(volumes []*redfish.Volume, volumeName string) (volumeLink strin
 			return volumeLink, nil
 		}
 	}
-	return "", fmt.Errorf("couldn't find a volume with the provided name")
+	return "", fmt.Errorf("couldn't find a volume with the provided name: %s", volumeName)
 }
 
 func checkOperationApplyTimes(optionToCheck string, storageOperationApplyTimes []redfishcommon.OperationApplyTime) (result bool) {
