@@ -54,7 +54,7 @@ func (r *UserAccountResource) Configure(_ context.Context, req resource.Configur
 
 // Metadata returns the resource type name.
 func (*UserAccountResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "UserAccount"
+	resp.TypeName = req.ProviderTypeName + "user_account"
 }
 
 // Schema defines the schema for the resource.
@@ -122,7 +122,7 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 
 // Create creates the resource and sets the initial Terraform state.
 func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	tflog.Trace(ctx, "resource_UserAccount create : Started")
+	tflog.Trace(ctx, "resource_user_account create : Started")
 
 	// Get Plan Data
 	var plan models.UserAccount
@@ -138,7 +138,7 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	tflog.Trace(ctx, "resource_UserAccount create: updating state finished, saving ...")
+	tflog.Trace(ctx, "resource_user_account create: updating state finished, saving ...")
 	password := plan.Password.ValueString()
 	userName := plan.Username.ValueString()
 	userID := plan.UserID.ValueString()
@@ -224,12 +224,12 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 	// Save into State
 	diags = resp.State.Set(ctx, result)
 	resp.Diagnostics.Append(diags...)
-	tflog.Trace(ctx, "resource_UserAccount create: finish")
+	tflog.Trace(ctx, "resource_user_account create: finish")
 }
 
 // Read refreshes the Terraform state with the latest data.
 func (r *UserAccountResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	tflog.Trace(ctx, "resource_UserAccount read: started")
+	tflog.Trace(ctx, "resource_user_account read: started")
 
 	var state models.UserAccount
 	diags := req.State.Get(ctx, &state)
@@ -256,17 +256,17 @@ func (r *UserAccountResource) Read(ctx context.Context, req resource.ReadRequest
 
 	r.updateServer(nil, &state, account, operationRead)
 
-	tflog.Trace(ctx, "resource_UserAccount read: finished reading state")
+	tflog.Trace(ctx, "resource_user_account read: finished reading state")
 	// Save into State
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
-	tflog.Trace(ctx, "resource_UserAccount read: finished")
+	tflog.Trace(ctx, "resource_user_account read: finished")
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *UserAccountResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Get state Data
-	tflog.Trace(ctx, "resource_UserAccount update: started")
+	tflog.Trace(ctx, "resource_user_account update: started")
 
 	var state, plan models.UserAccount
 
@@ -334,16 +334,16 @@ func (r *UserAccountResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 	r.updateServer(&plan, &state, account, operationUpdate)
 
-	tflog.Trace(ctx, "resource_UserAccount update: finished state update")
+	tflog.Trace(ctx, "resource_user_account update: finished state update")
 	// Save into State
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
-	tflog.Trace(ctx, "resource_UserAccount update: finished")
+	tflog.Trace(ctx, "resource_user_account update: finished")
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
 func (r *UserAccountResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	tflog.Trace(ctx, "resource_UserAccount delete: started")
+	tflog.Trace(ctx, "resource_user_account delete: started")
 	// Get State Data
 	var state models.UserAccount
 	diags := req.State.Get(ctx, &state)
@@ -382,7 +382,7 @@ func (r *UserAccountResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	tflog.Trace(ctx, "resource_UserAccount delete: finished")
+	tflog.Trace(ctx, "resource_user_account delete: finished")
 }
 
 func (UserAccountResource) updateServer(plan, state *models.UserAccount, account *redfish.ManagerAccount, operation operation) {
