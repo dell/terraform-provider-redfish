@@ -54,7 +54,7 @@ func (r *UserAccountResource) Configure(_ context.Context, req resource.Configur
 
 // Metadata returns the resource type name.
 func (*UserAccountResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "UserAccount"
+	resp.TypeName = req.ProviderTypeName + "user_account"
 }
 
 // Schema defines the schema for the resource.
