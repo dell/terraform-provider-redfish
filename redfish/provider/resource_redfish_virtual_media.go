@@ -287,7 +287,7 @@ func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRe
 	}
 
 	// Get service
-	service, err := NewConfig(r.p, &state.RedfishServer)
+	service, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
