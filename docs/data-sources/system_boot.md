@@ -19,12 +19,12 @@ linkTitle: "redfish_system_boot"
 page_title: "redfish_system_boot Data Source - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  Data source to fetch Firmware Inventory details via RedFish.
+  Data source to fetch System Boot details via RedFish.
 ---
 
 # redfish_system_boot (Data Source)
 
-Data source to fetch Firmware Inventory details via RedFish.
+Data source to fetch System Boot details via RedFish.
 
 ## Example Usage
 
