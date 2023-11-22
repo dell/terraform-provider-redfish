@@ -114,7 +114,7 @@ limitations under the License.
 terraform {
   required_providers {
     redfish = {
-      version = "1.0.0"
+      version = "1.1.0"
       source  = "registry.terraform.io/dell/redfish"
     }
   }
@@ -166,8 +166,8 @@ output "system_boot" {
 
 ### Optional
 
-- `id` (String) Resource ID of the computer system. If not provided, the first system resource is used
 - `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
+- `resource_id` (String) Resource ID of the computer system. If not provided, the first system resource is used
 
 ### Read-Only
 
@@ -175,6 +175,7 @@ output "system_boot" {
 - `boot_source_override_enabled` (String) The state of the boot source override feature
 - `boot_source_override_mode` (String) The BIOS boot mode to use when the system boots from the BootSourceOverrideTarget boot source
 - `boot_source_override_target` (String) Current boot source to use at next boot instead of the normal boot device, if BootSourceOverrideEnabled is true
+- `id` (String) Resource ID of the computer system used.
 - `uefi_target_boot_source_override` (String) The UEFI device path of the device from which to boot when BootSourceOverrideTarget is UefiTarget
 
 <a id="nestedblock--redfish_server"></a>
