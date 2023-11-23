@@ -3,12 +3,12 @@
 page_title: "redfish_manager_reset Resource - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  Resource for managing manager reset.
+  Resource to reset the iDRAC.
 ---
 
 # redfish_manager_reset (Resource)
 
-Resource for managing manager reset.
+Resource to reset the iDRAC.
 
 ## Example Usage
 
@@ -40,7 +40,7 @@ resource "redfish_manager_reset" "manager_reset" {
     ssl_insecure = each.value.ssl_insecure
   }
 
-  manager_id = "iDRAC.Embedded.1"
+  id         = "iDRAC.Embedded.1"
   reset_type = "GracefulRestart"
 }
 ```
@@ -50,16 +50,12 @@ resource "redfish_manager_reset" "manager_reset" {
 
 ### Required
 
-- `manager_id` (String) The value of the Id property of the Manager resource
-- `reset_type` (String) The type of ResetType option to be performed
+- `id` (String) The value of the Id property of the Manager resource
+- `reset_type` (String) The type of the reset operation to be performed
 
 ### Optional
 
 - `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
-
-### Read-Only
-
-- `id` (String) ID of the manager reset resource
 
 <a id="nestedblock--redfish_server"></a>
 ### Nested Schema for `redfish_server`

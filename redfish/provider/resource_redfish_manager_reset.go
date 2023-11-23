@@ -3,6 +3,8 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net"
+	"strings"
 	"terraform-provider-redfish/redfish/models"
 	"time"
 
@@ -48,11 +50,6 @@ func (*managerResetResource) Metadata(_ context.Context, req resource.MetadataRe
 func ManagerResetSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"id": schema.StringAttribute{
-			MarkdownDescription: "ID of the manager reset resource",
-			Description:         "ID of the manager reset resource",
-			Computed:            true,
-		},
-		"manager_id": schema.StringAttribute{
 			MarkdownDescription: "The value of the Id property of the Manager resource",
 			Description:         "The value of the Id property of the Manager resource",
 			Required:            true,
@@ -61,8 +58,8 @@ func ManagerResetSchema() map[string]schema.Attribute {
 			},
 		},
 		"reset_type": schema.StringAttribute{
-			MarkdownDescription: "The type of ResetType option to be performed",
-			Description:         "The type of ResetType option to be performed",
+			MarkdownDescription: "The type of the reset operation to be performed",
+			Description:         "The type of the reset operation to be performed",
 			Required:            true,
 			Validators: []validator.String{
 				stringvalidator.OneOf(
@@ -76,7 +73,7 @@ func ManagerResetSchema() map[string]schema.Attribute {
 // Schema defines the schema for the resource.
 func (*managerResetResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Resource for managing manager reset.",
+		MarkdownDescription: "Resource to reset the iDRAC.",
 
 		Attributes: ManagerResetSchema(),
 		Blocks:     RedfishServerResourceBlockMap(),
@@ -99,7 +96,7 @@ func (r *managerResetResource) Create(ctx context.Context, req resource.CreateRe
 	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
 
 	resetType := plan.ResetType.ValueString()
-	managerID := plan.ManagerID.ValueString()
+	managerID := plan.Id.ValueString()
 
 	// Get manager
 	manager, err := getManager(r, plan, managerID)
@@ -115,10 +112,14 @@ func (r *managerResetResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	plan.Id = types.StringValue(manager.ODataID)
+	// Check iDRAC status
+	err = checkServerStatus(ctx, plan.RedfishServer[0].Endpoint.ValueString(), 5, 300)
+	if err != nil {
+		resp.Diagnostics.AddError("Error while rebooting iDRAC. Operation may take longer duration to complete", err.Error())
+		return
+	}
 
-	// time to allow rebooting iDRAC
-	time.Sleep(300 * time.Second)
+	plan.Id = types.StringValue(manager.ID)
 
 	tflog.Trace(ctx, "resource_manager_reset create: updating state finished, saving ...")
 	// Save into State
@@ -137,7 +138,7 @@ func (r *managerResetResource) Read(ctx context.Context, req resource.ReadReques
 		return
 	}
 
-	managerID := state.ManagerID.ValueString()
+	managerID := state.Id.ValueString()
 
 	// Get manager
 	manager, err := getManager(r, state, managerID)
@@ -146,7 +147,7 @@ func (r *managerResetResource) Read(ctx context.Context, req resource.ReadReques
 		return
 	}
 
-	state.Id = types.StringValue(manager.ODataID)
+	state.Id = types.StringValue(manager.ID)
 
 	// Save into State
 	diags = resp.State.Set(ctx, &state)
@@ -172,7 +173,7 @@ func (r *managerResetResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
-	managerID := plan.ManagerID.ValueString()
+	managerID := plan.Id.ValueString()
 
 	// Get Manager
 	manager, err := getManager(r, state, managerID)
@@ -181,7 +182,7 @@ func (r *managerResetResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
-	state.Id = types.StringValue(manager.ODataID)
+	state.Id = types.StringValue(manager.ID)
 	state.ResetType = plan.ResetType
 
 	tflog.Trace(ctx, "resource_manager_reset update: finished state update")
@@ -231,4 +232,25 @@ func getManager(r *managerResetResource, d models.RedfishManagerReset, managerID
 		return nil, err
 	}
 	return manager, nil
+}
+
+func checkServerStatus(ctx context.Context, endpoint string, interval int, timeout int) error {
+	var err error
+	endpoint = strings.Trim(endpoint, "https://")
+
+	// Intial sleep until iDRAC reboot is triggered
+	time.Sleep(30 * time.Second)
+
+	for start := time.Now(); time.Since(start) < (time.Duration(timeout) * time.Second); {
+		tflog.Trace(ctx, "Checking server status...")
+		time.Sleep(time.Duration(interval) * time.Second)
+		_, err = net.Dial("tcp", endpoint+":443")
+		if err == nil {
+			return nil
+		}
+		errctx := tflog.SetField(ctx, "error", err.Error())
+		tflog.Trace(errctx, "Site unreachable")
+	}
+
+	return err
 }
