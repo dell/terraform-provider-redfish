@@ -21,12 +21,12 @@ linkTitle: "Provider"
 page_title: "redfish Provider"
 subcategory: ""
 description: |-
-  
+  Terraform Provider Redfish
 ---
 
 # redfish Provider
 
-
+Terraform Provider Redfish
 # Information about Redfish Terraform Provider
 This guide will explain different parts of the provider and will give an overview about how the provider is built.
 
@@ -169,10 +169,14 @@ limitations under the License.
 terraform {
   required_providers {
     redfish = {
-      version = "1.0.0"
+      version = "1.1.0"
       source  = "registry.terraform.io/dell/redfish"
     }
   }
+}
+
+provider "redfish" {
+
 }
 ```
 
@@ -211,5 +215,5 @@ variable "rack1" {
 
 ### Optional
 
-- `password` (String) Default value. This field is the password related to the user given
-- `user` (String) Default value. This field is the user to login against the redfish API
+- `password` (String, Sensitive) This field is the password related to the user given
+- `user` (String) This field is the user to login against the redfish API

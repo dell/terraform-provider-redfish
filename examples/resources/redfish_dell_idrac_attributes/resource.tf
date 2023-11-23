@@ -19,10 +19,10 @@ resource "redfish_dell_idrac_attributes" "idrac" {
   for_each = var.rack1
 
   redfish_server {
-    user         = each.value.user
-    password     = each.value.password
-    endpoint     = each.value.endpoint
-    ssl_insecure = each.value.ssl_insecure
+    user          = each.value.user
+    password      = each.value.password
+    endpoint      = each.value.endpoint
+    validate_cert = each.value.validate_cert
   }
 
   // iDRAC attributes to be modified

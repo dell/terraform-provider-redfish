@@ -1,0 +1,108 @@
+# This is a workflow with the following actions
+#1. Check Go formatting, linting, vetting
+#2. Check for forbidden words
+#3. Build
+#5. Generate
+#6. Malware Scanner
+
+
+name: Terraform-CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on pull request events
+  pull_request:
+  # Runs CI on every day (at 06:00 UTC)
+  schedule:
+    - cron: '0 6 * * *'
+  push:
+    branches: [ "main" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Testing only needs permissions to read the repository contents.
+permissions:
+  contents: read
+env:
+  # Go language version to use for building. This value should also be updated
+  # in the testing workflow if changed.
+  GO_VERSION: '1.20'
+  
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  golangci:
+    name: Check Go formatting, linting, vetting using golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          # Require: The version of golangci-lint to use.
+          # When `install-mode` is `binary` (default) the value can be v1.2 or v1.2.3 or `latest` to use the latest version.
+          # When `install-mode` is `goinstall` the value can be v1.2.3, `latest`, or the hash of a commit.
+          version: v1.54
+  sanitize:
+    name: Check for forbidden words
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v3
+      - name: Run the forbidden words scan
+        uses: dell/common-github-actions/code-sanitizer@main
+        with:
+          args: /github/workspace/redfish # TBD /github/workspace
+     
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - uses: actions/checkout@v3
+      - run: go build -v .
+        
+  generate:
+    name: Generate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - run: go generate ./...
+      - name: git diff
+        run: |
+          git diff --compact-summary --exit-code || \
+            (echo; echo "Unexpected difference in directories after code generation. Run 'go generate ./...' command and commit."; exit 1) 
+          
+  malware_security_scan:
+      name: Malware Scanner
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout the code
+          uses: actions/checkout@v3
+        - name: Malware Scanner
+          uses: dell/common-github-actions/malware-scanner@main
+          with:
+            directories: .
+            options: -ri
+#  test:
+#   name: Terraform Provider Unit Tests
+#   needs: [build, ]
+#   runs-on: ubuntu-latest
+#   timeout-minutes: 60
+#   steps:
+#     - uses: actions/setup-go@v3
+#       with:
+#         go-version: ${{ env.GO_VERSION }}
+#     - uses: actions/checkout@v3
+#     - run: go mod download
+#     - run: go test -v -cover ./clients/
+#       timeout-minutes: 60

@@ -19,12 +19,12 @@ linkTitle: "redfish_user_account"
 page_title: "redfish_user_account Resource - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  
+  This Terraform resource is used to manage user entity of the iDRAC Server. We can create, read, modify and delete an existing user using this resource.
 ---
 
 # redfish_user_account (Resource)
 
-
+This Terraform resource is used to manage user entity of the iDRAC Server. We can create, read, modify and delete an existing user using this resource.
 This Terraform resource is used to manage user entity of the iDRAC Server. We can create, read, modify and delete an existing user using this resource.
 
 ~> **Note:** In the absence of `user_id`, first available `user_id` is assigned to the given user.
@@ -51,10 +51,10 @@ limitations under the License.
 
 variable "rack1" {
   type = map(object({
-    user         = string
-    password     = string
-    endpoint     = string
-    ssl_insecure = bool
+    user          = string
+    password      = string
+    endpoint      = string
+    validate_cert = bool
   }))
 }
 ```
@@ -80,16 +80,16 @@ limitations under the License.
 
 rack1 = {
   "my-server-1" = {
-    user         = "admin"
-    password     = "passw0rd"
-    endpoint     = "https://my-server-1.myawesomecompany.org"
-    ssl_insecure = true
+    user          = "admin"
+    password      = "passw0rd"
+    endpoint      = "https://my-server-1.myawesomecompany.org"
+    validate_cert = false
   },
   "my-server-2" = {
-    user         = "admin"
-    password     = "passw0rd"
-    endpoint     = "https://my-server-2.myawesomecompany.org"
-    ssl_insecure = true
+    user          = "admin"
+    password      = "passw0rd"
+    endpoint      = "https://my-server-2.myawesomecompany.org"
+    validate_cert = false
   },
 }
 ```
@@ -116,7 +116,7 @@ limitations under the License.
 terraform {
   required_providers {
     redfish = {
-      version = "1.0.0"
+      version = "1.1.0"
       source  = "registry.terraform.io/dell/redfish"
     }
   }
@@ -146,10 +146,10 @@ resource "redfish_user_account" "rr" {
   for_each = var.rack1
 
   redfish_server {
-    user         = each.value.user
-    password     = each.value.password
-    endpoint     = each.value.endpoint
-    ssl_insecure = each.value.ssl_insecure
+    user          = each.value.user
+    password      = each.value.password
+    endpoint      = each.value.endpoint
+    validate_cert = false
   }
 
   // user details for creating/modifying a user
@@ -169,32 +169,32 @@ After the successful execution of the above resource block, a new user would hav
 
 ### Required
 
-- `password` (String, Sensitive) Password of the user.
-- `redfish_server` (Block List, Min: 1) This list contains the different redfish endpoints to manage (different servers) (see [below for nested schema](#nestedblock--redfish_server))
-- `username` (String) The name of the user.
+- `password` (String, Sensitive) Password of the user
+- `username` (String) The name of the user
 
 ### Optional
 
 - `enabled` (Boolean) If the user is currently active or not.
-- `role_id` (String) Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. Default is "None".
+- `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
+- `role_id` (String) Role of the user. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. Default is "None"
 - `user_id` (String) The ID of the user. Cannot be updated.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the resource. Cannot be updated.
 
 <a id="nestedblock--redfish_server"></a>
 ### Nested Schema for `redfish_server`
 
 Required:
 
-- `endpoint` (String) This field is the endpoint where the redfish API is placed
+- `endpoint` (String) Server BMC IP address or hostname
 
 Optional:
 
-- `password` (String) This field is the password related to the user given
-- `ssl_insecure` (Boolean) This field indicates if the SSL/TLS certificate must be verified
-- `user` (String) This field is the user to login against the redfish API
+- `password` (String, Sensitive) User password for login
+- `ssl_insecure` (Boolean) This field indicates whether the SSL/TLS certificate must be verified or not
+- `user` (String) User name for login
 
 
 

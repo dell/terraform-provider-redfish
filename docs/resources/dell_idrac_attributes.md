@@ -19,12 +19,12 @@ linkTitle: "redfish_dell_idrac_attributes"
 page_title: "redfish_dell_idrac_attributes Resource - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  
+  Resource for managing DellIdracAttributes on OpenManage Enterprise.
 ---
 
 # redfish_dell_idrac_attributes (Resource)
 
-
+Resource for managing DellIdracAttributes on OpenManage Enterprise.
 
 This Terraform resource is used to configure iDRAC attributes of the iDRAC Server. We can Read the existing configurations or modify them using this resource.
 ## Example Usage
@@ -50,10 +50,10 @@ limitations under the License.
 
 variable "rack1" {
   type = map(object({
-    user         = string
-    password     = string
-    endpoint     = string
-    ssl_insecure = bool
+    user          = string
+    password      = string
+    endpoint      = string
+    validate_cert = bool
   }))
 }
 ```
@@ -79,16 +79,16 @@ limitations under the License.
 
 rack1 = {
   "my-server-1" = {
-    user         = "admin"
-    password     = "passw0rd"
-    endpoint     = "https://my-server-1.myawesomecompany.org"
-    ssl_insecure = true
+    user          = "admin"
+    password      = "passw0rd"
+    endpoint      = "https://my-server-1.myawesomecompany.org"
+    validate_cert = false
   },
   "my-server-2" = {
-    user         = "admin"
-    password     = "passw0rd"
-    endpoint     = "https://my-server-2.myawesomecompany.org"
-    ssl_insecure = true
+    user          = "admin"
+    password      = "passw0rd"
+    endpoint      = "https://my-server-2.myawesomecompany.org"
+    validate_cert = false
   },
 }
 ```
@@ -115,7 +115,7 @@ limitations under the License.
 terraform {
   required_providers {
     redfish = {
-      version = "1.0.0"
+      version = "1.1.0"
       source  = "registry.terraform.io/dell/redfish"
     }
   }
@@ -145,10 +145,10 @@ resource "redfish_dell_idrac_attributes" "idrac" {
   for_each = var.rack1
 
   redfish_server {
-    user         = each.value.user
-    password     = each.value.password
-    endpoint     = each.value.endpoint
-    ssl_insecure = each.value.ssl_insecure
+    user          = each.value.user
+    password      = each.value.password
+    endpoint      = each.value.endpoint
+    validate_cert = each.value.validate_cert
   }
 
   // iDRAC attributes to be modified
@@ -172,11 +172,14 @@ After the successful execution of the above resource block, iDRAC attributes con
 ### Required
 
 - `attributes` (Map of String) iDRAC attributes. To check allowed attributes please either use the datasource for dell idrac attributes or query /redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/iDRAC.Embedded.1. To get allowed values for those attributes, check /redfish/v1/Registries/ManagerAttributeRegistry/ManagerAttributeRegistry.v1_0_0.json from a Redfish Instance
-- `redfish_server` (Block List, Min: 1) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
+
+### Optional
+
+- `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the iDRAC attributes resource
 
 <a id="nestedblock--redfish_server"></a>
 ### Nested Schema for `redfish_server`

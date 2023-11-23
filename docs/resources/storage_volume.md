@@ -19,13 +19,13 @@ linkTitle: "redfish_storage_volume"
 page_title: "redfish_storage_volume Resource - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  
+  Resource for managing storage volume.
 ---
 
 # redfish_storage_volume (Resource)
 
 This Terraform resource is used to configure virtual disks on the iDRAC Server. We can Create, Read, Update, Delete the virtual disks using this resource.
-
+Resource for managing storage volume.
 
 ~> **Note:** `capacity_bytes` and `volume_type` attributes cannot be updated.
 ## Example Usage
@@ -186,39 +186,39 @@ After the successful execution of the above resource block, virtual disk would h
 
 ### Required
 
-- `drives` (List of String) This list contains the physical disks names to create the volume within a disk controller
-- `redfish_server` (Block List, Min: 1) This list contains the different redfish endpoints to manage (different servers) (see [below for nested schema](#nestedblock--redfish_server))
-- `storage_controller_id` (String) This value must be the storage controller ID the user want to manage. I.e: RAID.Integrated.1-1
-- `volume_name` (String) This value is the desired name for the volume to be given
-- `volume_type` (String) This value specifies the raid level the virtual disk is going to have. Possible values are: NonRedundant (RAID-0), Mirrored (RAID-1), StripedWithParity (RAID-5), SpannedMirrors (RAID-10) or SpannedStripesWithParity (RAID-50)
+- `drives` (List of String) Drives
+- `storage_controller_id` (String) Storage Controller ID
+- `volume_name` (String) Volume Name
+- `volume_type` (String) Volume Type
 
 ### Optional
 
-- `capacity_bytes` (Number) capacity_bytes shall contain the size in bytes of the associated volume.
-- `disk_cache_policy` (String) disk_cache_policy shall contain a boolean indicator of the disk cache policy for the Volume.
-- `optimum_io_size_bytes` (Number) optimum_io_size_bytes shall contain the optimum IO size to use when performing IO on this volume.
-- `read_cache_policy` (String) read_cache_policy shall contain a boolean indicator of the read cache policy for the Volume.
-- `reset_timeout` (Number) reset_timeout is the time in seconds that the provider waits for the server to be reset(if settings_apply_time is set to "OnReset") before timing out. Default is 120s.
-- `reset_type` (String) Reset type allows to choose the type of restart to apply when settings_apply_time is set to "OnReset"Possible values are: "ForceRestart", "GracefulRestart" or "PowerCycle". If not set, "ForceRestart" is the default.
-- `settings_apply_time` (String) Flag to make the operation either "Immediate" or "OnReset". By default value is "Immediate"
-- `volume_job_timeout` (Number) volume_job_timeout is the time in seconds that the provider waits for the volume job to be completed before timing out.Default is 1200s
-- `write_cache_policy` (String) write_cache_policy shall contain a boolean indicator of the write cache policy for the Volume.
+- `capacity_bytes` (Number) Capacity Bytes
+- `disk_cache_policy` (String) Disk Cache Policy
+- `optimum_io_size_bytes` (Number) Optimum Io Size Bytes
+- `read_cache_policy` (String) Read Cache Policy
+- `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
+- `reset_timeout` (Number) Reset Timeout
+- `reset_type` (String) Reset Type
+- `settings_apply_time` (String) Settings Apply Time
+- `volume_job_timeout` (Number) Volume Job Timeout
+- `write_cache_policy` (String) Write Cache Policy
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the storage volume resource
 
 <a id="nestedblock--redfish_server"></a>
 ### Nested Schema for `redfish_server`
 
 Required:
 
-- `endpoint` (String) This field is the endpoint where the redfish API is placed
+- `endpoint` (String) Server BMC IP address or hostname
 
 Optional:
 
-- `password` (String) This field is the password related to the user given
-- `ssl_insecure` (Boolean) This field indicates if the SSL/TLS certificate must be verified
-- `user` (String) This field is the user to login against the redfish API
+- `password` (String, Sensitive) User password for login
+- `ssl_insecure` (Boolean) This field indicates whether the SSL/TLS certificate must be verified or not
+- `user` (String) User name for login
 
 

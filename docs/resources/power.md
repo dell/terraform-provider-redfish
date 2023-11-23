@@ -19,12 +19,12 @@ linkTitle: "redfish_power"
 page_title: "redfish_power Resource - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  
+  Resource for managing power.
 ---
 
 # redfish_power (Resource)
 
-
+Resource for managing power.
 
 ## Example Usage
 
@@ -191,16 +191,16 @@ After the successful execution of the above resource block, Power state would ha
 ### Required
 
 - `desired_power_action` (String) Desired power setting. Applicable values are 'On','ForceOn','ForceOff','ForceRestart','GracefulRestart','GracefulShutdown','PowerCycle', 'PushPowerButton', 'Nmi'
-- `redfish_server` (Block List, Min: 1) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
 
 ### Optional
 
 - `check_interval` (Number) The frequency with which to check the server's power state in seconds
 - `maximum_wait_time` (Number) The maximum amount of time to wait for the server to enter the correct power state beforegiving up in seconds
+- `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the power resource
 - `power_state` (String) Desired power setting. Applicable values 'On','ForceOn','ForceOff','ForceRestart','GracefulRestart','GracefulShutdown','PowerCycle', 'PushPowerButton', 'Nmi'.
 
 <a id="nestedblock--redfish_server"></a>

@@ -19,15 +19,14 @@ linkTitle: "redfish_simple_update"
 page_title: "redfish_simple_update Resource - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  
+  Resource for managing power.
 ---
 
 # redfish_simple_update (Resource)
 
-
+Resource for managing power.
 This Terraform resource is used to Update the iDRAC Server. We can Read the existing version or update the same using this resource.
 
-~> **Note:** In case of any failure in the middle of update, you can check the server. If required to run again, then terraform destroy need to be performed first.
 ## Example Usage
 
 variables.tf
@@ -116,7 +115,7 @@ limitations under the License.
 terraform {
   required_providers {
     redfish = {
-      version = "1.0.0"
+      version = "1.1.0"
       source  = "registry.terraform.io/dell/redfish"
     }
   }
@@ -170,19 +169,19 @@ After the successful execution of the above resource block, firmware would have 
 
 ### Required
 
-- `redfish_server` (Block List, Min: 1) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
-- `reset_type` (String) Reset type allows to choose the type of restart to apply when firmware upgrade is scheduled.Possible values are: "ForceRestart", "GracefulRestart" or "PowerCycle"
+- `reset_type` (String) Reset type allows to choose the type of restart to apply when firmware upgrade is scheduled. Possible values are: "ForceRestart", "GracefulRestart" or "PowerCycle"
 - `target_firmware_image` (String) Target firmware image used for firmware update on the redfish instance. Make sure you place your firmware packages in the same folder as the module and set it as follows: "${path.module}/BIOS_FXC54_WN64_1.15.0.EXE"
 - `transfer_protocol` (String) The network protocol that the Update Service uses to retrieve the software image file located at the URI provided in ImageURI, if the URI does not contain a scheme. Accepted values: CIFS, FTP, SFTP, HTTP, HTTPS, NSF, SCP, TFTP, OEM, NFS. Currently only HTTP, HTTPS and NFS are supported with local file path or HTTP(s)/NFS link.
 
 ### Optional
 
-- `reset_timeout` (Number) reset_timeout is the time in seconds that the provider waits for the server to be reset before timing out.
-- `simple_update_job_timeout` (Number) simple_update_job_timeout is the time in seconds that the provider waits for the simple update job to be completed before timing out.
+- `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
+- `reset_timeout` (Number) Time in seconds that the provider waits for the server to be reset before timing out.
+- `simple_update_job_timeout` (Number) Time in seconds that the provider waits for the simple update job to be completed before timing out.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) ID of the simple update resource
 - `software_id` (String) Software ID from the firmware package uploaded
 - `version` (String) Software version from the firmware package uploaded
 

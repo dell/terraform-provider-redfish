@@ -19,12 +19,12 @@ linkTitle: "redfish_virtual_media"
 page_title: "redfish_virtual_media Resource - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  
+  Resource for managing virtual media.
 ---
 
 # redfish_virtual_media (Resource)
 
-
+Resource for managing virtual media.
 
 ~> **Note:** `write_protected` attribute can only be configured as `true`.
 ## Example Usage
@@ -116,10 +116,13 @@ limitations under the License.
 terraform {
   required_providers {
     redfish = {
-      version = "1.0.0"
+      version = "1.1.0"
       source  = "registry.terraform.io/dell/redfish"
     }
   }
+}
+
+provider "redfish" {
 }
 ```
 
@@ -152,7 +155,8 @@ resource "redfish_virtual_media" "vm" {
     ssl_insecure = each.value.ssl_insecure
   }
   // Image to be attached to virtual media
-  image           = "http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/iso/RHEL-8.8.0-20230411.3-x86_64-boot.iso"
+  # image           = "http://inuxlib.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img"
+  image           = "http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img"
   transfer_method = "Stream"
   // Network protocol used to fetch the image
   transfer_protocol_type = "HTTP"
@@ -168,18 +172,18 @@ After the successful execution of the above resource block, virutal media would 
 ### Required
 
 - `image` (String) The URI of the remote media to attach to the virtual media
-- `redfish_server` (Block List, Min: 1) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
 
 ### Optional
 
+- `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
 - `transfer_method` (String) Indicates how the data is transferred
 - `transfer_protocol_type` (String) The protocol used to transfer.
 - `write_protected` (Boolean) Indicates whether the remote device media prevents writing to that media.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `inserted` (Boolean) The URI of the remote media to attach to the virtual media
+- `id` (String) ID of the virtual media resource
+- `inserted` (Boolean) Describes whether virtual media is attached or detached
 
 <a id="nestedblock--redfish_server"></a>
 ### Nested Schema for `redfish_server`
