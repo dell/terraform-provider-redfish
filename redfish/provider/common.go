@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strings"
+	"net/url"
 	"terraform-provider-redfish/redfish/models"
 	"time"
 
@@ -260,7 +260,10 @@ func (p powerOperator) PowerOperation(resetType string, maximumWaitTime int64, c
 // checkServerStatus checks iDRAC server status after provided interval until the provided timeout time
 func checkServerStatus(ctx context.Context, endpoint string, interval int, timeout int) error {
 	var err error
-	endpoint = strings.TrimPrefix(endpoint, "https://")
+	addr, err := url.Parse(endpoint)
+	if err != nil {
+		return err
+	}
 
 	// Intial sleep until iDRAC reboot is triggered
 	time.Sleep(30 * time.Second)
@@ -268,7 +271,7 @@ func checkServerStatus(ctx context.Context, endpoint string, interval int, timeo
 	for start := time.Now(); time.Since(start) < (time.Duration(timeout) * time.Second); {
 		tflog.Trace(ctx, "Checking server status...")
 		time.Sleep(time.Duration(interval) * time.Second)
-		_, err = net.Dial("tcp", endpoint+":443")
+		_, err = net.Dial("tcp", addr.Hostname()+":"+addr.Scheme)
 		if err == nil {
 			return nil
 		}
