@@ -51,7 +51,7 @@ resource "redfish_manager_reset" "manager_reset" {
 ### Required
 
 - `id` (String) The value of the Id property of the Manager resource
-- `reset_type` (String) The type of the reset operation to be performed
+- `reset_type` (String) The type of the reset operation to be performed. Accepted value: GracefulRestart
 
 ### Optional
 
