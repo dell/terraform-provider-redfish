@@ -101,6 +101,9 @@ func (r *dellIdracAttributesResource) Create(ctx context.Context, req resource.C
 
 	diags = updateRedfishDellIdracAttributes(ctx, service, &plan)
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Trace(ctx, "resource_DellIdracAttributes create: updating state finished, saving ...")
 	// Save into State
@@ -127,6 +130,10 @@ func (r *dellIdracAttributesResource) Read(ctx context.Context, req resource.Rea
 
 	diags = readRedfishDellIdracAttributes(ctx, service, &state)
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	tflog.Trace(ctx, "resource_DellIdracAttributes read: finished reading state")
 	// Save into State
 	diags = resp.State.Set(ctx, &state)
@@ -155,6 +162,9 @@ func (r *dellIdracAttributesResource) Update(ctx context.Context, req resource.U
 
 	diags = updateRedfishDellIdracAttributes(ctx, service, &plan)
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Trace(ctx, "resource_DellIdracAttributes update: finished state update")
 	// Save into State

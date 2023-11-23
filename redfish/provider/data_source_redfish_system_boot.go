@@ -44,7 +44,7 @@ func (*SystemBootDatasource) Metadata(_ context.Context, req datasource.Metadata
 // Schema implements datasource.DataSource
 func (*SystemBootDatasource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Data source to fetch Firmware Inventory details via RedFish.",
+		MarkdownDescription: "Data source to fetch System Boot details via RedFish.",
 		Attributes:          SystemBootDatasourceSchema(),
 		Blocks:              RedfishServerDatasourceBlockMap(),
 	}
@@ -54,9 +54,15 @@ func (*SystemBootDatasource) Schema(_ context.Context, _ datasource.SchemaReques
 func SystemBootDatasourceSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"id": schema.StringAttribute{
+			MarkdownDescription: "Resource ID of the computer system used.",
+			Description:         "Resource ID of the computer system used.",
+			Computed:            true,
+		},
+		"resource_id": schema.StringAttribute{
 			MarkdownDescription: "Resource ID of the computer system. If not provided, the first system resource is used",
 			Description:         "Resource ID of the computer system. If not provided, the first system resource is used",
 			Optional:            true,
+			Computed:            true,
 		},
 		"boot_order": schema.ListAttribute{
 			MarkdownDescription: "An array of BootOptionReference strings that represent the persistent boot order for this computer system",
@@ -97,10 +103,7 @@ func (g *SystemBootDatasource) Read(ctx context.Context, req datasource.ReadRequ
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
-	state, diags := readRedfishSystemBoot(service, &plan)
-	if err != nil {
-		diags.AddError("failed to fetch firmware inventory details", err.Error())
-	}
+	state, diags := readRedfishSystemBoot(service, plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -108,13 +111,13 @@ func (g *SystemBootDatasource) Read(ctx context.Context, req datasource.ReadRequ
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func readRedfishSystemBoot(service *gofish.Service, d *models.SystemBootDataSource) (*models.SystemBootDataSource, diag.Diagnostics) {
+func readRedfishSystemBoot(service *gofish.Service, d models.SystemBootDataSource) (models.SystemBootDataSource, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	systems, err := service.Systems()
 	if err != nil {
 		diags.AddError("Error when retrieving systems", err.Error())
-		return nil, diags
+		return d, diags
 	}
 
 	// get the boot resource
@@ -131,7 +134,7 @@ func readRedfishSystemBoot(service *gofish.Service, d *models.SystemBootDataSour
 
 		if computerSystem == nil {
 			diags.AddError("Could not find a ComputerSystem", "")
-			return nil, diags
+			return d, diags
 		}
 	} else {
 		// use the first system resource in the collection if resource
@@ -151,6 +154,7 @@ func readRedfishSystemBoot(service *gofish.Service, d *models.SystemBootDataSour
 	d.BootSourceOverrideTarget = types.StringValue(string(boot.BootSourceOverrideTarget))
 	d.UefiTargetBootSourceOverride = types.StringValue(string(boot.UefiTargetBootSourceOverride))
 	d.ResourceID = types.StringValue(computerSystem.ODataID)
+	d.ID = types.StringValue(computerSystem.ODataID)
 
 	return d, diags
 }
