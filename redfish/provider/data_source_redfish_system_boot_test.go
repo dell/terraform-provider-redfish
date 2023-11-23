@@ -39,7 +39,7 @@ func TestAccRedfishSystemBoot_fetchInvalidID(t *testing.T) {
 func testAccRedfishDatasourceSystemBootConfig(testingInfo TestingServerCredentials, id string) string {
 	return fmt.Sprintf(`
 	data "redfish_system_boot" "system_boot" {
-		id = "%s"
+		resource_id = "%s"
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"

@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-resource "redfish_UserAccount" "rr" {
+resource "redfish_user_account" "rr" {
   for_each = var.rack1
 
   redfish_server {

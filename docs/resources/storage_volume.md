@@ -8,10 +8,8 @@ description: |-
 
 # redfish_storage_volume (Resource)
 
-This Terraform resource is used to configure virtual disks on the iDRAC Server. We can Create, Read, Update, Delete the virtual disks using this resource.
 Resource for managing storage volume.
 
-~> **Note:** `capacity_bytes` and `volume_type` attributes cannot be updated.
 ## Example Usage
 
 ```terraform
@@ -108,5 +106,3 @@ Optional:
 - `password` (String, Sensitive) User password for login
 - `ssl_insecure` (Boolean) This field indicates whether the SSL/TLS certificate must be verified or not
 - `user` (String) User name for login
-
-
