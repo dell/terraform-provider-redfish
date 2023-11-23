@@ -3,10 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
-	"net"
-	"strings"
 	"terraform-provider-redfish/redfish/models"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -20,6 +17,11 @@ import (
 // Ensure the implementation satisfies the expected interfaces.
 var (
 	_ resource.Resource = &managerResetResource{}
+)
+
+const (
+	defaultCheckInterval int = 5
+	defaultCheckTimeout  int = 300
 )
 
 // NewManagerResetResource is a helper function to simplify the provider implementation.
@@ -58,8 +60,8 @@ func ManagerResetSchema() map[string]schema.Attribute {
 			},
 		},
 		"reset_type": schema.StringAttribute{
-			MarkdownDescription: "The type of the reset operation to be performed",
-			Description:         "The type of the reset operation to be performed",
+			MarkdownDescription: "The type of the reset operation to be performed. Accepted value: GracefulRestart",
+			Description:         "The type of the reset operation to be performed. Accepted value: GracefulRestart",
 			Required:            true,
 			Validators: []validator.String{
 				stringvalidator.OneOf(
@@ -113,7 +115,7 @@ func (r *managerResetResource) Create(ctx context.Context, req resource.CreateRe
 	}
 
 	// Check iDRAC status
-	err = checkServerStatus(ctx, plan.RedfishServer[0].Endpoint.ValueString(), 5, 300)
+	err = checkServerStatus(ctx, plan.RedfishServer[0].Endpoint.ValueString(), defaultCheckInterval, defaultCheckTimeout)
 	if err != nil {
 		resp.Diagnostics.AddError("Error while rebooting iDRAC. Operation may take longer duration to complete", err.Error())
 		return
@@ -232,25 +234,4 @@ func getManager(r *managerResetResource, d models.RedfishManagerReset, managerID
 		return nil, err
 	}
 	return manager, nil
-}
-
-func checkServerStatus(ctx context.Context, endpoint string, interval int, timeout int) error {
-	var err error
-	endpoint = strings.Trim(endpoint, "https://")
-
-	// Intial sleep until iDRAC reboot is triggered
-	time.Sleep(30 * time.Second)
-
-	for start := time.Now(); time.Since(start) < (time.Duration(timeout) * time.Second); {
-		tflog.Trace(ctx, "Checking server status...")
-		time.Sleep(time.Duration(interval) * time.Second)
-		_, err = net.Dial("tcp", endpoint+":443")
-		if err == nil {
-			return nil
-		}
-		errctx := tflog.SetField(ctx, "error", err.Error())
-		tflog.Trace(errctx, "Site unreachable")
-	}
-
-	return err
 }

@@ -25,6 +25,6 @@ resource "redfish_manager_reset" "manager_reset" {
     ssl_insecure = each.value.ssl_insecure
   }
 
-  manager_id = "iDRAC.Embedded.1"
+  id         = "iDRAC.Embedded.1"
   reset_type = "GracefulRestart"
 }

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
+	"strings"
 	"terraform-provider-redfish/redfish/models"
 	"time"
 
@@ -253,4 +255,26 @@ func (p powerOperator) PowerOperation(resetType string, maximumWaitTime int64, c
 	// TODO : Change to warning when updated to plugin framework
 	tflog.Warn(p.ctx, "The system failed to update the server's power status within the maximum wait time specified!")
 	return system.PowerState, nil
+}
+
+// checkServerStatus checks iDRAC server status after provided interval until the provided timeout time
+func checkServerStatus(ctx context.Context, endpoint string, interval int, timeout int) error {
+	var err error
+	endpoint = strings.TrimPrefix(endpoint, "https://")
+
+	// Intial sleep until iDRAC reboot is triggered
+	time.Sleep(30 * time.Second)
+
+	for start := time.Now(); time.Since(start) < (time.Duration(timeout) * time.Second); {
+		tflog.Trace(ctx, "Checking server status...")
+		time.Sleep(time.Duration(interval) * time.Second)
+		_, err = net.Dial("tcp", endpoint+":443")
+		if err == nil {
+			return nil
+		}
+		errctx := tflog.SetField(ctx, "error", err.Error())
+		tflog.Trace(errctx, "Site unreachable")
+	}
+
+	return err
 }
