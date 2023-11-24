@@ -575,7 +575,7 @@ func (u *simpleUpdater) updateJobStatus(d models.SimpleUpdateRes) error {
 	tflog.Debug(u.ctx, "Reboot Complete")
 
 	// Check JID
-	err = common.WaitForJobToFinish(u.service, jobID, intervalSimpleUpdateJobCheckTime, simpleUpdateJobTimeout)
+	err = common.WaitForTaskToFinish(u.service, jobID, intervalSimpleUpdateJobCheckTime, simpleUpdateJobTimeout)
 	if err != nil {
 		// Delete uploaded package - TBD
 		return fmt.Errorf("there was an issue when waiting for the job to complete - %w", err)

@@ -296,7 +296,7 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 		}
 
 		// wait for the bios config job to finish
-		err = common.WaitForJobToFinish(service, biosTaskURI, intervalBiosConfigJobCheckTime, biosConfigJobTimeout)
+		err = common.WaitForTaskToFinish(service, biosTaskURI, intervalBiosConfigJobCheckTime, biosConfigJobTimeout)
 		if err != nil {
 			diags.AddError("error waiting for Bios config monitor task to be completed", err.Error())
 			return nil, diags

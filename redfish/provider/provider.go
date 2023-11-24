@@ -105,6 +105,8 @@ func (*redfishProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewRedfishStorageVolumeResource,
 		NewBiosResource,
 		NewManagerResetResource,
+		NewBootOrderResource,
+		NewBootSourceOverrideResource,
 	}
 }
 
