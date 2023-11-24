@@ -15,17 +15,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-rack1 = {
-  "my-server-2" = {
-    user         = "admin"
-    password     = "passw0rd"
-    endpoint     = "https://my-server-1.myawesomecompany.org"
-    ssl_insecure = true
-  },
-  "my-server-2" = {
-    user         = "admin"
-    password     = "passw0rd"
-    endpoint     = "https://my-server-2.myawesomecompany.org"
-    ssl_insecure = true
-  },
+resource "redfish_manager_reset" "manager_reset" {
+  for_each = var.rack1
+
+  redfish_server {
+    user         = each.value.user
+    password     = each.value.password
+    endpoint     = each.value.endpoint
+    ssl_insecure = each.value.ssl_insecure
+  }
+
+  id         = "iDRAC.Embedded.1"
+  reset_type = "GracefulRestart"
 }

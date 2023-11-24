@@ -105,6 +105,8 @@ func (*redfishProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewBiosResource,
 		NewBootOrderResource,
 		NewBootSourceOverrideResource,
+		NewRedfishStorageVolumeResource,
+		NewManagerResetResource,
 	}
 }
 
@@ -115,6 +117,7 @@ func (*redfishProvider) DataSources(_ context.Context) []func() datasource.DataS
 		NewDellIdracAttributesDatasource,
 		NewStorageDatasource,
 		NewDellVirtualMediaDatasource,
+		NewSystemBootDatasource,
 		NewFirmwareInventoryDatasource,
 	}
 }

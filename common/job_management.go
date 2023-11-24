@@ -93,7 +93,7 @@ func DeleteDellJob(service *gofish.Service, taskID string) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("Error when deleting the task, Delete status code was %d", resp.StatusCode)
+		return fmt.Errorf("error when deleting the task, Delete status code was %d", resp.StatusCode)
 	}
 	return nil
 }

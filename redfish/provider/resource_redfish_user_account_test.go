@@ -23,7 +23,7 @@ func TestAccRedfishUser_basic(t *testing.T) {
 					true,
 					"15"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_UserAccount.user_config", "username", "test1"),
+					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
 				),
 			},
 			{
@@ -35,7 +35,7 @@ func TestAccRedfishUser_basic(t *testing.T) {
 					false,
 					"15"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_UserAccount.user_config", "username", "test1"),
+					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
 				),
 			},
 		},
@@ -97,7 +97,7 @@ func TestAccRedfishUserUpdateInvalid_basic(t *testing.T) {
 					true,
 					"15"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_UserAccount.user_config", "username", "test1"),
+					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
 				),
 			},
 			{
@@ -149,7 +149,7 @@ func TestAccRedfishUserUpdateId_basic(t *testing.T) {
 					true,
 					"15"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_UserAccount.user_config", "username", "test1"),
+					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
 				),
 			},
 			{
@@ -181,7 +181,7 @@ func TestAccRedfishUserUpdateUser_basic(t *testing.T) {
 					true,
 					"15"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_UserAccount.user_config", "username", "test1"),
+					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
 				),
 			},
 			{
@@ -193,7 +193,7 @@ func TestAccRedfishUserUpdateUser_basic(t *testing.T) {
 					false,
 					"15"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_UserAccount.user_config", "username", "test2"),
+					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test2"),
 				),
 			},
 		},
@@ -255,7 +255,7 @@ func TestAccRedfishUserValidation_basic(t *testing.T) {
 					false,
 					"15"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_UserAccount.user_config", "username", "test2"),
+					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test2"),
 				),
 			},
 			{
@@ -281,7 +281,7 @@ func testAccRedfishResourceUserConfig(testingInfo TestingServerCredentials,
 ) string {
 	return fmt.Sprintf(`
 		
-		resource "redfish_UserAccount" "user_config" {
+		resource "redfish_user_account" "user_config" {
 		
 		  redfish_server {
 			user = "%s"

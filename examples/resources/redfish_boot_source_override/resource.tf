@@ -26,8 +26,8 @@ resource "redfish_boot_source_override" "boot" {
   }
 
   boot_source_override_enabled = "Once"
-  boot_source_override_target = "UefiTarget"
-  boot_source_override_mode = "Legacy"
+  boot_source_override_target  = "UefiTarget"
+  boot_source_override_mode    = "Legacy"
 
   // Reset parameters to be applied after bios settings are applied
   reset_type    = "GracefulRestart"

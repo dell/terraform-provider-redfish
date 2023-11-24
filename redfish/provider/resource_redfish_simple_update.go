@@ -192,6 +192,10 @@ func (r *simpleUpdateResource) Create(ctx context.Context, req resource.CreateRe
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	// Lock the mutex to avoid race conditions with other resources
+	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
+	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
+
 	service, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
