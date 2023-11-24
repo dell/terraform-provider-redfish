@@ -271,7 +271,7 @@ func checkServerStatus(ctx context.Context, endpoint string, interval int, timeo
 	for start := time.Now(); time.Since(start) < (time.Duration(timeout) * time.Second); {
 		tflog.Trace(ctx, "Checking server status...")
 		time.Sleep(time.Duration(interval) * time.Second)
-		_, err = net.Dial("tcp", addr.Hostname()+":"+addr.Scheme)
+		_, err = net.Dial("tcp", net.JoinHostPort(addr.Hostname(), addr.Scheme))
 		if err == nil {
 			return nil
 		}

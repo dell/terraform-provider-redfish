@@ -17,7 +17,7 @@ func TestAccRedfishManagerReset_Invalid_ResetType_Negative(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccRedfishResourceManagerResetConfig(creds, "iDRAC.Embedded.1", "On"),
-				ExpectError: regexp.MustCompile("Attribute reset_type value must be one of"),
+				ExpectError: regexp.MustCompile("Invalid Attribute Value Match"),
 			},
 		},
 	})
@@ -48,7 +48,7 @@ func TestAccRedfishManagerReset_Update_Negative(t *testing.T) {
 			{
 				Config: testAccRedfishResourceManagerResetConfig(creds, "iDRAC.Embedded.1", "GracefulRestart"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_manager_reset.manager_reset", "manager_id", "iDRAC.Embedded.1"),
+					resource.TestCheckResourceAttr("redfish_manager_reset.manager_reset", "id", "iDRAC.Embedded.1"),
 				),
 			},
 			{
@@ -69,7 +69,7 @@ func TestAccRedfishManagerReset_Create(t *testing.T) {
 			{
 				Config: testAccRedfishResourceManagerResetConfig(creds, "iDRAC.Embedded.1", "GracefulRestart"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_manager_reset.manager_reset", "manager_id", "iDRAC.Embedded.1"),
+					resource.TestCheckResourceAttr("redfish_manager_reset.manager_reset", "id", "iDRAC.Embedded.1"),
 				),
 			},
 		},
@@ -89,7 +89,7 @@ func testAccRedfishResourceManagerResetConfig(testingInfo TestingServerCredentia
 		  ssl_insecure = true
 		}
 	  
-		manager_id = "%s"
+		id = "%s"
 		reset_type = "%s"
 	}
 		`,

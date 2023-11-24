@@ -121,8 +121,6 @@ func (r *managerResetResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	plan.Id = types.StringValue(manager.ID)
-
 	tflog.Trace(ctx, "resource_manager_reset create: updating state finished, saving ...")
 	// Save into State
 	diags = resp.State.Set(ctx, &plan)
@@ -175,21 +173,37 @@ func (r *managerResetResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
+	// Lock the mutex to avoid race conditions with other resources
+	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
+	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
+
+	resetType := plan.ResetType.ValueString()
 	managerID := plan.Id.ValueString()
 
-	// Get Manager
-	manager, err := getManager(r, state, managerID)
+	// Get manager
+	manager, err := getManager(r, plan, managerID)
 	if err != nil {
 		resp.Diagnostics.AddError("Error while retrieving manager from redfish API", err.Error())
 		return
 	}
 
-	state.Id = types.StringValue(manager.ID)
-	state.ResetType = plan.ResetType
+	// Perform manager reset
+	err = manager.Reset(redfish.ResetType(resetType))
+	if err != nil {
+		resp.Diagnostics.AddError("Error resetting manager", err.Error())
+		return
+	}
+
+	// Check iDRAC status
+	err = checkServerStatus(ctx, plan.RedfishServer[0].Endpoint.ValueString(), defaultCheckInterval, defaultCheckTimeout)
+	if err != nil {
+		resp.Diagnostics.AddError("Error while rebooting iDRAC. Operation may take longer duration to complete", err.Error())
+		return
+	}
 
 	tflog.Trace(ctx, "resource_manager_reset update: finished state update")
 	// Save into State
-	diags = resp.State.Set(ctx, &state)
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	tflog.Trace(ctx, "resource_manager_reset update: finished")
 }
