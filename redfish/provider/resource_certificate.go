@@ -140,7 +140,15 @@ func (r *certificateResource) Create(ctx context.Context, req resource.CreateReq
 		SSLCertificateFile: plan.SSLCertificateFile.ValueString(),
 	}
 
-	ok, summary, details := certutils(ctx, r.p, &plan.RedfishServer, createSSLCertAPI, payload)
+	params := CertUtilsParam{
+		ctx:     ctx,
+		pconfig: r.p,
+		rserver: &plan.RedfishServer,
+		api:     createSSLCertAPI,
+		payload: payload,
+	}
+
+	ok, summary, details := certutils(params)
 	if !ok {
 		resp.Diagnostics.AddError(summary, details)
 		return
@@ -185,7 +193,15 @@ func (r *certificateResource) Delete(ctx context.Context, req resource.DeleteReq
 
 	payload := strings.NewReader(`{}`)
 
-	ok, summary, details := certutils(ctx, r.p, &state.RedfishServer, resetSSLCertAPI, payload)
+	params := CertUtilsParam{
+		ctx:     ctx,
+		pconfig: r.p,
+		rserver: &state.RedfishServer,
+		api:     resetSSLCertAPI,
+		payload: payload,
+	}
+
+	ok, summary, details := certutils(params)
 	if !ok {
 		resp.Diagnostics.AddError(summary, details)
 		return
@@ -195,9 +211,18 @@ func (r *certificateResource) Delete(ctx context.Context, req resource.DeleteReq
 	tflog.Trace(ctx, "resource_certificate delete: finished")
 }
 
-func certutils(ctx context.Context, pconfig *redfishProvider, rserver *[]models.RedfishServer, api string, payload interface{}) (ok bool, summary string, details string) {
+// CertUtilsParam to get parameters for certutils function
+type CertUtilsParam struct {
+	ctx     context.Context
+	pconfig *redfishProvider
+	rserver *[]models.RedfishServer
+	api     string
+	payload interface{}
+}
+
+func certutils(params CertUtilsParam) (ok bool, summary string, details string) {
 	// Get service
-	service, err := NewConfig(pconfig, rserver)
+	service, err := NewConfig(params.pconfig, params.rserver)
 	if err != nil {
 		return false, ServiceErrorMsg, err.Error()
 	}
@@ -205,8 +230,8 @@ func certutils(ctx context.Context, pconfig *redfishProvider, rserver *[]models.
 	if err != nil {
 		return false, "Couldn't retrieve managers from redfish API: ", err.Error()
 	}
-	uri := managers[0].ODataID + api
-	res, err1 := service.GetClient().Post(uri, payload)
+	uri := managers[0].ODataID + params.api
+	res, err1 := service.GetClient().Post(uri, params.payload)
 	if err1 != nil {
 		return false, "Couldn't upload certificate from redfish API: ", err1.Error()
 	}
@@ -220,10 +245,10 @@ func certutils(ctx context.Context, pconfig *redfishProvider, rserver *[]models.
 	}
 
 	// Check iDRAC status
-	err = checkServerStatus(ctx, (*rserver)[0].Endpoint.ValueString() , defaultCheckInterval, defaultCheckTimeout)
+	err = checkServerStatus(params.ctx, (*params.rserver)[0].Endpoint.ValueString(), defaultCheckInterval, defaultCheckTimeout)
 	if err != nil {
 		return false, "Error while rebooting iDRAC. Operation may take longer duration to complete", err.Error()
 	}
-	
-	return true, fmt.Sprintf("%v api", api), "successful execution"
+
+	return true, fmt.Sprintf("%v api", params.api), "successful execution"
 }
