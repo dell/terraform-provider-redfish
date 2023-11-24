@@ -103,6 +103,8 @@ func (*redfishProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewSimpleUpdateResource,
 		NewDellIdracAttributesResource,
 		NewBiosResource,
+		NewBootOrderResource,
+		NewBootSourceOverrideResource,
 	}
 }
 

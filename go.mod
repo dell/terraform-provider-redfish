@@ -6,7 +6,7 @@ require (
 	github.com/hashicorp/terraform-plugin-docs v0.16.0
 	github.com/hashicorp/terraform-plugin-framework v1.4.1
 	github.com/hashicorp/terraform-plugin-log v0.9.0
-	github.com/stmcginnis/gofish v0.14.1-0.20230828052805-4738a5dd9470
+	github.com/stmcginnis/gofish v0.15.0
 )
 
 require github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
