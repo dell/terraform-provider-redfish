@@ -140,16 +140,9 @@ func (r *certificateResource) Create(ctx context.Context, req resource.CreateReq
 		SSLCertificateFile: plan.SSLCertificateFile.ValueString(),
 	}
 
-	ok, summary, details := certutils(r.p, &plan.RedfishServer, createSSLCertAPI, payload)
+	ok, summary, details := certutils(ctx, r.p, &plan.RedfishServer, createSSLCertAPI, payload)
 	if !ok {
 		resp.Diagnostics.AddError(summary, details)
-		return
-	}
-
-	// Check iDRAC status
-	err := checkServerStatus(ctx, plan.RedfishServer[0].Endpoint.ValueString(), defaultCheckInterval, defaultCheckTimeout)
-	if err != nil {
-		resp.Diagnostics.AddError("Error while rebooting iDRAC. Operation may take longer duration to complete", err.Error())
 		return
 	}
 
@@ -192,16 +185,9 @@ func (r *certificateResource) Delete(ctx context.Context, req resource.DeleteReq
 
 	payload := strings.NewReader(`{}`)
 
-	ok, summary, details := certutils(r.p, &state.RedfishServer, resetSSLCertAPI, payload)
+	ok, summary, details := certutils(ctx, r.p, &state.RedfishServer, resetSSLCertAPI, payload)
 	if !ok {
 		resp.Diagnostics.AddError(summary, details)
-		return
-	}
-
-	// Check iDRAC status
-	err := checkServerStatus(ctx, state.RedfishServer[0].Endpoint.ValueString(), defaultCheckInterval, defaultCheckTimeout)
-	if err != nil {
-		resp.Diagnostics.AddError("Error while rebooting iDRAC. Operation may take longer duration to complete", err.Error())
 		return
 	}
 
@@ -209,7 +195,7 @@ func (r *certificateResource) Delete(ctx context.Context, req resource.DeleteReq
 	tflog.Trace(ctx, "resource_certificate delete: finished")
 }
 
-func certutils(pconfig *redfishProvider, rserver *[]models.RedfishServer, api string, payload interface{}) (ok bool, summary string, details string) {
+func certutils(ctx context.Context, pconfig *redfishProvider, rserver *[]models.RedfishServer, api string, payload interface{}) (ok bool, summary string, details string) {
 	// Get service
 	service, err := NewConfig(pconfig, rserver)
 	if err != nil {
@@ -232,5 +218,12 @@ func certutils(pconfig *redfishProvider, rserver *[]models.RedfishServer, api st
 		}
 		return false, "Couldn't upload certificate from redfish API: ", string(body)
 	}
+
+	// Check iDRAC status
+	err = checkServerStatus(ctx, (*rserver)[0].Endpoint.ValueString() , defaultCheckInterval, defaultCheckTimeout)
+	if err != nil {
+		return false, "Error while rebooting iDRAC. Operation may take longer duration to complete", err.Error()
+	}
+	
 	return true, fmt.Sprintf("%v api", api), "successful execution"
 }
