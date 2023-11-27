@@ -16,12 +16,12 @@ const (
 	Timeout int = 300
 )
 
-// WaitForJobToFinish waits for a redfish job to finish.
+// WaitForTaskToFinish waits for a redfish job to finish.
 // Parameters:
 //   - jobURI -> URI for the job to check.
 //   - timeBetweenAttempts -> time to wait between attempts. I.e. 30 means 30 seconds.
 //   - timeout -> maximun time to wait until job is considered failed.
-func WaitForJobToFinish(service *gofish.Service, jobURI string, timeBetweenAttempts int64, timeout int64) error {
+func WaitForTaskToFinish(service *gofish.Service, jobURI string, timeBetweenAttempts int64, timeout int64) error {
 	// Create tickers
 	attemptTick := time.NewTicker(time.Duration(timeBetweenAttempts) * time.Second)
 	timeoutTick := time.NewTicker(time.Duration(timeout) * time.Second)
@@ -40,6 +40,37 @@ func WaitForJobToFinish(service *gofish.Service, jobURI string, timeBetweenAttem
 					return fmt.Errorf("the job has finished unsucessfully with a %s state", job.TaskState)
 				case redfish.ExceptionTaskState:
 					return fmt.Errorf("the job has finished unsucessfully with a %s state", job.TaskState)
+				}
+			}
+		case <-timeoutTick.C:
+			log.Printf("[DEBUG] - Error. Timeout reached\n")
+			return fmt.Errorf("timeout waiting for the job to finish")
+		}
+	}
+}
+
+// WaitForJobToFinish waits for a redfish job to finish.
+// Parameters:
+//   - jobURI -> URI for the job to check.
+//   - timeBetweenAttempts -> time to wait between attempts. I.e. 30 means 30 seconds.
+//   - timeout -> maximun time to wait until job is considered failed.
+func WaitForJobToFinish(service *gofish.Service, jobURI string, timeBetweenAttempts int64, timeout int64) error {
+	// Create tickers
+	attemptTick := time.NewTicker(time.Duration(timeBetweenAttempts) * time.Second)
+	timeoutTick := time.NewTicker(time.Duration(timeout) * time.Second)
+	for {
+		select {
+		case <-attemptTick.C:
+			// For some reason iDRAC 4.40.00.0 from time to time gives the following error: iDRAC is not ready. The configuration values cannot be accessed. Please retry after a few minutes.
+			job, err := redfish.GetJob(service.GetClient(), jobURI)
+			if err == nil {
+				log.Printf("[DEBUG] - Attempting one more time... Job state is %s\n", job.JobState)
+				// Check if job has finished
+				switch status := job.JobState; status {
+				case redfish.CompletedJobState:
+					return nil
+				case redfish.ExceptionJobState:
+					return fmt.Errorf("the job has finished unsucessfully with a %s state", job.JobState)
 				}
 			}
 		case <-timeoutTick.C:
