@@ -107,6 +107,7 @@ func (*redfishProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewManagerResetResource,
 		NewBootOrderResource,
 		NewBootSourceOverrideResource,
+		NewCertificateResource,
 	}
 }
 
