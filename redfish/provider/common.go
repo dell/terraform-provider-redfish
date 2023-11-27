@@ -13,8 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	datasourceSchema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	resourceSchema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/stmcginnis/gofish"
@@ -91,9 +89,6 @@ func RedfishServerResourceBlockMap() map[string]resourceSchema.Block {
 			},
 			NestedObject: resourceSchema.NestedBlockObject{
 				Attributes: RedfishServerSchema(),
-			},
-			PlanModifiers: []planmodifier.List{
-				listplanmodifier.RequiresReplace(),
 			},
 		},
 	}
