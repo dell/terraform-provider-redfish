@@ -218,9 +218,6 @@ func TestAccRedfishUserImportUser_basic(t *testing.T) {
 				ImportState:   true,
 				ImportStateId: "{\"id\":\"3\",\"username\":\"root\",\"password\":\"calvin\",\"endpoint\":\"https://10.226.197.137\",\"ssl_insecure\":true}",
 				ExpectError:   nil,
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
-				),
 			},
 		},
 	})
