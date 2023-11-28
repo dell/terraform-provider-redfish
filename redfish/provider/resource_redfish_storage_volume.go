@@ -430,7 +430,7 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 	}
 
 	// Wait for the job to finish
-	err = common.WaitForJobToFinish(service, jobID, intervalStorageVolumeJobCheckTime, volumeJobTimeout)
+	err = common.WaitForTaskToFinish(service, jobID, intervalStorageVolumeJobCheckTime, volumeJobTimeout)
 	if err != nil {
 		diags.AddError(RedfishJobErrorMsg, err.Error())
 		return diags
@@ -554,7 +554,7 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service,
 	}
 
 	// Wait for the job to finish
-	err = common.WaitForJobToFinish(service, jobID, intervalStorageVolumeJobCheckTime, volumeJobTimeout)
+	err = common.WaitForTaskToFinish(service, jobID, intervalStorageVolumeJobCheckTime, volumeJobTimeout)
 	if err != nil {
 		diags.AddError(RedfishJobErrorMsg, err.Error())
 		return diags
@@ -563,12 +563,12 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service,
 	// Get storage volumes
 	volumes, err := storage.Volumes()
 	if err != nil {
-		diags.AddError("there was an issue when retrieving volumes", err.Error())
+		diags.AddError("Issue when retrieving volumes", err.Error())
 		return diags
 	}
 	volumeID, err := getVolumeID(volumes, volumeName)
 	if err != nil {
-		diags.AddError("Error. The volume ID with given volume name was not found", err.Error())
+		diags.AddError("The volume ID with given volume name was not found", err.Error())
 		return diags
 	}
 
@@ -589,7 +589,7 @@ func deleteRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 
 	jobID, err := deleteVolume(service, d.ID.ValueString())
 	if err != nil {
-		diags.AddError("Error. There was an error when deleting volume", err.Error())
+		diags.AddError("Error when deleting volume", err.Error())
 		return diags
 	}
 
@@ -608,9 +608,9 @@ func deleteRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 	}
 
 	// WAIT FOR VOLUME TO DELETE
-	err = common.WaitForJobToFinish(service, jobID, intervalStorageVolumeJobCheckTime, volumeJobTimeout)
+	err = common.WaitForTaskToFinish(service, jobID, intervalStorageVolumeJobCheckTime, volumeJobTimeout)
 	if err != nil {
-		diags.AddError("Error, timeout reached when waiting for job to finish", err.Error())
+		diags.AddError("Timeout reached when waiting for job to finish", err.Error())
 		return diags
 	}
 
@@ -623,7 +623,7 @@ func getStorageController(storageControllers []*redfish.Storage, diskControllerI
 			return storage, nil
 		}
 	}
-	return nil, fmt.Errorf("error. Didn't find the storage controller %v", diskControllerID)
+	return nil, fmt.Errorf("couldn't find the storage controller %v", diskControllerID)
 }
 
 func deleteVolume(service *gofish.Service, volumeURI string) (jobID string, err error) {
@@ -634,7 +634,7 @@ func deleteVolume(service *gofish.Service, volumeURI string) (jobID string, err 
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusAccepted {
-		return "", fmt.Errorf("the operation was not successful. Return code was different from 202 ACCEPTED")
+		return "", fmt.Errorf("the operation was not successful. Return code %d was different from 202 ACCEPTED", res.StatusCode)
 	}
 	jobID = res.Header.Get("Location")
 	if len(jobID) == 0 {
@@ -664,7 +664,7 @@ func checkSettingsApplyTime(storage *redfish.Storage, applyTime string) error {
 		return fmt.Errorf("couldn't retrieve operationApplyTimes from controller: %w", err)
 	}
 	if !checkOperationApplyTimes(applyTime, operationApplyTimes) {
-		return fmt.Errorf("Storage controller does not support settings_apply_time: %s", applyTime)
+		return fmt.Errorf("storage controller does not support settings_apply_time: %s", applyTime)
 	}
 	return nil
 }
@@ -672,17 +672,17 @@ func checkSettingsApplyTime(storage *redfish.Storage, applyTime string) error {
 func getStorage(service *gofish.Service, storageID string) (*redfish.Storage, error) {
 	systems, err := service.Systems()
 	if err != nil {
-		return nil, fmt.Errorf("Error when retreiving the Systems from the Redfish API: %w", err)
+		return nil, fmt.Errorf("error when retreiving the Systems from the Redfish API: %w", err)
 	}
 
 	storageControllers, err := systems[0].Storage()
 	if err != nil {
-		return nil, fmt.Errorf("Error when retreiving the Storage from the Redfish API: %w", err)
+		return nil, fmt.Errorf("error when retreiving the Storage from the Redfish API: %w", err)
 	}
 
 	storage, err := getStorageController(storageControllers, storageID)
 	if err != nil {
-		return nil, fmt.Errorf("Error when getting the storage struct: %w", err)
+		return nil, fmt.Errorf("error when getting the storage struct: %w", err)
 	}
 	return storage, nil
 }
