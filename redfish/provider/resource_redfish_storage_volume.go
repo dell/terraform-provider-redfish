@@ -362,6 +362,14 @@ func (*RedfishStorageVolumeResource) ImportState(ctx context.Context, req resour
 
 	idAttrPath := path.Root("id")
 	redfishServer := path.Root("redfish_server")
+	resetTimeout := path.Root("reset_timeout")
+	resetType := path.Root("reset_type")
+	volumeJobTimeout := path.Root("volume_job_timeout")
+	settingsApplyTime := path.Root("settings_apply_time")
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, resetTimeout, defaultStorageVolumeResetTimeout)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, resetType, string(redfish.ForceRestartResetType))...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, volumeJobTimeout, defaultStorageVolumeJobTimeout)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, settingsApplyTime, string(redfishcommon.ImmediateApplyTime))...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, idAttrPath, c.Id)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, redfishServer, []models.RedfishServer{server})...)
 }
@@ -504,7 +512,7 @@ func readRedfishStorageVolume(service *gofish.Service, d *models.RedfishStorageV
 	}
 
 	d.CapacityBytes = types.Int64Value(int64(volume.CapacityBytes))
-	d.ID = types.StringValue(volume.ID)
+	d.ID = types.StringValue(volume.ODataID)
 	d.OptimumIoSizeBytes = types.Int64Value(int64(volume.OptimumIOSizeBytes))
 	d.ReadCachePolicy = types.StringValue(string(volume.ReadCachePolicy))
 	d.VolumeName = types.StringValue(volume.Name)
