@@ -200,6 +200,52 @@ func TestAccRedfishUserUpdateUser_basic(t *testing.T) {
 	})
 }
 
+// Test to import user - positive
+func TestAccRedfishUserImportUser_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test1",
+					"Test@1234",
+					"None",
+					false,
+					"15"),
+				ResourceName:  "redfish_user_account.user_config",
+				ImportState:   true,
+				ImportStateId: "{\"id\":\"3\",\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ExpectError:   nil,
+			},
+		},
+	})
+}
+
+// Test to import user - negative
+func TestAccRedfishUserImportUser_invalid(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test1",
+					"Test@1234",
+					"None",
+					false,
+					"15"),
+				ResourceName:  "redfish_user_account.user_config",
+				ImportState:   true,
+				ImportStateId: "{\"id\":\"invalid\",\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ExpectError:   regexp.MustCompile("Error when retrieving accounts"),
+			},
+		},
+	})
+}
+
 // validation tests - Negative
 func TestAccRedfishUserValidation_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{

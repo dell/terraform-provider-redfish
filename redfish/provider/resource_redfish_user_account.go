@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -10,6 +11,7 @@ import (
 	"terraform-provider-redfish/redfish/models"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -114,6 +116,7 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				MarkdownDescription: "If the user is currently active or not.",
 				Description:         "If the user is currently active or not.",
 				Optional:            true,
+				Computed:            true,
 			},
 		},
 		Blocks: RedfishServerResourceBlockMap(),
@@ -250,7 +253,7 @@ func (r *UserAccountResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 
 	if account == nil { // User doesn't exist. Needs to be recreated.
-		resp.Diagnostics.AddError("Error when retrieving accounts", "User does not eists, needs to be recreated")
+		resp.Diagnostics.AddError("Error when retrieving accounts", "User does not exists, needs to be recreated")
 		return
 	}
 
@@ -332,6 +335,10 @@ func (r *UserAccountResource) Update(ctx context.Context, req resource.UpdateReq
 	if err != nil {
 		resp.Diagnostics.AddError(RedfishFetchErrorMsg, err.Error())
 	}
+	if account == nil { // User doesn't exist. Needs to be recreated.
+		resp.Diagnostics.AddError("Error when retrieving accounts", "User does not exists, needs to be recreated")
+		return
+	}
 	r.updateServer(&plan, &state, account, operationUpdate)
 
 	tflog.Trace(ctx, "resource_user_account update: finished state update")
@@ -383,6 +390,35 @@ func (r *UserAccountResource) Delete(ctx context.Context, req resource.DeleteReq
 	}
 
 	tflog.Trace(ctx, "resource_user_account delete: finished")
+}
+
+// ImportState import state for existing user
+func (*UserAccountResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	type creds struct {
+		Username    string `json:"username"`
+		Password    string `json:"password"`
+		Endpoint    string `json:"endpoint"`
+		SslInsecure bool   `json:"ssl_insecure"`
+		Id          string `json:"id"`
+	}
+
+	var c creds
+	err := json.Unmarshal([]byte(req.ID), &c)
+	if err != nil {
+		resp.Diagnostics.AddError("Error while unmarshalling id", err.Error())
+	}
+
+	server := models.RedfishServer{
+		User:        types.StringValue(c.Username),
+		Password:    types.StringValue(c.Password),
+		Endpoint:    types.StringValue(c.Endpoint),
+		SslInsecure: types.BoolValue(c.SslInsecure),
+	}
+
+	idAttrPath := path.Root("id")
+	redfishServer := path.Root("redfish_server")
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, idAttrPath, c.Id)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, redfishServer, []models.RedfishServer{server})...)
 }
 
 func (UserAccountResource) updateServer(plan, state *models.UserAccount, account *redfish.ManagerAccount, operation operation) {

@@ -196,5 +196,35 @@ Optional:
 - `ssl_insecure` (Boolean) This field indicates whether the SSL/TLS certificate must be verified or not
 - `user` (String) User name for login
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+/*
+Copyright (c) 2023 Dell Inc., or its subsidiaries. All Rights Reserved.
+
+Licensed under the Mozilla Public License Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://mozilla.org/MPL/2.0/
+
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+terraform import redfish_user_account.rr "{\"id\":\"<id>\",\"username\":\"<username>\",\"password\":\"<password>\",\"endpoint\":\"<endpoint>\",\"ssl_insecure\":<true/false>}"
+```
+
+1. This will import the user instance with specified ID into your Terraform state.
+2. After successful import, you can run terraform state list to ensure the resource has been imported successfully.
+3. Now, you can fill in the resource block with the appropriate arguments and settings that match the imported resource's real-world configuration.
+4. Execute terraform plan to see if your configuration and the imported resource are in sync. Make adjustments if needed.
+5. Finally, execute terraform apply to bring the resource fully under Terraform's management.
+6. Now, the resource which was not part of terraform became part of Terraform managed infrastructure.
 
