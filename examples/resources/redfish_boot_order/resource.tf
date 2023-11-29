@@ -31,5 +31,5 @@ resource "redfish_boot_order" "boot" {
   reset_type    = "ForceRestart"
   reset_timeout = "120"
   // The maximum amount of time to wait for the bios job to be completed
-  bios_job_timeout = "1200"
+  boot_order_job_timeout = "1200"
 }

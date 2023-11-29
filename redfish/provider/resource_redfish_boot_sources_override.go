@@ -296,7 +296,7 @@ func (r *BootSourceOverrideResource) bootOperation(ctx context.Context, service 
 		return diags
 	}
 
-	if plan.BootSourceOverrideMode.ValueString() != string(system.Boot.BootSourceOverrideMode) {
+	if plan.BootSourceOverrideMode.ValueString() != "" && plan.BootSourceOverrideMode.ValueString() != string(system.Boot.BootSourceOverrideMode) {
 		diags.Append(r.restartServer(ctx, service, resp, plan)...)
 	}
 	return diags

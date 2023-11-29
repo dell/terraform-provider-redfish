@@ -33,5 +33,5 @@ resource "redfish_boot_source_override" "boot" {
   reset_type    = "GracefulRestart"
   reset_timeout = "120"
   # // The maximum amount of time to wait for the bios job to be completed
-  boot_order_job_timeout = "1200"
+  boot_source_job_timeout = "1200"
 }
