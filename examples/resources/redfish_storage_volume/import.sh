@@ -15,4 +15,4 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-terraform import redfish_storage_volume.volume "{\"id\":\"<id>\",\"username\":\"<username>\",\"password\":\"<password>\",\"endpoint\":\"<endpoint>\",\"ssl_insecure\":<true/false>}"
+terraform import redfish_storage_volume.volume "{\"id\":\"<odata id of the volume>\",\"username\":\"<username>\",\"password\":\"<password>\",\"endpoint\":\"<endpoint>\",\"ssl_insecure\":<true/false>}"
