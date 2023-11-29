@@ -8,6 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -58,6 +60,9 @@ func ManagerResetSchema() map[string]schema.Attribute {
 			Validators: []validator.String{
 				stringvalidator.LengthAtLeast(1),
 			},
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplace(),
+			},
 		},
 		"reset_type": schema.StringAttribute{
 			MarkdownDescription: "The type of the reset operation to be performed. Accepted value: GracefulRestart",
@@ -67,6 +72,9 @@ func ManagerResetSchema() map[string]schema.Attribute {
 				stringvalidator.OneOf(
 					string(redfish.GracefulRestartResetType),
 				),
+			},
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplace(),
 			},
 		},
 	}
@@ -156,56 +164,12 @@ func (r *managerResetResource) Read(ctx context.Context, req resource.ReadReques
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
-func (r *managerResetResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Get state Data
-	tflog.Trace(ctx, "resource_manager_reset update: started")
-	var state, plan models.RedfishManagerReset
-	diags := req.State.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Get plan Data
-	diags = req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Lock the mutex to avoid race conditions with other resources
-	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
-	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
-
-	resetType := plan.ResetType.ValueString()
-	managerID := plan.Id.ValueString()
-
-	// Get manager
-	manager, err := getManager(r, plan, managerID)
-	if err != nil {
-		resp.Diagnostics.AddError("Error while retrieving manager from redfish API", err.Error())
-		return
-	}
-
-	// Perform manager reset
-	err = manager.Reset(redfish.ResetType(resetType))
-	if err != nil {
-		resp.Diagnostics.AddError("Error resetting manager", err.Error())
-		return
-	}
-
-	// Check iDRAC status
-	err = checkServerStatus(ctx, plan.RedfishServer[0].Endpoint.ValueString(), defaultCheckInterval, defaultCheckTimeout)
-	if err != nil {
-		resp.Diagnostics.AddError("Error while rebooting iDRAC. Operation may take longer duration to complete", err.Error())
-		return
-	}
-
-	tflog.Trace(ctx, "resource_manager_reset update: finished state update")
-	// Save into State
-	diags = resp.State.Set(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	tflog.Trace(ctx, "resource_manager_reset update: finished")
+func (*managerResetResource) Update(_ context.Context, _ resource.UpdateRequest, resp *resource.UpdateResponse) {
+	// Update should never happen, it will destroy and create in case of update
+	resp.Diagnostics.AddError(
+		"Error updating Manager reset.",
+		"An update plan of Manager Reset should never be invoked. This resource is supposed to be replaced on update.",
+	)
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
