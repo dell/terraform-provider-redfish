@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"terraform-provider-redfish/common"
@@ -10,7 +11,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
@@ -334,6 +337,43 @@ func (r *RedfishStorageVolumeResource) Delete(ctx context.Context, req resource.
 	tflog.Trace(ctx, "resource_RedfishStorageVolume delete: finished")
 }
 
+// ImportState import state for existing volume
+func (*RedfishStorageVolumeResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	type creds struct {
+		Username    string `json:"username"`
+		Password    string `json:"password"`
+		Endpoint    string `json:"endpoint"`
+		SslInsecure bool   `json:"ssl_insecure"`
+		Id          string `json:"id"`
+	}
+
+	var c creds
+	err := json.Unmarshal([]byte(req.ID), &c)
+	if err != nil {
+		resp.Diagnostics.AddError("Error while unmarshalling id", err.Error())
+	}
+
+	server := models.RedfishServer{
+		User:        types.StringValue(c.Username),
+		Password:    types.StringValue(c.Password),
+		Endpoint:    types.StringValue(c.Endpoint),
+		SslInsecure: types.BoolValue(c.SslInsecure),
+	}
+
+	idAttrPath := path.Root("id")
+	redfishServer := path.Root("redfish_server")
+	resetTimeout := path.Root("reset_timeout")
+	resetType := path.Root("reset_type")
+	volumeJobTimeout := path.Root("volume_job_timeout")
+	settingsApplyTime := path.Root("settings_apply_time")
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, resetTimeout, defaultStorageVolumeResetTimeout)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, resetType, string(redfish.ForceRestartResetType))...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, volumeJobTimeout, defaultStorageVolumeJobTimeout)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, settingsApplyTime, string(redfishcommon.ImmediateApplyTime))...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, idAttrPath, c.Id)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, redfishServer, []models.RedfishServer{server})...)
+}
+
 func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d *models.RedfishStorageVolume) diag.Diagnostics {
 	var diags diag.Diagnostics
 	// Lock the mutex to avoid race conditions with other resources
@@ -456,7 +496,7 @@ func readRedfishStorageVolume(service *gofish.Service, d *models.RedfishStorageV
 	// var diags diag.Diagnostics
 
 	// Check if the volume exists
-	_, err := redfish.GetVolume(service.GetClient(), d.ID.ValueString())
+	volume, err := redfish.GetVolume(service.GetClient(), d.ID.ValueString())
 	if err != nil {
 		e, ok := err.(*redfishcommon.Error)
 		if !ok {
@@ -470,6 +510,21 @@ func readRedfishStorageVolume(service *gofish.Service, d *models.RedfishStorageV
 		diags.AddError("Status code", err.Error())
 		return diags, false
 	}
+
+	d.CapacityBytes = types.Int64Value(int64(volume.CapacityBytes))
+	d.ID = types.StringValue(volume.ODataID)
+	d.OptimumIoSizeBytes = types.Int64Value(int64(volume.OptimumIOSizeBytes))
+	d.ReadCachePolicy = types.StringValue(string(volume.ReadCachePolicy))
+	d.VolumeName = types.StringValue(volume.Name)
+	d.VolumeType = types.StringValue(string(volume.VolumeType))
+	d.WriteCachePolicy = types.StringValue(string(volume.WriteCachePolicy))
+
+	drives, _ := volume.Drives()
+	drivesList := []attr.Value{}
+	for _, drive := range drives {
+		drivesList = append(drivesList, types.StringValue(drive.Name))
+	}
+	d.Drives, _ = types.ListValue(types.StringType, drivesList)
 
 	/*
 		- If it has jobID, if finished, get the volumeID
