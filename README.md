@@ -49,7 +49,7 @@ The Terraform Provider for RedFish is released and licensed under the MPL-2.0 li
 
 | **Terraform Provider** | **iDRAC Version** | **OS** | **Terraform** | **Golang** |
 |---------------------|-----------------------|-------|--------------------|--------------------------|
-| v1.0.0 | 5.x <br> 6.x <br> 7.x | ubuntu22.04 <br> rhel8.x <br> rhel9.x | 1.3.x <br> 1.4.x <br> | 1.19.x
+| v1.1.0 | 5.x <br> 6.x <br> 7.x | ubuntu22.04 <br> rhel8.x <br> rhel9.x | 1.4.x <br> 1.5.x <br> | 1.20
 
 ## List of DataSources in Terraform Provider for RedFish
   * [Bios](docs/data-sources/bios.md)
@@ -67,6 +67,10 @@ The Terraform Provider for RedFish is released and licensed under the MPL-2.0 li
   * [Storage Volume](docs/resources/storage_volume.md)
   * [User Account](docs/resources/user_account.md)
   * [Virtual Media](docs/resources/virtual_media.md)
+  * [Manager reset](docs/resources/manager_reset.md)
+  * [Boot Order](docs/resources/boot_order.md)
+  * [Boot Source Override](docs/resources/boot_source_override.md)
+  * [Certificate](docs/resources/certificate.md)
 
 ## Installation and execution of Terraform Provider for RedFish
 The installation and execution steps of Terraform Provider for Dell RedFish can be found [here](about/INSTALLATION.md).
