@@ -19,14 +19,13 @@ linkTitle: "redfish_storage"
 page_title: "redfish_storage Data Source - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  Data source to fetch storage details via RedFish.
+  This Terraform datasource is used to query existing storage volume details. The information fetched from this block can be further used for resource block.
 ---
 
 # redfish_storage (Data Source)
 
-Data source to fetch storage details via RedFish.
-
 This Terraform datasource is used to query existing storage volume details. The information fetched from this block can be further used for resource block.
+
 ## Example Usage
 
 variables.tf

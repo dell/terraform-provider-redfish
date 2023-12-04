@@ -47,9 +47,12 @@ func (*BiosDatasource) Metadata(_ context.Context, req datasource.MetadataReques
 // Schema implements datasource.DataSource
 func (*BiosDatasource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Data source to fetch bios details via RedFish.",
-		Attributes:          BiosDatasourceSchema(),
-		Blocks:              RedfishServerDatasourceBlockMap(),
+		MarkdownDescription: "This Terraform datasource is used to query existing Bios configuration." +
+			" The information fetched from this block can be further used for resource block.",
+		Description: "This Terraform datasource is used to query existing Bios configuration." +
+			" The information fetched from this block can be further used for resource block.",
+		Attributes: BiosDatasourceSchema(),
+		Blocks:     RedfishServerDatasourceBlockMap(),
 	}
 }
 

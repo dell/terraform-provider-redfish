@@ -45,9 +45,12 @@ func (*DellIdracAttributesDatasource) Metadata(_ context.Context, req datasource
 // Schema implements datasource.DataSource
 func (*DellIdracAttributesDatasource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Data source to provide redfish infiziya",
-		Attributes:          DellIdracAttributesSchemaDatasource(),
-		Blocks:              RedfishServerDatasourceBlockMap(),
+		MarkdownDescription: "This Terraform datasource is used to query existing iDRAC configuration." +
+			" The information fetched from this block can be further used for resource block.",
+		Description: "This Terraform datasource is used to query existing iDRAC configuration." +
+			" The information fetched from this block can be further used for resource block.",
+		Attributes: DellIdracAttributesSchemaDatasource(),
+		Blocks:     RedfishServerDatasourceBlockMap(),
 	}
 }
 

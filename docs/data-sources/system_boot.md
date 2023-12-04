@@ -19,12 +19,12 @@ linkTitle: "redfish_system_boot"
 page_title: "redfish_system_boot Data Source - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  Data source to fetch System Boot details via RedFish.
+  Data source to fetch System Boot details via RedFish. The information fetched from this block can be further used for resource block.
 ---
 
 # redfish_system_boot (Data Source)
 
-Data source to fetch System Boot details via RedFish.
+Data source to fetch System Boot details via RedFish. The information fetched from this block can be further used for resource block.
 
 ## Example Usage
 

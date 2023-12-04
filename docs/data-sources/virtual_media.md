@@ -19,14 +19,13 @@ linkTitle: "redfish_virtual_media"
 page_title: "redfish_virtual_media Data Source - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  datasource for virtual media.
+  This Terraform datasource is used to query existing virtual media details. The information fetched from this block can be further used for resource block.
 ---
 
 # redfish_virtual_media (Data Source)
 
-datasource for virtual media.
-
 This Terraform datasource is used to query existing virtual media details. The information fetched from this block can be further used for resource block.
+
 ## Example Usage
 
 variables.tf
