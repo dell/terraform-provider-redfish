@@ -41,8 +41,7 @@ provider.tf
 main.tf
 {{tffile .ExampleFile }}
 
-After the successful execution of the above resource block, firmware would have got updated. It can be verified through state file.
-
+After the successful execution of the above resource block, the iDRAC web server would have been configured with the provided SSL certificate. More details can be verified through state file. 
 {{- end }}
 
 {{ .SchemaMarkdown | trimspace }}
@@ -55,4 +54,3 @@ Import is supported using the following syntax:
 {{ printf "{{codefile \"shell\" %q}}" .ImportFile }}
 
 {{- end }}
-

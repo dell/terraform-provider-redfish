@@ -19,15 +19,15 @@ linkTitle: "redfish_storage_volume"
 page_title: "redfish_storage_volume Resource - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  Resource for managing storage volume.
+  This Terraform resource is used to configure virtual disks on the iDRAC Server. We can Create, Read, Update, Delete the virtual disks using this resource.
 ---
 
 # redfish_storage_volume (Resource)
 
 This Terraform resource is used to configure virtual disks on the iDRAC Server. We can Create, Read, Update, Delete the virtual disks using this resource.
-Resource for managing storage volume.
 
 ~> **Note:** `capacity_bytes` and `volume_type` attributes cannot be updated.
+
 ## Example Usage
 
 variables.tf

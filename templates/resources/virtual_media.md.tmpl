@@ -27,10 +27,10 @@ description: |-
 {{ .Description | trimspace }}
 
 ~> **Note:** `write_protected` attribute can only be configured as `true`.
+
 {{ if .HasExample -}}
 ## Example Usage
 
-This Terraform resource is used to configure virtual media on the iDRAC Server. We can Read, Attach, Detach the virtual media or Modify the attached image using this resource.
 variables.tf
 {{ tffile ( printf "examples/resources/%s/variables.tf" .Name ) }}
 

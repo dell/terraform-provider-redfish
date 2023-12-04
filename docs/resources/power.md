@@ -19,16 +19,14 @@ linkTitle: "redfish_power"
 page_title: "redfish_power Resource - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  Resource for managing power.
+  This Terraform resource is used to configure Power attributes of the iDRAC Server. We can Read the existing power state or modify it using this resource.
 ---
 
 # redfish_power (Resource)
 
-Resource for managing power.
+This Terraform resource is used to configure Power attributes of the iDRAC Server. We can Read the existing power state or modify it using this resource.
 
 ## Example Usage
-
-This Terraform resource is used to configure Power attributes of the iDRAC Server. We can Read the existing power state or modify it using this resource.
 
 variables.tf
 ```terraform

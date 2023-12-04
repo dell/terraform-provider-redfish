@@ -19,14 +19,13 @@ linkTitle: "redfish_dell_idrac_attributes"
 page_title: "redfish_dell_idrac_attributes Resource - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  Resource for managing DellIdracAttributes on OpenManage Enterprise.
+  This Terraform resource is used to configure iDRAC attributes of the iDRAC Server. We can Read the existing configurations or modify them using this resource.
 ---
 
 # redfish_dell_idrac_attributes (Resource)
 
-Resource for managing DellIdracAttributes on OpenManage Enterprise.
-
 This Terraform resource is used to configure iDRAC attributes of the iDRAC Server. We can Read the existing configurations or modify them using this resource.
+
 ## Example Usage
 
 variables.tf

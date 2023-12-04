@@ -108,7 +108,10 @@ func VirtualMediaSchema() map[string]schema.Attribute {
 // Schema defines the schema for the resource.
 func (*virtualMediaResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Resource for managing virtual media.",
+		MarkdownDescription: "This Terraform resource is used to configure virtual media on the iDRAC Server." +
+			" We can Read, Attach, Detach the virtual media or Modify the attached image using this resource.",
+		Description: "This Terraform resource is used to configure virtual media on the iDRAC Server." +
+			" We can Read, Attach, Detach the virtual media or Modify the attached image using this resource.",
 
 		Attributes: VirtualMediaSchema(),
 		Blocks:     RedfishServerResourceBlockMap(),
