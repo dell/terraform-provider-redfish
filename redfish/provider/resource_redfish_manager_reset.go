@@ -84,7 +84,7 @@ func ManagerResetSchema() map[string]schema.Attribute {
 func (*managerResetResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Resource to reset the iDRAC.",
-
+		Description: "Resource to reset the iDRAC.",
 		Attributes: ManagerResetSchema(),
 		Blocks:     RedfishServerResourceBlockMap(),
 	}
