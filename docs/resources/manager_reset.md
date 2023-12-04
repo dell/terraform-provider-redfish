@@ -19,12 +19,12 @@ linkTitle: "redfish_manager_reset"
 page_title: "redfish_manager_reset Resource - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  Resource to reset the iDRAC.
+  This resource is used to reset the manager.
 ---
 
 # redfish_manager_reset (Resource)
 
-Resource to reset the iDRAC.
+This resource is used to reset the manager.
 
 ## Example Usage
 
