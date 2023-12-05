@@ -26,6 +26,8 @@ description: |-
 
 
 
+~> **Note:** `boot_order` and `boot_options` are mutually exclusive.
+
 ## Example Usage
 
 variables.tf

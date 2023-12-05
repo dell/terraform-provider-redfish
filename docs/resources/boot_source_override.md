@@ -26,6 +26,12 @@ description: |-
 
 
 
+~> **Note:** If the state in `boot_source_override_enabled` is set `once` or `continuous`, the value is reset 
+to disabled after the `boot_source_override_target` actions have completed successfully.
+~> **Note:** Changes to these options do not alter the BIOS persistent boot order configuration.
+~> **Note:** `boot_source_override_enabled` cannot be set to `continuous` if `boot_source_override_target` 
+set to `uefi_target` because this settings is defined in UEFI as a one-time-boot setting.
+
 ## Example Usage
 
 variables.tf
