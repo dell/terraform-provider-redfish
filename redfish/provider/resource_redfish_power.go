@@ -111,7 +111,10 @@ func PowerSchema() map[string]schema.Attribute {
 // Schema defines the schema for the resource.
 func (*powerResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Resource for managing power.",
+		MarkdownDescription: "This Terraform resource is used to configure Power attributes of the iDRAC Server." +
+			" We can Read the existing power state or modify it using this resource.",
+		Description: "This Terraform resource is used to configure Power attributes of the iDRAC Server." +
+			" We can Read the existing power state or modify it using this resource.",
 
 		Attributes: PowerSchema(),
 		Blocks:     RedfishServerResourceBlockMap(),

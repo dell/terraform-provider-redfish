@@ -160,7 +160,10 @@ func simpleUpdateSchema() map[string]schema.Attribute {
 // Schema defines the schema for the resource.
 func (*simpleUpdateResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Resource for managing power.",
+		MarkdownDescription: "This Terraform resource is used to Update firmware of the iDRAC Server." +
+			" We can Read the existing firmware version or update the same using this resource.",
+		Description: "This Terraform resource is used to Update firmware of the iDRAC Server." +
+			" We can Read the existing firmware version or update the same using this resource.",
 
 		Attributes: simpleUpdateSchema(),
 		Blocks: map[string]schema.Block{

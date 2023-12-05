@@ -19,14 +19,13 @@ linkTitle: "redfish_bios"
 page_title: "redfish_bios Data Source - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  Data source to fetch bios details via RedFish.
+  This Terraform datasource is used to query existing Bios configuration. The information fetched from this block can be further used for resource block.
 ---
 
 # redfish_bios (Data Source)
 
-Data source to fetch bios details via RedFish.
-
 This Terraform datasource is used to query existing Bios configuration. The information fetched from this block can be further used for resource block.
+
 ## Example Usage
 
 variables.tf

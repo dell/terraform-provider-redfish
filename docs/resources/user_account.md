@@ -25,9 +25,9 @@ description: |-
 # redfish_user_account (Resource)
 
 This Terraform resource is used to manage user entity of the iDRAC Server. We can create, read, modify and delete an existing user using this resource.
-This Terraform resource is used to manage user entity of the iDRAC Server. We can create, read, modify and delete an existing user using this resource.
 
 ~> **Note:** In the absence of `user_id`, first available `user_id` is assigned to the given user.
+
 ## Example Usage
 
 variables.tf

@@ -44,9 +44,12 @@ func (*FirmwareInventoryDatasource) Metadata(_ context.Context, req datasource.M
 // Schema implements datasource.DataSource
 func (*FirmwareInventoryDatasource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Data source to fetch Firmware Inventory details via RedFish.",
-		Attributes:          FirmwareInventoryDatasourceSchema(),
-		Blocks:              RedfishServerDatasourceBlockMap(),
+		MarkdownDescription: "This Terraform datasource is used to query existing firmware details." +
+			" The information fetched from this block can be further used for resource block.",
+		Description: "This Terraform datasource is used to query existing firmware details." +
+			" The information fetched from this block can be further used for resource block.",
+		Attributes: FirmwareInventoryDatasourceSchema(),
+		Blocks:     RedfishServerDatasourceBlockMap(),
 	}
 }
 

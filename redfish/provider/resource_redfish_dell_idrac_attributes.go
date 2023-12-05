@@ -50,7 +50,10 @@ func (*dellIdracAttributesResource) Metadata(_ context.Context, req resource.Met
 // Schema defines the schema for the resource.
 func (*dellIdracAttributesResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Resource for managing DellIdracAttributes on OpenManage Enterprise.",
+		MarkdownDescription: "This Terraform resource is used to configure iDRAC attributes of the iDRAC Server." +
+			" We can Read the existing configurations or modify them using this resource.",
+		Description: "This Terraform resource is used to configure iDRAC attributes of the iDRAC Server." +
+			" We can Read the existing configurations or modify them using this resource.",
 
 		Attributes: DellIdracAttributesSchema(),
 		Blocks:     RedfishServerResourceBlockMap(),

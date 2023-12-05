@@ -206,9 +206,12 @@ func VolumeSchema() map[string]schema.Attribute {
 // Schema defines the schema for the resource.
 func (*RedfishStorageVolumeResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Resource for managing storage volume.",
-		Attributes:          VolumeSchema(),
-		Blocks:              RedfishServerResourceBlockMap(),
+		MarkdownDescription: "This Terraform resource is used to configure virtual disks on the iDRAC Server." +
+			" We can Create, Read, Update, Delete the virtual disks using this resource.",
+		Description: "This Terraform resource is used to configure virtual disks on the iDRAC Server." +
+			" We can Create, Read, Update, Delete the virtual disks using this resource.",
+		Attributes: VolumeSchema(),
+		Blocks:     RedfishServerResourceBlockMap(),
 	}
 }
 

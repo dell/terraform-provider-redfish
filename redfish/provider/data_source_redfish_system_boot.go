@@ -44,9 +44,12 @@ func (*SystemBootDatasource) Metadata(_ context.Context, req datasource.Metadata
 // Schema implements datasource.DataSource
 func (*SystemBootDatasource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Data source to fetch System Boot details via RedFish.",
-		Attributes:          SystemBootDatasourceSchema(),
-		Blocks:              RedfishServerDatasourceBlockMap(),
+		MarkdownDescription: "Data source to fetch System Boot details via RedFish." +
+			" The information fetched from this block can be further used for resource block.",
+		Description: "Data source to fetch System Boot details via RedFish." +
+			" The information fetched from this block can be further used for resource block.",
+		Attributes: SystemBootDatasourceSchema(),
+		Blocks:     RedfishServerDatasourceBlockMap(),
 	}
 }
 

@@ -47,9 +47,12 @@ func (*StorageDatasource) Metadata(_ context.Context, req datasource.MetadataReq
 // Schema implements datasource.DataSource
 func (*StorageDatasource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Data source to fetch storage details via RedFish.",
-		Attributes:          StorageDatasourceSchema(),
-		Blocks:              RedfishServerDatasourceBlockMap(),
+		MarkdownDescription: "This Terraform datasource is used to query existing storage volume details." +
+			" The information fetched from this block can be further used for resource block.",
+		Description: "This Terraform datasource is used to query existing storage volume details." +
+			" The information fetched from this block can be further used for resource block.",
+		Attributes: StorageDatasourceSchema(),
+		Blocks:     RedfishServerDatasourceBlockMap(),
 	}
 }
 

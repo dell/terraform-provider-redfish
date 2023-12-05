@@ -19,13 +19,13 @@ linkTitle: "redfish_bios"
 page_title: "redfish_bios Resource - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  This Terraform resource is used to manage user entity of the iDRAC Server.We can create, read, modify and delete an existing user using this resource.
+  This Terraform resource is used to configure Bios attributes of the iDRAC Server. We can Read the existing configurations or modify them using this resource.
 ---
 
 # redfish_bios (Resource)
 
-This Terraform resource is used to manage user entity of the iDRAC Server.We can create, read, modify and delete an existing user using this resource.
 This Terraform resource is used to configure Bios attributes of the iDRAC Server. We can Read the existing configurations or modify them using this resource.
+
 ## Example Usage
 
 variables.tf

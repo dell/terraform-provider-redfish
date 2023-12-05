@@ -19,13 +19,13 @@ linkTitle: "redfish_firmware_inventory"
 page_title: "redfish_firmware_inventory Data Source - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  Data source to fetch Firmware Inventory details via RedFish.
+  This Terraform datasource is used to query existing firmware details. The information fetched from this block can be further used for resource block.
 ---
 
 # redfish_firmware_inventory (Data Source)
 
-Data source to fetch Firmware Inventory details via RedFish.
 This Terraform datasource is used to query existing firmware details. The information fetched from this block can be further used for resource block.
+
 ## Example Usage
 
 variables.tf

@@ -19,17 +19,17 @@ linkTitle: "redfish_virtual_media"
 page_title: "redfish_virtual_media Resource - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  Resource for managing virtual media.
+  This Terraform resource is used to configure virtual media on the iDRAC Server. We can Read, Attach, Detach the virtual media or Modify the attached image using this resource.
 ---
 
 # redfish_virtual_media (Resource)
 
-Resource for managing virtual media.
+This Terraform resource is used to configure virtual media on the iDRAC Server. We can Read, Attach, Detach the virtual media or Modify the attached image using this resource.
 
 ~> **Note:** `write_protected` attribute can only be configured as `true`.
+
 ## Example Usage
 
-This Terraform resource is used to configure virtual media on the iDRAC Server. We can Read, Attach, Detach the virtual media or Modify the attached image using this resource.
 variables.tf
 ```terraform
 /*

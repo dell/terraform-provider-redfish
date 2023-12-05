@@ -19,14 +19,13 @@ linkTitle: "redfish_dell_idrac_attributes"
 page_title: "redfish_dell_idrac_attributes Data Source - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  Data source to provide redfish infiziya
+  This Terraform datasource is used to query existing iDRAC configuration. The information fetched from this block can be further used for resource block.
 ---
 
 # redfish_dell_idrac_attributes (Data Source)
 
-Data source to provide redfish infiziya
-
 This Terraform datasource is used to query existing iDRAC configuration. The information fetched from this block can be further used for resource block.
+
 ## Example Usage
 
 variables.tf

@@ -19,13 +19,12 @@ linkTitle: "redfish_simple_update"
 page_title: "redfish_simple_update Resource - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  Resource for managing power.
+  This Terraform resource is used to Update firmware of the iDRAC Server. We can Read the existing firmware version or update the same using this resource.
 ---
 
 # redfish_simple_update (Resource)
 
-Resource for managing power.
-This Terraform resource is used to Update the iDRAC Server. We can Read the existing version or update the same using this resource.
+This Terraform resource is used to Update firmware of the iDRAC Server. We can Read the existing firmware version or update the same using this resource.
 
 ## Example Usage
 

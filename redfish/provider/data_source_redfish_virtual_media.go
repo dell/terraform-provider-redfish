@@ -45,7 +45,10 @@ func (*DellVirtualMediaDatasource) Metadata(_ context.Context, req datasource.Me
 // Schema implements datasource.DataSource
 func (*DellVirtualMediaDatasource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "datasource for virtual media.",
+		MarkdownDescription: "This Terraform datasource is used to query existing virtual media details." +
+			" The information fetched from this block can be further used for resource block.",
+		Description: "This Terraform datasource is used to query existing virtual media details." +
+			" The information fetched from this block can be further used for resource block.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				MarkdownDescription: "ID of the virtual media datasource",
