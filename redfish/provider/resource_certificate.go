@@ -112,6 +112,9 @@ func RedfishSSLCertificateSchema() map[string]schema.Attribute {
 				`"Server" - Certificate Content is required.` +
 				` Note - The certificate should be signed with hashing algorithm equivalent to sha256.`,
 			Required: true,
+			Validators: []validator.String{
+				stringvalidator.LengthAtLeast(1),
+			},
 			PlanModifiers: []planmodifier.String{
 				stringplanmodifier.RequiresReplace(),
 			},
