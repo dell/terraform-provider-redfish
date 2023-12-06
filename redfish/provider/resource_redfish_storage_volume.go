@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"terraform-provider-redfish/common"
 	"terraform-provider-redfish/redfish/models"
 
@@ -36,6 +37,7 @@ const (
 	defaultStorageVolumeJobTimeout    int64 = 1200
 	intervalStorageVolumeJobCheckTime int64 = 10
 	maxCapacityBytes                  int64 = 1000000000
+	maxVolumeNameLength               int   = 15
 )
 
 // NewRedfishStorageVolumeResource is a helper function to simplify the provider implementation.
@@ -170,6 +172,11 @@ func VolumeSchema() map[string]schema.Attribute {
 			Required:            true,
 			Validators: []validator.String{
 				stringvalidator.LengthAtLeast(1),
+				stringvalidator.LengthAtMost(maxVolumeNameLength),
+				stringvalidator.RegexMatches(
+					regexp.MustCompile(`^[a-zA-Z0-9_-]*$`),
+					"must only contain alphanumeric characters or '-' or '_'",
+				),
 			},
 		},
 		"volume_type": schema.StringAttribute{
