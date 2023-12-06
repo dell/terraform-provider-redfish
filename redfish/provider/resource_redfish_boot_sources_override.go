@@ -48,7 +48,9 @@ type BootSourceOverrideResource struct {
 // Schema implements resource.Resource.
 func (*BootSourceOverrideResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Attributes: BootSourceOverrideSchema(),
+		MarkdownDescription: "This Terraform resource is used to configure Boot sources of the iDRAC Server.",
+		Description:         "This Terraform resource is used to configure Boot sources of the iDRAC Server.",
+		Attributes:          BootSourceOverrideSchema(),
 		Blocks: map[string]schema.Block{
 			"redfish_server": schema.ListNestedBlock{
 				MarkdownDescription: "List of server BMCs and their respective user credentials",
