@@ -19,12 +19,12 @@ linkTitle: "redfish_boot_order"
 page_title: "redfish_boot_order Resource - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  
+  This Terraform resource is used to configure Boot Order and enable/disable Boot Options of the iDRAC Server. We can Read the existing configurations or modify them using this resource.
 ---
 
 # redfish_boot_order (Resource)
 
-
+This Terraform resource is used to configure Boot Order and enable/disable Boot Options of the iDRAC Server. We can Read the existing configurations or modify them using this resource.
 
 ~> **Note:** `boot_order` and `boot_options` are mutually exclusive.
 
