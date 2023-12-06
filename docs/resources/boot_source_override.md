@@ -30,8 +30,6 @@ This Terraform resource is used to configure Boot sources of the iDRAC Server.
 
 ~> **Note:** Changes to these options do not alter the BIOS persistent boot order configuration.
 
-~> **Note:** `boot_source_override_enabled` cannot be set to `continuous` if `boot_source_override_target` is set to `uefi_target` because this settings is defined in UEFI as a one-time-boot setting.
-
 ## Example Usage
 
 variables.tf
@@ -156,9 +154,10 @@ resource "redfish_boot_source_override" "boot" {
     ssl_insecure = each.value.ssl_insecure
   }
 
+  // boot source override parameters
   boot_source_override_enabled = "Once"
   boot_source_override_target  = "UefiTarget"
-  boot_source_override_mode    = "Legacy"
+  boot_source_override_mode    = "UEFI"
 
   // Reset parameters to be applied after bios settings are applied
   reset_type    = "GracefulRestart"
