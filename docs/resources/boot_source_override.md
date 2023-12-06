@@ -26,6 +26,10 @@ description: |-
 
 
 
+~> **Note:** If the state in `boot_source_override_enabled` is set `once` or `continuous`, the value is reset to disabled after the `boot_source_override_target` actions have completed successfully.
+
+~> **Note:** Changes to these options do not alter the BIOS persistent boot order configuration.
+
 ## Example Usage
 
 variables.tf
@@ -150,9 +154,10 @@ resource "redfish_boot_source_override" "boot" {
     ssl_insecure = each.value.ssl_insecure
   }
 
+  // boot source override parameters
   boot_source_override_enabled = "Once"
   boot_source_override_target  = "UefiTarget"
-  boot_source_override_mode    = "Legacy"
+  boot_source_override_mode    = "UEFI"
 
   // Reset parameters to be applied after bios settings are applied
   reset_type    = "GracefulRestart"

@@ -26,6 +26,10 @@ description: |-
 
 {{ .Description | trimspace }}
 
+~> **Note:** If the state in `boot_source_override_enabled` is set `once` or `continuous`, the value is reset to disabled after the `boot_source_override_target` actions have completed successfully.
+
+~> **Note:** Changes to these options do not alter the BIOS persistent boot order configuration.
+
 {{ if .HasExample -}}
 ## Example Usage
 

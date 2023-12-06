@@ -25,9 +25,10 @@ resource "redfish_boot_source_override" "boot" {
     ssl_insecure = each.value.ssl_insecure
   }
 
+  // boot source override parameters
   boot_source_override_enabled = "Once"
   boot_source_override_target  = "UefiTarget"
-  boot_source_override_mode    = "Legacy"
+  boot_source_override_mode    = "UEFI"
 
   // Reset parameters to be applied after bios settings are applied
   reset_type    = "GracefulRestart"

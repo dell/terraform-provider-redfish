@@ -149,8 +149,11 @@ resource "redfish_boot_order" "boot" {
     endpoint     = each.value.endpoint
     ssl_insecure = each.value.ssl_insecure
   }
+  // sets the boot devices in the required boot order sequences
   boot_order = ["Boot0001", "Boot0000", "Boot0002", "Boot0003"]
-  # boot_options = [{boot_option_reference= "Boot0000", boot_option_enabled= false}]
+
+  // Options to enable or disable the boot device. uncomment the same and cmment the boot_order to use this.
+  // boot_options = [{boot_option_reference= "Boot0000", boot_option_enabled= false}]
 
   // Reset parameters to be applied after bios settings are applied
   reset_type    = "ForceRestart"
