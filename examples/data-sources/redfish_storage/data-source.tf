@@ -15,8 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-provider "redfish" {}
-
 data "redfish_storage" "storage" {
   for_each = var.rack1
 
