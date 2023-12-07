@@ -113,6 +113,12 @@ rack1 = {
     endpoint     = "https://my-server-2.myawesomecompany.org"
     ssl_insecure = true
   },
+  "my-server-3" = {
+    user         = "admin"
+    password     = "passw0rd"
+    endpoint     = "https:://[2001:db8:a::123]"
+    ssl_insecure = true
+  },
 }
 ~~~
 
