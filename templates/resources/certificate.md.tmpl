@@ -26,11 +26,11 @@ description: |-
 
 {{ .Description | trimspace }}
 
-~> **Note:** We support two kinds of SSL certificates (1) Server certificate (2) Custom certificate 
+~> **Note:** By default, the iDRAC comes with a self-signed certificate for its web server. If user wants to replace with her own server certificate (signed by Trusted CA). We support two kinds of SSL certificates (1) Server certificate (2) Custom certificate 
 
-~> **Note:** Server Certificate: By default, the iDRAC comes with a self-signed certificate for its web server. If user wants to replace with her own server certificate (signed by Trusted CA). Steps:- (1) Generate the CSR from iDrac. (2) Create the certificate using CSR and sign with trusted CA. (3) The certificate should be signed with hashing algorithm equivalent to sha256
+~> **Note:** Server Certificate: Steps:- (1) Generate the CSR from iDrac. (2) Create the certificate using CSR and sign with trusted CA. (3) The certificate should be signed with hashing algorithm equivalent to sha256
 
-~> **Note:** Custom Certificate: Steps:- (1) An externally created custom certificate which can be imported into the iDRAC. (2) Convert the external custom certificate into PKCS#12 format and should be encoded via base64. The conversation will required passphrase which should be supplied to 'passphrase' attribute during the import process."
+~> **Note:** Custom Certificate: Steps:- (1) An externally created custom certificate which can be imported into the iDRAC. (2) Convert the external custom certificate into PKCS#12 format and should be encoded via base64. The converion will require passphrase which should be provided in 'passphrase' attribute."
 
 
 
