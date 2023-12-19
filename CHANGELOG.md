@@ -1,6 +1,26 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
+# v1.1.0 (December, 2023)
+## Release Summary
+The release supports resources and data sources mentioned in the Features section for RedFish.
+## Features
+
+### Resources
+* Certificate Resource
+* Boot Order Resource
+* Boot Source Override Resource
+* Manager Reset
+
+### Others
+N/A
+
+## Enhancements
+N/A
+
+## Bug Fixes
+N/A
+
 # v1.0.0 (September, 2023)
 ## Release Summary
 The release supports resources and data sources mentioned in the Features section for RedFish.
