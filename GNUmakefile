@@ -45,7 +45,7 @@ vet:
 		exit 1; \
 	fi
 
-sec:
+gosec:
 	gosec -exclude-generated ./...
 
 release:
