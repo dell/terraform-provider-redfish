@@ -8,11 +8,13 @@ import (
 	"github.com/stmcginnis/gofish/common"
 )
 
+// AttributeEnumValue struct represents attributes to be used with enums
 type AttributeEnumValue struct {
 	ValueDisplayName string
 	ValueName        string
 }
 
+// ManagerAttribute represent attributes to create Dell OEM Manager
 type ManagerAttribute struct {
 	AttributeName string
 	DefaultValue  interface{} // This might be string or int.
@@ -33,12 +35,14 @@ type ManagerAttribute struct {
 	Value         []AttributeEnumValue // To be used with Enums
 }
 
+// SupportedSystem struct represents details of the supported systems
 type SupportedSystem struct {
 	FirmwareVersion string
 	ProductName     string
 	SystemId        string
 }
 
+// ManagerAttributeRegistry contains attriutes for manager attribute registry
 type ManagerAttributeRegistry struct {
 	*common.Resource
 	Language     string
@@ -51,6 +55,7 @@ type ManagerAttributeRegistry struct {
 	SupportedSystems []SupportedSystem
 }
 
+// GetDellManagerAttributeRegistry is function to fetch manager attribute registry
 func GetDellManagerAttributeRegistry(c common.Client, uri string) (*ManagerAttributeRegistry, error) {
 	resp, err := c.Get(uri)
 	if err != nil {
@@ -68,13 +73,15 @@ func GetDellManagerAttributeRegistry(c common.Client, uri string) (*ManagerAttri
 	return &managerAttributeRegistry, nil
 }
 
+// UnmarshalJSON unmarshals Manager Attribute object from raw JSON
 func (m *ManagerAttributeRegistry) UnmarshalJSON(data []byte) error {
 	type temp ManagerAttributeRegistry
+	type RegistryEntries struct {
+		Attributes []ManagerAttribute
+	}
 	var t struct {
 		temp
-		RegistryEntries struct {
-			Attributes []ManagerAttribute
-		}
+		RegistryEntries RegistryEntries
 	}
 
 	err := json.Unmarshal(data, &t)
@@ -90,8 +97,8 @@ func (m *ManagerAttributeRegistry) UnmarshalJSON(data []byte) error {
 
 // GetAttributeType returns an string that says if the attribute is "string" for Enumeration, Password and String or "int" if Integer
 // error is set if not attribute was found
-func (m *ManagerAttributeRegistry) GetAttributeType(AttributeName string) (string, error) {
-	attr, err := m.getAttribute(AttributeName)
+func (m *ManagerAttributeRegistry) GetAttributeType(attributeName string) (string, error) {
+	attr, err := m.getAttribute(attributeName)
 	if err != nil {
 		return "", err
 	}
@@ -106,9 +113,9 @@ func (m *ManagerAttributeRegistry) GetAttributeType(AttributeName string) (strin
 	return "", fmt.Errorf("type out from Integer, Enumeration, Password or String")
 }
 
-// POSSIBLY THIS FUNCTION NEEDS TO BE REMOVED
-func (m *ManagerAttributeRegistry) CheckAttribute(AttributeName string, value interface{}) error {
-	attr, err := m.getAttribute(AttributeName)
+// CheckAttribute checks if the given attribute name and value are compliant with the attribute registry.
+func (m *ManagerAttributeRegistry) CheckAttribute(attributeName string, value interface{}) error {
+	attr, err := m.getAttribute(attributeName)
 	if err != nil {
 		return err
 	}
@@ -116,25 +123,26 @@ func (m *ManagerAttributeRegistry) CheckAttribute(AttributeName string, value in
 	// First check value is compliant
 	switch v := reflect.ValueOf(value); v.Kind() {
 	case reflect.String:
-		if attr.Type == "String" || attr.Type == "Password" || attr.Type == "Enumeration" {
-			// Check if readonly
-			if attr.Readonly {
-				return fmt.Errorf("property %s cannot be written as it is read only", AttributeName)
-			}
-			switch attr.Type {
-			case "String", "Password":
-				// Check string bounds
-				if len(v.String()) < attr.MinLength || len(v.String()) > attr.MaxLength {
-					return fmt.Errorf("value to check is not compliant. Attribute length %d, Min length %d, max length %d", len(v.String()), attr.MinLength, attr.MaxLength)
-				}
-			case "Enumeration":
-				err := checkValueDisplayNameArray(v.String(), attr.Value)
-				if err != nil {
-					return err
-				}
-			}
-		} else {
+		if attr.Type != "String" && attr.Type != "Password" && attr.Type != "Enumeration" {
 			return fmt.Errorf("value passed is string but attribute checked is neither String or Password type")
+		}
+
+		// Check if readonly
+		if attr.Readonly {
+			return fmt.Errorf("property %s cannot be written as it is read only", attributeName)
+		}
+		switch attr.Type {
+		case "String", "Password":
+			// Check string bounds
+			if len(v.String()) < attr.MinLength || len(v.String()) > attr.MaxLength {
+				return fmt.Errorf("value to check is not compliant. Attribute length %d, Min length %d, max length %d",
+					len(v.String()), attr.MinLength, attr.MaxLength)
+			}
+		case "Enumeration":
+			err := checkValueDisplayNameArray(v.String(), attr.Value)
+			if err != nil {
+				return err
+			}
 		}
 
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -143,11 +151,12 @@ func (m *ManagerAttributeRegistry) CheckAttribute(AttributeName string, value in
 		}
 		// Check if readonly
 		if attr.Readonly {
-			return fmt.Errorf("property %s cannot be written as it is read only", AttributeName)
+			return fmt.Errorf("property %s cannot be written as it is read only", attributeName)
 		}
 		// Check integer bounds
 		if v.Int() < int64(attr.LowerBound) || v.Int() > int64(attr.UpperBound) {
-			return fmt.Errorf("value to check is not compliant. Value is %d, lower bound is %d, upper bound is %d", v.Int(), attr.LowerBound, attr.UpperBound)
+			return fmt.Errorf("value to check is not compliant. Value is %d, lower bound is %d, upper bound is %d",
+				v.Int(), attr.LowerBound, attr.UpperBound)
 		}
 
 	default:
@@ -156,13 +165,13 @@ func (m *ManagerAttributeRegistry) CheckAttribute(AttributeName string, value in
 	return nil
 }
 
-func (m *ManagerAttributeRegistry) getAttribute(AttributeName string) (*ManagerAttribute, error) {
+func (m *ManagerAttributeRegistry) getAttribute(attributeName string) (*ManagerAttribute, error) {
 	for _, v := range m.Attributes {
-		if v.AttributeName == AttributeName {
+		if v.AttributeName == attributeName {
 			return &v, nil
 		}
 	}
-	return nil, fmt.Errorf("attribute %s was not found", AttributeName)
+	return nil, fmt.Errorf("attribute %s was not found", attributeName)
 }
 
 func checkValueDisplayNameArray(value string, possibleValues []AttributeEnumValue) error {

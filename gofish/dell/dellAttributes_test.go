@@ -44,7 +44,7 @@ var idracAttributes = `{
 }`
 
 func TestDellAttributes(t *testing.T) {
-	var dellAttributes DellAttributes
+	var dellAttributes Attributes
 
 	err := json.NewDecoder(strings.NewReader(idracAttributes)).Decode(&dellAttributes)
 	if err != nil {

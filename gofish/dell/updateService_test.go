@@ -65,7 +65,7 @@ func TestDellUpdateService(t *testing.T) {
 
 }
 
-func getDellUpdateService(t testing.TB) *UpdateService {
+func getDellUpdateService(t testing.TB) *UpdateServiceExtended {
 	t.Helper()
 
 	var result redfish.UpdateService
@@ -75,7 +75,7 @@ func getDellUpdateService(t testing.TB) *UpdateService {
 		t.Errorf("Error decoding simpleUpdate JSON - %s", err)
 	}
 
-	dellUpdateService, err := DellUpdateService(&result)
+	dellUpdateService, err := UpdateService(&result)
 	if err != nil {
 		t.Errorf("Error decoding Dell simpleUpdate JSON - %s", err)
 	}

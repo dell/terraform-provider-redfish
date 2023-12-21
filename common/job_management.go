@@ -14,6 +14,8 @@ const (
 	TimeBetweenAttempts int = 10
 	// Timeout will be used to consider a job task failed (variable is in seconds)
 	Timeout int = 300
+	// StatusCodeSuccess will denote http.response success code
+	StatusCodeSuccess int = 200
 )
 
 // WaitForTaskToFinish waits for a redfish job to finish.
@@ -28,7 +30,8 @@ func WaitForTaskToFinish(service *gofish.Service, jobURI string, timeBetweenAtte
 	for {
 		select {
 		case <-attemptTick.C:
-			// For some reason iDRAC 4.40.00.0 from time to time gives the following error: iDRAC is not ready. The configuration values cannot be accessed. Please retry after a few minutes.
+			// For some reason iDRAC 4.40.00.0 from time to time gives the following error:
+			// iDRAC is not ready. The configuration values cannot be accessed. Please retry after a few minutes.
 			job, err := redfish.GetTask(service.GetClient(), jobURI)
 			if err == nil {
 				log.Printf("[DEBUG] - Attempting one more time... Job state is %s\n", job.TaskState)
@@ -61,7 +64,8 @@ func WaitForJobToFinish(service *gofish.Service, jobURI string, timeBetweenAttem
 	for {
 		select {
 		case <-attemptTick.C:
-			// For some reason iDRAC 4.40.00.0 from time to time gives the following error: iDRAC is not ready. The configuration values cannot be accessed. Please retry after a few minutes.
+			// For some reason iDRAC 4.40.00.0 from time to time gives the following error:
+			// iDRAC is not ready. The configuration values cannot be accessed. Please retry after a few minutes.
 			job, err := redfish.GetJob(service.GetClient(), jobURI)
 			if err == nil {
 				log.Printf("[DEBUG] - Attempting one more time... Job state is %s\n", job.JobState)
@@ -92,8 +96,8 @@ func DeleteDellJob(service *gofish.Service, taskID string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("Error when deleting the task, Delete status code was %d", resp.StatusCode)
+	if resp.StatusCode != StatusCodeSuccess {
+		return fmt.Errorf(" error when deleting the task, Delete status code was %d", resp.StatusCode)
 	}
 	return nil
 }

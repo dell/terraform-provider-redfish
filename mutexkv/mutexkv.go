@@ -38,7 +38,6 @@ func (m *MutexKV) get(key string) *sync.Mutex {
 	if !ok {
 		mutex = &sync.Mutex{}
 		m.store[key] = mutex
-
 	}
 	return mutex
 }

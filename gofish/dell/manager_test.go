@@ -188,7 +188,7 @@ var oemActions = `
 		],
 		"target": "/redfish/v1/Managers/iDRAC.Embedded.1/Actions/Oem/EID_674_Manager.ImportSystemConfiguration"
 	},
-	"#OemManager.v1_2_0.OemManager#OemManager.ImportSystemConfigurationPreview": {
+	"#OemManager.v1_2_0.OemManager#OemManager.ImportSysConfPreview": {
 		"ImportSystemConfigurationPreview@Redfish.AllowableValues": [
 			"ImportBuffer"
 		],
@@ -337,7 +337,7 @@ func TestDellManager(t *testing.T) {
 	}
 
 	// Get Dell manager
-	dellManager, err := DellManager(&result)
+	dellManager, err := Manager(&result)
 	if err != nil {
 		t.Fatalf("couldn't decode dell.Manager mocked json")
 	}
