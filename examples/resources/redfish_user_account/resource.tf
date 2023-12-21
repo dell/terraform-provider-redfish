@@ -19,10 +19,10 @@ resource "redfish_user_account" "rr" {
   for_each = var.rack1
 
   redfish_server {
-    user          = each.value.user
-    password      = each.value.password
-    endpoint      = each.value.endpoint
-    validate_cert = false
+    user         = each.value.user
+    password     = each.value.password
+    endpoint     = each.value.endpoint
+    ssl_insecure = true
   }
 
   // user details for creating/modifying a user

@@ -51,10 +51,10 @@ limitations under the License.
 
 variable "rack1" {
   type = map(object({
-    user          = string
-    password      = string
-    endpoint      = string
-    validate_cert = bool
+    user         = string
+    password     = string
+    endpoint     = string
+    ssl_insecure = bool
   }))
 }
 ```
@@ -80,16 +80,16 @@ limitations under the License.
 
 rack1 = {
   "my-server-1" = {
-    user          = "admin"
-    password      = "passw0rd"
-    endpoint      = "https://my-server-1.myawesomecompany.org"
-    validate_cert = false
+    user         = "admin"
+    password     = "passw0rd"
+    endpoint     = "https://my-server-1.myawesomecompany.org"
+    ssl_insecure = true
   },
   "my-server-2" = {
-    user          = "admin"
-    password      = "passw0rd"
-    endpoint      = "https://my-server-2.myawesomecompany.org"
-    validate_cert = false
+    user         = "admin"
+    password     = "passw0rd"
+    endpoint     = "https://my-server-2.myawesomecompany.org"
+    ssl_insecure = true
   },
 }
 ```
@@ -146,10 +146,10 @@ resource "redfish_user_account" "rr" {
   for_each = var.rack1
 
   redfish_server {
-    user          = each.value.user
-    password      = each.value.password
-    endpoint      = each.value.endpoint
-    validate_cert = false
+    user         = each.value.user
+    password     = each.value.password
+    endpoint     = each.value.endpoint
+    ssl_insecure = true
   }
 
   // user details for creating/modifying a user
