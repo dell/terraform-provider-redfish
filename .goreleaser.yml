@@ -1,4 +1,4 @@
-# Copied from https://github.com/hashicorp/terraform-provider-scaffolding/blob/master/.goreleaser.yml
+# Copied from https://github.com/hashicorp/terraform-provider-scaffolding/blob/main/.goreleaser.yml
 # as suggested at https://www.terraform.io/docs/registry/providers/publishing.html#using-goreleaser-locally
 #
 # Visit https://goreleaser.com for documentation on how to customize this

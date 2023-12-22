@@ -188,7 +188,7 @@ var oemActions = `
 		],
 		"target": "/redfish/v1/Managers/iDRAC.Embedded.1/Actions/Oem/EID_674_Manager.ImportSystemConfiguration"
 	},
-	"#OemManager.v1_2_0.OemManager#OemManager.ImportSysConfPreview": {
+	"#OemManager.v1_2_0.OemManager#OemManager.ImportSystemConfigurationPreview": {
 		"ImportSystemConfigurationPreview@Redfish.AllowableValues": [
 			"ImportBuffer"
 		],

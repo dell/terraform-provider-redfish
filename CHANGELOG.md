@@ -29,12 +29,12 @@ The release supports resources and data sources mentioned in the Features sectio
 
 # [v0.2.0]
 #### Major Changes
-- [resource_redfish_virtual_media](https://github.com/dell/terraform-provider-redfish/blob/master/redfish/resource_redfish_virtual_media.go) - Redfish provider resource for provisionining a server BMC Virtual Media resources for e.g. insert or remove an ISO or USB image as a virtual media device
-- [data_source_redfish_virtual_media](https://github.com/dell/terraform-provider-redfish/blob/master/redfish/data_source_redfish_virtual_media.go) - data source for server BMC Virtual Media resource
-- [resource_redfish_power](https://github.com/dell/terraform-provider-redfish/blob/master/redfish/resource_redfish_power.go) - Power cycle a server such as On, Off, GracefulRestart, ForceRestart, PowerCycle etc.
-- [resource_simple_update](https://github.com/dell/terraform-provider-redfish/blob/master/redfish/resource_simple_update.go) - Redfish provider resource for update a component firmware version on the server
-- [data_source_redfish_firmware_inventory](https://github.com/dell/terraform-provider-redfish/blob/master/redfish/data_source_redfish_firmware_inventory.go) - Redfish provider data source for getting the components' firmware version
-- [data_source_redfish_storage](https://github.com/dell/terraform-provider-redfish/blob/master/redfish/data_source_redfish_storage.go) - Redfish data source for storage volumes
+- [resource_redfish_virtual_media](https://github.com/dell/terraform-provider-redfish/blob/v0.2.0/redfish/resource_redfish_virtual_media.go) - Redfish provider resource for provisionining a server BMC Virtual Media resources for e.g. insert or remove an ISO or USB image as a virtual media device
+- [data_source_redfish_virtual_media](https://github.com/dell/terraform-provider-redfish/blob/v0.2.0/redfish/data_source_redfish_virtual_media.go) - data source for server BMC Virtual Media resource
+- [resource_redfish_power](https://github.com/dell/terraform-provider-redfish/blob/v0.2.0/redfish/resource_redfish_power.go) - Power cycle a server such as On, Off, GracefulRestart, ForceRestart, PowerCycle etc.
+- [resource_simple_update](https://github.com/dell/terraform-provider-redfish/blob/v0.2.0/redfish/resource_simple_update.go) - Redfish provider resource for update a component firmware version on the server
+- [data_source_redfish_firmware_inventory](https://github.com/dell/terraform-provider-redfish/blob/v0.2.0/redfish/data_source_redfish_firmware_inventory.go) - Redfish provider data source for getting the components' firmware version
+- [data_source_redfish_storage](https://github.com/dell/terraform-provider-redfish/blob/v0.2.0/redfish/data_source_redfish_storage.go) - Redfish data source for storage volumes
 
 #### Bug fixes & Enhancements
 - [#31](https://github.com/dell/terraform-provider-redfish/pull/31) - Add support for OnReset operations (previously only supported immediate)
