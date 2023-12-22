@@ -337,7 +337,7 @@ func TestDellManager(t *testing.T) {
 	}
 
 	// Get Dell manager
-	dellManager, err := DellManager(&result)
+	dellManager, err := Manager(&result)
 	if err != nil {
 		t.Fatalf("couldn't decode dell.Manager mocked json")
 	}

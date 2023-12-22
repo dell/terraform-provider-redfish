@@ -55,7 +55,7 @@ jobs:
       - name: Run the forbidden words scan
         uses: dell/common-github-actions/code-sanitizer@main
         with:
-          args: /github/workspace/redfish # TBD /github/workspace
+          args: /github/workspace
      
   build:
     name: Build

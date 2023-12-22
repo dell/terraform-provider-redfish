@@ -231,7 +231,7 @@ func updateRedfishDellIdracAttributes(ctx context.Context, service *gofish.Servi
 	}
 
 	// Get OEM
-	dellManager, err := dell.DellManager(managers[0])
+	dellManager, err := dell.Manager(managers[0])
 	if err != nil {
 		diags.AddError(idracError, err.Error())
 		return diags
@@ -280,7 +280,7 @@ func readRedfishDellIdracAttributes(_ context.Context, service *gofish.Service, 
 	}
 
 	// Get OEM
-	dellManager, err := dell.DellManager(managers[0])
+	dellManager, err := dell.Manager(managers[0])
 	if err != nil {
 		diags.AddError(idracError, err.Error())
 		return diags
@@ -337,7 +337,7 @@ func getManagerAttributeRegistry(service *gofish.Service) (*dell.ManagerAttribut
 	return nil, fmt.Errorf("error. Couldn't retrieve ManagerAttributeRegistry")
 }
 
-func getIdracAttributes(attributes []*dell.DellAttributes) (*dell.DellAttributes, error) {
+func getIdracAttributes(attributes []*dell.Attributes) (*dell.Attributes, error) {
 	for _, a := range attributes {
 		if strings.Contains(a.ID, "iDRAC") {
 			return a, nil
