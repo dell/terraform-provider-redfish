@@ -1,6 +1,3 @@
-# Copied from https://github.com/hashicorp/terraform-provider-scaffolding/blob/main/.goreleaser.yml
-# as suggested at https://www.terraform.io/docs/registry/providers/publishing.html#using-goreleaser-locally
-#
 # Visit https://goreleaser.com for documentation on how to customize this
 # behavior.
 before:
@@ -20,7 +17,6 @@ builds:
     - '-s -w -X main.version={{.Version}} -X main.commit={{.Commit}}'
   goos:
     - freebsd
-    - windows
     - linux
     - darwin
   goarch:
@@ -31,8 +27,6 @@ builds:
   ignore:
     - goos: darwin
       goarch: '386'
-    - goos: darwin
-      goarch: "arm64"
   binary: '{{ .ProjectName }}_v{{ .Version }}'
 archives:
 - format: zip
@@ -43,23 +37,11 @@ checksum:
       name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
-signs:
-  - artifacts: checksum
-    args:
-      # if you are using this in a GitHub action or some other automated pipeline, you
-      # need to pass the batch flag to indicate its not interactive.
-      - "--batch"
-      - "--local-user"
-      - "{{ .Env.GPG_FINGERPRINT }}" # set this environment variable for your signing key
-      - "--output"
-      - "${signature}"
-      - "--detach-sign"
-      - "${artifact}"
 release:
   extra_files:
     - glob: 'terraform-registry-manifest.json'
       name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
   # If you want to manually examine the release before its live, uncomment this line:
-  # draft: true
+  draft: true
 changelog:
   skip: true
