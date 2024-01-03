@@ -248,7 +248,7 @@ func certutils(params CertUtilsParam) (ok bool, summary string, details string) 
 	}
 
 	// Check iDRAC status
-	err = checkServerStatus(params.ctx, (*params.rserver)[0].Endpoint.ValueString(), defaultCheckInterval, defaultCheckTimeout)
+	err = checkServerStatus(params.ctx, service, (*params.rserver)[0].Endpoint.ValueString(), defaultCheckInterval, defaultCheckTimeout)
 	if err != nil {
 		return false, "Error while rebooting iDRAC. Operation may take longer duration to complete", err.Error()
 	}
