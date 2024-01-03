@@ -265,7 +265,7 @@ func (p powerOperator) PowerOperation(resetType string, maximumWaitTime int64, c
 }
 
 // checkServerStatus checks iDRAC server status after provided interval until the provided timeout time
-func checkServerStatus(ctx context.Context, service *gofish.Service, endpoint string, interval int, timeout int) error {
+func checkServerStatus(ctx context.Context, service *gofish.Service, endpoint string, timeoutInterval map[string]int) error {
 	var err error
 	addr, err := url.Parse(endpoint)
 	if err != nil {
@@ -275,9 +275,9 @@ func checkServerStatus(ctx context.Context, service *gofish.Service, endpoint st
 	// Intial sleep until iDRAC reboot is triggered
 	time.Sleep(30 * time.Second)
 
-	for start := time.Now(); time.Since(start) < (time.Duration(timeout) * time.Second); {
+	for start := time.Now(); time.Since(start) < (time.Duration(timeoutInterval["timeout"]) * time.Second); {
 		tflog.Trace(ctx, "Checking server status...")
-		time.Sleep(time.Duration(interval) * time.Second)
+		time.Sleep(time.Duration(timeoutInterval["interval"]) * time.Second)
 		_, err = net.Dial("tcp", net.JoinHostPort(addr.Hostname(), addr.Scheme))
 		if err == nil {
 			_, err := getSystemResource(service)

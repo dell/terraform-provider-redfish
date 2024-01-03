@@ -128,8 +128,13 @@ func (r *managerResetResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
+	timeoutInterval := map[string]int{
+		"timeout":  defaultCheckTimeout,
+		"interval": defaultCheckInterval,
+	}
+
 	// Check iDRAC status
-	err = checkServerStatus(ctx, service, plan.RedfishServer[0].Endpoint.ValueString(), defaultCheckInterval, defaultCheckTimeout)
+	err = checkServerStatus(ctx, service, plan.RedfishServer[0].Endpoint.ValueString(), timeoutInterval)
 	if err != nil {
 		resp.Diagnostics.AddError("Error while rebooting iDRAC. Operation may take longer duration to complete", err.Error())
 		return
