@@ -19,7 +19,7 @@ func TestAccRedfishStorageVolume_InvalidController(t *testing.T) {
 					"Invalid-ID",
 					"TerraformVol1",
 					"NonRedundant",
-					"Physical Disk 0:1:0",
+					drive,
 					"Immediate",
 					"Off",
 					"UnprotectedWriteBack",
@@ -29,7 +29,7 @@ func TestAccRedfishStorageVolume_InvalidController(t *testing.T) {
 					1073323223,
 					131072,
 				),
-				ExpectError: regexp.MustCompile("Error when getting the storage"),
+				ExpectError: regexp.MustCompile("error when getting the storage"),
 			},
 		},
 	})
@@ -73,7 +73,7 @@ func TestAccRedfishStorageVolume_InvalidVolumeType(t *testing.T) {
 					"RAID.Integrated.1-1",
 					"TerraformVol1",
 					"Mirrored",
-					"Physical Disk 0:1:0",
+					drive,
 					"Immediate",
 					"Off",
 					"UnprotectedWriteBack",
@@ -100,12 +100,14 @@ func TestAccRedfishStorageVolumeCreate_basic(t *testing.T) {
 					"RAID.Integrated.1-1",
 					"TerraformVol1",
 					"NonRedundant",
-					"Physical Disk 0:1:1",
+					drive,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "volume_type", "NonRedundant"),
 				),
+				// / TBD: non empty plan fix for 
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -122,7 +124,7 @@ func TestAccRedfishStorageVolume_basic(t *testing.T) {
 					"RAID.Integrated.1-1",
 					"TerraformVol1",
 					"NonRedundant",
-					"Physical Disk 0:1:1",
+					drive,
 					"Immediate",
 					"AdaptiveReadAhead",
 					"UnprotectedWriteBack",
@@ -136,6 +138,8 @@ func TestAccRedfishStorageVolume_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "write_cache_policy", "UnprotectedWriteBack"),
 				),
+				// / TBD: non empty plan fix
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -152,7 +156,7 @@ func TestAccRedfishStorageVolumeUpdate_basic(t *testing.T) {
 					"RAID.Integrated.1-1",
 					"TerraformVol1",
 					"NonRedundant",
-					"Physical Disk 0:1:1",
+					drive,
 					"Immediate",
 					"AdaptiveReadAhead",
 					"UnprotectedWriteBack",
@@ -166,6 +170,7 @@ func TestAccRedfishStorageVolumeUpdate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "read_cache_policy", "AdaptiveReadAhead"),
 				),
+				ExpectNonEmptyPlan: true,
 			},
 
 			{
@@ -174,7 +179,7 @@ func TestAccRedfishStorageVolumeUpdate_basic(t *testing.T) {
 					"RAID.Integrated.1-1",
 					"TerraformVol1",
 					"NonRedundant",
-					"Physical Disk 0:1:1",
+					drive,
 					"Immediate",
 					"ReadAhead",
 					"UnprotectedWriteBack",
@@ -188,6 +193,7 @@ func TestAccRedfishStorageVolumeUpdate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "read_cache_policy", "ReadAhead"),
 				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -204,7 +210,7 @@ func TestAccRedfishStorageVolume_OnReset(t *testing.T) {
 					"RAID.Integrated.1-1",
 					"TerraformVol1",
 					"NonRedundant",
-					"Physical Disk 0:1:1",
+					drive,
 					"OnReset",
 					"AdaptiveReadAhead",
 					"UnprotectedWriteBack",

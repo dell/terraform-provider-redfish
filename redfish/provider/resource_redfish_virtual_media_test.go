@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"regexp"
 	"testing"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
+
+
 
 // Test to create redfish virtual media - Positive
 func TestAccRedfishVirtualMedia_basic(t *testing.T) {
@@ -18,12 +19,12 @@ func TestAccRedfishVirtualMedia_basic(t *testing.T) {
 				Config: testAccRedfishResourceVirtualMediaConfig(
 					creds,
 					"virtual_media",
-					"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.9/latest/BaseOS/x86_64/iso/RHEL-8.9.0-20231023.21-x86_64-boot.iso",
+					image64Boot,
 					true,
 					"HTTP",
 					"Stream"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "image", "http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.9/latest/BaseOS/x86_64/iso/RHEL-8.9.0-20231023.21-x86_64-boot.iso"),
+					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "image", image64Boot),
 					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "inserted", "true"),
 				),
 			},
@@ -61,7 +62,7 @@ func TestAccRedfishVirtualMedia_InvalidTransferMethod_Negative(t *testing.T) {
 				Config: testAccRedfishResourceVirtualMediaConfig(
 					creds,
 					"virtual_media",
-					"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.9/latest/BaseOS/x86_64/iso/RHEL-8.9.0-20231023.21-x86_64-boot.iso",
+					image64Boot,
 					true,
 					"HTTP",
 					"Upload"),
@@ -81,7 +82,7 @@ func TestAccRedfishVirtualMedia_InvalidTransferProtocol_Negative(t *testing.T) {
 				Config: testAccRedfishResourceVirtualMediaConfig(
 					creds,
 					"virtual_media",
-					"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.9/latest/BaseOS/x86_64/iso/RHEL-8.9.0-20231023.21-x86_64-boot.iso",
+					image64Boot,
 					true,
 					"HTTPS",
 					"Stream"),
@@ -101,7 +102,7 @@ func TestAccRedfishVirtualMediaNoMediaNegative_basic(t *testing.T) {
 				Config: testAccRedfishResourceVirtualMediaConfig(
 					creds,
 					"virtual_media1",
-					"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.9/latest/BaseOS/x86_64/iso/RHEL-8.9.0-20231023.21-x86_64-boot.iso",
+					image64Boot,
 					true,
 					"HTTP",
 					"Stream") +
@@ -137,12 +138,12 @@ func TestAccRedfishVirtualMediaServer2_basic(t *testing.T) {
 				Config: testAccRedfishResourceVirtualMediaConfigServer5x(
 					creds,
 					"virtual_media",
-					"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img",
+					imageEfiBoot,
 					true,
 					"HTTP",
 					"Stream"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "image", "http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img"),
+					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "image", imageEfiBoot),
 					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "inserted", "true"),
 				),
 			},
@@ -160,7 +161,7 @@ func TestAccRedfishVirtualMediaServer2_InvalidTransferProtocol_Negative(t *testi
 				Config: testAccRedfishResourceVirtualMediaConfigServer5x(
 					creds,
 					"virtual_media",
-					"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img",
+					imageEfiBoot,
 					true,
 					"HTTPS",
 					"Stream"),
@@ -180,12 +181,12 @@ func TestAccRedfishVirtualMediaServer2Update_InvalidTransferProtocol_Negative(t 
 				Config: testAccRedfishResourceVirtualMediaConfigServer5x(
 					creds,
 					"virtual_media",
-					"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img",
+					imageEfiBoot,
 					true,
 					"HTTP",
 					"Stream"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "image", "http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img"),
+					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "image", imageEfiBoot),
 					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "inserted", "true"),
 				),
 			},
@@ -193,7 +194,7 @@ func TestAccRedfishVirtualMediaServer2Update_InvalidTransferProtocol_Negative(t 
 				Config: testAccRedfishResourceVirtualMediaConfigServer5x(
 					creds,
 					"virtual_media",
-					"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img",
+					imageEfiBoot,
 					true,
 					"HTTPS",
 					"Stream"),
@@ -213,12 +214,12 @@ func TestAccRedfishVirtualMediaUpdate_basic(t *testing.T) {
 				Config: testAccRedfishResourceVirtualMediaConfig(
 					creds,
 					"virtual_media",
-					"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.9/latest/BaseOS/x86_64/iso/RHEL-8.9.0-20231023.21-x86_64-boot.iso",
+					image64Boot,
 					true,
 					"HTTP",
 					"Stream"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "image", "http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.9/latest/BaseOS/x86_64/iso/RHEL-8.9.0-20231023.21-x86_64-boot.iso"),
+					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "image", image64Boot),
 					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "inserted", "true"),
 				),
 			},
@@ -226,7 +227,7 @@ func TestAccRedfishVirtualMediaUpdate_basic(t *testing.T) {
 				Config: testAccRedfishResourceVirtualMediaConfig(
 					creds,
 					"virtual_media",
-					"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.9/latest/BaseOS/x86_64/iso/RHEL-8.9.0-20231023.21-x86_64-boot.iso",
+					image64Boot,
 					false,
 					"HTTP",
 					"Stream"),
@@ -246,12 +247,12 @@ func TestAccRedfishVirtualMediaUpdate_InvalidImage_Negative(t *testing.T) {
 				Config: testAccRedfishResourceVirtualMediaConfig(
 					creds,
 					"virtual_media",
-					"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.9/latest/BaseOS/x86_64/iso/RHEL-8.9.0-20231023.21-x86_64-boot.iso",
+					image64Boot,
 					true,
 					"HTTP",
 					"Stream"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "image", "http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.9/latest/BaseOS/x86_64/iso/RHEL-8.9.0-20231023.21-x86_64-boot.iso"),
+					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "image", image64Boot),
 					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "inserted", "true"),
 				),
 			},
@@ -279,12 +280,12 @@ func TestAccRedfishVirtualMediaUpdate_InvalidTransferMethod_Negative(t *testing.
 				Config: testAccRedfishResourceVirtualMediaConfig(
 					creds,
 					"virtual_media",
-					"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.9/latest/BaseOS/x86_64/iso/RHEL-8.9.0-20231023.21-x86_64-boot.iso",
+					image64Boot,
 					true,
 					"HTTP",
 					"Stream"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "image", "http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.9/latest/BaseOS/x86_64/iso/RHEL-8.9.0-20231023.21-x86_64-boot.iso"),
+					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "image", image64Boot),
 					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "inserted", "true"),
 				),
 			},
