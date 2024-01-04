@@ -109,7 +109,7 @@ func readDatasourceRedfishDellIdracAttributes(service *gofish.Service, d *models
 	}
 
 	// Get OEM
-	dellManager, err := dell.DellManager(managers[0])
+	dellManager, err := dell.Manager(managers[0])
 	if err != nil {
 		diags.AddError(idracError, err.Error())
 		return diags

@@ -6,8 +6,8 @@ import (
 	"github.com/stmcginnis/gofish/redfish"
 )
 
-// UpdateService struct extends the gofish UpdateService and includes Dell OEM actions
-type UpdateService struct {
+// UpdateServiceExtended struct extends the gofish UpdateService and includes Dell OEM actions
+type UpdateServiceExtended struct {
 	*redfish.UpdateService
 	// Actions will hold all UpdateService Dell OEM actions
 	Actions UpdateServiceActions
@@ -21,12 +21,14 @@ type UpdateServiceActions struct {
 	DellUpdateServiceInstallUpon []string
 }
 
+// UnmarshalJSON unmarshals Dell update service object from raw JSON
 func (u *UpdateServiceActions) UnmarshalJSON(data []byte) error {
+	type DellUpdateService struct {
+		InstallUpon []string `json:"InstallUpon@Redfish.AllowableValues"`
+		Target      string
+	}
 	var t struct {
-		DellUpdateService struct {
-			InstallUpon []string `json:"InstallUpon@Redfish.AllowableValues"`
-			Target      string
-		} `json:"DellUpdateService.v1_0_0#DellUpdateService.Install"`
+		DellUpdateService DellUpdateService `json:"DellUpdateService.v1_0_0#DellUpdateService.Install"`
 	}
 
 	err := json.Unmarshal(data, &t)
@@ -40,10 +42,10 @@ func (u *UpdateServiceActions) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// DellUpdateService returns a Dell.UpdateService pointer given a redfish.UpdateService pointer from gofish library
+// UpdateService returns a Dell.UpdateServiceExtended pointer given a redfish.UpdateService pointer from gofish library
 // This is the wrapper that extracts and parses Dell UpdateService OEM actions
-func DellUpdateService(updateService *redfish.UpdateService) (*UpdateService, error) {
-	dellUpdate := UpdateService{UpdateService: updateService}
+func UpdateService(updateService *redfish.UpdateService) (*UpdateServiceExtended, error) {
+	dellUpdate := UpdateServiceExtended{UpdateService: updateService}
 	var oemUpdateService UpdateServiceActions
 
 	err := json.Unmarshal(dellUpdate.OemActions, &oemUpdateService)

@@ -7,6 +7,7 @@ import (
 	"github.com/stmcginnis/gofish/redfish"
 )
 
+// ShareParameters struct is used to represent common shared parameters
 type ShareParameters struct {
 	IgnoreCertificateWarning []string `json:"IgnoreCertificateWarning@Redfish.AllowableValues"`
 	ProxySupport             []string `json:"ProxySupport@Redfish.AllowableValues"`
@@ -41,31 +42,41 @@ type ManagerActions struct {
 	ResetToDefaultsResetType []string
 }
 
+// UnmarshalJSON unmarshals Manager Actions oject from the raw JSON
 func (m *ManagerActions) UnmarshalJSON(data []byte) error {
+	type ExportSystemConfiguration struct {
+		Target          string
+		ExportFormat    []string `json:"ExportFormat@Redfish.AllowableValues"`
+		ExportUse       []string `json:"ExportUse@Redfish.AllowableValues"`
+		IncludeInExport []string `json:"IncludeInExport@Redfish.AllowableValues"`
+		ShareParameters ShareParameters
+	}
+
+	type ResetToDefaults struct {
+		Target    string
+		ResetType []string `json:"ResetType@Redfish.AllowableValues"`
+	}
+
+	type ImportSystemConfigurationPreview struct {
+		Target                           string
+		ImportSystemConfigurationPreview []string `json:"ImportSystemConfigurationPreview@Redfish.AllowableValues"`
+		ShareParameters                  ShareParameters
+	}
+
+	type ImportSystemConfiguration struct {
+		Target                    string
+		HostPowerState            []string `json:"HostPowerState@Redfish.AllowableValues"`
+		ImportSystemConfiguration []string `json:"ImportSystemConfiguration@Redfish.AllowableValues"`
+		ShutdownType              []string `json:"ShutdownType@Redfish.AllowableValues"`
+		ShareParameters           ShareParameters
+	}
+
 	var tempActions struct {
-		ExportSystemConfiguration struct {
-			Target          string
-			ExportFormat    []string `json:"ExportFormat@Redfish.AllowableValues"`
-			ExportUse       []string `json:"ExportUse@Redfish.AllowableValues"`
-			IncludeInExport []string `json:"IncludeInExport@Redfish.AllowableValues"`
-			ShareParameters ShareParameters
-		} `json:"#OemManager.v1_2_0.OemManager#OemManager.ExportSystemConfiguration"`
-		ImportSystemConfiguration struct {
-			Target                    string
-			HostPowerState            []string `json:"HostPowerState@Redfish.AllowableValues"`
-			ImportSystemConfiguration []string `json:"ImportSystemConfiguration@Redfish.AllowableValues"`
-			ShutdownType              []string `json:"ShutdownType@Redfish.AllowableValues"`
-			ShareParameters           ShareParameters
-		} `json:"#OemManager.v1_2_0.OemManager#OemManager.ImportSystemConfiguration"`
-		ImportSystemConfigurationPreview struct {
-			Target                           string
-			ImportSystemConfigurationPreview []string `json:"ImportSystemConfigurationPreview@Redfish.AllowableValues"`
-			ShareParameters                  ShareParameters
-		} `json:"#OemManager.v1_2_0.OemManager#OemManager.ImportSystemConfigurationPreview"`
-		ResetToDefaults struct {
-			Target    string
-			ResetType []string `json:"ResetType@Redfish.AllowableValues"`
-		} `json:"DellManager.v1_0_0#DellManager.ResetToDefaults"`
+		ExportSystemConfiguration ExportSystemConfiguration `json:"#OemManager.v1_2_0.OemManager#OemManager.ExportSystemConfiguration"`
+		ImportSystemConfiguration ImportSystemConfiguration `json:"#OemManager.v1_2_0.OemManager#OemManager.ImportSystemConfiguration"`
+		//revive:disable-next-line:line-length-limit
+		ImportSystemConfigurationPreview ImportSystemConfigurationPreview `json:"#OemManager.v1_2_0.OemManager#OemManager.ImportSystemConfigurationPreview"`
+		ResetToDefaults                  ResetToDefaults                  `json:"DellManager.v1_0_0#DellManager.ResetToDefaults"`
 	}
 
 	err := json.Unmarshal(data, &tempActions)
@@ -116,12 +127,14 @@ type managerLinks struct {
 	Jobs                               common.Link
 }
 
+// UnmarshalJSON unmarshals Manager Links object from the raw JSON
 func (m *managerLinks) UnmarshalJSON(data []byte) error {
 	type temp managerLinks
+	type Dell struct {
+		temp
+	}
 	var tempLink struct {
-		Dell struct {
-			temp
-		}
+		Dell Dell
 	}
 
 	err := json.Unmarshal(data, &tempLink)
@@ -148,12 +161,14 @@ type ManagerOEM struct {
 	DelliDRACCard DelliDRACCard
 }
 
+// UnmarshalJSON unmrshals Manager OEM object from the raw JSON
 func (m *ManagerOEM) UnmarshalJSON(data []byte) error {
 	type temp ManagerOEM
+	type Dell struct {
+		temp
+	}
 	var tempOEM struct {
-		Dell struct {
-			temp
-		}
+		Dell Dell
 	}
 
 	err := json.Unmarshal(data, &tempOEM)
@@ -165,8 +180,8 @@ func (m *ManagerOEM) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Manager contains gofish Manager data, as well as Dell OEM actions, links and data
-type Manager struct {
+// ManagerExtended contains gofish Manager data, as well as Dell OEM actions, links and data
+type ManagerExtended struct {
 	*redfish.Manager
 	// Actions will hold all Manager Dell OEM actions
 	Actions ManagerActions
@@ -175,10 +190,10 @@ type Manager struct {
 	OemData ManagerOEM
 }
 
-// DellManager returns a Dell.Manager pointer given a redfish.Manager pointer from Gofish
+// Manager returns a Dell.Manager pointer given a redfish.Manager pointer from Gofish
 // This is the wrapper that extracts and parses Dell Manager OEM actions, links and data.
-func DellManager(manager *redfish.Manager) (*Manager, error) {
-	dellManager := &Manager{Manager: manager, Actions: ManagerActions{}, links: managerLinks{}, OemData: ManagerOEM{}}
+func Manager(manager *redfish.Manager) (*ManagerExtended, error) {
+	dellManager := &ManagerExtended{Manager: manager, Actions: ManagerActions{}, links: managerLinks{}, OemData: ManagerOEM{}}
 	var actions ManagerActions
 	var links managerLinks
 	var oemData ManagerOEM
@@ -205,6 +220,6 @@ func DellManager(manager *redfish.Manager) (*Manager, error) {
 }
 
 // DellAttributes return an slice with all configurable dell attributes
-func (m *Manager) DellAttributes() ([]*DellAttributes, error) {
+func (m *ManagerExtended) DellAttributes() ([]*Attributes, error) {
 	return ListReferenceDellAttributes(m.GetClient(), m.links.DellAttributes)
 }
