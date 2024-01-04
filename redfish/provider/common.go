@@ -287,11 +287,12 @@ func (s *ServerStatusChecker) Check(ctx context.Context) error {
 		tflog.Trace(ctx, "Checking server status...")
 		time.Sleep(time.Duration(s.Interval) * time.Second)
 		_, err = net.Dial("tcp", net.JoinHostPort(addr.Hostname(), addr.Scheme))
+		if err != nil {
+			continue
+		}
+		_, err := getSystemResource(s.Service)
 		if err == nil {
-			_, err := getSystemResource(s.Service)
-			if err == nil {
-				return nil
-			}
+			return nil
 		}
 		errctx := tflog.SetField(ctx, "error", err.Error())
 		tflog.Trace(errctx, "Site unreachable")
