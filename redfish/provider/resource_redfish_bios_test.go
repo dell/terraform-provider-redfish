@@ -2,9 +2,10 @@ package provider
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"regexp"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 // test redfish bios settings
@@ -57,6 +58,24 @@ func TestAccRedfishBios_InvalidAttributes(t *testing.T) {
 				Config: testAccRedfishResourceBiosConfigInvalidAttributes(
 					creds),
 				ExpectError: regexp.MustCompile("Attribute settings_apply_time value must be one of"),
+			},
+		},
+	})
+}
+
+// Test to import bios - positive
+func TestAccRedfishBios_Import(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceBiosConfigOn(
+					creds),
+				ResourceName:  "redfish_bios.bios",
+				ImportState:   true,
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ExpectError:   nil,
 			},
 		},
 	})

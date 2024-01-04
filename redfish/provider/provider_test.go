@@ -57,7 +57,7 @@ func testAccPreCheck(t *testing.T) {
 	}
 
 	if v := os.Getenv("TF_TESTING_ENDPOINT2"); v == "" {
-		t.Fatal("TF_TESTING_ENDPOINT must be set for acceptance tests")
+		t.Fatal("TF_TESTING_ENDPOINT2 must be set for acceptance tests")
 	}
 }
 

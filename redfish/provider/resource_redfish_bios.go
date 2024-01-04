@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"path"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	tfpath "github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
@@ -244,6 +246,32 @@ func (*BiosResource) Delete(ctx context.Context, req resource.DeleteRequest, res
 	tflog.Trace(ctx, "resource_Bios delete: finished")
 }
 
+// ImportState import state for existing resource
+func (*BiosResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	type creds struct {
+		Username    string `json:"username"`
+		Password    string `json:"password"`
+		Endpoint    string `json:"endpoint"`
+		SslInsecure bool   `json:"ssl_insecure"`
+	}
+
+	var c creds
+	err := json.Unmarshal([]byte(req.ID), &c)
+	if err != nil {
+		resp.Diagnostics.AddError("Error while unmarshalling id", err.Error())
+	}
+
+	server := models.RedfishServer{
+		User:        types.StringValue(c.Username),
+		Password:    types.StringValue(c.Password),
+		Endpoint:    types.StringValue(c.Endpoint),
+		SslInsecure: types.BoolValue(c.SslInsecure),
+	}
+
+	redfishServer := tfpath.Root("redfish_server")
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, redfishServer, []models.RedfishServer{server})...)
+}
+
 func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, service *gofish.Service, plan *models.Bios,
 ) (*models.Bios, diag.Diagnostics) {
 	var diags diag.Diagnostics
@@ -333,13 +361,20 @@ func (r *BiosResource) readRedfishDellBiosAttributes(service *gofish.Service, d 
 	}
 
 	attributesTF := make(map[string]attr.Value)
-	for key, value := range attributes {
-		if _, ok := old[key]; ok {
+	if len(old) != 0 {
+		for key, value := range attributes {
+			if _, ok := old[key]; ok {
+				attributesTF[key] = types.StringValue(value)
+			}
+		}
+	} else {
+		for key, value := range attributes {
 			attributesTF[key] = types.StringValue(value)
 		}
 	}
 
 	d.Attributes = types.MapValueMust(types.StringType, attributesTF)
+	d.ID = types.StringValue(bios.ID)
 	return nil
 }
 
