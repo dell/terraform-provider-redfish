@@ -247,13 +247,14 @@ func certutils(params CertUtilsParam) (ok bool, summary string, details string) 
 		return false, "Couldn't upload certificate from redfish API: ", string(body)
 	}
 
-	timeoutInterval := map[string]int{
-		"timeout":  defaultCheckTimeout,
-		"interval": defaultCheckInterval,
-	}
-
 	// Check iDRAC status
-	err = checkServerStatus(params.ctx, service, (*params.rserver)[0].Endpoint.ValueString(), timeoutInterval)
+	checker := ServerStatusChecker{
+		Service:  service,
+		Endpoint: (*params.rserver)[0].Endpoint.ValueString(),
+		Interval: defaultCheckInterval,
+		Timeout:  defaultCheckTimeout,
+	}
+	err = checker.Check(params.ctx)
 	if err != nil {
 		return false, "Error while rebooting iDRAC. Operation may take longer duration to complete", err.Error()
 	}
