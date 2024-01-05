@@ -31,6 +31,14 @@ const (
 	redfishServerMD string = "List of server BMCs and their respective user credentials"
 )
 
+// ServerStatusChecker has required fields for Check() method
+type ServerStatusChecker struct {
+	Service  *gofish.Service
+	Endpoint string
+	Interval int
+	Timeout  int
+}
+
 // RedfishServerSchema to construct schema of redfish server
 func RedfishServerSchema() map[string]resourceSchema.Attribute {
 	return map[string]resourceSchema.Attribute{
@@ -264,10 +272,10 @@ func (p powerOperator) PowerOperation(resetType string, maximumWaitTime int64, c
 	return system.PowerState, nil
 }
 
-// checkServerStatus checks iDRAC server status after provided interval until the provided timeout time
-func checkServerStatus(ctx context.Context, endpoint string, interval int, timeout int) error {
+// Check checks iDRAC server status after provided interval until the provided timeout time
+func (s *ServerStatusChecker) Check(ctx context.Context) error {
 	var err error
-	addr, err := url.Parse(endpoint)
+	addr, err := url.Parse(s.Endpoint)
 	if err != nil {
 		return err
 	}
@@ -275,10 +283,14 @@ func checkServerStatus(ctx context.Context, endpoint string, interval int, timeo
 	// Intial sleep until iDRAC reboot is triggered
 	time.Sleep(30 * time.Second)
 
-	for start := time.Now(); time.Since(start) < (time.Duration(timeout) * time.Second); {
+	for start := time.Now(); time.Since(start) < (time.Duration(s.Timeout) * time.Second); {
 		tflog.Trace(ctx, "Checking server status...")
-		time.Sleep(time.Duration(interval) * time.Second)
+		time.Sleep(time.Duration(s.Interval) * time.Second)
 		_, err = net.Dial("tcp", net.JoinHostPort(addr.Hostname(), addr.Scheme))
+		if err != nil {
+			continue
+		}
+		_, err := getSystemResource(s.Service)
 		if err == nil {
 			return nil
 		}
