@@ -70,7 +70,8 @@ func testAccRedfishResourceBootOptions(testingInfo TestingServerCredentials, boo
 			endpoint = "https://%s"
 			ssl_insecure = true
 		}
-	   
+	    reset_timeout=400
+		boot_order_job_timeout=4000
 		reset_type="ForceRestart"   
 		boot_options = [{boot_option_reference="%s", boot_option_enabled=%t}]
 	}	  

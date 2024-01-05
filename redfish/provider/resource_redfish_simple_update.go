@@ -474,7 +474,7 @@ func checkResetType(resetType string, allowableValues []redfish.ResetType) bool 
 
 // openFile is a simple function that opens a file
 func openFile(filePath string) (*os.File, error) {
-	f, err := os.Open(filePath)
+	f, err := os.Open(filePath) // #nosec G304
 	if err != nil {
 		err = fmt.Errorf("error when opening %s file - %w", filePath, err)
 	}

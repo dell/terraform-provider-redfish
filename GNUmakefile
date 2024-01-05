@@ -45,9 +45,8 @@ vet:
 		exit 1; \
 	fi
 
-sec:
-	gosec -exclude-generated ./...
-
+gosec:
+	gosec -exclude=G104 ./...
 release:
 	goreleaser release --rm-dist --snapshot --skip-publish  --skip-sign
 

@@ -266,7 +266,7 @@ linters-settings:
         severity: warning
         disabled: false
         arguments: [150] #TBD 80
-      # https://github.com/mgechev/revive/blob/[main]/RULES_DESCRIPTIONS.md#modifies-parameter
+      # https://github.com/mgechev/revive/blob/[main]/RULES_DESCRIPTIONS.md#modifies-parameter 
       - name: modifies-parameter
         severity: warning
         disabled: false
