@@ -122,8 +122,20 @@ func (r *managerResetResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
+	service, err := NewConfig(r.p, &plan.RedfishServer)
+	if err != nil {
+		resp.Diagnostics.AddError("Error while getting service", err.Error())
+		return
+	}
+
 	// Check iDRAC status
-	err = checkServerStatus(ctx, plan.RedfishServer[0].Endpoint.ValueString(), defaultCheckInterval, defaultCheckTimeout)
+	checker := ServerStatusChecker{
+		Service:  service,
+		Endpoint: (plan.RedfishServer)[0].Endpoint.ValueString(),
+		Interval: defaultCheckInterval,
+		Timeout:  defaultCheckTimeout,
+	}
+	err = checker.Check(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Error while rebooting iDRAC. Operation may take longer duration to complete", err.Error())
 		return
