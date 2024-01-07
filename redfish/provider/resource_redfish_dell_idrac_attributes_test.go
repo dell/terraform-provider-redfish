@@ -47,6 +47,23 @@ func TestAccRedfishIDRACAttributesInvalidAttribute(t *testing.T) {
 	})
 }
 
+func TestAccRedfishIDRACAttributeImport(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `resource "redfish_dell_idrac_attributes" "idrac" {
+				}`,
+				ResourceName:  "redfish_dell_idrac_attributes.idrac",
+				ImportState:   true,
+				ImportStateId: "{\"attributes\":{\"Users.2.UserName\":\"\"},\"id\":\"import-me\",\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ExpectError:   nil,
+			},
+		},
+	})
+}
+
 func testAccRedfishResourceIDracAttributesConfig(testingInfo TestingServerCredentials, username string) string {
 	return fmt.Sprintf(`
 	resource "redfish_dell_idrac_attributes" "idrac" {

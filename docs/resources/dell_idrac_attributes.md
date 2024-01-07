@@ -193,4 +193,8 @@ Optional:
 - `ssl_insecure` (Boolean) This field indicates whether the SSL/TLS certificate must be verified or not
 - `user` (String) User name for login
 
+## Import
 
+Import is supported using the following syntax:
+
+{{codefile "shell" "/root/redfish-pr-build/terraform-provider-redfish/examples/resources/redfish_dell_idrac_attributes/import.sh"}}
