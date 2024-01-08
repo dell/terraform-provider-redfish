@@ -215,5 +215,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-terraform import redfish_dell_idrac_attributes.idrac '{"username":"<user>","password":"<password>","endpoint":"<endpoint>","ssl_insecure":<true/false>,"id":"<id>","attributes":{"Users.2.UserName":""}}'
+# import all idrac attributes
+terraform import redfish_dell_idrac_attributes.idrac '{"username":"<user>","password":"<password>","endpoint":"<endpoint>","ssl_insecure":<true/false>}'
+
+# import list of idrac attributes
+terraform import redfish_dell_idrac_attributes.idrac '{"username":"<user>","password":"<password>","endpoint":"<endpoint>","ssl_insecure":<true/false>, "attributes":["Users.2.UserName"]}'
 ```
