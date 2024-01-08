@@ -361,7 +361,7 @@ func (r *BiosResource) readRedfishDellBiosAttributes(service *gofish.Service, d 
 	}
 
 	attributesTF := make(map[string]attr.Value)
-	if len(old) != 0 {
+	if old != nil {
 		for key, value := range attributes {
 			if _, ok := old[key]; ok {
 				attributesTF[key] = types.StringValue(value)
