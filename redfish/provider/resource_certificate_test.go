@@ -60,6 +60,6 @@ func testAccRedfishResourceCustomCertificate(testingInfo TestingServerCredential
 		certfile,
 		testingInfo.Username,
 		testingInfo.Password,
-		testingInfo.Endpoint,
+		certIP,
 	)
 }

@@ -15,6 +15,7 @@ var creds TestingServerCredentials
 var image64Boot string 
 var imageEfiBoot string 
 var drive string
+var certIP string
 
 // // TestingServerCredentials Struct used to store the credentials we pass for testing. This allows us to pass testing
 // // credentials via environment variables instead of having them hard coded
@@ -48,8 +49,10 @@ func init() {
 	// virtual media environment variable
 	image64Boot = os.Getenv("TF_TESTING_VIRTUAL_MEDIA_IMAGE_PATH_64Boot")
 	imageEfiBoot = os.Getenv("TF_TESTING_VIRTUAL_MEDIA_IMAGE_PATH_EfiBoot")
-	// storage volume environment varibale 
+	// storage volume environment variable 
 	drive = os.Getenv("TF_TESTING_STORAGE_VOLUME_DRIVE")
+	// certificate environment variable
+	certIP = os.Getenv("TF_TESTING_CERTIFICATE_IP")
 }
 
 func testAccPreCheck(t *testing.T) {
