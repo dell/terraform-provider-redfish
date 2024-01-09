@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -193,7 +194,43 @@ func (*dellIdracAttributesResource) Delete(ctx context.Context, req resource.Del
 
 // ImportState import state for existing DellIdracAttributes
 func (*dellIdracAttributesResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	type creds struct {
+		Username    string   `json:"username"`
+		Password    string   `json:"password"`
+		Endpoint    string   `json:"endpoint"`
+		SslInsecure bool     `json:"ssl_insecure"`
+		Attributes  []string `json:"attributes"`
+	}
+
+	var c creds
+	err := json.Unmarshal([]byte(req.ID), &c)
+	if err != nil {
+		resp.Diagnostics.AddError("Error while unmarshalling id", err.Error())
+	}
+
+	server := models.RedfishServer{
+		User:        types.StringValue(c.Username),
+		Password:    types.StringValue(c.Password),
+		Endpoint:    types.StringValue(c.Endpoint),
+		SslInsecure: types.BoolValue(c.SslInsecure),
+	}
+
+	idAttrPath := path.Root("id")
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, idAttrPath, "importId")...)
+
+	redfishServer := path.Root("redfish_server")
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, redfishServer, []models.RedfishServer{server})...)
+
+	attributes := path.Root("attributes")
+	if c.Attributes == nil {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, attributes, types.MapNull(types.StringType))...)
+		return
+	}
+	readAttributes := make(map[string]attr.Value)
+	for _, k := range c.Attributes {
+		readAttributes[k] = types.StringValue("")
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, attributes, types.MapValueMust(types.StringType, readAttributes))...)
 }
 
 func updateRedfishDellIdracAttributes(ctx context.Context, service *gofish.Service, d *models.DellIdracAttributes) diag.Diagnostics {
@@ -302,19 +339,37 @@ func readRedfishDellIdracAttributes(_ context.Context, service *gofish.Service, 
 	old := d.Attributes.Elements()
 	readAttributes := make(map[string]attr.Value)
 
-	for k, v := range old {
-		// Check if attribute from config exists in idrac attributes
-		attrValue := idracAttributes.Attributes[k]
-		// This is done to avoid triggering an update when reading Password values,
-		// that are shown as null (nil to Go)
-		if attrValue != nil {
-			readAttributes[k] = v
-		} else {
-			readAttributes[k] = v.(types.String)
+	if !d.Attributes.IsNull() {
+		for k, v := range old {
+			// Check if attribute from config exists in idrac attributes
+			attrValue := idracAttributes.Attributes[k]
+			// This is done to avoid triggering an update when reading Password values,
+			// that are shown as null (nil to Go)
+			if attrValue != nil {
+				attributeValue(attrValue, readAttributes, k)
+			} else {
+				readAttributes[k] = v.(types.String)
+			}
+		}
+	} else {
+		for k, attrValue := range idracAttributes.Attributes {
+			if attrValue != nil {
+				attributeValue(attrValue, readAttributes, k)
+			} else {
+				readAttributes[k] = types.StringValue("")
+			}
 		}
 	}
 	d.Attributes = types.MapValueMust(types.StringType, readAttributes)
 	return diags
+}
+
+func attributeValue(attrValue interface{}, readAttributes map[string]attr.Value, k string) {
+	if _, ok := attrValue.(float64); ok {
+		readAttributes[k] = types.StringValue(fmt.Sprintf("%.0f", attrValue))
+	} else {
+		readAttributes[k] = types.StringValue(attrValue.(string))
+	}
 }
 
 func getManagerAttributeRegistry(service *gofish.Service) (*dell.ManagerAttributeRegistry, error) {
