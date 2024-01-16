@@ -273,7 +273,7 @@ type VMediaImportConfig struct {
 }
 
 // ImportState is the RPC called to import state for existing Virtual Media
-func (r *virtualMediaResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (*virtualMediaResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	var c VMediaImportConfig
 	err := json.Unmarshal([]byte(req.ID), &c)
 	if err != nil {
@@ -460,7 +460,7 @@ func insertMedia(id string, collection []*redfish.VirtualMedia, config redfish.V
 }
 
 // updateVirtualMediaState - Copy virtual media details from response to state object
-func (r *virtualMediaResource) updateVirtualMediaState(response *redfish.VirtualMedia, plan models.VirtualMedia) models.VirtualMedia {
+func (*virtualMediaResource) updateVirtualMediaState(response *redfish.VirtualMedia, plan models.VirtualMedia) models.VirtualMedia {
 	return models.VirtualMedia{
 		VirtualMediaID:       types.StringValue(response.ODataID),
 		Image:                types.StringValue(response.Image),
