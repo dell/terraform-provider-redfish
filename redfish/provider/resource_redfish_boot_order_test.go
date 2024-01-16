@@ -38,6 +38,23 @@ func TestAccRedfishBootOrderOptions_basic(t *testing.T) {
 	})
 }
 
+// Test to import Boot Order - positive
+func TestAccRedfishBootOrder_Import(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:        testAccRedfishResourceBootOrder1(creds),
+				ResourceName:  "redfish_boot_order.boot",
+				ImportState:   true,
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ExpectError:   nil,
+			},
+		},
+	})
+}
+
 func testAccRedfishResourceBootOrder(testingInfo TestingServerCredentials, bootOrder string) string {
 	return fmt.Sprintf(`
 
@@ -81,5 +98,23 @@ func testAccRedfishResourceBootOptions(testingInfo TestingServerCredentials, boo
 		testingInfo.Endpoint,
 		bootOptionReference,
 		bootOptionEnabled,
+	)
+}
+
+func testAccRedfishResourceBootOrder1(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+
+	resource "redfish_boot_order" "boot" {
+		redfish_server {
+			user = "%s"
+			password = "%s"
+			endpoint = "https://%s"
+			ssl_insecure = true
+		}
+	}
+	`,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
 	)
 }

@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -13,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/path"
+	tfpath "github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
@@ -25,8 +26,8 @@ import (
 )
 
 const (
-	defaultBootOrderResetTimeout  int   = 120
-	defaultBootOrderJobTimeout    int   = 1200
+	defaultBootOrderResetTimeout  int64 = 120
+	defaultBootOrderJobTimeout    int64 = 1200
 	intervalBootOrderJobCheckTime int64 = 10
 )
 
@@ -94,8 +95,12 @@ func BootOrderSchema() map[string]schema.Attribute {
 			Optional:            true,
 			ElementType:         types.StringType,
 			Validators: []validator.List{
-				listvalidator.ConflictsWith(path.Expressions{
-					path.MatchRoot("boot_options"),
+				listvalidator.ConflictsWith(tfpath.Expressions{
+					tfpath.MatchRoot("boot_options"),
+				}...),
+				listvalidator.AtLeastOneOf(tfpath.Expressions{
+					tfpath.MatchRoot("boot_options"),
+					tfpath.MatchRoot("boot_order"),
 				}...),
 			},
 		},
@@ -245,15 +250,41 @@ func (r *BootOrderResource) Read(ctx context.Context, req resource.ReadRequest, 
 		resp.Diagnostics.AddError("[ERROR]: Failed to get updated system resource", err.Error())
 		return
 	}
+
 	diags = r.readRedfishBootAttributes(system, &newState, &state)
 	if diags.HasError() {
 		return
 	}
 
 	// Save into State
-	diags = resp.State.Set(ctx, &state)
+	diags = resp.State.Set(ctx, &newState)
 	resp.Diagnostics.Append(diags...)
 	tflog.Trace(ctx, "resource_Bios read: finished")
+}
+
+// ImportState implements Import functionality for Boot Order Resource
+func (*BootOrderResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	type creds struct {
+		Username    string `json:"username"`
+		Password    string `json:"password"`
+		Endpoint    string `json:"endpoint"`
+		SslInsecure bool   `json:"ssl_insecure"`
+	}
+
+	var c creds
+	err := json.Unmarshal([]byte(req.ID), &c)
+	if err != nil {
+		resp.Diagnostics.AddError("Error while unmarshalling id", err.Error())
+	}
+	server := models.RedfishServer{
+		User:        types.StringValue(c.Username),
+		Password:    types.StringValue(c.Password),
+		Endpoint:    types.StringValue(c.Endpoint),
+		SslInsecure: types.BoolValue(c.SslInsecure),
+	}
+
+	redfishServer := tfpath.Root("redfish_server")
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, redfishServer, []models.RedfishServer{server})...)
 }
 
 func (r *BootOrderResource) bootOperation(ctx context.Context, service *gofish.Service, plan *models.BootOrder) diag.Diagnostics {
@@ -304,8 +335,16 @@ func (r *BootOrderResource) readRedfishBootAttributes(system *redfish.ComputerSy
 
 	d.ID = types.StringValue(system.ODataID)
 	d.RedfishServer = plan.RedfishServer
-	d.JobTimeout = plan.JobTimeout
-	d.ResetTimeout = plan.ResetTimeout
+	if plan.JobTimeout.ValueInt64() > 0 {
+		d.JobTimeout = plan.JobTimeout
+	} else {
+		d.JobTimeout = types.Int64Value(defaultBootOrderJobTimeout)
+	}
+	if plan.ResetTimeout.ValueInt64() > 0 {
+		d.ResetTimeout = plan.ResetTimeout
+	} else {
+		d.ResetTimeout = types.Int64Value(defaultBootOrderResetTimeout)
+	}
 	d.ResetType = plan.ResetType
 	stateval, diags := r.getUpdatedBootOptions(system, plan)
 	d.BootOptions = stateval
@@ -325,44 +364,55 @@ func (r *BootOrderResource) getUpdatedBootOptions(system *redfish.ComputerSystem
 		"boot_option_enabled":   types.BoolType,
 	}
 
-	botOptionsEleType := types.ObjectType{
+	bootOptionsEleType := types.ObjectType{
 		AttrTypes: bootOptionsTypes,
 	}
 
 	objectBootOptions := []attr.Value{}
 
-	// Get Boot Options
-	if len(plan.BootOptions.Elements()) == 0 {
-		return types.ListNull(botOptionsEleType), diags
-	}
-	newPlan, diags := r.getBootOptionsList(plan)
-	if diags.HasError() {
-		return types.ListNull(botOptionsEleType), diags
-	}
+	if len(plan.BootOptions.Elements()) > 0 || len(plan.BootOrder.Elements()) > 0 {
+		// if there are no elements in plan then CRUD returns empty list
+		if len(plan.BootOptions.Elements()) == 0 {
+			return types.ListNull(bootOptionsEleType), diags
+		}
 
-	for _, rbp := range responseBootOptions {
-		toBeAdded := false
-		for _, planObject := range newPlan {
-			if rbp.BootOptionReference == planObject.BootOptionReference.ValueString() {
-				toBeAdded = true
-				break
+		// to avoid state and plan mismatch error fetch only boot options that are a part of plan
+		newPlan, diags := r.getBootOptionsList(plan)
+		if diags.HasError() {
+			return types.ListNull(bootOptionsEleType), diags
+		}
+		for _, rbp := range responseBootOptions {
+			toBeAdded := false
+			for _, planObject := range newPlan {
+				if rbp.BootOptionReference == planObject.BootOptionReference.ValueString() {
+					toBeAdded = true
+					break
+				}
+			}
+			if !toBeAdded {
+				continue
+			}
+			objVal, diags := getUpdatedValues(rbp, bootOptionsTypes)
+			objectBootOptions = append(objectBootOptions, objVal)
+			if diags.HasError() {
+				return types.ListNull(bootOptionsEleType), diags
 			}
 		}
-		if !toBeAdded {
-			continue
-		}
-		objVal, diags := getUpdatedValues(rbp, bootOptionsTypes)
-		objectBootOptions = append(objectBootOptions, objVal)
-		if diags.HasError() {
-			return types.ListNull(botOptionsEleType), diags
+	} else { //  fetch all boot options in case of import
+		for _, rbp := range responseBootOptions {
+			objVal, diags := getUpdatedValues(rbp, bootOptionsTypes)
+			objectBootOptions = append(objectBootOptions, objVal)
+			if diags.HasError() {
+				return types.ListNull(bootOptionsEleType), diags
+			}
 		}
 	}
 	diags.Append(diags...)
 	if diags.HasError() {
-		return types.ListNull(botOptionsEleType), diags
+		return types.ListNull(bootOptionsEleType), diags
 	}
 
-	stateVal, diags := types.ListValue(botOptionsEleType, objectBootOptions)
+	stateVal, diags := types.ListValue(bootOptionsEleType, objectBootOptions)
 	return stateVal, diags
 }
 
