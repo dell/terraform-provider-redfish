@@ -4,10 +4,22 @@ import (
 	"fmt"
 	"regexp"
 	"testing"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+const testAccVMedResName = "redfish_virtual_media.virtual_media"
 
+// getVMedImportConf returns the import configuration for the virtual media
+func getVMedImportConf(d *terraform.State, creds TestingServerCredentials) (string, error) {
+	id, err := getID(d, testAccVMedResName)
+	if err != nil {
+		return id, err
+	}
+	return fmt.Sprintf("{\"id\":\"%s\",\"username\":\"%s\",\"password\":\"%s\",\"endpoint\":\"https://%s\",\"ssl_insecure\":true}",
+		id, creds.Username, creds.Password, creds.Endpoint), nil
+}
 
 // Test to create redfish virtual media - Positive
 func TestAccRedfishVirtualMedia_basic(t *testing.T) {
@@ -24,9 +36,18 @@ func TestAccRedfishVirtualMedia_basic(t *testing.T) {
 					"HTTP",
 					"Stream"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "image", image64Boot),
-					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "inserted", "true"),
+					resource.TestCheckResourceAttr(testAccVMedResName, "image", image64Boot),
+					resource.TestCheckResourceAttr(testAccVMedResName, "inserted", "true"),
 				),
+			},
+			// check that import is creating correct state
+			{
+				ResourceName:      testAccVMedResName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(d *terraform.State) (string, error) {
+					return getVMedImportConf(d, creds)
+				},
 			},
 		},
 	})
@@ -143,8 +164,8 @@ func TestAccRedfishVirtualMediaServer2_basic(t *testing.T) {
 					"HTTP",
 					"Stream"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "image", imageEfiBoot),
-					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "inserted", "true"),
+					resource.TestCheckResourceAttr(testAccVMedResName, "image", imageEfiBoot),
+					resource.TestCheckResourceAttr(testAccVMedResName, "inserted", "true"),
 				),
 			},
 		},
@@ -186,8 +207,8 @@ func TestAccRedfishVirtualMediaServer2Update_InvalidTransferProtocol_Negative(t 
 					"HTTP",
 					"Stream"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "image", imageEfiBoot),
-					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "inserted", "true"),
+					resource.TestCheckResourceAttr(testAccVMedResName, "image", imageEfiBoot),
+					resource.TestCheckResourceAttr(testAccVMedResName, "inserted", "true"),
 				),
 			},
 			{
@@ -219,9 +240,18 @@ func TestAccRedfishVirtualMediaUpdate_basic(t *testing.T) {
 					"HTTP",
 					"Stream"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "image", image64Boot),
-					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "inserted", "true"),
+					resource.TestCheckResourceAttr(testAccVMedResName, "image", image64Boot),
+					resource.TestCheckResourceAttr(testAccVMedResName, "inserted", "true"),
 				),
+			},
+			// check that import is creating correct state
+			{
+				ResourceName:      testAccVMedResName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(d *terraform.State) (string, error) {
+					return getVMedImportConf(d, creds)
+				},
 			},
 			{
 				Config: testAccRedfishResourceVirtualMediaConfig(
@@ -232,6 +262,15 @@ func TestAccRedfishVirtualMediaUpdate_basic(t *testing.T) {
 					"HTTP",
 					"Stream"),
 				ExpectError: regexp.MustCompile("Provider produced inconsistent result after apply"),
+			},
+			// check that import is creating correct state
+			{
+				ResourceName:      testAccVMedResName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(d *terraform.State) (string, error) {
+					return getVMedImportConf(d, creds)
+				},
 			},
 		},
 	})
@@ -252,8 +291,8 @@ func TestAccRedfishVirtualMediaUpdate_InvalidImage_Negative(t *testing.T) {
 					"HTTP",
 					"Stream"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "image", image64Boot),
-					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "inserted", "true"),
+					resource.TestCheckResourceAttr(testAccVMedResName, "image", image64Boot),
+					resource.TestCheckResourceAttr(testAccVMedResName, "inserted", "true"),
 				),
 			},
 			{
@@ -285,8 +324,8 @@ func TestAccRedfishVirtualMediaUpdate_InvalidTransferMethod_Negative(t *testing.
 					"HTTP",
 					"Stream"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "image", image64Boot),
-					resource.TestCheckResourceAttr("redfish_virtual_media.virtual_media", "inserted", "true"),
+					resource.TestCheckResourceAttr(testAccVMedResName, "image", image64Boot),
+					resource.TestCheckResourceAttr(testAccVMedResName, "inserted", "true"),
 				),
 			},
 			{

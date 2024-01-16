@@ -349,7 +349,7 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 func (r *BiosResource) readRedfishDellBiosAttributes(service *gofish.Service, d *models.Bios) error {
 	bios, err := r.getBiosResource(service)
 	if err != nil {
-		return fmt.Errorf("error fetching BIOS resource: %s", err)
+		return fmt.Errorf("error fetching BIOS resource: %w", err)
 	}
 
 	old := d.Attributes.Elements()
@@ -357,7 +357,7 @@ func (r *BiosResource) readRedfishDellBiosAttributes(service *gofish.Service, d 
 	attributes := make(map[string]string)
 	err = copyBiosAttributes(bios, attributes)
 	if err != nil {
-		return fmt.Errorf("error fetching BIOS attributes: %s", err)
+		return fmt.Errorf("error fetching BIOS attributes: %w", err)
 	}
 
 	attributesTF := make(map[string]attr.Value)

@@ -64,7 +64,7 @@ linters-settings:
   staticcheck:
     # SAxxxx checks in https://staticcheck.io/docs/configuration/options/#checks
     # SA1019: TBD: d.GetOkExists is deprecated, ignoring now since we shall be moving to plugin framework soon
-    checks: ["all", "-SA1019"]
+    # checks: ["all", "-SA1019"]
   revive:
     # Maximum number of open files at the same time.
     # See https://github.com/mgechev/revive#command-line-flags
@@ -285,7 +285,7 @@ linters-settings:
       # https://github.com/mgechev/revive/blob/[main]/RULES_DESCRIPTIONS.md#package-comments
       - name: package-comments
         severity: warning
-        disabled: false
+        disabled: true
       # https://github.com/mgechev/revive/blob/[main]/RULES_DESCRIPTIONS.md#range
       - name: range
         severity: warning
@@ -391,10 +391,13 @@ linters:
     - gofmt
     - gofumpt
     - gosec
+    - errorlint
 
 issues:
-  exclude: 
-    - SA1019 # SA1019 static check: 
-  include:
-    - EXC0012  # EXC0012 revive: Annoying issue about not having a comment. The rare codebase has such comments
-    - EXC0014  # EXC0014 revive: Annoying issue about not having a comment. The rare codebase has such comments
+  exclude-use-default: false
+
+# output configuration options
+output:
+  # Sort results by: filepath, line and column.
+  # Default: false
+  sort-results: true

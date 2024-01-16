@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -503,17 +504,15 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 }
 
 func readRedfishStorageVolume(service *gofish.Service, d *models.RedfishStorageVolume) (diags diag.Diagnostics, cleanup bool) {
-	// var diags diag.Diagnostics
-
 	// Check if the volume exists
 	volume, err := redfish.GetVolume(service.GetClient(), d.ID.ValueString())
 	if err != nil {
-		e, ok := err.(*redfishcommon.Error)
-		if !ok {
+		var redfishErr *redfishcommon.Error
+		if !errors.As(err, &redfishErr) {
 			diags.AddError("There was an error with the API", err.Error())
 			return diags, false
 		}
-		if e.HTTPReturnedStatusCode == http.StatusNotFound {
+		if redfishErr.HTTPReturnedStatusCode == http.StatusNotFound {
 			diags.AddError("Volume doesn't exist", "")
 			return diags, true
 		}

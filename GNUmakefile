@@ -1,5 +1,5 @@
 PKG_NAME=redfish
-VERSION=1.1.0
+VERSION=1.2.0
 TEST?=$$(go list ./... | grep -v 'vendor')
 INSTALL_ROOT?=~/.terraform.d/plugins
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
@@ -45,8 +45,9 @@ vet:
 		exit 1; \
 	fi
 
-gosec:
-	gosec -exclude=G104 ./...
+sec:
+	gosec -exclude-generated ./...
+
 release:
 	goreleaser release --rm-dist --snapshot --skip-publish  --skip-sign
 
