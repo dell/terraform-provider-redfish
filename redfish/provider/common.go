@@ -138,7 +138,7 @@ func getSystemResource(service *gofish.Service) (*redfish.ComputerSystem, error)
 // To-Do: Verify from plan modifier, if required implement wrapper for validation of unknown in redfish_server.
 func NewConfig(pconfig *redfishProvider, rserver *[]models.RedfishServer) (*gofish.Service, error) {
 	if len(*rserver) == 0 {
-		return nil, fmt.Errorf("No provider block was found")
+		return nil, fmt.Errorf("no provider block was found")
 	}
 
 	// first redfish server block

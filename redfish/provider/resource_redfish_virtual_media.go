@@ -266,11 +266,13 @@ func (r *virtualMediaResource) Read(ctx context.Context, req resource.ReadReques
 	tflog.Trace(ctx, "resource_virtual_media read: finished")
 }
 
+// VMediaImportConfig is the JSON configuration for importing a virtual media
 type VMediaImportConfig struct {
 	ServerConf
 	ID string `json:"id"`
 }
 
+// ImportState is the RPC called to import state for existing Virtual Media
 func (r *virtualMediaResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	var c VMediaImportConfig
 	err := json.Unmarshal([]byte(req.ID), &c)
@@ -458,7 +460,7 @@ func insertMedia(id string, collection []*redfish.VirtualMedia, config redfish.V
 }
 
 // updateVirtualMediaState - Copy virtual media details from response to state object
-func (v virtualMediaResource) updateVirtualMediaState(response *redfish.VirtualMedia, plan models.VirtualMedia) models.VirtualMedia {
+func (r *virtualMediaResource) updateVirtualMediaState(response *redfish.VirtualMedia, plan models.VirtualMedia) models.VirtualMedia {
 	return models.VirtualMedia{
 		VirtualMediaID:       types.StringValue(response.ODataID),
 		Image:                types.StringValue(response.Image),

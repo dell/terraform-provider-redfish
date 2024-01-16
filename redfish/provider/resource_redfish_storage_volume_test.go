@@ -106,7 +106,7 @@ func TestAccRedfishStorageVolumeCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "volume_type", "NonRedundant"),
 				),
-				// / TBD: non empty plan fix for 
+				// / TBD: non empty plan fix for
 				ExpectNonEmptyPlan: true,
 			},
 		},
@@ -351,7 +351,7 @@ func testAccRedfishResourceStorageVolumeMinConfig(testingInfo TestingServerCrede
 }
 
 func testAccRedfishResourceStorageVolumeImportConfig() string {
-	return fmt.Sprintf(`
+	return `
 	resource "redfish_storage_volume" "volume" {
-	}`)
+	}`
 }
