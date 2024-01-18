@@ -300,7 +300,7 @@ func updateRedfishDellIdracAttributes(ctx context.Context, service *gofish.Servi
 		diags.AddError(idracError, err.Error())
 		return diags
 	}
-	response.Body.Close()
+	response.Body.Close() // #nosec G104
 	d.ID = types.StringValue(idracAttributes.ODataID)
 	diags = readRedfishDellIdracAttributes(ctx, service, d)
 	return diags

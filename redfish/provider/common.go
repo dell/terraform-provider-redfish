@@ -138,7 +138,7 @@ func getSystemResource(service *gofish.Service) (*redfish.ComputerSystem, error)
 // To-Do: Verify from plan modifier, if required implement wrapper for validation of unknown in redfish_server.
 func NewConfig(pconfig *redfishProvider, rserver *[]models.RedfishServer) (*gofish.Service, error) {
 	if len(*rserver) == 0 {
-		return nil, fmt.Errorf("No provider block was found")
+		return nil, fmt.Errorf("no provider block was found")
 	}
 
 	// first redfish server block
@@ -177,7 +177,7 @@ func NewConfig(pconfig *redfishProvider, rserver *[]models.RedfishServer) (*gofi
 	}
 	api, err := gofish.Connect(clientConfig)
 	if err != nil {
-		return nil, fmt.Errorf("error connecting to redfish API: %v", err)
+		return nil, fmt.Errorf("error connecting to redfish API: %w", err)
 	}
 	log.Printf("Connection with the redfish endpoint %v was sucessful\n", rserver1.Endpoint.ValueString())
 	return api.Service, nil
@@ -299,4 +299,12 @@ func (s *ServerStatusChecker) Check(ctx context.Context) error {
 	}
 
 	return err
+}
+
+// ServerConf represents the common credentials in import config
+type ServerConf struct {
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	Endpoint    string `json:"endpoint"`
+	SslInsecure bool   `json:"ssl_insecure"`
 }

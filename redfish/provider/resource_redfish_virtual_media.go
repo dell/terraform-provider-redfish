@@ -2,12 +2,14 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
 	"terraform-provider-redfish/redfish/models"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -177,8 +179,7 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 			}
 			if virtualMedia != nil {
 				// Save into State
-				result := models.VirtualMedia{}
-				r.updateVirtualMediaState(&result, *virtualMedia, &plan)
+				result := r.updateVirtualMediaState(virtualMedia, plan)
 				diags = resp.State.Set(ctx, &result)
 				resp.Diagnostics.Append(diags...)
 				tflog.Trace(ctx, "resource_virtual_media create: finished")
@@ -213,8 +214,7 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		}
 		if virtualMedia != nil {
 			// Save into State
-			result := models.VirtualMedia{}
-			r.updateVirtualMediaState(&result, *virtualMedia, &plan)
+			result := r.updateVirtualMediaState(virtualMedia, plan)
 			diags = resp.State.Set(ctx, &result)
 			resp.Diagnostics.Append(diags...)
 			tflog.Trace(ctx, "resource_virtual_media create: finished")
@@ -257,14 +257,41 @@ func (r *virtualMediaResource) Read(ctx context.Context, req resource.ReadReques
 	}
 
 	// Save into State
-	result := models.VirtualMedia{}
-	r.updateVirtualMediaState(&result, *virtualMedia, &state)
+	result := r.updateVirtualMediaState(virtualMedia, state)
 	diags = resp.State.Set(ctx, &result)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 	tflog.Trace(ctx, "resource_virtual_media read: finished")
+}
+
+// VMediaImportConfig is the JSON configuration for importing a virtual media
+type VMediaImportConfig struct {
+	ServerConf
+	ID string `json:"id"`
+}
+
+// ImportState is the RPC called to import state for existing Virtual Media
+func (*virtualMediaResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	var c VMediaImportConfig
+	err := json.Unmarshal([]byte(req.ID), &c)
+	if err != nil {
+		resp.Diagnostics.AddError("Error while unmarshalling import configuration", err.Error())
+	}
+
+	server := models.RedfishServer{
+		User:        types.StringValue(c.Username),
+		Password:    types.StringValue(c.Password),
+		Endpoint:    types.StringValue(c.Endpoint),
+		SslInsecure: types.BoolValue(c.SslInsecure),
+	}
+
+	idAttrPath := path.Root("id")
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, idAttrPath, c.ID)...)
+
+	redfishServer := path.Root("redfish_server")
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, redfishServer, []models.RedfishServer{server})...)
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
@@ -358,8 +385,7 @@ func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRe
 	}
 
 	// Save into State
-	result := models.VirtualMedia{}
-	r.updateVirtualMediaState(&result, *virtualMedia, &plan)
+	result := r.updateVirtualMediaState(virtualMedia, state)
 	log.Printf("result: %v\n", result)
 	diags = resp.State.Set(ctx, &result)
 	resp.Diagnostics.Append(diags...)
@@ -399,8 +425,7 @@ func (r *virtualMediaResource) Delete(ctx context.Context, req resource.DeleteRe
 	}
 
 	// Save into State
-	result := models.VirtualMedia{}
-	r.updateVirtualMediaState(&result, *virtualMedia, &state)
+	result := r.updateVirtualMediaState(virtualMedia, state)
 	diags = resp.State.Set(ctx, &result)
 	resp.Diagnostics.Append(diags...)
 	tflog.Trace(ctx, "resource_virtual_media delete: finished")
@@ -412,35 +437,37 @@ func getVirtualMedia(virtualMediaID string, vms []*redfish.VirtualMedia) (*redfi
 			return v, nil
 		}
 	}
-	return nil, fmt.Errorf("VirtualMedia with ID %s doesn't exist", virtualMediaID)
+	return nil, fmt.Errorf("virtual media with ID %s doesn't exist", virtualMediaID)
 }
 
 func insertMedia(id string, collection []*redfish.VirtualMedia, config redfish.VirtualMediaConfig, s *gofish.Service) (*redfish.VirtualMedia, error) {
 	virtualMedia, err := getVirtualMedia(id, collection)
 	if err != nil {
-		return nil, fmt.Errorf("Virtual Media selected doesn't exist: %v", err.Error())
+		return nil, fmt.Errorf("virtual media selected doesn't exist: %w", err)
 	}
 	if !virtualMedia.Inserted {
 		err = virtualMedia.InsertMediaConfig(config)
 		if err != nil {
-			return nil, fmt.Errorf("Couldn't mount Virtual Media: %v", err.Error())
+			return nil, fmt.Errorf("couldn't mount Virtual Media: %w", err)
 		}
 		virtualMedia, err := redfish.GetVirtualMedia(s.GetClient(), virtualMedia.ODataID)
 		if err != nil {
-			return nil, fmt.Errorf("Virtual Media selected doesn't exist: %s", err.Error())
+			return nil, fmt.Errorf("virtual media selected doesn't exist: %w", err)
 		}
 		return virtualMedia, nil
 	}
 	return nil, err
 }
 
-// updateVirtualMediaState - Update virtual media details from response to state
-func (virtualMediaResource) updateVirtualMediaState(state *models.VirtualMedia, response redfish.VirtualMedia, plan *models.VirtualMedia) {
-	state.VirtualMediaID = types.StringValue(response.ODataID)
-	state.Image = types.StringValue(response.Image)
-	state.Inserted = types.BoolValue(response.Inserted)
-	state.TransferMethod = types.StringValue(string(response.TransferMethod))
-	state.TransferProtocolType = types.StringValue(string(response.TransferProtocolType))
-	state.WriteProtected = types.BoolValue(response.WriteProtected)
-	state.RedfishServer = plan.RedfishServer
+// updateVirtualMediaState - Copy virtual media details from response to state object
+func (*virtualMediaResource) updateVirtualMediaState(response *redfish.VirtualMedia, plan models.VirtualMedia) models.VirtualMedia {
+	return models.VirtualMedia{
+		VirtualMediaID:       types.StringValue(response.ODataID),
+		Image:                types.StringValue(response.Image),
+		Inserted:             types.BoolValue(response.Inserted),
+		TransferMethod:       types.StringValue(string(response.TransferMethod)),
+		TransferProtocolType: types.StringValue(string(response.TransferProtocolType)),
+		WriteProtected:       types.BoolValue(response.WriteProtected),
+		RedfishServer:        plan.RedfishServer,
+	}
 }

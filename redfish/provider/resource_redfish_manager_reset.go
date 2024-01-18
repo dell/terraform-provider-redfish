@@ -205,7 +205,7 @@ func getManagerFromCollection(managers []*redfish.Manager, managerID string) (*r
 			return manager, nil
 		}
 	}
-	return nil, fmt.Errorf("Invalid Manager ID provided")
+	return nil, fmt.Errorf("invalid Manager ID provided")
 }
 
 func getManager(r *managerResetResource, d models.RedfishManagerReset, managerID string) (*redfish.Manager, error) {
