@@ -239,7 +239,7 @@ limitations under the License.
 terraform import redfish_boot_order.boot '{"username":"admin","password":"passw0rd","endpoint":"https://my-server-1.myawesomecompany.org","ssl_insecure":true}'
 ```
 
-1. This will import the storage volume instance with specified ID into your Terraform state.
+1. This will import the boot order instance into your Terraform state.
 2. After successful import, you can run terraform state list to ensure the resource has been imported successfully.
 3. Now, you can fill in the resource block with the appropriate arguments and settings that match the imported resource's real-world configuration.
 4. Execute terraform plan to see if your configuration and the imported resource are in sync. Make adjustments if needed.

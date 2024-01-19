@@ -18,6 +18,13 @@ func TestAccRedfishBootOrder_basic(t *testing.T) {
 			{
 				Config: testAccRedfishResourceBootOrder(creds, `["Boot0003","Boot0004","Boot0005"]`),
 			},
+			{
+				ResourceName:  "redfish_boot_order.boot",
+				ImportState:   true,
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ExpectError:   nil,
+				// ImportStateVerify: true, // state is not verified since there are multiple boot options and import fetches all while using CRUD you can change specific boot options or none
+			},
 		},
 	})
 }
@@ -32,24 +39,13 @@ func TestAccRedfishBootOrderOptions_basic(t *testing.T) {
 				Config: testAccRedfishResourceBootOptions(creds, os.Getenv("TF_TESTING_BOOT_OPTION_REFERENCE"), true),
 			},
 			{
-				Config: testAccRedfishResourceBootOptions(creds, os.Getenv("TF_TESTING_BOOT_OPTION_REFERENCE"), false),
-			},
-		},
-	})
-}
-
-// Test to import Boot Order - positive
-func TestAccRedfishBootOrder_Import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config:        testAccRedfishResourceBootOrder1(creds),
 				ResourceName:  "redfish_boot_order.boot",
 				ImportState:   true,
 				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
 				ExpectError:   nil,
+			},
+			{
+				Config: testAccRedfishResourceBootOptions(creds, os.Getenv("TF_TESTING_BOOT_OPTION_REFERENCE"), false),
 			},
 		},
 	})
@@ -98,23 +94,5 @@ func testAccRedfishResourceBootOptions(testingInfo TestingServerCredentials, boo
 		testingInfo.Endpoint,
 		bootOptionReference,
 		bootOptionEnabled,
-	)
-}
-
-func testAccRedfishResourceBootOrder1(testingInfo TestingServerCredentials) string {
-	return fmt.Sprintf(`
-
-	resource "redfish_boot_order" "boot" {
-		redfish_server {
-			user = "%s"
-			password = "%s"
-			endpoint = "https://%s"
-			ssl_insecure = true
-		}
-	}
-	`,
-		testingInfo.Username,
-		testingInfo.Password,
-		testingInfo.Endpoint,
 	)
 }
