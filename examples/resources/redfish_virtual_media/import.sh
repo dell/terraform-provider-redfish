@@ -15,14 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-terraform {
-  required_providers {
-    redfish = {
-      version = "1.2.0"
-      source  = "registry.terraform.io/dell/redfish"
-    }
-  }
-}
+# The synatx is:
+# terraform import redfish_virtual_media.media "{\"id\":\"<odata id of the virtual media>\",\"username\":\"<username>\",\"password\":\"<password>\",\"endpoint\":\"<endpoint>\",\"ssl_insecure\":<true/false>}"
 
-provider "redfish" {
-}
+terraform import redfish_virtual_media.media '{"id":"/redfish/v1/Managers/iDRAC.Embedded.1/VirtualMedia/CD","username":"admin","password":"passw0rd","endpoint":"https://my-server-1.myawesomecompany.org","ssl_insecure":true}'

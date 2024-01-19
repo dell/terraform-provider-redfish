@@ -272,8 +272,8 @@ func readRedfishSimpleUpdate(service *gofish.Service, d models.SimpleUpdateRes) 
 	// Try to get software inventory
 	_, err := redfish.GetSoftwareInventory(service.GetClient(), d.Id.ValueString())
 	if err != nil {
-		_, ok := err.(*redfishcommon.Error)
-		if !ok {
+		var redfishErr *redfishcommon.Error
+		if !errors.As(err, &redfishErr) {
 			diags.AddError("there was an issue with the API", err.Error())
 		} else {
 			// the firmware package previously applied has changed, trigger update
@@ -388,7 +388,7 @@ func (u *simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.
 	if err != nil {
 		return nil, fmt.Errorf("error while retrieving Etag from FirmwareInventory: %w", err)
 	}
-	response.Body.Close()
+	response.Body.Close() // #nosec G104
 	etag := response.Header.Get("ETag")
 
 	// Set custom headers
@@ -413,7 +413,7 @@ func (u *simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.
 	if err != nil {
 		return nil, fmt.Errorf("there was an issue when uploading FW package to redfish - %w", err)
 	}
-	response.Body.Close()
+	response.Body.Close() // #nosec G104
 	packageLocation := response.Header.Get("Location")
 
 	// Get package information ( SoftwareID - Version )
@@ -434,7 +434,7 @@ func (u *simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.
 		// Delete uploaded package - TBD
 		return nil, fmt.Errorf("there was an issue when scheduling the update job - %w", err)
 	}
-	response.Body.Close()
+	response.Body.Close() // #nosec G104
 
 	// Get jobid
 	jobID := response.Header.Get("Location")
@@ -518,7 +518,7 @@ func (u *simpleUpdater) pullUpdate(d models.SimpleUpdateRes) (models.SimpleUpdat
 	response, err := service.GetClient().Post(httpURI, payload)
 	if err != nil {
 		// Delete uploaded package - TBD
-		return d, fmt.Errorf("there was an issue when scheduling the update job - %s", err)
+		return d, fmt.Errorf("there was an issue when scheduling the update job - %w", err)
 	}
 
 	// Get jobid
@@ -529,7 +529,7 @@ func (u *simpleUpdater) pullUpdate(d models.SimpleUpdateRes) (models.SimpleUpdat
 	err = u.updateJobStatus(d)
 	if err != nil {
 		// Delete uploaded package - TBD
-		return d, fmt.Errorf("there was an issue when waiting for the job to complete - %s", err)
+		return d, fmt.Errorf("there was an issue when waiting for the job to complete - %w", err)
 	}
 
 	job, err := redfish.GetTask(service.GetClient(), jobID)
