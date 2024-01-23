@@ -46,6 +46,29 @@ func TestAccRedfishLCAttributesInvalidAttribute(t *testing.T) {
 	})
 }
 
+func TestAccRedfishLCAttributesUpdate(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceLCAttributesConfig(creds),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_dell_lc_attributes.lc", "attributes.LCAttributes.1.IgnoreCertWarning", "On"),
+					resource.TestCheckResourceAttr("redfish_dell_lc_attributes.lc", "attributes.LCAttributes.1.CollectSystemInventoryOnRestart", "Disabled"),
+				),
+			},
+			{
+				Config: testAccRedfishResourceLCAttributesUpdateConfig(creds),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_dell_lc_attributes.lc", "attributes.LCAttributes.1.IgnoreCertWarning", "Off"),
+					resource.TestCheckResourceAttr("redfish_dell_lc_attributes.lc", "attributes.LCAttributes.1.CollectSystemInventoryOnRestart", "Enabled"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccRedfishLCAttributeImport(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -76,6 +99,28 @@ func testAccRedfishResourceLCAttributesConfig(testingInfo TestingServerCredentia
 		attributes = {
 			"LCAttributes.1.CollectSystemInventoryOnRestart" = "Disabled"
 			"LCAttributes.1.IgnoreCertWarning" = "On"
+		}
+	  }
+	  `,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+	)
+}
+
+func testAccRedfishResourceLCAttributesUpdateConfig(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+	resource "redfish_dell_lc_attributes" "lc" {
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "https://%s"
+		  ssl_insecure = true
+		}
+
+		attributes = {
+			"LCAttributes.1.CollectSystemInventoryOnRestart" = "Enabled"
+			"LCAttributes.1.IgnoreCertWarning" = "Off"
 		}
 	  }
 	  `,
