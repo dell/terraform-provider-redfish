@@ -13,8 +13,8 @@ import (
 
 var testAccProtoV6ProviderFactories map[string]func() (tfprotov6.ProviderServer, error)
 var creds TestingServerCredentials
-var image64Boot string 
-var imageEfiBoot string 
+var image64Boot string
+var imageEfiBoot string
 var drive string
 
 // // TestingServerCredentials Struct used to store the credentials we pass for testing. This allows us to pass testing
@@ -49,7 +49,7 @@ func init() {
 	// virtual media environment variable
 	image64Boot = os.Getenv("TF_TESTING_VIRTUAL_MEDIA_IMAGE_PATH_64Boot")
 	imageEfiBoot = os.Getenv("TF_TESTING_VIRTUAL_MEDIA_IMAGE_PATH_EfiBoot")
-	// storage volume environment varibale 
+	// storage volume environment varibale
 	drive = os.Getenv("TF_TESTING_STORAGE_VOLUME_DRIVE")
 }
 

@@ -15,11 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-terraform {
-  required_providers {
-    redfish = {
-      version = "1.2.0"
-      source  = "registry.terraform.io/dell/redfish"
-    }
-  }
-}
+# The synatx is:
+# terraform import redfish_boot_order.boot "{\"username\":\"<username>\",\"password\":\"<password>\",\"endpoint\":\"<endpoint>\",\"ssl_insecure\":<true/false>}"
+
+terraform import redfish_boot_order.boot '{"username":"admin","password":"passw0rd","endpoint":"https://my-server-1.myawesomecompany.org","ssl_insecure":true}'

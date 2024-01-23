@@ -18,6 +18,13 @@ func TestAccRedfishBootOrder_basic(t *testing.T) {
 			{
 				Config: testAccRedfishResourceBootOrder(creds, `["Boot0003","Boot0004","Boot0005"]`),
 			},
+			{
+				ResourceName:  "redfish_boot_order.boot",
+				ImportState:   true,
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ExpectError:   nil,
+				// ImportStateVerify: true, // state is not verified since there are multiple boot options and import fetches all while using CRUD you can change specific boot options or none
+			},
 		},
 	})
 }
@@ -30,6 +37,12 @@ func TestAccRedfishBootOrderOptions_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRedfishResourceBootOptions(creds, os.Getenv("TF_TESTING_BOOT_OPTION_REFERENCE"), true),
+			},
+			{
+				ResourceName:  "redfish_boot_order.boot",
+				ImportState:   true,
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ExpectError:   nil,
 			},
 			{
 				Config: testAccRedfishResourceBootOptions(creds, os.Getenv("TF_TESTING_BOOT_OPTION_REFERENCE"), false),
