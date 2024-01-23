@@ -177,7 +177,7 @@ func (r *dellLCAttributesResource) Update(ctx context.Context, req resource.Upda
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
-func (*dellLCAttributesResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (*dellLCAttributesResource) Delete(ctx context.Context, _ resource.DeleteRequest, resp *resource.DeleteResponse) {
 	tflog.Trace(ctx, "resource_DellLCAttributes delete: started")
 
 	resp.State.RemoveResource(ctx)
