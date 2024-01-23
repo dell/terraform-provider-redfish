@@ -20,6 +20,14 @@ func TestAccRedfishLCAttributesBasic(t *testing.T) {
 					resource.TestCheckResourceAttr("redfish_dell_lc_attributes.lc", "attributes.LCAttributes.1.CollectSystemInventoryOnRestart", "Disabled"),
 				),
 			},
+			{
+				Config: `resource "redfish_dell_lc_attributes" "lc" {
+				}`,
+				ResourceName:  "redfish_dell_lc_attributes.lc",
+				ImportState:   true,
+				ImportStateId: "{\"attributes\":[\"LCAttributes.1.CollectSystemInventoryOnRestart\"],\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ExpectError:   nil,
+			},
 		},
 	})
 }
@@ -49,23 +57,6 @@ func TestAccRedfishLCAttributeImport(t *testing.T) {
 				ResourceName:  "redfish_dell_lc_attributes.lc",
 				ImportState:   true,
 				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
-				ExpectError:   nil,
-			},
-		},
-	})
-}
-
-func TestAccRedfishLCAttributeImportByFilter(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: `resource "redfish_dell_lc_attributes" "lc" {
-				}`,
-				ResourceName:  "redfish_dell_lc_attributes.lc",
-				ImportState:   true,
-				ImportStateId: "{\"attributes\":[\"LCAttributes.1.CollectSystemInventoryOnRestart\"],\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
 				ExpectError:   nil,
 			},
 		},

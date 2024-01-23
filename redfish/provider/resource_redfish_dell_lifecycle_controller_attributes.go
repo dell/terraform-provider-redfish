@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"terraform-provider-redfish/gofish/dell"
 	"terraform-provider-redfish/redfish/models"
@@ -180,13 +179,6 @@ func (r *dellLCAttributesResource) Update(ctx context.Context, req resource.Upda
 // Delete deletes the resource and removes the Terraform state on success.
 func (*dellLCAttributesResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	tflog.Trace(ctx, "resource_DellLCAttributes delete: started")
-	// Get State Data
-	var state models.DellLCAttributes
-	diags := req.State.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 
 	resp.State.RemoveResource(ctx)
 	tflog.Trace(ctx, "resource_DellLCAttributes delete: finished")
@@ -366,7 +358,6 @@ func readRedfishDellLCAttributes(_ context.Context, service *gofish.Service, d *
 
 func getLCAttributes(attributes []*dell.Attributes) (*dell.Attributes, error) {
 	for _, a := range attributes {
-		log.Printf("attributes: %s", a.ID)
 		if strings.Contains(a.ID, "LCAttributes") {
 			return a, nil
 		}
