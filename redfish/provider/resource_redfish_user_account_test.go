@@ -2,11 +2,44 @@ package provider
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
+
+const userID = "15"
+
+func init() {
+	resource.AddTestSweepers("redfish_user_account", &resource.Sweeper{
+		Name: "redfish_user_account",
+		F: func(region string) error {
+			log.Println("Sweepers for user")
+			service, err := getSweeperClient(region)
+			if err != nil {
+				log.Println("Error getting sweeper client ", err.Error())
+				return nil
+			}
+			_, account, _ := GetUserAccountFromID(service, userID)
+
+			if account != nil { // user exists so we need to remove it
+				// PATCH call to remove username.
+				payload := make(map[string]interface{})
+				payload["UserName"] = ""
+				payload["Enable"] = "false"
+				payload["RoleId"] = "None"
+				_, err = service.GetClient().Patch(account.ODataID, payload)
+				if err != nil {
+					log.Println("failed to sweep dangling user.")
+					return nil
+				}
+
+			}
+			return nil
+		},
+	})
+}
 
 // Test to create and update redfish user - Positive
 func TestAccRedfishUser_basic(t *testing.T) {
@@ -21,7 +54,7 @@ func TestAccRedfishUser_basic(t *testing.T) {
 					"Test@1234",
 					"Operator",
 					true,
-					"15"),
+					userID),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
 				),
@@ -33,7 +66,7 @@ func TestAccRedfishUser_basic(t *testing.T) {
 					"Test@1234",
 					"None",
 					false,
-					"15"),
+					userID),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
 				),
@@ -55,7 +88,7 @@ func TestAccRedfishUserInvalid_basic(t *testing.T) {
 					"Test@1234",
 					"Admin",
 					false,
-					"15"),
+					userID),
 				ExpectError: regexp.MustCompile("Invalid Attribute Value Match"),
 			},
 		},
@@ -75,7 +108,7 @@ func TestAccRedfishUserExisting_basic(t *testing.T) {
 					"Xyz@123",
 					"Administrator",
 					true,
-					"15"),
+					userID),
 				ExpectError: regexp.MustCompile("user root already exists against ID 2"),
 			},
 		},
@@ -95,7 +128,7 @@ func TestAccRedfishUserUpdateInvalid_basic(t *testing.T) {
 					"Test@1234",
 					"Administrator",
 					true,
-					"15"),
+					userID),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
 				),
@@ -107,7 +140,7 @@ func TestAccRedfishUserUpdateInvalid_basic(t *testing.T) {
 					"Test@1234",
 					"Administrator",
 					false,
-					"15"),
+					userID),
 				ExpectError: regexp.MustCompile("user root already exists"),
 			},
 		},
@@ -147,7 +180,7 @@ func TestAccRedfishUserUpdateId_basic(t *testing.T) {
 					"Test@1234",
 					"Administrator",
 					true,
-					"15"),
+					userID),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
 				),
@@ -179,7 +212,7 @@ func TestAccRedfishUserUpdateUser_basic(t *testing.T) {
 					"Test@1234",
 					"Administrator",
 					true,
-					"15"),
+					userID),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
 				),
@@ -191,7 +224,7 @@ func TestAccRedfishUserUpdateUser_basic(t *testing.T) {
 					"Test@1234",
 					"Administrator",
 					false,
-					"15"),
+					userID),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test2"),
 				),
@@ -213,7 +246,7 @@ func TestAccRedfishUserImportUser_basic(t *testing.T) {
 					"Test@1234",
 					"None",
 					false,
-					"15"),
+					userID),
 				ResourceName:  "redfish_user_account.user_config",
 				ImportState:   true,
 				ImportStateId: "{\"id\":\"3\",\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
@@ -236,7 +269,7 @@ func TestAccRedfishUserImportUser_invalid(t *testing.T) {
 					"Test@1234",
 					"None",
 					false,
-					"15"),
+					userID),
 				ResourceName:  "redfish_user_account.user_config",
 				ImportState:   true,
 				ImportStateId: "{\"id\":\"invalid\",\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
@@ -259,7 +292,7 @@ func TestAccRedfishUserValidation_basic(t *testing.T) {
 					"Test@1234",
 					"Administrator",
 					false,
-					"15"),
+					userID),
 				ExpectError: regexp.MustCompile("Invalid Attribute Value Length"),
 			},
 			{
@@ -269,7 +302,7 @@ func TestAccRedfishUserValidation_basic(t *testing.T) {
 					"T@1",
 					"Administrator",
 					false,
-					"15"),
+					userID),
 				ExpectError: regexp.MustCompile("Attribute password string length must be between 4 and 40"),
 			},
 			{
@@ -279,7 +312,7 @@ func TestAccRedfishUserValidation_basic(t *testing.T) {
 					"test123",
 					"Administrator",
 					true,
-					"15"),
+					userID),
 				ExpectError: regexp.MustCompile("Password validation failed"),
 			},
 			{
@@ -299,7 +332,7 @@ func TestAccRedfishUserValidation_basic(t *testing.T) {
 					"Test@1234",
 					"Administrator",
 					false,
-					"15"),
+					userID),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test2"),
 				),
@@ -311,7 +344,7 @@ func TestAccRedfishUserValidation_basic(t *testing.T) {
 					"test123",
 					"Administrator",
 					true,
-					"15"),
+					userID),
 				ExpectError: regexp.MustCompile("Password validation failed"),
 			},
 		},
