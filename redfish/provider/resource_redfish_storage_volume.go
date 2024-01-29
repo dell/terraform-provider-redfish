@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"terraform-provider-redfish/common"
 	"terraform-provider-redfish/redfish/models"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -486,6 +487,7 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 		diags.AddError(RedfishJobErrorMsg, err.Error())
 		return diags
 	}
+	time.Sleep(60 * time.Second)
 
 	// Get storage volumes
 	volumes, err := storage.Volumes()
@@ -623,6 +625,7 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service,
 		diags.AddError(RedfishJobErrorMsg, err.Error())
 		return diags
 	}
+	time.Sleep(60 * time.Second)
 
 	// Get storage volumes
 	volumes, err := storage.Volumes()

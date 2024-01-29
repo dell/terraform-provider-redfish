@@ -99,6 +99,59 @@ func TestAccRedfishStorageVolume_InvalidVolumeType(t *testing.T) {
 		},
 	})
 }
+func TestAccRedfishStorageVolumeUpdate_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceStorageVolumeConfig(
+					creds,
+					"RAID.Integrated.1-1",
+					"TerraformVol1",
+					"NonRedundant",
+					drive,
+					"Immediate",
+					"AdaptiveReadAhead",
+					"UnprotectedWriteBack",
+					"PowerCycle",
+					100,
+					1200,
+					1073323222,
+					131072,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "read_cache_policy", "AdaptiveReadAhead"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+
+			{
+				Config: testAccRedfishResourceStorageVolumeConfig(
+					creds,
+					"RAID.Integrated.1-1",
+					"TerraformVol1",
+					"NonRedundant",
+					drive,
+					"Immediate",
+					"ReadAhead",
+					"UnprotectedWriteBack",
+					"PowerCycle",
+					100,
+					1200,
+					1073323222,
+					131072,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "read_cache_policy", "ReadAhead"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
 
 func TestAccRedfishStorageVolumeCreate_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -172,60 +225,6 @@ func TestAccRedfishStorageVolume_basic(t *testing.T) {
 	})
 }
 
-func TestAccRedfishStorageVolumeUpdate_basic(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccRedfishResourceStorageVolumeConfig(
-					creds,
-					"RAID.Integrated.1-1",
-					"TerraformVol1",
-					"NonRedundant",
-					drive,
-					"Immediate",
-					"AdaptiveReadAhead",
-					"UnprotectedWriteBack",
-					"PowerCycle",
-					100,
-					1200,
-					1073323222,
-					131072,
-				),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
-					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "read_cache_policy", "AdaptiveReadAhead"),
-				),
-				ExpectNonEmptyPlan: true,
-			},
-
-			{
-				Config: testAccRedfishResourceStorageVolumeConfig(
-					creds,
-					"RAID.Integrated.1-1",
-					"TerraformVol1",
-					"NonRedundant",
-					drive,
-					"Immediate",
-					"ReadAhead",
-					"UnprotectedWriteBack",
-					"PowerCycle",
-					100,
-					1200,
-					1073323222,
-					131072,
-				),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
-					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "read_cache_policy", "ReadAhead"),
-				),
-				ExpectNonEmptyPlan: true,
-			},
-		},
-	})
-}
-
 func TestAccRedfishStorageVolume_OnReset(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -251,6 +250,7 @@ func TestAccRedfishStorageVolume_OnReset(t *testing.T) {
 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "write_cache_policy", "UnprotectedWriteBack"),
 				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
