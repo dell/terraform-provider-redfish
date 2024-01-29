@@ -486,6 +486,7 @@ func validatePassword(password string) error {
 	return nil
 }
 
+// GetUserAccountFromID fetches specific user details for the given userID
 func GetUserAccountFromID(service *gofish.Service, userID string) ([]*redfish.ManagerAccount, *redfish.ManagerAccount, error) {
 	accountList, err := getAccountList(service)
 	if err != nil {
