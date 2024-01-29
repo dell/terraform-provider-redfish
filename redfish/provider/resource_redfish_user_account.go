@@ -215,7 +215,7 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 		}
 	}
 
-	_, account, err := getUserAccountFromID(service, userID)
+	_, account, err := GetUserAccountFromID(service, userID)
 	if err != nil {
 		resp.Diagnostics.AddError(RedfishFetchErrorMsg, err.Error())
 		return
@@ -247,7 +247,7 @@ func (r *UserAccountResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	_, account, err := getUserAccountFromID(service, state.ID.ValueString())
+	_, account, err := GetUserAccountFromID(service, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(RedfishFetchErrorMsg, err.Error())
 	}
@@ -300,7 +300,7 @@ func (r *UserAccountResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	accountList, account, err := getUserAccountFromID(service, state.ID.ValueString())
+	accountList, account, err := GetUserAccountFromID(service, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(RedfishFetchErrorMsg, err.Error())
 	}
@@ -331,7 +331,7 @@ func (r *UserAccountResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 
 	// get user which is updated
-	_, account, err = getUserAccountFromID(service, account.ID)
+	_, account, err = GetUserAccountFromID(service, account.ID)
 	if err != nil {
 		resp.Diagnostics.AddError(RedfishFetchErrorMsg, err.Error())
 	}
@@ -365,7 +365,7 @@ func (r *UserAccountResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	_, account, err := getUserAccountFromID(service, state.ID.ValueString())
+	_, account, err := GetUserAccountFromID(service, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(RedfishFetchErrorMsg, err.Error())
 	}
@@ -486,7 +486,8 @@ func validatePassword(password string) error {
 	return nil
 }
 
-func getUserAccountFromID(service *gofish.Service, userID string) ([]*redfish.ManagerAccount, *redfish.ManagerAccount, error) {
+// GetUserAccountFromID fetches specific user details for the given userID
+func GetUserAccountFromID(service *gofish.Service, userID string) ([]*redfish.ManagerAccount, *redfish.ManagerAccount, error) {
 	accountList, err := getAccountList(service)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error when retrieving account list %v", err.Error())
