@@ -15,17 +15,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-rack1 = {
-  "my-server-1" = {
-    user         = "admin"
-    password     = "passw0rd"
-    endpoint     = "https://my-server-1.myawesomecompany.org"
-    ssl_insecure = true
-  },
-  "my-server-2" = {
-    user         = "admin"
-    password     = "passw0rd"
-    endpoint     = "https://my-server-2.myawesomecompany.org"
-    ssl_insecure = true
-  },
+terraform {
+  required_providers {
+    redfish = {
+      version = "1.2.0"
+      source  = "registry.terraform.io/dell/redfish"
+    }
+  }
 }
