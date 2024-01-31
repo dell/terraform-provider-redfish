@@ -30,7 +30,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-resource "redfish_dell_system_attributes" "lc" {
+resource "redfish_dell_system_attributes" "system" {
   for_each = var.rack1
 
   redfish_server {
@@ -98,9 +98,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-# import all LC attributes
-terraform import redfish_dell_lc_attributes.lc '{"username":"<user>","password":"<password>","endpoint":"<endpoint>","ssl_insecure":<true/false>}'
+# import all System attributes
+terraform import redfish_dell_system_attributes.lc '{"username":"<user>","password":"<password>","endpoint":"<endpoint>","ssl_insecure":<true/false>}'
 
-# import list of LC attributes
-terraform import redfish_dell_lc_attributes.lc '{"username":"<user>","password":"<password>","endpoint":"<endpoint>","ssl_insecure":<true/false>, "attributes":["LCAttributes.1.IgnoreCertWarning"]}'
+# import list of System attributes
+terraform import redfish_dell_system_attributes.lc '{"username":"<user>","password":"<password>","endpoint":"<endpoint>","ssl_insecure":<true/false>, "attributes":["ServerPwr.1.PSPFCEnabled"]}'
 ```
