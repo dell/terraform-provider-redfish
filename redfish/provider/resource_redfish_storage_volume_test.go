@@ -6,7 +6,18 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
+
+// getVolumeImportConf returns the import configuration for the storage volume
+func getVolumeImportConf(d *terraform.State, creds TestingServerCredentials) (string, error) {
+	id, err := getID(d, "redfish_storage_volume.volume")
+	if err != nil {
+		return id, err
+	}
+	return fmt.Sprintf("{\"id\":\"%s\",\"username\":\"%s\",\"password\":\"%s\",\"endpoint\":\"https://%s\",\"ssl_insecure\":true}",
+		id, creds.Username, creds.Password, creds.Endpoint), nil
+}
 
 func TestAccRedfishStorageVolume_InvalidController(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -88,63 +99,6 @@ func TestAccRedfishStorageVolume_InvalidVolumeType(t *testing.T) {
 		},
 	})
 }
-
-func TestAccRedfishStorageVolumeCreate_basic(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccRedfishResourceStorageVolumeMinConfig(
-					creds,
-					"RAID.Integrated.1-1",
-					"TerraformVol1",
-					"NonRedundant",
-					drive,
-				),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
-					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "volume_type", "NonRedundant"),
-				),
-				// / TBD: non empty plan fix for
-				ExpectNonEmptyPlan: true,
-			},
-		},
-	})
-}
-
-func TestAccRedfishStorageVolume_basic(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccRedfishResourceStorageVolumeConfig(
-					creds,
-					"RAID.Integrated.1-1",
-					"TerraformVol1",
-					"NonRedundant",
-					drive,
-					"Immediate",
-					"AdaptiveReadAhead",
-					"UnprotectedWriteBack",
-					"PowerCycle",
-					100,
-					1200,
-					1073323222,
-					131072,
-				),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
-					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "write_cache_policy", "UnprotectedWriteBack"),
-				),
-				// / TBD: non empty plan fix
-				ExpectNonEmptyPlan: true,
-			},
-		},
-	})
-}
-
 func TestAccRedfishStorageVolumeUpdate_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -199,6 +153,78 @@ func TestAccRedfishStorageVolumeUpdate_basic(t *testing.T) {
 	})
 }
 
+func TestAccRedfishStorageVolumeCreate_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceStorageVolumeMinConfig(
+					creds,
+					"RAID.Integrated.1-1",
+					"TerraformVol1",
+					"NonRedundant",
+					drive,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "volume_type", "NonRedundant"),
+				),
+				// / TBD: non empty plan fix for
+				ExpectNonEmptyPlan: true,
+			},
+			// test import
+			{
+				ResourceName: "redfish_storage_volume.volume",
+				ImportState:  true,
+				ImportStateIdFunc: func(d *terraform.State) (string, error) {
+					return getVolumeImportConf(d, creds)
+				},
+				ExpectError: nil,
+			},
+			// test import -Negative
+			{
+				ResourceName:  "redfish_storage_volume.volume",
+				ImportState:   true,
+				ImportStateId: "{\"id\":\"invalid\",\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ExpectError:   regexp.MustCompile("There was an error with the API"),
+			},
+		},
+	})
+}
+
+func TestAccRedfishStorageVolume_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceStorageVolumeConfig(
+					creds,
+					"RAID.Integrated.1-1",
+					"TerraformVol1",
+					"NonRedundant",
+					drive,
+					"Immediate",
+					"AdaptiveReadAhead",
+					"UnprotectedWriteBack",
+					"PowerCycle",
+					100,
+					1200,
+					1073323222,
+					131072,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "write_cache_policy", "UnprotectedWriteBack"),
+				),
+				// / TBD: non empty plan fix
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccRedfishStorageVolume_OnReset(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -224,40 +250,7 @@ func TestAccRedfishStorageVolume_OnReset(t *testing.T) {
 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "write_cache_policy", "UnprotectedWriteBack"),
 				),
-			},
-		},
-	})
-}
-
-// Test to import volume - positive
-func TestAccRedfishStorageVolumeImport_basic(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config:        testAccRedfishResourceStorageVolumeImportConfig(),
-				ResourceName:  "redfish_storage_volume.volume",
-				ImportState:   true,
-				ImportStateId: "{\"id\":\"/redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/Disk.Virtual.1:RAID.Integrated.1-1\",\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
-				ExpectError:   nil,
-			},
-		},
-	})
-}
-
-// Test to import volume - negative
-func TestAccRedfishStorageVolumeImport_invalid(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config:        testAccRedfishResourceStorageVolumeImportConfig(),
-				ResourceName:  "redfish_storage_volume.volume",
-				ImportState:   true,
-				ImportStateId: "{\"id\":\"invalid\",\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
-				ExpectError:   regexp.MustCompile("There was an error with the API"),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -348,10 +341,4 @@ func testAccRedfishResourceStorageVolumeMinConfig(testingInfo TestingServerCrede
 		volume_type,
 		drives,
 	)
-}
-
-func testAccRedfishResourceStorageVolumeImportConfig() string {
-	return `
-	resource "redfish_storage_volume" "volume" {
-	}`
 }
