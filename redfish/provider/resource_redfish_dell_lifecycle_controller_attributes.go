@@ -74,7 +74,7 @@ func DellLCAttributesSchema() map[string]schema.Attribute {
 				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/LifecycleController.Embedded.1 " +
 				"To get allowed values for those attributes, check " +
 				"/redfish/v1/Registries/ManagerAttributeRegistry/ManagerAttributeRegistry.v1_0_0.json from a Redfish Instance",
-			Description: "iDRAC attributes. " +
+			Description: "Lifecycle Controller attributes. " +
 				"To check allowed attributes please either use the datasource for dell LC attributes or query " +
 				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/LifecycleController.Embedded.1 " +
 				"To get allowed values for those attributes, check " +

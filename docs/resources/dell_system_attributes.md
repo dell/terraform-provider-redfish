@@ -53,7 +53,7 @@ resource "redfish_dell_system_attributes" "lc" {
 
 ### Required
 
-- `attributes` (Map of String) Lifecycle Controller attributes. To check allowed attributes please either use the datasource for dell System attributes or query /redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/System.Embedded.1 To get allowed values for those attributes, check /redfish/v1/Registries/ManagerAttributeRegistry/ManagerAttributeRegistry.v1_0_0.json from a Redfish Instance
+- `attributes` (Map of String) System attributes. To check allowed attributes please either use the datasource for dell System attributes or query /redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/System.Embedded.1 To get allowed values for those attributes, check /redfish/v1/Registries/ManagerAttributeRegistry/ManagerAttributeRegistry.v1_0_0.json from a Redfish Instance
 
 ### Optional
 

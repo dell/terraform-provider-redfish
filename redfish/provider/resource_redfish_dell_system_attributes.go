@@ -52,7 +52,7 @@ func (*dellSystemAttributesResource) Schema(_ context.Context, _ resource.Schema
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "This Terraform resource is used to configure System attributes of the iDRAC Server." +
 			" We can Read the existing configurations or modify them using this resource.",
-		Description: "This Terraform resource is used to configure Lifecycle Controller attributes of the iDRAC Server." +
+		Description: "This Terraform resource is used to configure System attributes of the iDRAC Server." +
 			" We can Read the existing configurations or modify them using this resource.",
 
 		Attributes: DellSystemAttributesSchema(),
@@ -69,12 +69,12 @@ func DellSystemAttributesSchema() map[string]schema.Attribute {
 			Computed:            true,
 		},
 		"attributes": schema.MapAttribute{
-			MarkdownDescription: "Lifecycle Controller attributes. " +
+			MarkdownDescription: "System attributes. " +
 				"To check allowed attributes please either use the datasource for dell System attributes or query " +
 				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/System.Embedded.1 " +
 				"To get allowed values for those attributes, check " +
 				"/redfish/v1/Registries/ManagerAttributeRegistry/ManagerAttributeRegistry.v1_0_0.json from a Redfish Instance",
-			Description: "iDRAC attributes. " +
+			Description: "System attributes. " +
 				"To check allowed attributes please either use the datasource for dell System attributes or query " +
 				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/System.Embedded.1 " +
 				"To get allowed values for those attributes, check " +
