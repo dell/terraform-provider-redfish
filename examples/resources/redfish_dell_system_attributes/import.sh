@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 # import all System attributes
-terraform import redfish_dell_system_attributes.lc '{"username":"<user>","password":"<password>","endpoint":"<endpoint>","ssl_insecure":<true/false>}'
+terraform import redfish_dell_system_attributes.system '{"username":"<user>","password":"<password>","endpoint":"<endpoint>","ssl_insecure":<true/false>}'
 
 # import list of System attributes
-terraform import redfish_dell_system_attributes.lc '{"username":"<user>","password":"<password>","endpoint":"<endpoint>","ssl_insecure":<true/false>, "attributes":["ServerPwr.1.PSPFCEnabled"]}'
+terraform import redfish_dell_system_attributes.system '{"username":"<user>","password":"<password>","endpoint":"<endpoint>","ssl_insecure":<true/false>, "attributes":["ServerPwr.1.PSPFCEnabled"]}'
