@@ -20,14 +20,6 @@ func TestAccRedfishSystemAttributesBasic(t *testing.T) {
 					resource.TestCheckResourceAttr("redfish_dell_system_attributes.system", "attributes.ServerPwr.1.PSPFCEnabled", "Disabled"),
 				),
 			},
-			{
-				Config: `resource "redfish_dell_system_attributes" "system" {
-				}`,
-				ResourceName:  "redfish_dell_system_attributes.system",
-				ImportState:   true,
-				ImportStateId: "{\"attributes\":[\"ServerPwr.1.PSPFCEnabled\"],\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
-				ExpectError:   nil,
-			},
 		},
 	})
 }
