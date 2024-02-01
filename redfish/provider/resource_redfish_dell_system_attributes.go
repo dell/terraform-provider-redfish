@@ -20,63 +20,63 @@ import (
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ resource.Resource = &dellLCAttributesResource{}
+	_ resource.Resource = &dellSystemAttributesResource{}
 )
 
-// NewDellLCAttributesResource is a helper function to simplify the provider implementation.
-func NewDellLCAttributesResource() resource.Resource {
-	return &dellLCAttributesResource{}
+// NewDellSystemAttributesResource is a helper function to simplify the provider implementation.
+func NewDellSystemAttributesResource() resource.Resource {
+	return &dellSystemAttributesResource{}
 }
 
-// DellLCAttributesResource is the resource implementation.
-type dellLCAttributesResource struct {
+// dellSystemAttributesResource is the resource implementation.
+type dellSystemAttributesResource struct {
 	p *redfishProvider
 }
 
 // Configure implements resource.ResourceWithConfigure
-func (r *dellLCAttributesResource) Configure(ctx context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
+func (r *dellSystemAttributesResource) Configure(ctx context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
 	r.p = req.ProviderData.(*redfishProvider)
-	tflog.Trace(ctx, "resource_DellLCAttributes configured ")
+	tflog.Trace(ctx, "resource_DellSystemAttributes configured ")
 }
 
 // Metadata returns the resource type name.
-func (*dellLCAttributesResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "dell_lc_attributes"
+func (*dellSystemAttributesResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "dell_system_attributes"
 }
 
 // Schema defines the schema for the resource.
-func (*dellLCAttributesResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (*dellSystemAttributesResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "This Terraform resource is used to configure Lifecycle Controller attributes of the iDRAC Server." +
+		MarkdownDescription: "This Terraform resource is used to configure System attributes of the iDRAC Server." +
 			" We can Read the existing configurations or modify them using this resource.",
-		Description: "This Terraform resource is used to configure Lifecycle Controller attributes of the iDRAC Server." +
+		Description: "This Terraform resource is used to configure System attributes of the iDRAC Server." +
 			" We can Read the existing configurations or modify them using this resource.",
 
-		Attributes: DellLCAttributesSchema(),
+		Attributes: DellSystemAttributesSchema(),
 		Blocks:     RedfishServerResourceBlockMap(),
 	}
 }
 
-// DellLCAttributesSchema to define the lifecycle controller attribute schema
-func DellLCAttributesSchema() map[string]schema.Attribute {
+// DellSystemAttributesSchema to define the system attribute schema
+func DellSystemAttributesSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"id": schema.StringAttribute{
-			MarkdownDescription: "ID of the LC attributes resource",
-			Description:         "ID of the LC attributes resource",
+			MarkdownDescription: "ID of the System attributes resource",
+			Description:         "ID of the System attributes resource",
 			Computed:            true,
 		},
 		"attributes": schema.MapAttribute{
-			MarkdownDescription: "Lifecycle Controller attributes. " +
-				"To check allowed attributes please either use the datasource for dell LC attributes or query " +
-				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/LifecycleController.Embedded.1 " +
+			MarkdownDescription: "System attributes. " +
+				"To check allowed attributes please either use the datasource for dell System attributes or query " +
+				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/System.Embedded.1 " +
 				"To get allowed values for those attributes, check " +
 				"/redfish/v1/Registries/ManagerAttributeRegistry/ManagerAttributeRegistry.v1_0_0.json from a Redfish Instance",
-			Description: "Lifecycle Controller attributes. " +
-				"To check allowed attributes please either use the datasource for dell LC attributes or query " +
-				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/LifecycleController.Embedded.1 " +
+			Description: "System attributes. " +
+				"To check allowed attributes please either use the datasource for dell System attributes or query " +
+				"/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/System.Embedded.1 " +
 				"To get allowed values for those attributes, check " +
 				"/redfish/v1/Registries/ManagerAttributeRegistry/ManagerAttributeRegistry.v1_0_0.json from a Redfish Instance",
 			ElementType: types.StringType,
@@ -86,10 +86,10 @@ func DellLCAttributesSchema() map[string]schema.Attribute {
 }
 
 // Create creates the resource and sets the initial Terraform state.
-func (r *dellLCAttributesResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	tflog.Trace(ctx, "resource_DellLCAttributes create : Started")
+func (r *dellSystemAttributesResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	tflog.Trace(ctx, "resource_DellSystemAttributes create : Started")
 	// Get Plan Data
-	var plan models.DellLCAttributes
+	var plan models.DellSystemAttributes
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -102,23 +102,23 @@ func (r *dellLCAttributesResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
-	diags = updateRedfishDellLCAttributes(ctx, service, &plan)
+	diags = updateRedfishDellSystemAttributes(ctx, service, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	tflog.Trace(ctx, "resource_DellLCAttributes create: updating state finished, saving ...")
+	tflog.Trace(ctx, "resource_DellSystemAttributes create: updating state finished, saving ...")
 	// Save into State
 	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
-	tflog.Trace(ctx, "resource_DellLCAttributes create: finish")
+	tflog.Trace(ctx, "resource_DellSystemAttributes create: finish")
 }
 
 // Read refreshes the Terraform state with the latest data.
-func (r *dellLCAttributesResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	tflog.Trace(ctx, "resource_DellLCAttributes read: started")
-	var state models.DellLCAttributes
+func (r *dellSystemAttributesResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	tflog.Trace(ctx, "resource_DellSystemAttributes read: started")
+	var state models.DellSystemAttributes
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -131,24 +131,24 @@ func (r *dellLCAttributesResource) Read(ctx context.Context, req resource.ReadRe
 		return
 	}
 
-	diags = readRedfishDellLCAttributes(ctx, service, &state)
+	diags = readRedfishDellSystemAttributes(ctx, service, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	tflog.Trace(ctx, "resource_DellLCAttributes read: finished reading state")
+	tflog.Trace(ctx, "resource_DellSystemAttributes read: finished reading state")
 	// Save into State
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
-	tflog.Trace(ctx, "resource_DellLCAttributes read: finished")
+	tflog.Trace(ctx, "resource_DellSystemAttributes read: finished")
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
-func (r *dellLCAttributesResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r *dellSystemAttributesResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Get state Data
-	tflog.Trace(ctx, "resource_DellLCAttributes update: started")
-	var plan models.DellLCAttributes
+	tflog.Trace(ctx, "resource_DellSystemAttributes update: started")
+	var plan models.DellSystemAttributes
 
 	// Get plan Data
 	diags := req.Plan.Get(ctx, &plan)
@@ -163,35 +163,34 @@ func (r *dellLCAttributesResource) Update(ctx context.Context, req resource.Upda
 		return
 	}
 
-	diags = updateRedfishDellLCAttributes(ctx, service, &plan)
+	diags = updateRedfishDellSystemAttributes(ctx, service, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	tflog.Trace(ctx, "resource_DellLCAttributes update: finished state update")
+	tflog.Trace(ctx, "resource_DellSystemAttributes update: finished state update")
 	// Save into State
 	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
-	tflog.Trace(ctx, "resource_DellLCAttributes update: finished")
+	tflog.Trace(ctx, "resource_DellSystemAttributes update: finished")
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
-func (*dellLCAttributesResource) Delete(ctx context.Context, _ resource.DeleteRequest, resp *resource.DeleteResponse) {
-	tflog.Trace(ctx, "resource_DellLCAttributes delete: started")
+func (*dellSystemAttributesResource) Delete(ctx context.Context, _ resource.DeleteRequest, resp *resource.DeleteResponse) {
+	tflog.Trace(ctx, "resource_DellSystemAttributes delete: started")
 
 	resp.State.RemoveResource(ctx)
-	tflog.Trace(ctx, "resource_DellLCAttributes delete: finished")
+	tflog.Trace(ctx, "resource_DellSystemAttributes delete: finished")
 }
 
-// ImportState import state for existing DellLCAttributes
-func (*dellLCAttributesResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+// ImportState import state for existing DellSystemAttributes
+func (*dellSystemAttributesResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	type creds struct {
-		Username    string   `json:"username"`
-		Password    string   `json:"password"`
-		Endpoint    string   `json:"endpoint"`
-		SslInsecure bool     `json:"ssl_insecure"`
-		Attributes  []string `json:"attributes"`
+		Username    string `json:"username"`
+		Password    string `json:"password"`
+		Endpoint    string `json:"endpoint"`
+		SslInsecure bool   `json:"ssl_insecure"`
 	}
 
 	var c creds
@@ -212,22 +211,11 @@ func (*dellLCAttributesResource) ImportState(ctx context.Context, req resource.I
 
 	redfishServer := path.Root("redfish_server")
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, redfishServer, []models.RedfishServer{server})...)
-
-	attributes := path.Root("attributes")
-	if c.Attributes == nil {
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, attributes, types.MapNull(types.StringType))...)
-		return
-	}
-	readAttributes := make(map[string]attr.Value)
-	for _, k := range c.Attributes {
-		readAttributes[k] = types.StringValue("")
-	}
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, attributes, types.MapValueMust(types.StringType, readAttributes))...)
 }
 
-func updateRedfishDellLCAttributes(ctx context.Context, service *gofish.Service, d *models.DellLCAttributes) diag.Diagnostics {
+func updateRedfishDellSystemAttributes(ctx context.Context, service *gofish.Service, d *models.DellSystemAttributes) diag.Diagnostics {
 	var diags diag.Diagnostics
-	idracError := "there was an issue when creating/updating LC attributes"
+	idracError := "there was an issue when creating/updating System attributes"
 	d.ID = types.StringValue("placeholder")
 	// Get attributes
 	attributesTf := make(map[string]string)
@@ -272,7 +260,7 @@ func updateRedfishDellLCAttributes(ctx context.Context, service *gofish.Service,
 		diags.AddError(idracError, err.Error())
 		return diags
 	}
-	lcAttributes, err := getLCAttributes(dellAttributes)
+	systemAttributes, err := getSystemAttributes(dellAttributes)
 	if err != nil {
 		diags.AddError(idracError, err.Error())
 		return diags
@@ -287,20 +275,20 @@ func updateRedfishDellLCAttributes(ctx context.Context, service *gofish.Service,
 		Attributes: attributesToPatch,
 	}
 
-	response, err := service.GetClient().Patch(lcAttributes.ODataID, patchBody)
+	response, err := service.GetClient().Patch(systemAttributes.ODataID, patchBody)
 	if err != nil {
 		diags.AddError(idracError, err.Error())
 		return diags
 	}
 	response.Body.Close() // #nosec G104
-	d.ID = types.StringValue(lcAttributes.ODataID)
-	diags = readRedfishDellLCAttributes(ctx, service, d)
+	d.ID = types.StringValue(systemAttributes.ODataID)
+	diags = readRedfishDellSystemAttributes(ctx, service, d)
 	return diags
 }
 
-func readRedfishDellLCAttributes(_ context.Context, service *gofish.Service, d *models.DellLCAttributes) diag.Diagnostics {
+func readRedfishDellSystemAttributes(_ context.Context, service *gofish.Service, d *models.DellSystemAttributes) diag.Diagnostics {
 	var diags diag.Diagnostics
-	idracError := "there was an issue when reading LC attributes"
+	idracError := "there was an issue when reading System attributes"
 	// get managers (Dell servers have only the iDRAC)
 	managers, err := service.Managers()
 	if err != nil {
@@ -321,7 +309,7 @@ func readRedfishDellLCAttributes(_ context.Context, service *gofish.Service, d *
 		diags.AddError(idracError, err.Error())
 		return diags
 	}
-	lcAttributes, err := getLCAttributes(dellAttributes)
+	systemAttributes, err := getSystemAttributes(dellAttributes)
 	if err != nil {
 		diags.AddError(idracError, err.Error())
 		return diags
@@ -333,8 +321,8 @@ func readRedfishDellLCAttributes(_ context.Context, service *gofish.Service, d *
 
 	if !d.Attributes.IsNull() {
 		for k, v := range old {
-			// Check if attribute from config exists in LC attributes
-			attrValue := lcAttributes.Attributes[k]
+			// Check if attribute from config exists in System attributes
+			attrValue := systemAttributes.Attributes[k]
 			// This is done to avoid triggering an update when reading Password values,
 			// that are shown as null (nil to Go)
 			if attrValue != nil {
@@ -344,7 +332,7 @@ func readRedfishDellLCAttributes(_ context.Context, service *gofish.Service, d *
 			}
 		}
 	} else {
-		for k, attrValue := range lcAttributes.Attributes {
+		for k, attrValue := range systemAttributes.Attributes {
 			if attrValue != nil {
 				attributeValue(attrValue, readAttributes, k)
 			} else {
@@ -356,11 +344,11 @@ func readRedfishDellLCAttributes(_ context.Context, service *gofish.Service, d *
 	return diags
 }
 
-func getLCAttributes(attributes []*dell.Attributes) (*dell.Attributes, error) {
+func getSystemAttributes(attributes []*dell.Attributes) (*dell.Attributes, error) {
 	for _, a := range attributes {
-		if strings.Contains(a.ID, "LCAttributes") {
+		if strings.Contains(a.ID, "System") {
 			return a, nil
 		}
 	}
-	return nil, fmt.Errorf("couldn't find LCAttributes")
+	return nil, fmt.Errorf("couldn't find SystemAttributes")
 }

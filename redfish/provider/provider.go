@@ -109,6 +109,7 @@ func (*redfishProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewBootSourceOverrideResource,
 		NewCertificateResource,
 		NewDellLCAttributesResource,
+		NewDellSystemAttributesResource,
 	}
 }
 

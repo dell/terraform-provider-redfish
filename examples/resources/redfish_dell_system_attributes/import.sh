@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023 Dell Inc., or its subsidiaries. All Rights Reserved.
+Copyright (c) 2024 Dell Inc., or its subsidiaries. All Rights Reserved.
 
 Licensed under the Mozilla Public License Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,17 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-rack1 = {
-  "my-server-1" = {
-    user         = "admin"
-    password     = "passw0rd"
-    endpoint     = "https://my-server-1.myawesomecompany.org"
-    ssl_insecure = true
-  },
-  "my-server-2" = {
-    user         = "admin"
-    password     = "passw0rd"
-    endpoint     = "https://my-server-2.myawesomecompany.org"
-    ssl_insecure = true
-  },
-}
+# import all System attributes
+terraform import redfish_dell_system_attributes.system '{"username":"<user>","password":"<password>","endpoint":"<endpoint>","ssl_insecure":<true/false>}'
+
+# import list of System attributes
+terraform import redfish_dell_system_attributes.system '{"username":"<user>","password":"<password>","endpoint":"<endpoint>","ssl_insecure":<true/false>, "attributes":["ServerPwr.1.PSPFCEnabled"]}'
