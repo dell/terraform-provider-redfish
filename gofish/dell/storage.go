@@ -95,7 +95,7 @@ type StorageExtended struct {
 	OemData StorageOEM
 }
 
-// Storage utility function to extend the storage after marshalling 
+// Storage utility function to extend the storage after unmarshalling 
 func Storage(storage *redfish.Storage) (*StorageExtended, error) {
 	dellStorage := &StorageExtended{Storage: *storage, OemData: StorageOEM{}}
 	var oemData StorageOEM
