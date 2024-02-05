@@ -6,7 +6,7 @@ import (
 	"github.com/stmcginnis/gofish/redfish"
 )
 
-// DellController model to get controller data 
+// DellController model to get controller data
 type DellController struct {
 	OdataContext                     string `json:"@odata.context"`
 	OdataID                          string `json:"@odata.id"`
@@ -50,7 +50,7 @@ type DellController struct {
 	T10PICapability                  string `json:"T10PICapability"`
 }
 
-// DellControllerBattery to get controller battery data 
+// DellControllerBattery to get controller battery data
 type DellControllerBattery struct {
 	OdataContext  string `json:"@odata.context"`
 	OdataID       string `json:"@odata.id"`
@@ -63,14 +63,14 @@ type DellControllerBattery struct {
 	RAIDState     string `json:"RAIDState"`
 }
 
-// StorageOEM to get storage oem data 
+// StorageOEM to get storage oem data
 type StorageOEM struct {
 	OdataType             string                `json:"@odata.type"`
 	DellController        DellController        `json:"DellController"`
 	DellControllerBattery DellControllerBattery `json:"DellControllerBattery"`
 }
 
-// UnmarshalJSON to unmarshal storage oem data 
+// UnmarshalJSON to unmarshal storage oem data
 func (s *StorageOEM) UnmarshalJSON(data []byte) error {
 	type temp StorageOEM
 	type Dell struct {
@@ -89,13 +89,13 @@ func (s *StorageOEM) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// StorageExtended to extend the storage struct 
+// StorageExtended to extend the storage struct
 type StorageExtended struct {
 	Storage redfish.Storage
 	OemData StorageOEM
 }
 
-// Storage utility function to extend the storage after unmarshalling 
+// Storage utility function to extend the storage after unmarshalling
 func Storage(storage *redfish.Storage) (*StorageExtended, error) {
 	dellStorage := &StorageExtended{Storage: *storage, OemData: StorageOEM{}}
 	var oemData StorageOEM
