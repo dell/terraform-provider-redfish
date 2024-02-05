@@ -168,17 +168,12 @@ func contains(s []string, str1 string, str2 string) bool {
 func newStorage(extendedStorage dell.StorageExtended) models.Storage {
 	input := extendedStorage.Storage
 	return models.Storage{
-		OdataContext:                 types.StringValue(input.ODataContext),
-		OdataID:                      types.StringValue(input.ODataID),
-		OdataType:                    types.StringValue(input.ODataType),
 		Description:                  types.StringValue(input.Description),
-		DrivesOdataCount:             types.Int64Value(int64(input.DrivesCount)),
 		ID:                           types.StringValue(input.ID),
 		Name:                         types.StringValue(input.Name),
 		Oem:                          newOem(extendedStorage.OemData),
 		Status:                       newStatus(input.Status),
 		StorageControllers:           newStorageControllersList(input.StorageControllers),
-		StorageControllersOdataCount: types.Int64Value(int64(input.StorageControllersCount)),
 	}
 }
 
@@ -194,7 +189,6 @@ func newStorageControllersList(inputs []redfish.StorageController) []models.Stor
 // newStorageControllers converts redfish.StorageControllers to models.StorageControllers
 func newStorageControllers(input redfish.StorageController) models.StorageControllers {
 	return models.StorageControllers{
-		OdataID:                      types.StringValue(input.ODataID),
 		CacheSummary:                 newCacheSummary(input.CacheSummary),
 		FirmwareVersion:              types.StringValue(input.FirmwareVersion),
 		Manufacturer:                 types.StringValue(input.Manufacturer),
@@ -225,12 +219,9 @@ func newRAIDTypes(inputs []redfish.RAIDType) []types.String {
 	return out
 }
 
-// newDellController converts redfish.DellController to models.DellController
-func newDellController(input dell.DellController) models.DellController {
+// newDellController converts dell.Controller to models.DellController
+func newDellController(input dell.Controller) models.DellController {
 	return models.DellController{
-		OdataContext:                     types.StringValue(input.OdataContext),
-		OdataID:                          types.StringValue(input.OdataID),
-		OdataType:                        types.StringValue(input.OdataType),
 		AlarmState:                       types.StringValue(input.AlarmState),
 		AutoConfigBehavior:               types.StringValue(input.AutoConfigBehavior),
 		BootVirtualDiskFQDD:              types.StringValue(input.BootVirtualDiskFQDD),
@@ -269,12 +260,9 @@ func newDellController(input dell.DellController) models.DellController {
 	}
 }
 
-// newDellControllerBattery converts redfish.DellControllerBattery to models.DellControllerBattery
-func newDellControllerBattery(input dell.DellControllerBattery) models.DellControllerBattery {
+// newDellControllerBattery converts dell.ControllerBattery to models.DellControllerBattery
+func newDellControllerBattery(input dell.ControllerBattery) models.DellControllerBattery {
 	return models.DellControllerBattery{
-		OdataContext:  types.StringValue(input.OdataContext),
-		OdataID:       types.StringValue(input.OdataID),
-		OdataType:     types.StringValue(input.OdataType),
 		Description:   types.StringValue(input.Description),
 		Fqdd:          types.StringValue(input.Fqdd),
 		ID:            types.StringValue(input.ID),
@@ -287,7 +275,6 @@ func newDellControllerBattery(input dell.DellControllerBattery) models.DellContr
 // newDell converts redfish.Dell to models.Dell
 func newDell(input dell.StorageOEM) models.Dell {
 	return models.Dell{
-		OdataType:             types.StringValue(input.OdataType),
 		DellController:        newDellController(input.DellController),
 		DellControllerBattery: newDellControllerBattery(input.DellControllerBattery),
 	}
@@ -319,21 +306,6 @@ func newCacheSummary(input redfish.CacheSummary) models.CacheSummary {
 // StorageSchema is a function that returns the schema for Storage
 func StorageSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
-		"odata_context": schema.StringAttribute{
-			MarkdownDescription: "odata context of storage",
-			Description:         "odata context of storage",
-			Computed:            true,
-		},
-		"odata_id": schema.StringAttribute{
-			MarkdownDescription: "odata id of storage",
-			Description:         "odata id of storage",
-			Computed:            true,
-		},
-		"odata_type": schema.StringAttribute{
-			MarkdownDescription: "odata type of storage",
-			Description:         "odata type of storage",
-			Computed:            true,
-		},
 		"description": schema.StringAttribute{
 			MarkdownDescription: "description of the storage",
 			Description:         "description of the storage",
@@ -344,11 +316,6 @@ func StorageSchema() map[string]schema.Attribute {
 			Description:         "drives on the storage",
 			Computed:            true,
 			ElementType:         types.StringType,
-		},
-		"drives_odata_count": schema.Int64Attribute{
-			MarkdownDescription: "drives count",
-			Description:         "drive count",
-			Computed:            true,
 		},
 		"storage_controller_id": schema.StringAttribute{
 			MarkdownDescription: "storage controller id",
@@ -378,32 +345,12 @@ func StorageSchema() map[string]schema.Attribute {
 			Computed:            true,
 			NestedObject:        schema.NestedAttributeObject{Attributes: StorageControllersSchema()},
 		},
-		"storage_controllers_odata_count": schema.Int64Attribute{
-			MarkdownDescription: "storage controller count",
-			Description:         "storage controller count",
-			Computed:            true,
-		},
 	}
 }
 
 // DellControllerSchema is a function that returns the schema for DellController
 func DellControllerSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
-		"odata_context": schema.StringAttribute{
-			MarkdownDescription: "odata context",
-			Description:         "odata context",
-			Computed:            true,
-		},
-		"odata_id": schema.StringAttribute{
-			MarkdownDescription: "odata id",
-			Description:         "odata id",
-			Computed:            true,
-		},
-		"odata_type": schema.StringAttribute{
-			MarkdownDescription: "odata type",
-			Description:         "odata type",
-			Computed:            true,
-		},
 		"alarm_state": schema.StringAttribute{
 			MarkdownDescription: "alarm state",
 			Description:         "alarm state",
@@ -445,7 +392,7 @@ func DellControllerSchema() map[string]schema.Attribute {
 			Computed:            true,
 		},
 		"description": schema.StringAttribute{
-			MarkdownDescription: "description",
+			MarkdownDescription: "description of the storage",
 			Description:         "description",
 			Computed:            true,
 		},
@@ -595,21 +542,6 @@ func DellControllerSchema() map[string]schema.Attribute {
 // DellControllerBatterySchema is a function that returns the schema for DellControllerBattery
 func DellControllerBatterySchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
-		"odata_context": schema.StringAttribute{
-			MarkdownDescription: "odata context",
-			Description:         "odata context",
-			Computed:            true,
-		},
-		"odata_id": schema.StringAttribute{
-			MarkdownDescription: "odata id",
-			Description:         "odata id",
-			Computed:            true,
-		},
-		"odata_type": schema.StringAttribute{
-			MarkdownDescription: "odata type",
-			Description:         "odata type",
-			Computed:            true,
-		},
 		"description": schema.StringAttribute{
 			MarkdownDescription: "description",
 			Description:         "description",
@@ -646,11 +578,6 @@ func DellControllerBatterySchema() map[string]schema.Attribute {
 // DellSchema is a function that returns the schema for Dell
 func DellSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
-		"odata_type": schema.StringAttribute{
-			MarkdownDescription: "odata type",
-			Description:         "odata type",
-			Computed:            true,
-		},
 		"dell_controller": schema.SingleNestedAttribute{
 			MarkdownDescription: "dell controller",
 			Description:         "dell controller",
@@ -713,11 +640,6 @@ func CacheSummarySchema() map[string]schema.Attribute {
 // StorageControllersSchema is a function that returns the schema for StorageControllers
 func StorageControllersSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
-		"odata_id": schema.StringAttribute{
-			MarkdownDescription: "odata id",
-			Description:         "odata id",
-			Computed:            true,
-		},
 		"cache_summary": schema.SingleNestedAttribute{
 			MarkdownDescription: "cache summary",
 			Description:         "cache summary",

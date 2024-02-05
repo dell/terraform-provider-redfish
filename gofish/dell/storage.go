@@ -6,8 +6,8 @@ import (
 	"github.com/stmcginnis/gofish/redfish"
 )
 
-// DellController model to get controller data
-type DellController struct {
+// Controller model to get controller data
+type Controller struct {
 	OdataContext                     string `json:"@odata.context"`
 	OdataID                          string `json:"@odata.id"`
 	OdataType                        string `json:"@odata.type"`
@@ -50,8 +50,8 @@ type DellController struct {
 	T10PICapability                  string `json:"T10PICapability"`
 }
 
-// DellControllerBattery to get controller battery data
-type DellControllerBattery struct {
+// ControllerBattery to get controller battery data
+type ControllerBattery struct {
 	OdataContext  string `json:"@odata.context"`
 	OdataID       string `json:"@odata.id"`
 	OdataType     string `json:"@odata.type"`
@@ -66,8 +66,8 @@ type DellControllerBattery struct {
 // StorageOEM to get storage oem data
 type StorageOEM struct {
 	OdataType             string                `json:"@odata.type"`
-	DellController        DellController        `json:"DellController"`
-	DellControllerBattery DellControllerBattery `json:"DellControllerBattery"`
+	DellController        Controller        `json:"DellController"`
+	DellControllerBattery ControllerBattery `json:"DellControllerBattery"`
 }
 
 // UnmarshalJSON to unmarshal storage oem data

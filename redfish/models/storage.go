@@ -17,23 +17,15 @@ type StorageDatasource struct {
 type Storage struct {
 	ID                           types.String         `tfsdk:"storage_controller_id"`
 	Drives                       []types.String       `tfsdk:"drives"`
-	OdataContext                 types.String         `tfsdk:"odata_context"`
-	OdataID                      types.String         `tfsdk:"odata_id"`
-	OdataType                    types.String         `tfsdk:"odata_type"`
 	Description                  types.String         `tfsdk:"description"`
-	DrivesOdataCount             types.Int64          `tfsdk:"drives_odata_count"`
 	Name                         types.String         `tfsdk:"name"`
 	Oem                          Oem                  `tfsdk:"oem"`
 	Status                       Status               `tfsdk:"status"`
 	StorageControllers           []StorageControllers `tfsdk:"storage_controllers"`
-	StorageControllersOdataCount types.Int64          `tfsdk:"storage_controllers_odata_count"`
 }
 
 // DellController is the tfsdk model of DellController
 type DellController struct {
-	OdataContext                     types.String `tfsdk:"odata_context"`
-	OdataID                          types.String `tfsdk:"odata_id"`
-	OdataType                        types.String `tfsdk:"odata_type"`
 	AlarmState                       types.String `tfsdk:"alarm_state"`
 	AutoConfigBehavior               types.String `tfsdk:"auto_config_behavior"`
 	BootVirtualDiskFQDD              types.String `tfsdk:"boot_virtual_disk_fqdd"`
@@ -75,9 +67,6 @@ type DellController struct {
 
 // DellControllerBattery is the tfsdk model of DellControllerBattery
 type DellControllerBattery struct {
-	OdataContext  types.String `tfsdk:"odata_context"`
-	OdataID       types.String `tfsdk:"odata_id"`
-	OdataType     types.String `tfsdk:"odata_type"`
 	Description   types.String `tfsdk:"description"`
 	Fqdd          types.String `tfsdk:"fqdd"`
 	ID            types.String `tfsdk:"id"`
@@ -88,7 +77,6 @@ type DellControllerBattery struct {
 
 // Dell is the tfsdk model of Dell
 type Dell struct {
-	OdataType             types.String          `tfsdk:"odata_type"`
 	DellController        DellController        `tfsdk:"dell_controller"`
 	DellControllerBattery DellControllerBattery `tfsdk:"dell_controller_battery"`
 }
@@ -112,7 +100,6 @@ type CacheSummary struct {
 
 // StorageControllers is the tfsdk model of StorageControllers
 type StorageControllers struct {
-	OdataID                      types.String   `tfsdk:"odata_id"`
 	CacheSummary                 CacheSummary   `tfsdk:"cache_summary"`
 	FirmwareVersion              types.String   `tfsdk:"firmware_version"`
 	Manufacturer                 types.String   `tfsdk:"manufacturer"`
