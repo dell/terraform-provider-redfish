@@ -144,8 +144,8 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 	virtualMediaConfig := redfish.VirtualMediaConfig{
 		Image:                image,
 		Inserted:             plan.Inserted.ValueBool(),
-		TransferMethod:       plan.TransferMethod.ValueString(),
-		TransferProtocolType: plan.TransferProtocolType.ValueString(),
+		TransferMethod:       redfish.TransferMethod(plan.TransferMethod.ValueString()),
+		TransferProtocolType: redfish.TransferProtocolType(plan.TransferProtocolType.ValueString()),
 		WriteProtected:       plan.WriteProtected.ValueBool(),
 	}
 	// Get service
@@ -339,16 +339,16 @@ func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRe
 	virtualMediaConfig := redfish.VirtualMediaConfig{
 		Image:                plan.Image.ValueString(),
 		Inserted:             plan.Inserted.ValueBool(),
-		TransferMethod:       plan.TransferMethod.ValueString(),
-		TransferProtocolType: plan.TransferProtocolType.ValueString(),
+		TransferMethod:       redfish.TransferMethod(plan.TransferMethod.ValueString()),
+		TransferProtocolType: redfish.TransferProtocolType(plan.TransferProtocolType.ValueString()),
 		WriteProtected:       plan.WriteProtected.ValueBool(),
 	}
 
 	virtualMediaConfigState := redfish.VirtualMediaConfig{
 		Image:                state.Image.ValueString(),
 		Inserted:             state.Inserted.ValueBool(),
-		TransferMethod:       state.TransferMethod.ValueString(),
-		TransferProtocolType: state.TransferProtocolType.ValueString(),
+		TransferMethod:       redfish.TransferMethod(state.TransferMethod.ValueString()),
+		TransferProtocolType: redfish.TransferProtocolType(state.TransferProtocolType.ValueString()),
 		WriteProtected:       state.WriteProtected.ValueBool(),
 	}
 
