@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stmcginnis/gofish"
+	"github.com/stmcginnis/gofish/common"
 	"github.com/stmcginnis/gofish/redfish"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -66,6 +67,18 @@ func StorageDatasourceSchema() map[string]schema.Attribute {
 			Description:         "ID of the storage data-source",
 			Computed:            true,
 		},
+		"controller_ids": schema.ListAttribute{
+			MarkdownDescription: "ID of the storage controller ID",
+			Description:         "ID of the storage controller ID",
+			Optional:            true,
+			ElementType:         types.StringType,
+		},
+		"controller_names": schema.ListAttribute{
+			MarkdownDescription: "ID of the storage controller name",
+			Description:         "ID of the storage controller name",
+			Optional:            true,
+			ElementType:         types.StringType,
+		},
 		"storage": schema.ListNestedAttribute{
 			MarkdownDescription: "List of storage controllers",
 			Description:         "List of storage controllers",
@@ -76,32 +89,6 @@ func StorageDatasourceSchema() map[string]schema.Attribute {
 		},
 	}
 }
-
-// // StorageControllerSchema to define the storage data-source schema
-// func StorageControllerSchema() map[string]schema.Attribute {
-// 	return map[string]schema.Attribute{
-// 		"storage_controller_id": schema.StringAttribute{
-// 			MarkdownDescription: "ID of the storage controller",
-// 			Description:         "ID of the storage controller",
-// 			Computed:            true,
-// 		},
-// 		"drives": schema.ListAttribute{
-// 			MarkdownDescription: "List of drives on the storage controller",
-// 			Description:         "List of drives on the storage controller",
-// 			Computed:            true,
-// 			ElementType:         types.StringType,
-// 		},
-// 		"storage_controllers": schema.MapAttribute{
-// 			Computed:    true,
-// 			ElementType: types.StringType,
-// 		},
-// 		"dell_data": schema.StringAttribute{
-// 			MarkdownDescription: "ID of the storage controller",
-// 			Description:         "ID of the storage controller",
-// 			Computed:            true,
-// 		},
-// 	}
-// }
 
 // Read implements datasource.DataSource
 func (g *StorageDatasource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -115,6 +102,7 @@ func (g *StorageDatasource) Read(ctx context.Context, req datasource.ReadRequest
 	}
 	g.ctx = ctx
 	g.service = service
+
 	state, diags := g.readDatasourceRedfishStorage(plan)
 	resp.Diagnostics.Append(diags...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -123,6 +111,11 @@ func (g *StorageDatasource) Read(ctx context.Context, req datasource.ReadRequest
 func (g *StorageDatasource) readDatasourceRedfishStorage(d models.StorageDatasource) (models.StorageDatasource, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	// write the current time as ID
+	controllerIDs := make([]string, 0)
+	controllerNames := make([]string, 0)
+	d.ControllerIDs.ElementsAs(g.ctx, &controllerIDs, false)
+	d.ControllerNames.ElementsAs(g.ctx, &controllerNames, false)
+	controllers := append(controllerIDs, controllerNames...)
 	d.ID = types.StringValue(fmt.Sprintf("%d", time.Now().Unix()))
 
 	systems, err := g.service.Systems()
@@ -136,73 +129,58 @@ func (g *StorageDatasource) readDatasourceRedfishStorage(d models.StorageDatasou
 		diags.AddError("Error fetching storage", err.Error())
 		return d, diags
 	}
-
 	d.Storages = make([]models.Storage, 0)
 	for _, s := range storage {
+		if len(controllers) > 0 {
+			if !contains(controllers, s.Name, s.ID) {
+				continue
+			}
+		}
 		dellStorage, _ := dell.Storage(s)
 		terraformData := newStorage(*dellStorage)
-		d.Storages = append(d.Storages, terraformData)
-		// mToAdd := models.StorageControllerData{
-		// 	ID: types.StringValue(s.ID),
-		// }
-		// drives, err := s.Drives()
-		// if err != nil {
-		// 	diags.AddError(fmt.Sprintf("Error when retrieving drives: %s", s.ID), err.Error())
-		// 	continue
-		// }
+		drives, err := s.Drives()
+		if err != nil {
+			diags.AddError(fmt.Sprintf("Error when retrieving drives: %s", s.ID), err.Error())
+			continue
+		}
 
-		// driveNames := make([]types.String, 0)
-		// for _, d := range drives {
-		// 	driveNames = append(driveNames, types.StringValue(d.Name))
-		// }
-		// mToAdd.Drives = driveNames
-		// d.Storages = append(d.Storages, mToAdd)
+		driveNames := make([]types.String, 0)
+		for _, d := range drives {
+			driveNames = append(driveNames, types.StringValue(d.Name))
+		}
+		terraformData.Drives = driveNames
+		d.Storages = append(d.Storages, terraformData)
 	}
 
 	return d, diags
 }
 
-func newStorage(input dell.StorageExtended) models.Storage {
-	drives,_ := input.Drives()
+func contains(s []string, str1 string, str2 string) bool {
+	for _, v := range s {
+		if v == str1 || v == str2 {
+			return true
+		}
+	}
+
+	return false
+}
+
+func newStorage(extendedStorage dell.StorageExtended) models.Storage {
+	input := extendedStorage.Storage
 	return models.Storage{
-		OdataContext:                        types.StringValue(input.ODataContext),
-		OdataID:                             types.StringValue(input.ODataID),
-		OdataType:                           types.StringValue(input.ODataType),
-		// Controllers:                         newControllers(input.),
-		Description:                         types.StringValue(input.Description),
-		Drives:                              newDrivesList(drives),
-		DrivesOdataCount:                    types.Int64Value(int64(input.DrivesCount)),
-		ID:                                  types.StringValue(input.ID),
-		// Identifiers:                         newIdentifiersList(input.I),
-		// IdentifiersOdataCount:               types.Int64Value(int64(input.IdentifiersOdataCount)),
-		// Links:                               newLinks(input.Links),
-		Name:                                types.StringValue(input.Name),
-		Oem:                                 newOem(input.OemData),
-		// Status:                              newStatus(input.Status),
-		// StorageControllers:                  newStorageControllersList(input.StorageControllers),
-		// StorageControllersRedfishDeprecated: types.StringValue(input.StorageControllersRedfishDeprecated),
-		// StorageControllersOdataCount:        types.Int64Value(int64(input.StorageControllersOdataCount)),
-		// Volumes:                             newVolumes(input.Volumes),
+		OdataContext:                 types.StringValue(input.ODataContext),
+		OdataID:                      types.StringValue(input.ODataID),
+		OdataType:                    types.StringValue(input.ODataType),
+		Description:                  types.StringValue(input.Description),
+		DrivesOdataCount:             types.Int64Value(int64(input.DrivesCount)),
+		ID:                           types.StringValue(input.ID),
+		Name:                         types.StringValue(input.Name),
+		Oem:                          newOem(extendedStorage.OemData),
+		Status:                       newStatus(input.Status),
+		StorageControllers:           newStorageControllersList(input.StorageControllers),
+		StorageControllersOdataCount: types.Int64Value(int64(input.StorageControllersCount)),
 	}
 }
-
-// newDrivesList converts list of redfish.Drives to list of models.Drives
-func newDrivesList(inputs []*redfish.Drive) []models.Drives {
-	out := make([]models.Drives, 0)
-	for _, input := range inputs {
-		out = append(out, newDrives(input))
-	}
-	return out
-}
-
-// // newIdentifiersList converts list of redfish.Identifiers to list of models.Identifiers
-// func newIdentifiersList(inputs []redfish.Ide) []models.Identifiers {
-// 	out := make([]models.Identifiers, 0)
-// 	for _, input := range inputs {
-// 		out = append(out, newIdentifiers(input))
-// 	}
-// 	return out
-// }
 
 // newStorageControllersList converts list of redfish.StorageControllers to list of models.StorageControllers
 func newStorageControllersList(inputs []redfish.StorageController) []models.StorageControllers {
@@ -213,59 +191,39 @@ func newStorageControllersList(inputs []redfish.StorageController) []models.Stor
 	return out
 }
 
-// // newControllers converts redfish.Controllers to models.Controllers
-// func newControllers(input redfish.Controllers) models.Controllers {
-// 	return models.Controllers{
-// 		OdataID: types.StringValue(input.Odata),
-// 	}
-// }
-
-// newDrives converts redfish.Drives to models.Drives
-func newDrives(input *redfish.Drive) models.Drives {
-	return models.Drives{
-		OdataID: types.StringValue(input.ODataType),
+// newStorageControllers converts redfish.StorageControllers to models.StorageControllers
+func newStorageControllers(input redfish.StorageController) models.StorageControllers {
+	return models.StorageControllers{
+		OdataID:                      types.StringValue(input.ODataID),
+		CacheSummary:                 newCacheSummary(input.CacheSummary),
+		FirmwareVersion:              types.StringValue(input.FirmwareVersion),
+		Manufacturer:                 types.StringValue(input.Manufacturer),
+		MemberID:                     types.StringValue(input.MemberID),
+		Model:                        types.StringValue(input.Model),
+		Name:                         types.StringValue(input.Name),
+		SpeedGbps:                    types.Int64Value(int64(input.SpeedGbps)),
+		Status:                       newStatus(input.Status),
+		SupportedControllerProtocols: newProtocols(input.SupportedControllerProtocols),
+		SupportedDeviceProtocols:     newProtocols(input.SupportedDeviceProtocols),
+		SupportedRAIDTypes:           newRAIDTypes(input.SupportedRAIDTypes),
 	}
 }
 
-// // newIdentifiers converts redfish.Identifiers to models.Identifiers
-// func newIdentifiers(input redfish.Iden) models.Identifiers {
-// 	return models.Identifiers{
-// 		DurableName:       types.StringValue(input.DurableName),
-// 		DurableNameFormat: types.StringValue(input.DurableNameFormat),
-// 	}
-// }
+func newProtocols(inputs []common.Protocol) []types.String {
+	out := make([]types.String, 0)
+	for _, input := range inputs {
+		out = append(out, types.StringValue(string(input)))
+	}
+	return out
+}
 
-// // newEnclosures converts redfish.Enclosures to models.Enclosures
-// func newEnclosures(input redfish.Enclosures) models.Enclosures {
-// 	return models.Enclosures{
-// 		OdataID: types.StringValue(input.OdataID),
-// 	}
-// }
-
-// // newSimpleStorage converts redfish.SimpleStorage to models.SimpleStorage
-// func newSimpleStorage(input redfish.SimpleStorage) models.SimpleStorage {
-// 	return models.SimpleStorage{
-// 		OdataID: types.StringValue(input.OdataID),
-// 	}
-// }
-
-// newLinks converts redfish.Links to models.Links
-// func newLinks(input redfish.Links) models.Links {
-// 	return models.Links{
-// 		Enclosures:           newEnclosuresList(input.Enclosures),
-// 		EnclosuresOdataCount: types.Int64Value(int64(input.EnclosuresOdataCount)),
-// 		SimpleStorage:        newSimpleStorage(input.SimpleStorage),
-// 	}
-// }
-
-// // newEnclosuresList converts list of redfish.Enclosures to list of models.Enclosures
-// func newEnclosuresList(inputs []redfish.Enclosures) []models.Enclosures {
-// 	out := make([]models.Enclosures, 0)
-// 	for _, input := range inputs {
-// 		out = append(out, newEnclosures(input))
-// 	}
-// 	return out
-// }
+func newRAIDTypes(inputs []redfish.RAIDType) []types.String {
+	out := make([]types.String, 0)
+	for _, input := range inputs {
+		out = append(out, types.StringValue(string(input)))
+	}
+	return out
+}
 
 // newDellController converts redfish.DellController to models.DellController
 func newDellController(input dell.DellController) models.DellController {
@@ -343,18 +301,11 @@ func newOem(input dell.StorageOEM) models.Oem {
 }
 
 // newStatus converts redfish.Status to models.Status
-// func newStatus(input redfish.Status) models.Status {
-// 	return models.Status{
-// 		Health:       types.StringValue(input.Health),
-// 		HealthRollup: types.StringValue(input.HealthRollup),
-// 		State:        types.StringValue(input.State),
-// 	}
-// }
-
-// newAssembly converts redfish.Assembly to models.Assembly
-func newAssembly(input redfish.Assembly) models.Assembly {
-	return models.Assembly{
-		OdataID: types.StringValue(input.ODataID),
+func newStatus(input common.Status) models.Status {
+	return models.Status{
+		Health:       types.StringValue(string(input.Health)),
+		HealthRollup: types.StringValue(string(input.HealthRollup)),
+		State:        types.StringValue(string(input.State)),
 	}
 }
 
@@ -365,255 +316,72 @@ func newCacheSummary(input redfish.CacheSummary) models.CacheSummary {
 	}
 }
 
-// // newControllerRates converts redfish.ControllerRates to models.ControllerRates
-// func newControllerRates(input redfish.Control) models.ControllerRates {
-// 	return models.ControllerRates{
-// 		ConsistencyCheckRatePercent: types.Int64Value(int64(input.ConsistencyCheckRatePercent)),
-// 		RebuildRatePercent:          types.Int64Value(int64(input.RebuildRatePercent)),
-// 	}
-// }
-
-// // newPCIeFunctions converts redfish.PCIeFunctions to models.PCIeFunctions
-// func newPCIeFunctions(input redfish.PCIeFunction) models.PCIeFunctions {
-// 	return models.PCIeFunctions{
-// 		OdataID: types.StringValue(input.OdataID),
-// 	}
-// }
-
-// // newLinks converts redfish.Links to models.Links
-// func newLinks(input redfish.LinkStatus) models.Links {
-// 	return models.Links{
-// 		PCIeFunctions:           newPCIeFunctionsList(input.PCIeFunctions),
-// 		PCIeFunctionsOdataCount: types.Int64Value(int64(input.PCIeFunctionsOdataCount)),
-// 	}
-// }
-
-// // newPCIeFunctionsList converts list of redfish.PCIeFunctions to list of models.PCIeFunctions
-// func newPCIeFunctionsList(inputs []redfish.PCIeFunction) []models.PCIeFunctions {
-// 	out := make([]models.PCIeFunctions, 0)
-// 	for _, input := range inputs {
-// 		out = append(out, newPCIeFunctions(input))
-// 	}
-// 	return out
-// }
-
-// newStorageControllers converts redfish.StorageControllers to models.StorageControllers
-func newStorageControllers(input redfish.StorageController) models.StorageControllers {
-	assembly, _ := input.Assembly()
-	return models.StorageControllers{
-		OdataID:               types.StringValue(input.ODataID),
-		Assembly:              newAssembly(*assembly),
-		CacheSummary:          newCacheSummary(input.CacheSummary),
-		// ControllerRates:       newControllerRates(input.Co),
-		FirmwareVersion:       types.StringValue(input.FirmwareVersion),
-		// Identifiers:           newIdentifiersList(input.Identifiers),
-		// IdentifiersOdataCount: types.Int64Value(int64(input.IdentifiersOdataCount)),
-		// Links:                 newLinks(input.Links),
-		Manufacturer:          types.StringValue(input.Manufacturer),
-		MemberID:              types.StringValue(input.MemberID),
-		Model:                 types.StringValue(input.Model),
-		Name:                  types.StringValue(input.Name),
-		SpeedGbps:             types.Int64Value(int64(input.SpeedGbps)),
-		// Status:                newStatus(input.Status),
-		// SupportedControllerProtocols: newtypes.StringList(input.SupportedControllerProtocols),
-		// SupportedControllerProtocolsOdataCount: types.Int64Value(int64(input.SupportedControllerProtocolsOdataCount)),
-		// SupportedDeviceProtocols: newtypes.StringList(input.SupportedDeviceProtocols),
-		// SupportedDeviceProtocolsOdataCount: types.Int64Value(int64(input.SupportedDeviceProtocolsOdataCount)),
-		// SupportedRAIDTypes: newtypes.StringList(input.SupportedRAIDTypes),
-		// SupportedRAIDTypesOdataCount: types.Int64Value(int64(input.SupportedRAIDTypesOdataCount)),
-	}
-}
-
-// newVolumes converts redfish.Volumes to models.Volumes
-func newVolumes(input redfish.Volume) models.Volumes {
-	return models.Volumes{
-		OdataID: types.StringValue(input.ODataID),
-	}
-}
-
 // StorageSchema is a function that returns the schema for Storage
 func StorageSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"odata_context": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "odata context of storage",
+			Description:         "odata context of storage",
 			Computed:            true,
 		},
 		"odata_id": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "odata id of storage",
+			Description:         "odata id of storage",
 			Computed:            true,
 		},
 		"odata_type": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "odata type of storage",
+			Description:         "odata type of storage",
 			Computed:            true,
-		},
-		"controllers": schema.SingleNestedAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-			Attributes:          ControllersSchema(),
 		},
 		"description": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "description of the storage",
+			Description:         "description of the storage",
 			Computed:            true,
 		},
-		"drives": schema.ListNestedAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+		"drives": schema.ListAttribute{
+			MarkdownDescription: "drives on the storage",
+			Description:         "drives on the storage",
 			Computed:            true,
-			NestedObject:        schema.NestedAttributeObject{Attributes: DrivesSchema()},
+			ElementType:         types.StringType,
 		},
 		"drives_odata_count": schema.Int64Attribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "drives count",
+			Description:         "drive count",
 			Computed:            true,
 		},
-		"id": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+		"storage_controller_id": schema.StringAttribute{
+			MarkdownDescription: "storage controller id",
+			Description:         "storage controller id",
 			Computed:            true,
-		},
-		"identifiers": schema.ListNestedAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-			NestedObject:        schema.NestedAttributeObject{Attributes: IdentifiersSchema()},
-		},
-		"identifiers_odata_count": schema.Int64Attribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-		},
-		"links": schema.SingleNestedAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-			Attributes:          LinksStorageSchema(),
 		},
 		"name": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "name of the storage",
+			Description:         "name of the storage",
 			Computed:            true,
 		},
 		"oem": schema.SingleNestedAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "oem attributes of storage controller",
+			Description:         "oem attributes of storage controller",
 			Computed:            true,
 			Attributes:          OemSchema(),
 		},
 		"status": schema.SingleNestedAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "status of the storage",
+			Description:         "status of the storage",
 			Computed:            true,
 			Attributes:          StatusSchema(),
 		},
 		"storage_controllers": schema.ListNestedAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "storage controllers list",
+			Description:         "storage contollers list",
 			Computed:            true,
 			NestedObject:        schema.NestedAttributeObject{Attributes: StorageControllersSchema()},
 		},
-		"storage_controllers_redfish_deprecated": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-		},
 		"storage_controllers_odata_count": schema.Int64Attribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "storage controller count",
+			Description:         "storage controller count",
 			Computed:            true,
-		},
-		"volumes": schema.SingleNestedAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-			Attributes:          VolumesSchema(),
-		},
-	}
-}
-
-// ControllersSchema is a function that returns the schema for Controllers
-func ControllersSchema() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"odata_id": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-		},
-	}
-}
-
-// DrivesSchema is a function that returns the schema for Drives
-func DrivesSchema() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"odata_id": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-		},
-	}
-}
-
-// IdentifiersSchema is a function that returns the schema for Identifiers
-func IdentifiersSchema() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"durable_name": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-		},
-		"durable_name_format": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-		},
-	}
-}
-
-// EnclosuresSchema is a function that returns the schema for Enclosures
-func EnclosuresSchema() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"odata_id": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-		},
-	}
-}
-
-// SimpleStorageSchema is a function that returns the schema for SimpleStorage
-func SimpleStorageSchema() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"odata_id": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-		},
-	}
-}
-
-// LinksSchema is a function that returns the schema for Links
-func LinksStorageSchema() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"enclosures": schema.ListNestedAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-			NestedObject:        schema.NestedAttributeObject{Attributes: EnclosuresSchema()},
-		},
-		"enclosures_odata_count": schema.Int64Attribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-		},
-		"simple_storage": schema.SingleNestedAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-			Attributes:          SimpleStorageSchema(),
 		},
 	}
 }
@@ -622,203 +390,203 @@ func LinksStorageSchema() map[string]schema.Attribute {
 func DellControllerSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"odata_context": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "odata context",
+			Description:         "odata context",
 			Computed:            true,
 		},
 		"odata_id": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "odata id",
+			Description:         "odata id",
 			Computed:            true,
 		},
 		"odata_type": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "odata type",
+			Description:         "odata type",
 			Computed:            true,
 		},
 		"alarm_state": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "alarm state",
+			Description:         "alarm state",
 			Computed:            true,
 		},
 		"auto_config_behavior": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "auto config behavior",
+			Description:         "auto config behavior",
 			Computed:            true,
 		},
 		"boot_virtual_disk_fqdd": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "boot virtual disk fqdd",
+			Description:         "boot virtual disk fqdd",
 			Computed:            true,
 		},
 		"cache_size_in_mb": schema.Int64Attribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "cache size in mb",
+			Description:         "cache size in mb",
 			Computed:            true,
 		},
 		"cachecade_capability": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "cachecade capability",
+			Description:         "cachecade capability",
 			Computed:            true,
 		},
 		"connector_count": schema.Int64Attribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "connector count",
+			Description:         "connector count",
 			Computed:            true,
 		},
 		"controller_firmware_version": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "controller firmware version",
+			Description:         "controller firmware version",
 			Computed:            true,
 		},
 		"current_controller_mode": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "current controller mode",
+			Description:         "current controller mode",
 			Computed:            true,
 		},
 		"description": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "description",
+			Description:         "description",
 			Computed:            true,
 		},
 		"device": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "device",
+			Description:         "device",
 			Computed:            true,
 		},
 		"device_card_data_bus_width": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "device card data bus width",
+			Description:         "device card data bus width",
 			Computed:            true,
 		},
 		"device_card_slot_length": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "device card slot length",
+			Description:         "device card slot length",
 			Computed:            true,
 		},
 		"device_card_slot_type": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "device card slot type",
+			Description:         "device card slot type",
 			Computed:            true,
 		},
 		"driver_version": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "driver version",
+			Description:         "driver version",
 			Computed:            true,
 		},
 		"encryption_capability": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "encryption capability",
+			Description:         "encryption capability",
 			Computed:            true,
 		},
 		"encryption_mode": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "encryption mode",
+			Description:         "encryption mode",
 			Computed:            true,
 		},
 		"id": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "id",
+			Description:         "id",
 			Computed:            true,
 		},
 		"key_id": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "key id",
+			Description:         "key id",
 			Computed:            true,
 		},
 		"last_system_inventory_time": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "last system inventory time",
+			Description:         "last system inventory time",
 			Computed:            true,
 		},
 		"last_update_time": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "last update time",
+			Description:         "last update time",
 			Computed:            true,
 		},
 		"max_available_pci_link_speed": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "max available pci link speed",
+			Description:         "max available pci link speed",
 			Computed:            true,
 		},
 		"max_possible_pci_link_speed": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "max possible pci link speed",
+			Description:         "max possible pci link speed",
 			Computed:            true,
 		},
 		"name": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "name",
+			Description:         "name",
 			Computed:            true,
 		},
 		"pci_slot": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "pci slot",
+			Description:         "pci slot",
 			Computed:            true,
 		},
 		"patrol_read_state": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "patrol read state",
+			Description:         "patrol read state",
 			Computed:            true,
 		},
 		"persistent_hotspare": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "persistent hotspare",
+			Description:         "persistent hotspare",
 			Computed:            true,
 		},
 		"realtime_capability": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "realtime capability",
+			Description:         "realtime capability",
 			Computed:            true,
 		},
 		"rollup_status": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "rollup status",
+			Description:         "rollup status",
 			Computed:            true,
 		},
 		"sas_address": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "sas address",
+			Description:         "sas address",
 			Computed:            true,
 		},
 		"security_status": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "security status",
+			Description:         "security status",
 			Computed:            true,
 		},
 		"shared_slot_assignment_allowed": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "shared slot assignment allowed",
+			Description:         "shared slot assignment allowed",
 			Computed:            true,
 		},
 		"sliced_vd_capability": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "sliced vd capability",
+			Description:         "sliced vd capability",
 			Computed:            true,
 		},
 		"support_controller_boot_mode": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "support controller boot mode",
+			Description:         "support controller boot mode",
 			Computed:            true,
 		},
 		"support_enhanced_auto_foreign_import": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "support enhanced auto foreign import",
+			Description:         "support enhanced auto foreign import",
 			Computed:            true,
 		},
 		"support_raid_10_uneven_spans": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "support raid 10 uneven spans",
+			Description:         "support raid 10 uneven spans",
 			Computed:            true,
 		},
 		"supports_lk_mto_sekm_transition": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "supports lk mto sekm transition",
+			Description:         "supports lk mto sekm transition",
 			Computed:            true,
 		},
 		"t_10_pi_capability": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "t 10 pi capability",
+			Description:         "t 10 pi capability",
 			Computed:            true,
 		},
 	}
@@ -828,48 +596,48 @@ func DellControllerSchema() map[string]schema.Attribute {
 func DellControllerBatterySchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"odata_context": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "odata context",
+			Description:         "odata context",
 			Computed:            true,
 		},
 		"odata_id": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "odata id",
+			Description:         "odata id",
 			Computed:            true,
 		},
 		"odata_type": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "odata type",
+			Description:         "odata type",
 			Computed:            true,
 		},
 		"description": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "description",
+			Description:         "description",
 			Computed:            true,
 		},
 		"fqdd": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "fqdd",
+			Description:         "fqdd",
 			Computed:            true,
 		},
 		"id": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "id",
+			Description:         "id",
 			Computed:            true,
 		},
 		"name": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "name",
+			Description:         "name",
 			Computed:            true,
 		},
 		"primary_status": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "primary_status",
+			Description:         "primary_status",
 			Computed:            true,
 		},
 		"raid_state": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "raid state",
+			Description:         "raid state",
 			Computed:            true,
 		},
 	}
@@ -879,19 +647,19 @@ func DellControllerBatterySchema() map[string]schema.Attribute {
 func DellSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"odata_type": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "odata type",
+			Description:         "odata type",
 			Computed:            true,
 		},
 		"dell_controller": schema.SingleNestedAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "dell controller",
+			Description:         "dell controller",
 			Computed:            true,
 			Attributes:          DellControllerSchema(),
 		},
 		"dell_controller_battery": schema.SingleNestedAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "dell controller battery",
+			Description:         "dell controller battery",
 			Computed:            true,
 			Attributes:          DellControllerBatterySchema(),
 		},
@@ -902,8 +670,8 @@ func DellSchema() map[string]schema.Attribute {
 func OemSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"dell": schema.SingleNestedAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "dell attributes",
+			Description:         "dell attributes",
 			Computed:            true,
 			Attributes:          DellSchema(),
 		},
@@ -914,33 +682,23 @@ func OemSchema() map[string]schema.Attribute {
 func StatusSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"health": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "health",
+			Description:         "health",
 			Computed:            true,
 		},
 		"health_rollup": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "health rollup",
+			Description:         "health rollup",
 			Computed:            true,
 		},
 		"state": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "state",
+			Description:         "state",
 			Computed:            true,
 		},
 	}
 }
 
-// AssemblySchema is a function that returns the schema for Assembly
-func AssemblySchema() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"odata_id": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-		},
-	}
-}
 
 // CacheSummarySchema is a function that returns the schema for CacheSummary
 func CacheSummarySchema() map[string]schema.Attribute {
@@ -953,172 +711,73 @@ func CacheSummarySchema() map[string]schema.Attribute {
 	}
 }
 
-// ControllerRatesSchema is a function that returns the schema for ControllerRates
-func ControllerRatesSchema() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"consistency_check_rate_percent": schema.Int64Attribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-		},
-		"rebuild_rate_percent": schema.Int64Attribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-		},
-	}
-}
-
-// PCIeFunctionsSchema is a function that returns the schema for PCIeFunctions
-func PCIeFunctionsSchema() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"odata_id": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-		},
-	}
-}
-
-// LinksSchema is a function that returns the schema for Links
-func LinksSchema() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"pc_ie_functions": schema.ListNestedAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-			NestedObject:        schema.NestedAttributeObject{Attributes: PCIeFunctionsSchema()},
-		},
-		"pc_ie_functions_odata_count": schema.Int64Attribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-		},
-	}
-}
-
 // StorageControllersSchema is a function that returns the schema for StorageControllers
 func StorageControllersSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"odata_id": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "odata id",
+			Description:         "odata id",
 			Computed:            true,
-		},
-		"assembly": schema.SingleNestedAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-			Attributes:          AssemblySchema(),
 		},
 		"cache_summary": schema.SingleNestedAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "cache summary",
+			Description:         "cache summary",
 			Computed:            true,
 			Attributes:          CacheSummarySchema(),
 		},
-		"controller_rates": schema.SingleNestedAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-			Attributes:          ControllerRatesSchema(),
-		},
 		"firmware_version": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "firmware version",
+			Description:         "firmware version",
 			Computed:            true,
-		},
-		"identifiers": schema.ListNestedAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-			NestedObject:        schema.NestedAttributeObject{Attributes: IdentifiersSchema()},
-		},
-		"identifiers_odata_count": schema.Int64Attribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-		},
-		"links": schema.SingleNestedAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-			Attributes:          LinksSchema(),
 		},
 		"manufacturer": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "manufacturer",
+			Description:         "manufacturer",
 			Computed:            true,
 		},
 		"member_id": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "member id",
+			Description:         "member id",
 			Computed:            true,
 		},
 		"model": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "model",
+			Description:         "model",
 			Computed:            true,
 		},
 		"name": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "name",
+			Description:         "name",
 			Computed:            true,
 		},
 		"speed_gbps": schema.Int64Attribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "speed gbps",
+			Description:         "speed gbps",
 			Computed:            true,
 		},
 		"status": schema.SingleNestedAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "status",
+			Description:         "status",
 			Computed:            true,
 			Attributes:          StatusSchema(),
 		},
 		"supported_controller_protocols": schema.ListAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "supported controller protocols",
+			Description:         "supported controller protocols",
 			Computed:            true,
 			ElementType:         types.StringType,
-		},
-		"supported_controller_protocols_odata_count": schema.Int64Attribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
 		},
 		"supported_device_protocols": schema.ListAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "supported device protocols",
+			Description:         "supported device protocols",
 			Computed:            true,
 			ElementType:         types.StringType,
-		},
-		"supported_device_protocols_odata_count": schema.Int64Attribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
 		},
 		"supported_raid_types": schema.ListAttribute{
-			MarkdownDescription: "",
-			Description:         "",
+			MarkdownDescription: "supported raid types",
+			Description:         "supported raid types",
 			Computed:            true,
 			ElementType:         types.StringType,
-		},
-		"supported_raid_types_odata_count": schema.Int64Attribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
-		},
-	}
-}
-
-// VolumesSchema is a function that returns the schema for Volumes
-func VolumesSchema() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"odata_id": schema.StringAttribute{
-			MarkdownDescription: "",
-			Description:         "",
-			Computed:            true,
 		},
 	}
 }

@@ -6,72 +6,27 @@ import (
 
 // StorageDatasource is struct for storage data-source
 type StorageDatasource struct {
-	ID            types.String            `tfsdk:"id"`
-	RedfishServer []RedfishServer         `tfsdk:"redfish_server"`
-	Storages      []Storage `tfsdk:"storage"`
+	ID              types.String    `tfsdk:"id"`
+	RedfishServer   []RedfishServer `tfsdk:"redfish_server"`
+	Storages        []Storage       `tfsdk:"storage"`
+	ControllerIDs   types.List      `tfsdk:"controller_ids"`
+	ControllerNames types.List      `tfsdk:"controller_names"`
 }
-
-// StorageControllerData is struct for data of a storage controller
-type StorageControllerData struct {
-	ID     types.String   `tfsdk:"storage_controller_id"`
-	Drives []types.String `tfsdk:"drives"`
-	DellData types.String `tfsdk:"dell_data"`
-}
-
 
 // Storage is the tfsdk model of Storage
 type Storage struct {
-	OdataContext                        types.String         `tfsdk:"odata_context"`
-	OdataID                             types.String         `tfsdk:"odata_id"`
-	OdataType                           types.String         `tfsdk:"odata_type"`
-	Controllers                         Controllers          `tfsdk:"controllers"`
-	Description                         types.String         `tfsdk:"description"`
-	Drives                              []Drives             `tfsdk:"drives"`
-	DrivesOdataCount                    types.Int64          `tfsdk:"drives_odata_count"`
-	ID                                  types.String         `tfsdk:"id"`
-	Identifiers                         []Identifiers        `tfsdk:"identifiers"`
-	IdentifiersOdataCount               types.Int64          `tfsdk:"identifiers_odata_count"`
-	Links                               LinksSimpleStorage   `tfsdk:"links"`
-	Name                                types.String         `tfsdk:"name"`
-	Oem                                 Oem                  `tfsdk:"oem"`
-	Status                              Status               `tfsdk:"status"`
-	StorageControllers                  []StorageControllers `tfsdk:"storage_controllers"`
-	StorageControllersRedfishDeprecated types.String         `tfsdk:"storage_controllers_redfish_deprecated"`
-	StorageControllersOdataCount        types.Int64          `tfsdk:"storage_controllers_odata_count"`
-	Volumes                             Volumes              `tfsdk:"volumes"`
-}
-
-// Controllers is the tfsdk model of Controllers
-type Controllers struct {
-	OdataID types.String `tfsdk:"odata_id"`
-}
-
-// Drives is the tfsdk model of Drives
-type Drives struct {
-	OdataID types.String `tfsdk:"odata_id"`
-}
-
-// Identifiers is the tfsdk model of Identifiers
-type Identifiers struct {
-	DurableName       types.String `tfsdk:"durable_name"`
-	DurableNameFormat types.String `tfsdk:"durable_name_format"`
-}
-
-// Enclosures is the tfsdk model of Enclosures
-type Enclosures struct {
-	OdataID types.String `tfsdk:"odata_id"`
-}
-
-// SimpleStorage is the tfsdk model of SimpleStorage
-type SimpleStorage struct {
-	OdataID types.String `tfsdk:"odata_id"`
-}
-
-// Links is the tfsdk model of Links
-type LinksSimpleStorage struct {
-	Enclosures           []Enclosures  `tfsdk:"enclosures"`
-	EnclosuresOdataCount types.Int64   `tfsdk:"enclosures_odata_count"`
-	SimpleStorage        SimpleStorage `tfsdk:"simple_storage"`
+	ID                           types.String         `tfsdk:"storage_controller_id"`
+	Drives                       []types.String       `tfsdk:"drives"`
+	OdataContext                 types.String         `tfsdk:"odata_context"`
+	OdataID                      types.String         `tfsdk:"odata_id"`
+	OdataType                    types.String         `tfsdk:"odata_type"`
+	Description                  types.String         `tfsdk:"description"`
+	DrivesOdataCount             types.Int64          `tfsdk:"drives_odata_count"`
+	Name                         types.String         `tfsdk:"name"`
+	Oem                          Oem                  `tfsdk:"oem"`
+	Status                       Status               `tfsdk:"status"`
+	StorageControllers           []StorageControllers `tfsdk:"storage_controllers"`
+	StorageControllersOdataCount types.Int64          `tfsdk:"storage_controllers_odata_count"`
 }
 
 // DellController is the tfsdk model of DellController
@@ -96,13 +51,13 @@ type DellController struct {
 	EncryptionCapability             types.String `tfsdk:"encryption_capability"`
 	EncryptionMode                   types.String `tfsdk:"encryption_mode"`
 	ID                               types.String `tfsdk:"id"`
-	KeyID                             types.String    `tfsdk:"key_id"`
-	LastSystemInventoryTime           types.String    `tfsdk:"last_system_inventory_time"`
-	LastUpdateTime                    types.String    `tfsdk:"last_update_time"`
+	KeyID                            types.String `tfsdk:"key_id"`
+	LastSystemInventoryTime          types.String `tfsdk:"last_system_inventory_time"`
+	LastUpdateTime                   types.String `tfsdk:"last_update_time"`
 	MaxAvailablePCILinkSpeed         types.String `tfsdk:"max_available_pci_link_speed"`
 	MaxPossiblePCILinkSpeed          types.String `tfsdk:"max_possible_pci_link_speed"`
 	Name                             types.String `tfsdk:"name"`
-	PCISlot                           types.String        `tfsdk:"pci_slot"`
+	PCISlot                          types.String `tfsdk:"pci_slot"`
 	PatrolReadState                  types.String `tfsdk:"patrol_read_state"`
 	PersistentHotspare               types.String `tfsdk:"persistent_hotspare"`
 	RealtimeCapability               types.String `tfsdk:"realtime_capability"`
@@ -150,58 +105,23 @@ type Status struct {
 	State        types.String `tfsdk:"state"`
 }
 
-// Assembly is the tfsdk model of Assembly
-type Assembly struct {
-	OdataID types.String `tfsdk:"odata_id"`
-}
-
 // CacheSummary is the tfsdk model of CacheSummary
 type CacheSummary struct {
 	TotalCacheSizeMiB types.Int64 `tfsdk:"total_cache_size_mi_b"`
 }
 
-// ControllerRates is the tfsdk model of ControllerRates
-type ControllerRates struct {
-	ConsistencyCheckRatePercent types.Int64 `tfsdk:"consistency_check_rate_percent"`
-	RebuildRatePercent          types.Int64 `tfsdk:"rebuild_rate_percent"`
-}
-
-// PCIeFunctions is the tfsdk model of PCIeFunctions
-type PCIeFunctions struct {
-	OdataID types.String `tfsdk:"odata_id"`
-}
-
-// Links is the tfsdk model of Links
-type Links struct {
-	PCIeFunctions           []PCIeFunctions `tfsdk:"pc_ie_functions"`
-	PCIeFunctionsOdataCount types.Int64     `tfsdk:"pc_ie_functions_odata_count"`
-}
-
 // StorageControllers is the tfsdk model of StorageControllers
 type StorageControllers struct {
-	OdataID                                types.String    `tfsdk:"odata_id"`
-	Assembly                               Assembly        `tfsdk:"assembly"`
-	CacheSummary                           CacheSummary    `tfsdk:"cache_summary"`
-	ControllerRates                        ControllerRates `tfsdk:"controller_rates"`
-	FirmwareVersion                        types.String    `tfsdk:"firmware_version"`
-	Identifiers                            []Identifiers   `tfsdk:"identifiers"`
-	IdentifiersOdataCount                  types.Int64     `tfsdk:"identifiers_odata_count"`
-	Links                                  Links           `tfsdk:"links"`
-	Manufacturer                           types.String    `tfsdk:"manufacturer"`
-	MemberID                               types.String    `tfsdk:"member_id"`
-	Model                                  types.String    `tfsdk:"model"`
-	Name                                   types.String    `tfsdk:"name"`
-	SpeedGbps                              types.Int64     `tfsdk:"speed_gbps"`
-	Status                                 Status          `tfsdk:"status"`
-	SupportedControllerProtocols           []types.String  `tfsdk:"supported_controller_protocols"`
-	SupportedControllerProtocolsOdataCount types.Int64     `tfsdk:"supported_controller_protocols_odata_count"`
-	SupportedDeviceProtocols               []types.String  `tfsdk:"supported_device_protocols"`
-	SupportedDeviceProtocolsOdataCount     types.Int64     `tfsdk:"supported_device_protocols_odata_count"`
-	SupportedRAIDTypes                     []types.String  `tfsdk:"supported_raid_types"`
-	SupportedRAIDTypesOdataCount           types.Int64     `tfsdk:"supported_raid_types_odata_count"`
-}
-
-// Volumes is the tfsdk model of Volumes
-type Volumes struct {
-	OdataID types.String `tfsdk:"odata_id"`
+	OdataID                      types.String   `tfsdk:"odata_id"`
+	CacheSummary                 CacheSummary   `tfsdk:"cache_summary"`
+	FirmwareVersion              types.String   `tfsdk:"firmware_version"`
+	Manufacturer                 types.String   `tfsdk:"manufacturer"`
+	MemberID                     types.String   `tfsdk:"member_id"`
+	Model                        types.String   `tfsdk:"model"`
+	Name                         types.String   `tfsdk:"name"`
+	SpeedGbps                    types.Int64    `tfsdk:"speed_gbps"`
+	Status                       Status         `tfsdk:"status"`
+	SupportedControllerProtocols []types.String `tfsdk:"supported_controller_protocols"`
+	SupportedDeviceProtocols     []types.String `tfsdk:"supported_device_protocols"`
+	SupportedRAIDTypes           []types.String `tfsdk:"supported_raid_types"`
 }
