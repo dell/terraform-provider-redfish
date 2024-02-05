@@ -699,7 +699,6 @@ func StatusSchema() map[string]schema.Attribute {
 	}
 }
 
-
 // CacheSummarySchema is a function that returns the schema for CacheSummary
 func CacheSummarySchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{

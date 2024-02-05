@@ -30,7 +30,7 @@ func TestAccRedfishStorageDataSource_fetch(t *testing.T) {
 }
 
 // controller_names = ["PERC H730P Mini"]
-  		// controller_ids = ["AHCI.Embedded.2-1"]
+// controller_ids = ["AHCI.Embedded.2-1"]
 
 func testAccRedfishDataSourceStorageConfig(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
