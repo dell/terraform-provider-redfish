@@ -164,6 +164,8 @@ After the successful execution of the above data block, we can see the output in
 
 ### Optional
 
+- `controller_ids` (List of String) ID of the storage controller ID
+- `controller_names` (List of String) ID of the storage controller name
 - `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
 
 ### Read-Only
@@ -190,5 +192,128 @@ Optional:
 
 Read-Only:
 
-- `drives` (List of String) List of drives on the storage controller
-- `storage_controller_id` (String) ID of the storage controller
+- `description` (String) description of the storage
+- `drives` (List of String) drives on the storage
+- `name` (String) name of the storage
+- `oem` (Attributes) oem attributes of storage controller (see [below for nested schema](#nestedatt--storage--oem))
+- `status` (Attributes) status of the storage (see [below for nested schema](#nestedatt--storage--status))
+- `storage_controller_id` (String) storage controller id
+- `storage_controllers` (Attributes List) storage controllers list (see [below for nested schema](#nestedatt--storage--storage_controllers))
+
+<a id="nestedatt--storage--oem"></a>
+### Nested Schema for `storage.oem`
+
+Read-Only:
+
+- `dell` (Attributes) dell attributes (see [below for nested schema](#nestedatt--storage--oem--dell))
+
+<a id="nestedatt--storage--oem--dell"></a>
+### Nested Schema for `storage.oem.dell`
+
+Read-Only:
+
+- `dell_controller` (Attributes) dell controller (see [below for nested schema](#nestedatt--storage--oem--dell--dell_controller))
+- `dell_controller_battery` (Attributes) dell controller battery (see [below for nested schema](#nestedatt--storage--oem--dell--dell_controller_battery))
+
+<a id="nestedatt--storage--oem--dell--dell_controller"></a>
+### Nested Schema for `storage.oem.dell.dell_controller_battery`
+
+Read-Only:
+
+- `alarm_state` (String) alarm state
+- `auto_config_behavior` (String) auto config behavior
+- `boot_virtual_disk_fqdd` (String) boot virtual disk fqdd
+- `cache_size_in_mb` (Number) cache size in mb
+- `cachecade_capability` (String) cachecade capability
+- `connector_count` (Number) connector count
+- `controller_description` (String) description of the controller
+- `controller_firmware_version` (String) controller firmware version
+- `controller_id` (String) id of controller
+- `controller_name` (String) controller name
+- `current_controller_mode` (String) current controller mode
+- `device` (String) device
+- `device_card_data_bus_width` (String) device card data bus width
+- `device_card_slot_length` (String) device card slot length
+- `device_card_slot_type` (String) device card slot type
+- `driver_version` (String) driver version
+- `encryption_capability` (String) encryption capability
+- `encryption_mode` (String) encryption mode
+- `key_id` (String) key id
+- `last_system_inventory_time` (String) last system inventory time
+- `last_update_time` (String) last update time
+- `max_available_pci_link_speed` (String) max available pci link speed
+- `max_possible_pci_link_speed` (String) max possible pci link speed
+- `patrol_read_state` (String) patrol read state
+- `pci_slot` (String) pci slot
+- `persistent_hotspare` (String) persistent hotspare
+- `realtime_capability` (String) realtime capability
+- `rollup_status` (String) rollup status
+- `sas_address` (String) sas address
+- `security_status` (String) security status
+- `shared_slot_assignment_allowed` (String) shared slot assignment allowed
+- `sliced_vd_capability` (String) sliced vd capability
+- `support_controller_boot_mode` (String) support controller boot mode
+- `support_enhanced_auto_foreign_import` (String) support enhanced auto foreign import
+- `support_raid_10_uneven_spans` (String) support raid 10 uneven spans
+- `supports_lk_mto_sekm_transition` (String) supports lk mto sekm transition
+- `t_10_pi_capability` (String) t 10 pi capability
+
+
+<a id="nestedatt--storage--oem--dell--dell_controller_battery"></a>
+### Nested Schema for `storage.oem.dell.dell_controller_battery`
+
+Read-Only:
+
+- `controller_battery_description` (String) description of the controller battery
+- `controller_battery_id` (String) id of controller battery
+- `controller_battery_name` (String) controller battery name
+- `fqdd` (String) fqdd
+- `primary_status` (String) primary_status
+- `raid_state` (String) raid state
+
+
+
+
+<a id="nestedatt--storage--status"></a>
+### Nested Schema for `storage.status`
+
+Read-Only:
+
+- `health` (String) health
+- `health_rollup` (String) health rollup
+- `state` (String) state of the storage controller
+
+
+<a id="nestedatt--storage--storage_controllers"></a>
+### Nested Schema for `storage.storage_controllers`
+
+Read-Only:
+
+- `cache_summary` (Attributes) cache summary (see [below for nested schema](#nestedatt--storage--storage_controllers--cache_summary))
+- `firmware_version` (String) firmware version
+- `manufacturer` (String) manufacturer
+- `member_id` (String) member id of storage controller
+- `model` (String) model
+- `name` (String) name of the storage controller
+- `speed_gbps` (Number) speed gbps
+- `status` (Attributes) status of the storage controller (see [below for nested schema](#nestedatt--storage--storage_controllers--status))
+- `supported_controller_protocols` (List of String) supported controller protocols
+- `supported_device_protocols` (List of String) supported device protocols
+- `supported_raid_types` (List of String) supported raid types
+
+<a id="nestedatt--storage--storage_controllers--cache_summary"></a>
+### Nested Schema for `storage.storage_controllers.cache_summary`
+
+Read-Only:
+
+- `total_cache_size_mi_b` (Number)
+
+
+<a id="nestedatt--storage--storage_controllers--status"></a>
+### Nested Schema for `storage.storage_controllers.status`
+
+Read-Only:
+
+- `health` (String) health
+- `health_rollup` (String) health rollup
+- `state` (String) state of the storage controller
