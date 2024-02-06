@@ -65,7 +65,7 @@ type ControllerBattery struct {
 
 // StorageOEM to get storage oem data
 type StorageOEM struct {
-	OdataType             string                `json:"@odata.type"`
+	OdataType             string            `json:"@odata.type"`
 	DellController        Controller        `json:"DellController"`
 	DellControllerBattery ControllerBattery `json:"DellControllerBattery"`
 }

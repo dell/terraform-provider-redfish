@@ -15,13 +15,13 @@ type StorageDatasource struct {
 
 // Storage is the tfsdk model of Storage
 type Storage struct {
-	ID                           types.String         `tfsdk:"storage_controller_id"`
-	Drives                       []types.String       `tfsdk:"drives"`
-	Description                  types.String         `tfsdk:"description"`
-	Name                         types.String         `tfsdk:"name"`
-	Oem                          Oem                  `tfsdk:"oem"`
-	Status                       Status               `tfsdk:"status"`
-	StorageControllers           []StorageControllers `tfsdk:"storage_controllers"`
+	ID                 types.String         `tfsdk:"storage_controller_id"`
+	Drives             []types.String       `tfsdk:"drives"`
+	Description        types.String         `tfsdk:"description"`
+	Name               types.String         `tfsdk:"name"`
+	Oem                Oem                  `tfsdk:"oem"`
+	Status             Status               `tfsdk:"status"`
+	StorageControllers []StorageControllers `tfsdk:"storage_controllers"`
 }
 
 // DellController is the tfsdk model of DellController
@@ -42,7 +42,7 @@ type DellController struct {
 	DriverVersion                    types.String `tfsdk:"driver_version"`
 	EncryptionCapability             types.String `tfsdk:"encryption_capability"`
 	EncryptionMode                   types.String `tfsdk:"encryption_mode"`
-	ID                               types.String `tfsdk:"id"`
+	ID                               types.String `tfsdk:"controller_id"`
 	KeyID                            types.String `tfsdk:"key_id"`
 	LastSystemInventoryTime          types.String `tfsdk:"last_system_inventory_time"`
 	LastUpdateTime                   types.String `tfsdk:"last_update_time"`
@@ -69,7 +69,7 @@ type DellController struct {
 type DellControllerBattery struct {
 	Description   types.String `tfsdk:"description"`
 	Fqdd          types.String `tfsdk:"fqdd"`
-	ID            types.String `tfsdk:"id"`
+	ID            types.String `tfsdk:"controller_battery_id"`
 	Name          types.String `tfsdk:"name"`
 	PrimaryStatus types.String `tfsdk:"primary_status"`
 	RAIDState     types.String `tfsdk:"raid_state"`

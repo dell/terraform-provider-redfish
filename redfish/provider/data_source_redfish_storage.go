@@ -168,12 +168,12 @@ func contains(s []string, str1 string, str2 string) bool {
 func newStorage(extendedStorage dell.StorageExtended) models.Storage {
 	input := extendedStorage.Storage
 	return models.Storage{
-		Description:                  types.StringValue(input.Description),
-		ID:                           types.StringValue(input.ID),
-		Name:                         types.StringValue(input.Name),
-		Oem:                          newOem(extendedStorage.OemData),
-		Status:                       newStatus(input.Status),
-		StorageControllers:           newStorageControllersList(input.StorageControllers),
+		Description:        types.StringValue(input.Description),
+		ID:                 types.StringValue(input.ID),
+		Name:               types.StringValue(input.Name),
+		Oem:                newOem(extendedStorage.OemData),
+		Status:             newStatus(input.Status),
+		StorageControllers: newStorageControllersList(input.StorageControllers),
 	}
 }
 
@@ -431,9 +431,9 @@ func DellControllerSchema() map[string]schema.Attribute {
 			Description:         "encryption mode",
 			Computed:            true,
 		},
-		"id": schema.StringAttribute{
-			MarkdownDescription: "id",
-			Description:         "id",
+		"controller_id": schema.StringAttribute{
+			MarkdownDescription: "id of controller",
+			Description:         "id of controller",
 			Computed:            true,
 		},
 		"key_id": schema.StringAttribute{
@@ -552,9 +552,9 @@ func DellControllerBatterySchema() map[string]schema.Attribute {
 			Description:         "fqdd",
 			Computed:            true,
 		},
-		"id": schema.StringAttribute{
-			MarkdownDescription: "id",
-			Description:         "id",
+		"controller_battery_id": schema.StringAttribute{
+			MarkdownDescription: "id of controller battery",
+			Description:         "id of controller battery",
 			Computed:            true,
 		},
 		"name": schema.StringAttribute{
@@ -619,8 +619,8 @@ func StatusSchema() map[string]schema.Attribute {
 			Computed:            true,
 		},
 		"state": schema.StringAttribute{
-			MarkdownDescription: "state",
-			Description:         "state",
+			MarkdownDescription: "state of the storage controller",
+			Description:         "state of the storage controller",
 			Computed:            true,
 		},
 	}
@@ -657,8 +657,8 @@ func StorageControllersSchema() map[string]schema.Attribute {
 			Computed:            true,
 		},
 		"member_id": schema.StringAttribute{
-			MarkdownDescription: "member id",
-			Description:         "member id",
+			MarkdownDescription: "member id of storage controller",
+			Description:         "member id of storage controller",
 			Computed:            true,
 		},
 		"model": schema.StringAttribute{
@@ -667,8 +667,8 @@ func StorageControllersSchema() map[string]schema.Attribute {
 			Computed:            true,
 		},
 		"name": schema.StringAttribute{
-			MarkdownDescription: "name",
-			Description:         "name",
+			MarkdownDescription: "name of the storage controller",
+			Description:         "name of the storage controller",
 			Computed:            true,
 		},
 		"speed_gbps": schema.Int64Attribute{
@@ -677,8 +677,8 @@ func StorageControllersSchema() map[string]schema.Attribute {
 			Computed:            true,
 		},
 		"status": schema.SingleNestedAttribute{
-			MarkdownDescription: "status",
-			Description:         "status",
+			MarkdownDescription: "status of the storage controller",
+			Description:         "status of the storage controller",
 			Computed:            true,
 			Attributes:          StatusSchema(),
 		},
