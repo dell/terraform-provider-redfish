@@ -34,7 +34,7 @@ type DellController struct {
 	ConnectorCount                   types.Int64  `tfsdk:"connector_count"`
 	ControllerFirmwareVersion        types.String `tfsdk:"controller_firmware_version"`
 	CurrentControllerMode            types.String `tfsdk:"current_controller_mode"`
-	Description                      types.String `tfsdk:"description"`
+	Description                      types.String `tfsdk:"controller_description"`
 	Device                           types.String `tfsdk:"device"`
 	DeviceCardDataBusWidth           types.String `tfsdk:"device_card_data_bus_width"`
 	DeviceCardSlotLength             types.String `tfsdk:"device_card_slot_length"`
@@ -48,7 +48,7 @@ type DellController struct {
 	LastUpdateTime                   types.String `tfsdk:"last_update_time"`
 	MaxAvailablePCILinkSpeed         types.String `tfsdk:"max_available_pci_link_speed"`
 	MaxPossiblePCILinkSpeed          types.String `tfsdk:"max_possible_pci_link_speed"`
-	Name                             types.String `tfsdk:"name"`
+	Name                             types.String `tfsdk:"controller_name"`
 	PCISlot                          types.String `tfsdk:"pci_slot"`
 	PatrolReadState                  types.String `tfsdk:"patrol_read_state"`
 	PersistentHotspare               types.String `tfsdk:"persistent_hotspare"`
@@ -67,10 +67,10 @@ type DellController struct {
 
 // DellControllerBattery is the tfsdk model of DellControllerBattery
 type DellControllerBattery struct {
-	Description   types.String `tfsdk:"description"`
+	Description   types.String `tfsdk:"controller_battery_description"`
 	Fqdd          types.String `tfsdk:"fqdd"`
 	ID            types.String `tfsdk:"controller_battery_id"`
-	Name          types.String `tfsdk:"name"`
+	Name          types.String `tfsdk:"controller_battery_name"`
 	PrimaryStatus types.String `tfsdk:"primary_status"`
 	RAIDState     types.String `tfsdk:"raid_state"`
 }

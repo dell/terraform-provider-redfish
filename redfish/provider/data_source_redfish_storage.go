@@ -391,9 +391,9 @@ func DellControllerSchema() map[string]schema.Attribute {
 			Description:         "current controller mode",
 			Computed:            true,
 		},
-		"description": schema.StringAttribute{
-			MarkdownDescription: "description of the storage",
-			Description:         "description",
+		"controller_description": schema.StringAttribute{
+			MarkdownDescription: "description of the controller",
+			Description:         "description of the controller",
 			Computed:            true,
 		},
 		"device": schema.StringAttribute{
@@ -461,9 +461,9 @@ func DellControllerSchema() map[string]schema.Attribute {
 			Description:         "max possible pci link speed",
 			Computed:            true,
 		},
-		"name": schema.StringAttribute{
-			MarkdownDescription: "name",
-			Description:         "name",
+		"controller_name": schema.StringAttribute{
+			MarkdownDescription: "controller name",
+			Description:         "controller name",
 			Computed:            true,
 		},
 		"pci_slot": schema.StringAttribute{
@@ -542,9 +542,9 @@ func DellControllerSchema() map[string]schema.Attribute {
 // DellControllerBatterySchema is a function that returns the schema for DellControllerBattery
 func DellControllerBatterySchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
-		"description": schema.StringAttribute{
-			MarkdownDescription: "description",
-			Description:         "description",
+		"controller_battery_description": schema.StringAttribute{
+			MarkdownDescription: "description of the controller battery",
+			Description:         "description of the controller battery",
 			Computed:            true,
 		},
 		"fqdd": schema.StringAttribute{
@@ -557,9 +557,9 @@ func DellControllerBatterySchema() map[string]schema.Attribute {
 			Description:         "id of controller battery",
 			Computed:            true,
 		},
-		"name": schema.StringAttribute{
-			MarkdownDescription: "name",
-			Description:         "name",
+		"controller_battery_name": schema.StringAttribute{
+			MarkdownDescription: "controller battery name",
+			Description:         "controller battey name",
 			Computed:            true,
 		},
 		"primary_status": schema.StringAttribute{

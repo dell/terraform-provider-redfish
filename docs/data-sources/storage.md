@@ -226,10 +226,11 @@ Read-Only:
 - `cache_size_in_mb` (Number) cache size in mb
 - `cachecade_capability` (String) cachecade capability
 - `connector_count` (Number) connector count
+- `controller_description` (String) description of the controller
 - `controller_firmware_version` (String) controller firmware version
 - `controller_id` (String) id of controller
+- `controller_name` (String) controller name
 - `current_controller_mode` (String) current controller mode
-- `description` (String) description of the storage
 - `device` (String) device
 - `device_card_data_bus_width` (String) device card data bus width
 - `device_card_slot_length` (String) device card slot length
@@ -242,7 +243,6 @@ Read-Only:
 - `last_update_time` (String) last update time
 - `max_available_pci_link_speed` (String) max available pci link speed
 - `max_possible_pci_link_speed` (String) max possible pci link speed
-- `name` (String) name
 - `patrol_read_state` (String) patrol read state
 - `pci_slot` (String) pci slot
 - `persistent_hotspare` (String) persistent hotspare
@@ -264,10 +264,10 @@ Read-Only:
 
 Read-Only:
 
+- `controller_battery_description` (String) description of the controller battery
 - `controller_battery_id` (String) id of controller battery
-- `description` (String) description
+- `controller_battery_name` (String) controller battery name
 - `fqdd` (String) fqdd
-- `name` (String) name
 - `primary_status` (String) primary_status
 - `raid_state` (String) raid state
 
