@@ -262,9 +262,7 @@ func (*BootSourceOverrideResource) Read(ctx context.Context, req resource.ReadRe
 	tflog.Trace(ctx, "resource_Boot_source Read: finish")
 }
 
-func (r *BootSourceOverrideResource) bootOperation(ctx context.Context, service *gofish.Service,
-	plan *models.BootSourceOverride,
-) diag.Diagnostics {
+func (r *BootSourceOverrideResource) bootOperation(ctx context.Context, service *gofish.Service, plan *models.BootSourceOverride) diag.Diagnostics {
 	// Lock the mutex to avoid race conditions with other resources
 	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
 	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
@@ -298,9 +296,7 @@ func (r *BootSourceOverrideResource) bootOperation(ctx context.Context, service 
 		return diags
 	}
 
-	if plan.BootSourceOverrideMode.ValueString() != "" && plan.BootSourceOverrideMode.ValueString() != string(system.Boot.BootSourceOverrideMode) {
-		diags.Append(r.restartServer(ctx, service, resp, plan)...)
-	}
+	diags.Append(r.restartServer(ctx, service, resp, plan)...)
 	return diags
 }
 
