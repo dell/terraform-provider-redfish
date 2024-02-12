@@ -315,10 +315,12 @@ func StorageSchema() map[string]schema.Attribute {
 			Computed:            true,
 		},
 		"drives": schema.ListAttribute{
-			MarkdownDescription: "Names of drives on the storage",
-			Description:         "Names of drives on the storage",
-			Computed:            true,
-			ElementType:         types.StringType,
+			MarkdownDescription: "Names of drives on the storage. They are in same order as in `drive_ids`, ie." +
+				" `drives[i]` will be the name of the drive whose ID is given by `drive_ids[i].`",
+			Description: "Names of drives on the storage. They are in same order as in 'drive_ids', ie." +
+				" 'drives[i]' will be the name of the drive whose ID is given by 'drive_ids[i].'",
+			Computed:    true,
+			ElementType: types.StringType,
 		},
 		"drive_ids": schema.ListAttribute{
 			MarkdownDescription: "IDs of drives on the storage",

@@ -194,7 +194,7 @@ Read-Only:
 
 - `description` (String) description of the storage
 - `drive_ids` (List of String) IDs of drives on the storage
-- `drives` (List of String) Names of drives on the storage
+- `drives` (List of String) Names of drives on the storage. They are in same order as in `drive_ids`, ie. `drives[i]` will be the name of the drive whose ID is given by `drive_ids[i].`
 - `name` (String) name of the storage
 - `oem` (Attributes) oem attributes of storage controller (see [below for nested schema](#nestedatt--storage--oem))
 - `status` (Attributes) status of the storage (see [below for nested schema](#nestedatt--storage--status))
