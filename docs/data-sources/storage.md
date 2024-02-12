@@ -193,7 +193,8 @@ Optional:
 Read-Only:
 
 - `description` (String) description of the storage
-- `drives` (List of String) drives on the storage
+- `drive_ids` (List of String) IDs of drives on the storage
+- `drives` (List of String) Names of drives on the storage
 - `name` (String) name of the storage
 - `oem` (Attributes) oem attributes of storage controller (see [below for nested schema](#nestedatt--storage--oem))
 - `status` (Attributes) status of the storage (see [below for nested schema](#nestedatt--storage--status))
