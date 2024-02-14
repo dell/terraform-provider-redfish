@@ -17,6 +17,7 @@ type StorageDatasource struct {
 type Storage struct {
 	ID                 types.String         `tfsdk:"storage_controller_id"`
 	Drives             []types.String       `tfsdk:"drives"`
+	DriveIDs           []types.String       `tfsdk:"drive_ids"`
 	Description        types.String         `tfsdk:"description"`
 	Name               types.String         `tfsdk:"name"`
 	Oem                Oem                  `tfsdk:"oem"`

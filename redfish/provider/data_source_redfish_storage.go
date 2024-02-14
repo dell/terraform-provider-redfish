@@ -145,9 +145,12 @@ func (g *StorageDatasource) readDatasourceRedfishStorage(d models.StorageDatasou
 		}
 
 		driveNames := make([]types.String, 0)
+		driveIDs := make([]types.String, 0)
 		for _, d := range drives {
+			driveIDs = append(driveIDs, types.StringValue(d.ID))
 			driveNames = append(driveNames, types.StringValue(d.Name))
 		}
+		terraformData.DriveIDs = driveIDs
 		terraformData.Drives = driveNames
 		d.Storages = append(d.Storages, terraformData)
 	}
@@ -312,8 +315,16 @@ func StorageSchema() map[string]schema.Attribute {
 			Computed:            true,
 		},
 		"drives": schema.ListAttribute{
-			MarkdownDescription: "drives on the storage",
-			Description:         "drives on the storage",
+			MarkdownDescription: "Names of drives on the storage. They are in same order as in `drive_ids`, ie." +
+				" `drives[i]` will be the name of the drive whose ID is given by `drive_ids[i].`",
+			Description: "Names of drives on the storage. They are in same order as in 'drive_ids', ie." +
+				" 'drives[i]' will be the name of the drive whose ID is given by 'drive_ids[i].'",
+			Computed:    true,
+			ElementType: types.StringType,
+		},
+		"drive_ids": schema.ListAttribute{
+			MarkdownDescription: "IDs of drives on the storage",
+			Description:         "IDs of drives on the storage",
 			Computed:            true,
 			ElementType:         types.StringType,
 		},
