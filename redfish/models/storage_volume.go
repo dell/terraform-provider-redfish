@@ -6,6 +6,7 @@ import "github.com/hashicorp/terraform-plugin-framework/types"
 type RedfishStorageVolume struct {
 	CapacityBytes       types.Int64     `tfsdk:"capacity_bytes"`
 	DiskCachePolicy     types.String    `tfsdk:"disk_cache_policy"`
+	RaidType            types.String    `tfsdk:"raid_type"`
 	Drives              types.List      `tfsdk:"drives"`
 	ID                  types.String    `tfsdk:"id"`
 	RedfishServer       []RedfishServer `tfsdk:"redfish_server"`
@@ -19,4 +20,5 @@ type RedfishStorageVolume struct {
 	VolumeName          types.String    `tfsdk:"volume_name"`
 	VolumeType          types.String    `tfsdk:"volume_type"`
 	WriteCachePolicy    types.String    `tfsdk:"write_cache_policy"`
+	Encrypted           types.Bool      `tfsdk:"encrypted"`
 }

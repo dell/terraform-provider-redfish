@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -33,6 +34,14 @@ import (
 var (
 	_ resource.Resource = &RedfishStorageVolumeResource{}
 )
+
+var volumeTypeMap = map[string]string{
+	string(redfish.NonRedundantVolumeType):             "RAID0",
+	string(redfish.MirroredVolumeType):                 "RAID1",
+	string(redfish.StripedWithParityVolumeType):        "RAID5",
+	string(redfish.SpannedMirrorsVolumeType):           "RAID10",
+	string(redfish.SpannedStripesWithParityVolumeType): "RAID50",
+}
 
 const (
 	defaultStorageVolumeResetTimeout  int64 = 120
@@ -76,6 +85,13 @@ func VolumeSchema() map[string]schema.Attribute {
 				int64validator.AtLeast(maxCapacityBytes),
 			},
 		},
+		"encrypted": schema.BoolAttribute{
+			MarkdownDescription: "Encrypt the virtual disk, default is false",
+			Description:         "Encrypt the virtual disk, default is false",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(false),
+		},
 		"disk_cache_policy": schema.StringAttribute{
 			MarkdownDescription: "Disk Cache Policy",
 			Description:         "Disk Cache Policy",
@@ -86,6 +102,24 @@ func VolumeSchema() map[string]schema.Attribute {
 				stringvalidator.OneOf([]string{
 					"Enabled",
 					"Disabled",
+				}...),
+			},
+		},
+		"raid_type": schema.StringAttribute{
+			MarkdownDescription: "Raid Type, Defaults to RAID0",
+			Description:         "Raid Type, Defaults to RAID0.",
+			Optional:            true,
+			Computed:            true,
+			Default:             stringdefault.StaticString("RAID0"),
+			Validators: []validator.String{
+				stringvalidator.OneOf([]string{
+					"RAID0",
+					"RAID1",
+					"RAID5",
+					"RAID6",
+					"RAID10",
+					"RAID50",
+					"RAID60",
 				}...),
 			},
 		},
@@ -184,7 +218,8 @@ func VolumeSchema() map[string]schema.Attribute {
 		"volume_type": schema.StringAttribute{
 			MarkdownDescription: "Volume Type",
 			Description:         "Volume Type",
-			Required:            true,
+			Optional:            true,
+			DeprecationMessage:  "Volume Type is deprecated and will be removed in a future release. Please use raid_type instead.",
 			Validators: []validator.String{
 				stringvalidator.OneOf([]string{
 					string(redfish.NonRedundantVolumeType),
@@ -305,6 +340,11 @@ func (r *RedfishStorageVolumeResource) Update(ctx context.Context, req resource.
 		return
 	}
 
+	if !plan.Encrypted.ValueBool() && state.Encrypted.ValueBool() {
+		resp.Diagnostics.AddError("Invalid Configuration.",
+			"Cannot disable encryption, once a disk is encrypted it cannot be transformed back into an non-encrypted state.")
+		return
+	}
 	service, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
@@ -394,7 +434,13 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 
 	// Get user config
 	storageID := d.StorageControllerID.ValueString()
-	volumeType := d.VolumeType.ValueString()
+
+	// Map from the deprecated volume type to raid type
+	// If the raid_type is set, that will override the volume_type
+	raidType := volumeTypeMap[d.VolumeType.ValueString()]
+	if d.RaidType.ValueString() != "" {
+		raidType = d.RaidType.ValueString()
+	}
 	volumeName := d.VolumeName.ValueString()
 	optimumIOSizeBytes := int(d.OptimumIoSizeBytes.ValueInt64())
 	capacityBytes := int(d.CapacityBytes.ValueInt64())
@@ -402,6 +448,7 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 	writeCachePolicy := d.WriteCachePolicy.ValueString()
 	diskCachePolicy := d.DiskCachePolicy.ValueString()
 	applyTime := d.SettingsApplyTime.ValueString()
+	encrypted := d.Encrypted.ValueBool()
 	volumeJobTimeout := int64(d.VolumeJobTimeout.ValueInt64())
 
 	var driveNames []string
@@ -434,13 +481,14 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 	}
 
 	newVolume := map[string]interface{}{
-		"VolumeType":         volumeType,
 		"DisplayName":        volumeName,
 		"Name":               volumeName,
 		"ReadCachePolicy":    readCachePolicy,
 		"WriteCachePolicy":   writeCachePolicy,
 		"CapacityBytes":      capacityBytes,
 		"OptimumIOSizeBytes": optimumIOSizeBytes,
+		"RAIDType":           raidType,
+		"Encrypted":          encrypted,
 		"Oem": map[string]map[string]map[string]interface{}{
 			"Dell": {
 				"DellVolume": {
@@ -561,6 +609,7 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service,
 	writeCachePolicy := d.WriteCachePolicy.ValueString()
 	diskCachePolicy := d.DiskCachePolicy.ValueString()
 	applyTime := d.SettingsApplyTime.ValueString()
+	encrypted := d.Encrypted.ValueBool()
 
 	var driveNames []string
 	diags.Append(d.Drives.ElementsAs(ctx, &driveNames, true)...)
@@ -585,6 +634,9 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service,
 		"ReadCachePolicy":  readCachePolicy,
 		"WriteCachePolicy": writeCachePolicy,
 		"DisplayName":      volumeName,
+		"Encrypted":        encrypted,
+		// This can be hard coded since the other values are deprecated, this is the only supported value
+		"EncryptionTypes": []string{"NativeDriveEncryption"},
 		"Oem": map[string]map[string]map[string]interface{}{
 			"Dell": {
 				"DellVolume": {
