@@ -29,7 +29,7 @@ func TestAccRedfishStorageVolume_InvalidController(t *testing.T) {
 					creds,
 					"Invalid-ID",
 					"TerraformVol1",
-					"NonRedundant",
+					"RAID0",
 					drive,
 					"Immediate",
 					"Off",
@@ -56,7 +56,7 @@ func TestAccRedfishStorageVolume_InvalidDrive(t *testing.T) {
 					creds,
 					"RAID.Integrated.1-1",
 					"TerraformVol1",
-					"NonRedundant",
+					"RAID0",
 					"Invalid-Drive",
 					"Immediate",
 					"Off",
@@ -83,7 +83,7 @@ func TestAccRedfishStorageVolume_InvalidVolumeType(t *testing.T) {
 					creds,
 					"RAID.Integrated.1-1",
 					"TerraformVol1",
-					"Mirrored",
+					"RAID1",
 					drive,
 					"Immediate",
 					"Off",
@@ -132,7 +132,7 @@ func TestAccRedfishStorageVolumeUpdate_basic(t *testing.T) {
 					creds,
 					"RAID.Integrated.1-1",
 					"TerraformVol1",
-					"NonRedundant",
+					"RAID0",
 					drive,
 					"Immediate",
 					"ReadAhead",
@@ -163,7 +163,7 @@ func TestAccRedfishStorageVolumeCreate_basic(t *testing.T) {
 					creds,
 					"RAID.Integrated.1-1",
 					"TerraformVol1",
-					"NonRedundant",
+					"RAID0",
 					drive,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -203,7 +203,7 @@ func TestAccRedfishStorageVolume_basic(t *testing.T) {
 					creds,
 					"RAID.Integrated.1-1",
 					"TerraformVol1",
-					"NonRedundant",
+					"RAID0",
 					drive,
 					"Immediate",
 					"AdaptiveReadAhead",
@@ -235,7 +235,7 @@ func TestAccRedfishStorageVolume_OnReset(t *testing.T) {
 					creds,
 					"RAID.Integrated.1-1",
 					"TerraformVol1",
-					"NonRedundant",
+					"RAID0",
 					drive,
 					"OnReset",
 					"AdaptiveReadAhead",
@@ -256,10 +256,46 @@ func TestAccRedfishStorageVolume_OnReset(t *testing.T) {
 	})
 }
 
+// Wrote this test to test the encrypted property.
+// However since we do not have the proper equiptment in our lab and had to borrow will comment out until we do.
+// This way the rest of the test can run without failure.
+// TODO: Uncomment when we have proper equiptment
+
+// func TestAccRedfishStorageVolume_Encrypted(t *testing.T) {
+// 	resource.Test(t, resource.TestCase{
+// 		PreCheck:                 func() { testAccPreCheck(t) },
+// 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+// 		Steps: []resource.TestStep{
+// 			{
+// 				Config: testAccRedfishResourceStorageVolumeEncryptedConfig(
+// 					creds,
+// 					"RAID.SL.3-1",
+// 					"TerraformVol1",
+// 					"RAID0",
+// 					drive,
+// 					"Immediate",
+// 					"Off",
+// 					"WriteThrough",
+// 					"PowerCycle",
+// 					500,
+// 					2000,
+// 					true,
+// 				),
+// 				Check: resource.ComposeAggregateTestCheckFunc(
+// 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.SL.3-1"),
+// 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "write_cache_policy", "WriteThrough"),
+// 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "encrypted", "true"),
+// 				),
+// 				ExpectNonEmptyPlan: true,
+// 			},
+// 		},
+// 	})
+// }
+
 func testAccRedfishResourceStorageVolumeConfig(testingInfo TestingServerCredentials,
 	storage_controller_id string,
 	volume_name string,
-	volume_type string,
+	raid_type string,
 	drives string,
 	settings_apply_time string,
 	read_cache_policy string,
@@ -282,7 +318,7 @@ func testAccRedfishResourceStorageVolumeConfig(testingInfo TestingServerCredenti
 	  
 		storage_controller_id = "%s"
 		volume_name           = "%s"
-		volume_type           = "%s"
+		raid_type           = "%s"
 		drives                = ["%s"]
 		settings_apply_time   = "%s"
 		read_cache_policy 	  = "%s"
@@ -299,7 +335,7 @@ func testAccRedfishResourceStorageVolumeConfig(testingInfo TestingServerCredenti
 		testingInfo.Endpoint,
 		storage_controller_id,
 		volume_name,
-		volume_type,
+		raid_type,
 		drives,
 		settings_apply_time,
 		read_cache_policy,
@@ -309,6 +345,59 @@ func testAccRedfishResourceStorageVolumeConfig(testingInfo TestingServerCredenti
 		volume_job_timeout,
 		capacity_bytes,
 		optimum_io_size_bytes,
+	)
+}
+
+func testAccRedfishResourceStorageVolumeEncryptedConfig(testingInfo TestingServerCredentials,
+	storage_controller_id string,
+	volume_name string,
+	raid_type string,
+	drives string,
+	settings_apply_time string,
+	read_cache_policy string,
+	write_cache_policy string,
+	reset_type string,
+	reset_timeout int,
+	volume_job_timeout int,
+	encrypted bool,
+
+) string {
+	return fmt.Sprintf(`
+	resource "redfish_storage_volume" "volume" {
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "https://%s"
+		  ssl_insecure = true
+		}
+	  
+		storage_controller_id = "%s"
+		volume_name           = "%s"
+		raid_type           = "%s"
+		drives                = ["%s"]
+		settings_apply_time   = "%s"
+		read_cache_policy 	  = "%s"
+		write_cache_policy 	  = "%s"
+		reset_type 			  = "%s"
+		reset_timeout 		  = %d
+		volume_job_timeout 	  = %d
+		encrypted = %t
+	  }
+	  `,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+		storage_controller_id,
+		volume_name,
+		raid_type,
+		drives,
+		settings_apply_time,
+		read_cache_policy,
+		write_cache_policy,
+		reset_type,
+		reset_timeout,
+		volume_job_timeout,
+		encrypted,
 	)
 }
 
@@ -329,7 +418,7 @@ func testAccRedfishResourceStorageVolumeMinConfig(testingInfo TestingServerCrede
 	  
 		storage_controller_id = "%s"
 		volume_name           = "%s"
-		volume_type           = "%s"
+		raid_type           = "%s"
 		drives                = ["%s"]
 	  }
 	  `,
