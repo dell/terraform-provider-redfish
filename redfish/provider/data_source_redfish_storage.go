@@ -130,11 +130,14 @@ func (g *StorageDatasource) readDatasourceRedfishStorage(d models.StorageDatasou
 		return d, diags
 	}
 	d.Storages = make([]models.Storage, 0)
+	foundControllers := make([]string, 0)
 	for _, s := range storage {
 		if len(controllers) > 0 {
-			if !contains(controllers, s.Name, s.ID) {
+			foundController, ok := contains(controllers, s.Name, s.ID)
+			if !ok {
 				continue
 			}
+			foundControllers = append(foundControllers, foundController)
 		}
 		dellStorage, _ := dell.Storage(s)
 		terraformData := newStorage(*dellStorage)
@@ -155,17 +158,37 @@ func (g *StorageDatasource) readDatasourceRedfishStorage(d models.StorageDatasou
 		d.Storages = append(d.Storages, terraformData)
 	}
 
+	notFound := setDiff(controllers, foundControllers)
+	for _, cont := range notFound {
+		diags.AddError("Could not find Controller "+cont, "")
+	}
+
 	return d, diags
 }
 
-func contains(s []string, str1 string, str2 string) bool {
+func setDiff(sliceX, sliceY []string) []string {
+	setY := make(map[string]bool)
+	for _, y := range sliceY {
+		setY[y] = true
+	}
+
+	var result []string
+	for _, x := range sliceX {
+		if !setY[x] {
+			result = append(result, x)
+		}
+	}
+	return result
+}
+
+func contains(s []string, str1 string, str2 string) (string, bool) {
 	for _, v := range s {
 		if v == str1 || v == str2 {
-			return true
+			return v, true
 		}
 	}
 
-	return false
+	return "", false
 }
 
 func newStorage(extendedStorage dell.StorageExtended) models.Storage {
