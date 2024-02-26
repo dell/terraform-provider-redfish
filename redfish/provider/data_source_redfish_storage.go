@@ -167,23 +167,20 @@ func (g *StorageDatasource) readDatasourceRedfishStorage(d models.StorageDatasou
 	return d, diags
 }
 
-
 func setDiff(sliceX, sliceY []string) []string {
-    setY := make(map[string]bool)
-    for _, y := range sliceY {
-        setY[y] = true
-    }
+	setY := make(map[string]bool)
+	for _, y := range sliceY {
+		setY[y] = true
+	}
 
-    var result []string
-    for _, x := range sliceX {
-        if !setY[x] {
-            result = append(result, x)
-        }
-    }
-    return result
+	var result []string
+	for _, x := range sliceX {
+		if !setY[x] {
+			result = append(result, x)
+		}
+	}
+	return result
 }
-
-
 
 func contains(s []string, str1 string, str2 string) (string, bool) {
 	for _, v := range s {
