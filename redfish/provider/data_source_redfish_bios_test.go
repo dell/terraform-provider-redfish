@@ -9,7 +9,6 @@ import (
 
 // redfish.Power represents a concrete Go type that represents an API resource
 func TestAccRedfishBiosDataSource_basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,

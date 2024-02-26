@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+
 	"terraform-provider-redfish/redfish/models"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"

@@ -9,7 +9,6 @@ import (
 
 // test redfish Boot Order
 func TestAccRedfishBootSourceOverride_basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -25,7 +24,6 @@ func TestAccRedfishBootSourceOverride_basic(t *testing.T) {
 }
 
 func TestAccRedfishBootSourceOverride_updated(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,

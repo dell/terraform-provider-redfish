@@ -46,23 +46,18 @@ var simpleUpdateBody = `{
 
 func TestDellUpdateService(t *testing.T) {
 	t.Run("Test redfish values", func(t *testing.T) {
-
 		dellUpdateService := getDellUpdateService(t)
 
 		assertField(t, dellUpdateService.UpdateServiceTarget, "/redfish/v1/UpdateService/Actions/UpdateService.SimpleUpdate")
 		assertField(t, dellUpdateService.HTTPPushURI, "/redfish/v1/UpdateService/FirmwareInventory")
 		assertArray(t, dellUpdateService.TransferProtocol, []string{"HTTP"})
-
 	})
 	t.Run("Check Dell values", func(t *testing.T) {
-
 		dellUpdateService := getDellUpdateService(t)
 
 		assertField(t, dellUpdateService.Actions.DellUpdateServiceTarget, "/redfish/v1/UpdateService/Actions/Oem/DellUpdateService.Install")
 		assertArray(t, dellUpdateService.Actions.DellUpdateServiceInstallUpon, []string{"Now", "NowAndReboot", "NextReboot"})
-
 	})
-
 }
 
 func getDellUpdateService(t testing.TB) *UpdateServiceExtended {

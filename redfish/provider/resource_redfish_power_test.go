@@ -2,15 +2,15 @@ package provider
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"os"
 	"regexp"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 // redfish.Power represents a concrete Go type that represents an API resource
 func TestAccRedfishPowerT1(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -83,10 +83,12 @@ func TestAccRedfishPower_Invalid(t *testing.T) {
 		},
 	})
 }
+
 func testAccRedfishResourcePowerConfig(testingInfo TestingServerCredentials,
 	desiredPowerAction string,
 	maximumWaitTime int,
-	checkInterval int) string {
+	checkInterval int,
+) string {
 	return fmt.Sprintf(`
 		
 		resource "redfish_power" "system_power" {
@@ -118,7 +120,8 @@ func testAccRedfishResourcePowerConfig(testingInfo TestingServerCredentials,
 }
 
 func testAccRedfishResourcePowerConfig1(testingInfo TestingServerCredentials,
-	desiredPowerAction string) string {
+	desiredPowerAction string,
+) string {
 	return fmt.Sprintf(`
 
 		resource "redfish_power" "system_power" {

@@ -10,7 +10,6 @@ import (
 
 // Test to create manager reset resource with invalid reset type- Negative
 func TestAccRedfishManagerReset_Invalid_ResetType_Negative(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -25,7 +24,6 @@ func TestAccRedfishManagerReset_Invalid_ResetType_Negative(t *testing.T) {
 
 // Test to create manager reset resource with invalid manager id- Negative
 func TestAccRedfishManagerReset_Invalid_ManagerID_Negative(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -40,7 +38,6 @@ func TestAccRedfishManagerReset_Invalid_ManagerID_Negative(t *testing.T) {
 
 // Test to update manager reset resource with invalid maanger id- Negative
 func TestAccRedfishManagerReset_Update_Negative(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -61,7 +58,6 @@ func TestAccRedfishManagerReset_Update_Negative(t *testing.T) {
 
 // Test to perform manager reset
 func TestAccRedfishManagerReset_Create(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -78,7 +74,8 @@ func TestAccRedfishManagerReset_Create(t *testing.T) {
 
 func testAccRedfishResourceManagerResetConfig(testingInfo TestingServerCredentials,
 	managerID string,
-	resetType string) string {
+	resetType string,
+) string {
 	return fmt.Sprintf(`
 		
 	resource "redfish_manager_reset" "manager_reset" {

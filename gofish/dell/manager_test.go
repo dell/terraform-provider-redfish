@@ -374,7 +374,6 @@ func TestDellManager(t *testing.T) {
 		assertLink(t, dellManager.links.DelliDRACCardService, "/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DelliDRACCardService")
 		assertLink(t, dellManager.links.DellvFlashCollection, "/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellvFlash")
 		assertLink(t, dellManager.links.Jobs, "/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/Jobs")
-
 	})
 
 	t.Run("Test Dell OEM field", func(t *testing.T) {

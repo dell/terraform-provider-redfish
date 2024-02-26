@@ -11,11 +11,13 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var testAccProtoV6ProviderFactories map[string]func() (tfprotov6.ProviderServer, error)
-var creds TestingServerCredentials
-var image64Boot string
-var imageEfiBoot string
-var drive string
+var (
+	testAccProtoV6ProviderFactories map[string]func() (tfprotov6.ProviderServer, error)
+	creds                           TestingServerCredentials
+	image64Boot                     string
+	imageEfiBoot                    string
+	drive                           string
+)
 
 // // TestingServerCredentials Struct used to store the credentials we pass for testing. This allows us to pass testing
 // // credentials via environment variables instead of having them hard coded
