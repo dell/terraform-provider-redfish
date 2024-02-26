@@ -154,8 +154,8 @@ func (g *StorageDatasource) readDatasourceRedfishStorage(d models.StorageDatasou
 		terraformData.Drives = driveNames
 		d.Storages = append(d.Storages, terraformData)
 	}
-	if len(d.Storages) == 0  && len(controllers) > 0{
-		diags.AddError("Could not find a Controller",fmt.Sprint(controllers))
+	if len(d.Storages) == 0 && len(controllers) > 0 {
+		diags.AddError("Could not find a Controller", fmt.Sprint(controllers))
 	}
 
 	return d, diags
