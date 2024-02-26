@@ -134,11 +134,10 @@ func (g *StorageDatasource) readDatasourceRedfishStorage(d models.StorageDatasou
 	for _, s := range storage {
 		if len(controllers) > 0 {
 			foundController, ok := contains(controllers, s.Name, s.ID)
-			if ok {
-				foundControllers = append(foundControllers, foundController)
-			} else {
+			if !ok {
 				continue
 			}
+			foundControllers = append(foundControllers, foundController)
 		}
 		dellStorage, _ := dell.Storage(s)
 		terraformData := newStorage(*dellStorage)
@@ -160,8 +159,8 @@ func (g *StorageDatasource) readDatasourceRedfishStorage(d models.StorageDatasou
 	}
 
 	notFound := setDiff(controllers, foundControllers)
-	if len(notFound) > 0 {
-		diags.AddError("Could not find a Controller", fmt.Sprint(notFound))
+	for _, cont := range notFound {
+		diags.AddError("Could not find Controller "+cont, "")
 	}
 
 	return d, diags
