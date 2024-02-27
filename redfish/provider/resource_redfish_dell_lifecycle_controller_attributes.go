@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 	"terraform-provider-redfish/gofish/dell"
 	"terraform-provider-redfish/redfish/models"
@@ -288,6 +289,29 @@ func updateRedfishDellLCAttributes(ctx context.Context, service *gofish.Service,
 	}
 
 	response, err := service.GetClient().Patch(lcAttributes.ODataID, patchBody)
+
+	if response != nil {
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			diags.AddError("error reading response body", err.Error())
+			return diags
+		}
+
+		readResponse := make(map[string]json.RawMessage)
+		err = json.Unmarshal(body, &readResponse)
+		if err != nil {
+			diags.AddError("Error unmarshalling response body", err.Error())
+			return diags
+		}
+
+		// check for extended error message in response
+		errorMsg, ok := readResponse["error"]
+		if ok {
+			diags.AddError("Error updating lifecycle controller attributes", string(errorMsg))
+			return diags
+		}
+	}
+
 	if err != nil {
 		diags.AddError(idracError, err.Error())
 		return diags
@@ -358,7 +382,7 @@ func readRedfishDellLCAttributes(_ context.Context, service *gofish.Service, d *
 
 func getLCAttributes(attributes []*dell.Attributes) (*dell.Attributes, error) {
 	for _, a := range attributes {
-		if strings.Contains(a.ID, "LCAttributes") {
+		if strings.Contains(a.ID, "LCAttributes") || strings.Contains(a.ID, "LifecycleController.Embedded.1") {
 			return a, nil
 		}
 	}
