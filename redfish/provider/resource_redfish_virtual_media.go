@@ -155,17 +155,13 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 	// Get Systems details
-	systems, err := service.Systems()
+	system, err := getSystemResource(service)
 	if err != nil {
 		resp.Diagnostics.AddError("Error when retrieving systems", err.Error())
 		return
 	}
-	if len(systems) == 0 {
-		resp.Diagnostics.AddError("There is no system available", err.Error())
-		return
-	}
 	// Get virtual media collection
-	virtualMediaCollection, err := systems[0].VirtualMedia()
+	virtualMediaCollection, err := system.VirtualMedia()
 	if err != nil {
 		resp.Diagnostics.AddError("Couldn't retrieve virtual media collection from redfish API", err.Error())
 		return
@@ -248,11 +244,12 @@ func (r *virtualMediaResource) Read(ctx context.Context, req resource.ReadReques
 	// Get virtual media details
 	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), state.VirtualMediaID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Virtual Media doesn't exist: ", err.Error()) // This error won't be triggered ever
+		resp.Diagnostics.AddError("Virtual Media doesn't exist: ", err.Error())
 		return
 	}
 
 	if len(virtualMedia.Image) == 0 { // Nothing is mounted here
+		resp.Diagnostics.AddError("This virtual media is not connected.", "")
 		return
 	}
 
