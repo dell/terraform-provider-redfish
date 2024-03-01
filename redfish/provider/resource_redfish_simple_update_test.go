@@ -96,7 +96,8 @@ func TestAccRedfishSimpleUpdate_InvalidProto(t *testing.T) {
 
 func testAccRedfishResourceUpdateConfig(testingInfo TestingServerCredentials,
 	transferProtocol string,
-	imagePath string) string {
+	imagePath string,
+) string {
 	return fmt.Sprintf(`
 		
 		resource "redfish_simple_update" "update" {

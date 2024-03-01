@@ -327,7 +327,6 @@ func (r *BootOrderResource) updateRedfishDellBootAttributes(service *gofish.Serv
 		return resp, diags
 	}
 	resp, err = r.setBootOrder(service, d)
-
 	if err != nil {
 		diags.AddError("Boot Operation Failed", err.Error())
 	}

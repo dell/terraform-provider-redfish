@@ -28,8 +28,8 @@ import (
 
 // test redfish bios settings
 func TestAccRedfishCertificate_basic(t *testing.T) {
-	var valid_cert = os.Getenv("VALID_CERT")
-	var invalid_cert = os.Getenv("INVALID_CERT")
+	valid_cert := os.Getenv("VALID_CERT")
+	invalid_cert := os.Getenv("INVALID_CERT")
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -53,7 +53,6 @@ func TestAccRedfishCertificate_basic(t *testing.T) {
 			},
 		},
 	})
-
 }
 
 func testAccRedfishResourceCustomCertificate(testingInfo TestingServerCredentials, certfile string) string {

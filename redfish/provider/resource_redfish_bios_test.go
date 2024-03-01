@@ -27,7 +27,6 @@ import (
 
 // test redfish bios settings
 func TestAccRedfishBios_basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -51,7 +50,6 @@ func TestAccRedfishBios_basic(t *testing.T) {
 }
 
 func TestAccRedfishBios_InvalidSettings(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -66,7 +64,6 @@ func TestAccRedfishBios_InvalidSettings(t *testing.T) {
 }
 
 func TestAccRedfishBios_InvalidAttributes(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,

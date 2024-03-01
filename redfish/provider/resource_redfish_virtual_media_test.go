@@ -364,7 +364,8 @@ func testAccRedfishResourceVirtualMediaConfig(testingInfo TestingServerCredentia
 	image string,
 	write_protected bool,
 	transfer_protocol_type string,
-	transfer_method string) string {
+	transfer_method string,
+) string {
 	return fmt.Sprintf(`
 		
 		resource "redfish_virtual_media" "%s" {
@@ -397,7 +398,8 @@ func testAccRedfishResourceVirtualMediaConfigServer5x(testingInfo TestingServerC
 	image string,
 	write_protected bool,
 	transfer_protocol_type string,
-	transfer_method string) string {
+	transfer_method string,
+) string {
 	return fmt.Sprintf(`
 		
 		resource "redfish_virtual_media" "%s" {
@@ -431,7 +433,8 @@ func testAccRedfishResourceVirtualMediaConfigDependency(testingInfo TestingServe
 	write_protected bool,
 	transfer_protocol_type string,
 	transfer_method string,
-	depends_on string) string {
+	depends_on string,
+) string {
 	return fmt.Sprintf(`
 		resource "redfish_virtual_media" "%s" {
 

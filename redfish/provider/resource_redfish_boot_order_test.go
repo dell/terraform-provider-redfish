@@ -27,7 +27,6 @@ import (
 
 // test redfish Boot Order
 func TestAccRedfishBootOrder_basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -47,7 +46,6 @@ func TestAccRedfishBootOrder_basic(t *testing.T) {
 }
 
 func TestAccRedfishBootOrderOptions_basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,

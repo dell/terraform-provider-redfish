@@ -64,7 +64,6 @@ func TestMutexKV(t *testing.T) {
 		assertSum(t, sum1, 45)
 		assertSum(t, sum2, 35)
 	})
-
 }
 
 func assertSum(t testing.TB, got, want int) {

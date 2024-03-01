@@ -116,6 +116,7 @@ func TestAccRedfishStorageVolume_InvalidVolumeType(t *testing.T) {
 		},
 	})
 }
+
 func TestAccRedfishStorageVolumeUpdate_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -322,7 +323,6 @@ func testAccRedfishResourceStorageVolumeConfig(testingInfo TestingServerCredenti
 	volume_job_timeout int,
 	capacity_bytes int,
 	optimum_io_size_bytes int,
-
 ) string {
 	return fmt.Sprintf(`
 	resource "redfish_storage_volume" "volume" {
@@ -377,7 +377,6 @@ func testAccRedfishResourceStorageVolumeEncryptedConfig(testingInfo TestingServe
 	reset_timeout int,
 	volume_job_timeout int,
 	encrypted bool,
-
 ) string {
 	return fmt.Sprintf(`
 	resource "redfish_storage_volume" "volume" {
