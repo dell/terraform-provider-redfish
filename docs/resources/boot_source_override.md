@@ -1,5 +1,5 @@
 ---
-# Copyright (c) 2023 Dell Inc., or its subsidiaries. All Rights Reserved.
+# Copyright (c) 2023-2024 Dell Inc., or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Mozilla Public License Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ This Terraform resource is used to configure Boot sources of the iDRAC Server.
 variables.tf
 ```terraform
 /*
-Copyright (c) 2023 Dell Inc., or its subsidiaries. All Rights Reserved.
+Copyright (c) 2021-2024 Dell Inc., or its subsidiaries. All Rights Reserved.
 
 Licensed under the Mozilla Public License Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -99,7 +99,7 @@ rack1 = {
 provider.tf
 ```terraform
 /*
-Copyright (c) 2023 Dell Inc., or its subsidiaries. All Rights Reserved.
+Copyright (c) 2022-2024 Dell Inc., or its subsidiaries. All Rights Reserved.
 
 Licensed under the Mozilla Public License Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -128,7 +128,7 @@ terraform {
 main.tf
 ```terraform
 /*
-Copyright (c) 2023 Dell Inc., or its subsidiaries. All Rights Reserved.
+Copyright (c) 2023-2024 Dell Inc., or its subsidiaries. All Rights Reserved.
 
 Licensed under the Mozilla Public License Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
