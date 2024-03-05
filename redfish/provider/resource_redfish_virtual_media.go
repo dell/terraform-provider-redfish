@@ -26,7 +26,7 @@ import (
 	"terraform-provider-redfish/redfish/models"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -165,29 +165,14 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		TransferProtocolType: redfish.TransferProtocolType(plan.TransferProtocolType.ValueString()),
 		WriteProtected:       plan.WriteProtected.ValueBool(),
 	}
-	// Get service
-	service, err := NewConfig(r.p, &plan.RedfishServer)
-	if err != nil {
-		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
+	env, d := r.getVMEnv(&plan.RedfishServer)
+	resp.Diagnostics = append(resp.Diagnostics, d...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
-	// Get Systems details
-	systems, err := service.Systems()
-	if err != nil {
-		resp.Diagnostics.AddError("Error when retrieving systems", err.Error())
-		return
-	}
-	if len(systems) == 0 {
-		resp.Diagnostics.AddError("There is no system available", err.Error())
-		return
-	}
-	// Get virtual media collection
-	virtualMediaCollection, err := systems[0].VirtualMedia()
-	if err != nil {
-		resp.Diagnostics.AddError("Couldn't retrieve virtual media collection from redfish API", err.Error())
-		return
-	}
-	if len(virtualMediaCollection) != 0 {
+	service, virtualMediaCollection := env.service, env.collection
+
+	if !env.isManager {
 		for index := range virtualMediaCollection {
 			virtualMedia, err := insertMedia(virtualMediaCollection[index].ID, virtualMediaCollection, virtualMediaConfig, service)
 			if err != nil {
@@ -206,17 +191,6 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 	} else {
 		// This implementation is added to support iDRAC firmware version 5.x. As virtual media can only be accessed through Managers card on 5.x.
 		// Get OOB Manager card - managers[0] will be our oob card
-		managers, err := service.Managers()
-		if err != nil {
-			resp.Diagnostics.AddError("Couldn't retrieve managers from redfish API: ", err.Error())
-			return
-		}
-		// Get virtual media collection
-		virtualMediaCollection, err := managers[0].VirtualMedia()
-		if err != nil {
-			resp.Diagnostics.AddError("Couldn't retrieve virtual media collection from redfish API: ", err.Error())
-			return
-		}
 		var virtualMediaID string
 		if strings.HasSuffix(plan.Image.ValueString(), ".iso") {
 			virtualMediaID = "CD"
@@ -244,6 +218,59 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 	tflog.Trace(ctx, "resource_virtual_media create: finished")
 }
 
+type virtualMediaEnvironment struct {
+	isManager  bool
+	collection []*redfish.VirtualMedia
+	service    *gofish.Service
+}
+
+func (r *virtualMediaResource) getVMEnv(rserver *[]models.RedfishServer) (virtualMediaEnvironment, diag.Diagnostics) {
+	var d diag.Diagnostics
+	var env virtualMediaEnvironment
+	// Get service
+	service, err := NewConfig(r.p, rserver)
+	if err != nil {
+		d.AddError(ServiceErrorMsg, err.Error())
+		return env, d
+	}
+	env.service = service
+	// Get Systems details
+	system, err := getSystemResource(service)
+	if err != nil {
+		d.AddError("Error when retrieving systems", err.Error())
+		return env, d
+	}
+	// env.system = system
+	// Get virtual media collection from system
+	virtualMediaCollection, err := system.VirtualMedia()
+	if err != nil {
+		d.AddError("Couldn't retrieve virtual media collection from redfish API", err.Error())
+		return env, d
+	}
+	if len(virtualMediaCollection) != 0 {
+		// This happens in iDRAC 6.x and later
+		env.collection = virtualMediaCollection
+		env.isManager = false
+		return env, d
+	}
+	// This implementation is added to support iDRAC firmware version 5.x. As virtual media can only be accessed through Managers card on 5.x.
+	// Get OOB Manager card - managers[0] will be our oob card
+	env.isManager = true
+	managers, err := service.Managers()
+	if err != nil {
+		d.AddError("Couldn't retrieve managers from redfish API: ", err.Error())
+		return env, d
+	}
+	// Get virtual media collection from manager
+	virtualMediaCollection, err = managers[0].VirtualMedia()
+	if err != nil {
+		d.AddError("Couldn't retrieve virtual media collection from redfish API: ", err.Error())
+		return env, d
+	}
+	env.collection = virtualMediaCollection
+	return env, d
+}
+
 // Read refreshes the Terraform state with the latest data.
 func (r *virtualMediaResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	tflog.Trace(ctx, "resource_virtual_media read: started")
@@ -265,7 +292,7 @@ func (r *virtualMediaResource) Read(ctx context.Context, req resource.ReadReques
 	// Get virtual media details
 	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), state.VirtualMediaID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Virtual Media doesn't exist: ", err.Error()) // This error won't be triggered ever
+		resp.Diagnostics.AddError("Virtual Media doesn't exist: ", err.Error())
 		return
 	}
 
@@ -290,11 +317,12 @@ type VMediaImportConfig struct {
 }
 
 // ImportState is the RPC called to import state for existing Virtual Media
-func (*virtualMediaResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *virtualMediaResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	var c VMediaImportConfig
 	err := json.Unmarshal([]byte(req.ID), &c)
 	if err != nil {
 		resp.Diagnostics.AddError("Error while unmarshalling import configuration", err.Error())
+		return
 	}
 
 	server := models.RedfishServer{
@@ -304,11 +332,39 @@ func (*virtualMediaResource) ImportState(ctx context.Context, req resource.Impor
 		SslInsecure: types.BoolValue(c.SslInsecure),
 	}
 
-	idAttrPath := path.Root("id")
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, idAttrPath, c.ID)...)
+	creds := []models.RedfishServer{server}
 
-	redfishServer := path.Root("redfish_server")
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, redfishServer, []models.RedfishServer{server})...)
+	env, d := r.getVMEnv(&creds)
+	resp.Diagnostics = append(resp.Diagnostics, d...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// get virtual media with given ID
+	var media *redfish.VirtualMedia
+	for _, vm := range env.collection {
+		if vm.ODataID == c.ID {
+			media = vm
+			break
+		}
+	}
+	if media == nil {
+		resp.Diagnostics.AddError("Virtual Media with ID "+c.ID+" doesn't exist.", "")
+		return
+	}
+
+	// check if virtual media is mounted
+	if len(media.Image) == 0 { // Nothing is mounted here
+		resp.Diagnostics.AddError("Virtual Media with ID "+c.ID+" is not mounted.", "")
+		return
+	}
+
+	// Save into State
+	result := r.updateVirtualMediaState(media, models.VirtualMedia{
+		RedfishServer: creds,
+	})
+	diags := resp.State.Set(ctx, &result)
+	resp.Diagnostics.Append(diags...)
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
