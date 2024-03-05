@@ -49,6 +49,14 @@ func TestAccRedfishVirtualMedia_basic(t *testing.T) {
 					return getVMedImportConf(d, creds)
 				},
 			},
+			// check that wrong import ID gives error
+			{
+				ResourceName: testAccVMedResName,
+				ImportState:  true,
+				ImportStateId: fmt.Sprintf("{\"id\":\"invalid\",\"username\":\"%s\",\"password\":\"%s\",\"endpoint\":\"https://%s\",\"ssl_insecure\":true}",
+					creds.Username, creds.Password, creds.Endpoint),
+				ExpectError: regexp.MustCompile("Virtual Media with ID invalid doesn't exist"),
+			},
 		},
 	})
 }
@@ -67,7 +75,7 @@ func TestAccRedfishVirtualMedia_InvalidImage_Negative(t *testing.T) {
 					true,
 					"HTTP",
 					"Stream"),
-				ExpectError: regexp.MustCompile("Couldn't mount Virtual Media"),
+				ExpectError: regexp.MustCompile("[C|c]ouldn't mount Virtual Media"),
 			},
 		},
 	})
@@ -87,7 +95,7 @@ func TestAccRedfishVirtualMedia_InvalidTransferMethod_Negative(t *testing.T) {
 					true,
 					"HTTP",
 					"Upload"),
-				ExpectError: regexp.MustCompile("Couldn't mount Virtual Media"),
+				ExpectError: regexp.MustCompile("[C|c]ouldn't mount Virtual Media"),
 			},
 		},
 	})
@@ -107,7 +115,7 @@ func TestAccRedfishVirtualMedia_InvalidTransferProtocol_Negative(t *testing.T) {
 					true,
 					"HTTPS",
 					"Stream"),
-				ExpectError: regexp.MustCompile("Couldn't mount Virtual Media"),
+				ExpectError: regexp.MustCompile("[C|c]ouldn't mount Virtual Media"),
 			},
 		},
 	})
@@ -130,7 +138,7 @@ func TestAccRedfishVirtualMediaNoMediaNegative_basic(t *testing.T) {
 					testAccRedfishResourceVirtualMediaConfigDependency(
 						creds,
 						"virtual_media2",
-						"http://linuxlib.us.dell.com/pub/RHEL8/8.9/latest/BaseOS/x86_64/iso/RHEL-8.9.0-20231023.21-x86_64-boot.iso",
+						"http://linuxlib.us.dell.com/pub/Distros/RedHat/RHEL8/8.9/RHEL-8.9.0-20231030.60-x86_64-dvd1.iso",
 						true,
 						"HTTP",
 						"Stream",
@@ -138,7 +146,7 @@ func TestAccRedfishVirtualMediaNoMediaNegative_basic(t *testing.T) {
 					testAccRedfishResourceVirtualMediaConfigDependency(
 						creds,
 						"virtual_media3",
-						"http://linuxlib.us.dell.com/pub/RHEL8/8.9/latest/BaseOS/x86_64/iso/RHEL-8.9.0-20231023.21-x86_64-boot.iso",
+						"http://linuxlib.us.dell.com/pub/Distros/RedHat/RHEL8/8.9/RHEL-8.9.0-20231030.60-x86_64-dvd1.iso",
 						true,
 						"HTTP",
 						"Stream",
@@ -186,7 +194,7 @@ func TestAccRedfishVirtualMediaServer2_InvalidTransferProtocol_Negative(t *testi
 					true,
 					"HTTPS",
 					"Stream"),
-				ExpectError: regexp.MustCompile("Couldn't mount Virtual Media"),
+				ExpectError: regexp.MustCompile("[C|c]ouldn't mount Virtual Media"),
 			},
 		},
 	})
@@ -219,7 +227,7 @@ func TestAccRedfishVirtualMediaServer2Update_InvalidTransferProtocol_Negative(t 
 					true,
 					"HTTPS",
 					"Stream"),
-				ExpectError: regexp.MustCompile("Couldn't mount Virtual Media"),
+				ExpectError: regexp.MustCompile("[C|c]ouldn't mount Virtual Media"),
 			},
 		},
 	})
@@ -303,7 +311,7 @@ func TestAccRedfishVirtualMediaUpdate_InvalidImage_Negative(t *testing.T) {
 					true,
 					"HTTP",
 					"Stream"),
-				ExpectError: regexp.MustCompile("Couldn't mount Virtual Media"),
+				ExpectError: regexp.MustCompile("[C|c]ouldn't mount Virtual Media"),
 			},
 		},
 	})
@@ -336,7 +344,7 @@ func TestAccRedfishVirtualMediaUpdate_InvalidTransferMethod_Negative(t *testing.
 					true,
 					"HTTP",
 					"Upload"),
-				ExpectError: regexp.MustCompile("Couldn't mount Virtual Media"),
+				ExpectError: regexp.MustCompile("[C|c]ouldn't mount Virtual Media"),
 			},
 		},
 	})
