@@ -35,6 +35,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
@@ -96,6 +97,9 @@ func (*BiosResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				MarkdownDescription: "The ID of the resource.",
 				Description:         "The ID of the resource.",
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"attributes": schema.MapAttribute{
 				MarkdownDescription: "The Bios attribute map.",
@@ -172,10 +176,10 @@ func (r *BiosResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 
 	state, diags := r.updateRedfishDellBiosAttributes(ctx, service, &plan)
-	if err != nil {
-		diags.AddError("Error running job", err.Error())
-	}
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Trace(ctx, "resource_Bios create: updating state finished, saving ...")
 	// Save into State
@@ -236,10 +240,10 @@ func (r *BiosResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	}
 
 	state, diags := r.updateRedfishDellBiosAttributes(ctx, service, &plan)
-	if err != nil {
-		diags.AddError("Error running job ", err.Error())
-	}
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Trace(ctx, "resource_Bios update: finished state update")
 	// Save into State
@@ -311,9 +315,9 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 		return nil, diags
 	}
 
-	attrsPayload, diags := getBiosAttrsToPatch(ctx, plan, attributes)
-	if err != nil {
-		diags.AddError("error getting BIOS attributes to patch", err.Error())
+	attrsPayload, diagsAttr := getBiosAttrsToPatch(ctx, plan, attributes)
+	diags.Append(diagsAttr...)
+	if diags.HasError() {
 		return nil, diags
 	}
 
@@ -325,12 +329,15 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 
 	var biosTaskURI string
 	if len(attrsPayload) != 0 {
+		tflog.Info(ctx, "Submitting patch request for bios attributes")
 		biosTaskURI, err = r.patchBiosAttributes(plan, bios, attrsPayload)
 		if err != nil {
 			diags.AddError("error updating bios attributes", err.Error())
 			return nil, diags
 		}
 
+		tflog.Info(ctx, "Submitting patch request for bios attributes completed successfully")
+		tflog.Info(ctx, "rebooting the server")
 		// reboot the server
 		pOp := powerOperator{ctx, service}
 		_, err := pOp.PowerOperation(resetType, resetTimeout, intervalBiosConfigJobCheckTime)
@@ -340,15 +347,18 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 			return nil, diags
 		}
 
+		tflog.Info(ctx, "rebooting the server completed successfully")
+		tflog.Info(ctx, "Waiting for the bios config job to finish")
 		// wait for the bios config job to finish
 		err = common.WaitForTaskToFinish(service, biosTaskURI, intervalBiosConfigJobCheckTime, biosConfigJobTimeout)
 		if err != nil {
 			diags.AddError("error waiting for Bios config monitor task to be completed", err.Error())
 			return nil, diags
 		}
+		tflog.Info(ctx, "Bios config job has completed successfully")
 		time.Sleep(60 * time.Second)
 	} else {
-		tflog.Trace(ctx, "[DEBUG] BIOS attributes are already set")
+		tflog.Info(ctx, "BIOS attributes are already set")
 	}
 
 	state.ID = types.StringValue(bios.ODataID)
@@ -369,8 +379,6 @@ func (r *BiosResource) readRedfishDellBiosAttributes(service *gofish.Service, d 
 		return fmt.Errorf("error fetching BIOS resource: %w", err)
 	}
 
-	old := d.Attributes.Elements()
-
 	attributes := make(map[string]string)
 	err = copyBiosAttributes(bios, attributes)
 	if err != nil {
@@ -378,13 +386,15 @@ func (r *BiosResource) readRedfishDellBiosAttributes(service *gofish.Service, d 
 	}
 
 	attributesTF := make(map[string]attr.Value)
-	if old != nil {
+	if !d.Attributes.IsNull() {
+		old := d.Attributes.Elements()
 		for key, value := range attributes {
 			if _, ok := old[key]; ok {
 				attributesTF[key] = types.StringValue(value)
 			}
 		}
 	} else {
+		// only in case of import
 		for key, value := range attributes {
 			attributesTF[key] = types.StringValue(value)
 		}
@@ -436,17 +446,17 @@ func getBiosAttrsToPatch(ctx context.Context, d *models.Bios, attributes map[str
 	for key, newVal := range attrs {
 		oldVal, ok := attributes[key]
 		if !ok {
-			err := fmt.Errorf("BIOS attribute %s not found", key)
-			diags.AddError("There was an issue while creating/updating bios attriutes", err.Error())
-			return attrsToPatch, diags
+			diags.AddError("There was an issue while creating/updating bios attriutes", fmt.Sprintf("BIOS attribute %s not found", key))
+			continue
 		}
 		// check if the original value is an integer
 		// if yes, then we need to convert accordingly
 		if intOldVal, err := strconv.Atoi(attributes[key]); err == nil {
 			intNewVal, err := strconv.Atoi(newVal)
 			if err != nil {
+				err = fmt.Errorf("BIOS attribute %s is expected to be an integer: %w", key, err)
 				diags.AddError("There was an issue while creating/updating bios attriutes", err.Error())
-				return attrsToPatch, diags
+				continue
 			}
 
 			// Add to patch list if attribute value has changed
@@ -459,7 +469,7 @@ func getBiosAttrsToPatch(ctx context.Context, d *models.Bios, attributes map[str
 			}
 		}
 	}
-	return attrsToPatch, nil
+	return attrsToPatch, diags
 }
 
 func (r *BiosResource) patchBiosAttributes(d *models.Bios, bios *redfish.Bios, attributes map[string]interface{}) (biosTaskURI string, err error) {
