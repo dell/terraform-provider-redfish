@@ -1,3 +1,20 @@
+/*
+Copyright (c) 2023-2024 Dell Inc., or its subsidiaries. All Rights Reserved.
+
+Licensed under the Mozilla Public License Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://mozilla.org/MPL/2.0/
+
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package provider
 
 import (
@@ -11,11 +28,13 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var testAccProtoV6ProviderFactories map[string]func() (tfprotov6.ProviderServer, error)
-var creds TestingServerCredentials
-var image64Boot string
-var imageEfiBoot string
-var drive string
+var (
+	testAccProtoV6ProviderFactories map[string]func() (tfprotov6.ProviderServer, error)
+	creds                           TestingServerCredentials
+	image64Boot                     string
+	imageEfiBoot                    string
+	drive                           string
+)
 
 // // TestingServerCredentials Struct used to store the credentials we pass for testing. This allows us to pass testing
 // // credentials via environment variables instead of having them hard coded

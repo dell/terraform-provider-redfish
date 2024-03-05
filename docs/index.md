@@ -1,5 +1,5 @@
 ---
-# Copyright (c) 2023 Dell Inc., or its subsidiaries. All Rights Reserved.
+# Copyright (c) 2023-2024 Dell Inc., or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Mozilla Public License Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -156,7 +156,7 @@ Terraform will always use the most specific client values. In the case client cr
 provider.tf
 ```terraform
 /*
-Copyright (c) 2023 Dell Inc., or its subsidiaries. All Rights Reserved.
+Copyright (c) 2022-2024 Dell Inc., or its subsidiaries. All Rights Reserved.
 
 Licensed under the Mozilla Public License Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -175,7 +175,7 @@ limitations under the License.
 terraform {
   required_providers {
     redfish = {
-      version = "1.1.0"
+      version = "1.2.0"
       source  = "registry.terraform.io/dell/redfish"
     }
   }
@@ -189,7 +189,7 @@ provider "redfish" {
 variables.tf
 ```terraform
 /*
-Copyright (c) 2023 Dell Inc., or its subsidiaries. All Rights Reserved.
+Copyright (c) 2022-2024 Dell Inc., or its subsidiaries. All Rights Reserved.
 
 Licensed under the Mozilla Public License Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

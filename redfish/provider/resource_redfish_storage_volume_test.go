@@ -1,3 +1,20 @@
+/*
+Copyright (c) 2020-2024 Dell Inc., or its subsidiaries. All Rights Reserved.
+
+Licensed under the Mozilla Public License Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://mozilla.org/MPL/2.0/
+
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package provider
 
 import (
@@ -99,6 +116,7 @@ func TestAccRedfishStorageVolume_InvalidVolumeType(t *testing.T) {
 		},
 	})
 }
+
 func TestAccRedfishStorageVolumeUpdate_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -305,7 +323,6 @@ func testAccRedfishResourceStorageVolumeConfig(testingInfo TestingServerCredenti
 	volume_job_timeout int,
 	capacity_bytes int,
 	optimum_io_size_bytes int,
-
 ) string {
 	return fmt.Sprintf(`
 	resource "redfish_storage_volume" "volume" {
@@ -360,7 +377,6 @@ func testAccRedfishResourceStorageVolumeEncryptedConfig(testingInfo TestingServe
 	reset_timeout int,
 	volume_job_timeout int,
 	encrypted bool,
-
 ) string {
 	return fmt.Sprintf(`
 	resource "redfish_storage_volume" "volume" {
