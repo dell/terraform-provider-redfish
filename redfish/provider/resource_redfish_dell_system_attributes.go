@@ -204,10 +204,11 @@ func (*dellSystemAttributesResource) Delete(ctx context.Context, _ resource.Dele
 // ImportState import state for existing DellSystemAttributes
 func (*dellSystemAttributesResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	type creds struct {
-		Username    string `json:"username"`
-		Password    string `json:"password"`
-		Endpoint    string `json:"endpoint"`
-		SslInsecure bool   `json:"ssl_insecure"`
+		Username    string   `json:"username"`
+		Password    string   `json:"password"`
+		Endpoint    string   `json:"endpoint"`
+		SslInsecure bool     `json:"ssl_insecure"`
+		Attributes  []string `json:"attributes"`
 	}
 
 	var c creds
@@ -228,6 +229,17 @@ func (*dellSystemAttributesResource) ImportState(ctx context.Context, req resour
 
 	redfishServer := path.Root("redfish_server")
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, redfishServer, []models.RedfishServer{server})...)
+
+	attributes := path.Root("attributes")
+	if c.Attributes == nil {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, attributes, types.MapNull(types.StringType))...)
+		return
+	}
+	readAttributes := make(map[string]attr.Value)
+	for _, k := range c.Attributes {
+		readAttributes[k] = types.StringValue("")
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, attributes, types.MapValueMust(types.StringType, readAttributes))...)
 }
 
 func updateRedfishDellSystemAttributes(ctx context.Context, service *gofish.Service, d *models.DellSystemAttributes) diag.Diagnostics {
