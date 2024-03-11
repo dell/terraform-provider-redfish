@@ -394,8 +394,8 @@ func assertSystemAttributes(rawAttributes map[string]string, managerAttributeReg
 	var err error
 	// make map of name to ID of attributes
 	attributes := make(map[string]string)
-	for _, attr := range managerAttributeRegistry.Attributes {
-		attributes[attr.AttributeName] = attr.ID
+	for _, dellAttr := range managerAttributeRegistry.Attributes {
+		attributes[dellAttr.AttributeName] = dellAttr.ID
 	}
 
 	// check if all input attributes are present in registry
