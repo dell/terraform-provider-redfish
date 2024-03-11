@@ -20,6 +20,7 @@ package provider
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"terraform-provider-redfish/gofish/dell"
@@ -243,6 +244,7 @@ func (*dellSystemAttributesResource) ImportState(ctx context.Context, req resour
 }
 
 func updateRedfishDellSystemAttributes(ctx context.Context, service *gofish.Service, d *models.DellSystemAttributes) diag.Diagnostics {
+	tflog.Info(ctx, "updateRedfishDellSystemAttributes: started")
 	var diags diag.Diagnostics
 	idracError := "there was an issue when creating/updating System attributes"
 	d.ID = types.StringValue("placeholder")
@@ -252,46 +254,51 @@ func updateRedfishDellSystemAttributes(ctx context.Context, service *gofish.Serv
 	// get managerAttributeRegistry to check parameters before posting them to redfish
 	managerAttributeRegistry, err := getManagerAttributeRegistry(service)
 	if err != nil {
-		diags.AddError(idracError, err.Error())
+		diags.AddError(fmt.Sprintf("%s: Could not get manager attribute registry from iDRAC", idracError), err.Error())
+		return diags
+	}
+	err = assertSystemAttributes(attributesTf, managerAttributeRegistry)
+	if err != nil {
+		diags.AddError(fmt.Sprintf("%s: System attribute registry from iDRAC does not match input", idracError), err.Error())
 		return diags
 	}
 	// Set right attributes to patch (values from map are all string. It needs int and string)
 	attributesToPatch, err := setManagerAttributesRightType(attributesTf, managerAttributeRegistry)
 	if err != nil {
-		diags.AddError(idracError, err.Error())
+		diags.AddError(fmt.Sprintf("%s: Input system attributes could not be cast to the required type", idracError), err.Error())
 		return diags
 	}
 
 	// Check that all attributes passed are compliant with the API
 	err = checkManagerAttributes(managerAttributeRegistry, attributesToPatch)
 	if err != nil {
-		diags.AddError(idracError, err.Error())
+		diags.AddError(fmt.Sprintf("%s: Manager attribute registry from iDRAC does not match input", idracError), err.Error())
 		return diags
 	}
 
 	// get managers (Dell servers have only the iDRAC)
 	managers, err := service.Managers()
 	if err != nil {
-		diags.AddError(idracError, err.Error())
+		diags.AddError(fmt.Sprintf("%s: Could not get manager from iDRAC", idracError), err.Error())
 		return diags
 	}
 
 	// Get OEM
 	dellManager, err := dell.Manager(managers[0])
 	if err != nil {
-		diags.AddError(idracError, err.Error())
+		diags.AddError(fmt.Sprintf("%s: Could not get OEM from iDRAC manager", idracError), err.Error())
 		return diags
 	}
 
 	// Get Dell attributes
 	dellAttributes, err := dellManager.DellAttributes()
 	if err != nil {
-		diags.AddError(idracError, err.Error())
+		diags.AddError(fmt.Sprintf("%s: Could not get dell manager attributes", idracError), err.Error())
 		return diags
 	}
 	systemAttributes, err := getSystemAttributes(dellAttributes)
 	if err != nil {
-		diags.AddError(idracError, err.Error())
+		diags.AddError(fmt.Sprintf("%s: Could not get system attributes", idracError), err.Error())
 		return diags
 	}
 
@@ -306,7 +313,7 @@ func updateRedfishDellSystemAttributes(ctx context.Context, service *gofish.Serv
 
 	response, err := service.GetClient().Patch(systemAttributes.ODataID, patchBody)
 	if err != nil {
-		diags.AddError(idracError, err.Error())
+		diags.AddError(fmt.Sprintf("%s: patch request to iDRAC failed", idracError), err.Error())
 		return diags
 	}
 	response.Body.Close() // #nosec G104
@@ -315,32 +322,33 @@ func updateRedfishDellSystemAttributes(ctx context.Context, service *gofish.Serv
 	return diags
 }
 
-func readRedfishDellSystemAttributes(_ context.Context, service *gofish.Service, d *models.DellSystemAttributes) diag.Diagnostics {
+func readRedfishDellSystemAttributes(ctx context.Context, service *gofish.Service, d *models.DellSystemAttributes) diag.Diagnostics {
+	tflog.Info(ctx, "readRedfishDellSystemAttributes: started")
 	var diags diag.Diagnostics
 	idracError := "there was an issue when reading System attributes"
 	// get managers (Dell servers have only the iDRAC)
 	managers, err := service.Managers()
 	if err != nil {
-		diags.AddError(idracError, err.Error())
+		diags.AddError(fmt.Sprintf("%s: Could not get manager from iDRAC", idracError), err.Error())
 		return diags
 	}
 
 	// Get OEM
 	dellManager, err := dell.Manager(managers[0])
 	if err != nil {
-		diags.AddError(idracError, err.Error())
+		diags.AddError(fmt.Sprintf("%s: Could not get OEM from iDRAC manager", idracError), err.Error())
 		return diags
 	}
 
 	// Get Dell attributes
 	dellAttributes, err := dellManager.DellAttributes()
 	if err != nil {
-		diags.AddError(idracError, err.Error())
+		diags.AddError(fmt.Sprintf("%s: Could not get dell manager attributes", idracError), err.Error())
 		return diags
 	}
 	systemAttributes, err := getSystemAttributes(dellAttributes)
 	if err != nil {
-		diags.AddError(idracError, err.Error())
+		diags.AddError(fmt.Sprintf("%s: Could not get system attributes", idracError), err.Error())
 		return diags
 	}
 
@@ -380,4 +388,28 @@ func getSystemAttributes(attributes []*dell.Attributes) (*dell.Attributes, error
 		}
 	}
 	return nil, fmt.Errorf("couldn't find SystemAttributes")
+}
+
+func assertSystemAttributes(rawAttributes map[string]string, managerAttributeRegistry *dell.ManagerAttributeRegistry) error {
+	var err error
+	// make map of name to ID of attributes
+	attributes := make(map[string]string)
+	for _, attr := range managerAttributeRegistry.Attributes {
+		attributes[attr.AttributeName] = attr.ID
+	}
+
+	// check if all input attributes are present in registry
+	// if present, make sure that its ID starts with System, ie. it is a System attribute
+	for k := range rawAttributes {
+		attrID, ok := attributes[k]
+		if !ok {
+			err = errors.Join(err, fmt.Errorf("couldn't find manager attribute %s", k))
+			continue
+		}
+		// check if attribute is a system attribute
+		if !strings.HasPrefix(attrID, "System") {
+			err = errors.Join(err, fmt.Errorf("attribute %s is not a system attribute, its ID is %s", k, attrID))
+		}
+	}
+	return err
 }
