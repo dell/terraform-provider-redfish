@@ -30,7 +30,10 @@ resource "redfish_bios" "bios" {
     "NumLock" = "On"
   }
 
-  // Reset parameters to be applied after bios settings are applied
+  /* Reset parameters to be applied after bios settings are applied
+     list of possible value:
+      [ ForceRestart, GracefulRestart, PowerCycle]
+  */
   reset_type    = "ForceRestart"
   reset_timeout = "120"
   // The maximum amount of time to wait for the bios job to be completed
