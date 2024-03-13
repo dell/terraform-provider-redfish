@@ -194,6 +194,7 @@ resource "redfish_storage_volume" "volume" {
 
   // Whether or not to encrypt the virtual disk, default to false
   // Once a virtual disk is set to encrypted status it cannot be changed
+  // This flag is only supported on firmware levels 6 and above
   encrypted = true
 
   lifecycle {
@@ -220,7 +221,7 @@ After the successful execution of the above resource block, virtual disk would h
 
 - `capacity_bytes` (Number) Capacity Bytes
 - `disk_cache_policy` (String) Disk Cache Policy
-- `encrypted` (Boolean) Encrypt the virtual disk, default is false
+- `encrypted` (Boolean) Encrypt the virtual disk, default is false. This flag is only supported on firmware levels 6 and above
 - `optimum_io_size_bytes` (Number) Optimum Io Size Bytes
 - `raid_type` (String) Raid Type, Defaults to RAID0
 - `read_cache_policy` (String) Read Cache Policy
