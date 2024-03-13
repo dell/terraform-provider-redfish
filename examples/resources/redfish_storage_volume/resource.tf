@@ -68,6 +68,7 @@ resource "redfish_storage_volume" "volume" {
 
   // Whether or not to encrypt the virtual disk, default to false
   // Once a virtual disk is set to encrypted status it cannot be changed
+  // This flag is only supported on firmware levels 6 and above
   encrypted = true
 
   lifecycle {

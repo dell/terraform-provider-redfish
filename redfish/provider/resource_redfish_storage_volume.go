@@ -103,8 +103,8 @@ func VolumeSchema() map[string]schema.Attribute {
 			},
 		},
 		"encrypted": schema.BoolAttribute{
-			MarkdownDescription: "Encrypt the virtual disk, default is false",
-			Description:         "Encrypt the virtual disk, default is false",
+			MarkdownDescription: "Encrypt the virtual disk, default is false. This flag is only supported on firmware levels 6 and above",
+			Description:         "Encrypt the virtual disk, default is false. This flag is only supported on firmware levels 6 and above",
 			Optional:            true,
 			Computed:            true,
 			Default:             booldefault.StaticBool(false),
