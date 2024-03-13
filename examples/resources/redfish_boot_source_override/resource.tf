@@ -27,10 +27,18 @@ resource "redfish_boot_source_override" "boot" {
 
   // boot source override parameters
   boot_source_override_enabled = "Once"
-  boot_source_override_target  = "UefiTarget"
-  boot_source_override_mode    = "UEFI"
+  /* list of possible boot source override targets : 
+      [ None, Pxe, Floppy, Cd, Usb, Hdd, 
+        BiosSetup, Utilities, Diags, UefiShell,UefiTarget
+        SDCard, UefiHttp, RemoteDrive, UefiBootNext]
+  */
+  boot_source_override_target = "UefiTarget"
+  boot_source_override_mode   = "UEFI"
 
-  // Reset parameters to be applied after bios settings are applied
+  /* Reset parameters to be applied after bios settings are applied
+     list of possible value:
+      [ ForceRestart, GracefulRestart, PowerCycle]
+  */
   reset_type    = "GracefulRestart"
   reset_timeout = "120"
   # // The maximum amount of time to wait for the bios job to be completed
