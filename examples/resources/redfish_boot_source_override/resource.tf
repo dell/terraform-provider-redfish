@@ -32,8 +32,8 @@ resource "redfish_boot_source_override" "boot" {
         BiosSetup, Utilities, Diags, UefiShell,UefiTarget
         SDCard, UefiHttp, RemoteDrive, UefiBootNext]
   */
-  boot_source_override_target  = "UefiTarget"
-  boot_source_override_mode    = "UEFI"
+  boot_source_override_target = "UefiTarget"
+  boot_source_override_mode   = "UEFI"
 
   /* Reset parameters to be applied after bios settings are applied
      list of possible value:

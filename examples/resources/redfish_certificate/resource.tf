@@ -29,7 +29,7 @@ resource "redfish_certificate" "cert" {
     endpoint     = each.value.endpoint
     ssl_insecure = each.value.ssl_insecure
   }
-  
+
   /* Type of the certificate to be imported
    List of possible values: [CustomCertificate, Server]
   */

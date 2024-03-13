@@ -34,7 +34,7 @@ resource "redfish_simple_update" "update" {
   */
   transfer_protocol     = "HTTP"
   target_firmware_image = "/home/mikeletux/Downloads/BIOS_FXC54_WN64_1.15.0.EXE"
-  
+
   /* Reset parameters to be applied when upgrade is completed
      list of possible value:
       [ ForceRestart, GracefulRestart, PowerCycle]

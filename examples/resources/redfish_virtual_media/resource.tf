@@ -26,7 +26,7 @@ resource "redfish_virtual_media" "vm" {
   }
   // Image to be attached to virtual media
   # image           = "http://inuxlib.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img"
-  image           = "http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img"
+  image = "http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img"
   /* Indicates how the data is transferred
      List of possible value: [Stream, Upload]
   */
