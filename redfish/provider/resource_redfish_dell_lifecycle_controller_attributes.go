@@ -261,7 +261,7 @@ func (r *dellLCAttributesResource) ImportState(ctx context.Context, req resource
 			lcAttr = append(lcAttr, attr.AttributeName)
 		}
 	}
-	for attr, _ := range readAttributes {
+	for attr := range readAttributes {
 		if !slices.Contains(lcAttr, attr) {
 			resp.Diagnostics.AddError("Invalid LC attributes provided", "")
 			return
