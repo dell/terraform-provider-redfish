@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"terraform-provider-redfish/gofish/dell"
 	"terraform-provider-redfish/redfish/models"
@@ -202,7 +203,7 @@ func (*dellSystemAttributesResource) Delete(ctx context.Context, _ resource.Dele
 }
 
 // ImportState import state for existing DellSystemAttributes
-func (*dellSystemAttributesResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *dellSystemAttributesResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	type creds struct {
 		Username    string   `json:"username"`
 		Password    string   `json:"password"`
@@ -223,6 +224,7 @@ func (*dellSystemAttributesResource) ImportState(ctx context.Context, req resour
 		Endpoint:    types.StringValue(c.Endpoint),
 		SslInsecure: types.BoolValue(c.SslInsecure),
 	}
+	srv := []models.RedfishServer{server}
 
 	idAttrPath := path.Root("id")
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, idAttrPath, "importId")...)
@@ -239,7 +241,44 @@ func (*dellSystemAttributesResource) ImportState(ctx context.Context, req resour
 	for _, k := range c.Attributes {
 		readAttributes[k] = types.StringValue("")
 	}
+
+	service, d := r.getEnv(&srv)
+	resp.Diagnostics = append(resp.Diagnostics, d...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	managerAttributeRegistry, err := getManagerAttributeRegistry(service)
+	if err != nil {
+		resp.Diagnostics.AddError("Error while getting manager attributes registry", err.Error())
+		return
+	}
+
+	var systemAttr []string
+	for _, managerAttr := range managerAttributeRegistry.Attributes {
+		if strings.HasPrefix(managerAttr.ID, "System") {
+			systemAttr = append(systemAttr, managerAttr.AttributeName)
+		}
+	}
+	for readAttr := range readAttributes {
+		if !slices.Contains(systemAttr, readAttr) {
+			resp.Diagnostics.AddError("Invalid System attributes provided", "")
+			return
+		}
+	}
+
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, attributes, types.MapValueMust(types.StringType, readAttributes))...)
+}
+
+func (r *dellSystemAttributesResource) getEnv(rserver *[]models.RedfishServer) (*gofish.Service, diag.Diagnostics) {
+	var d diag.Diagnostics
+	// Get service
+	service, err := NewConfig(r.p, rserver)
+	if err != nil {
+		d.AddError(ServiceErrorMsg, err.Error())
+		return nil, d
+	}
+	return service, nil
 }
 
 func updateRedfishDellSystemAttributes(ctx context.Context, service *gofish.Service, d *models.DellSystemAttributes) diag.Diagnostics {
