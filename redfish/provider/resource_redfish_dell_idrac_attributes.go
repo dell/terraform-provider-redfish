@@ -265,13 +265,13 @@ func (r *dellIdracAttributesResource) ImportState(ctx context.Context, req resou
 	}
 
 	var idracAttr []string
-	for _, attr := range managerAttributeRegistry.Attributes {
-		if strings.HasPrefix(attr.ID, "iDRAC") {
-			idracAttr = append(idracAttr, attr.AttributeName)
+	for _, managerAttr := range managerAttributeRegistry.Attributes {
+		if strings.HasPrefix(managerAttr.ID, "iDRAC") {
+			idracAttr = append(idracAttr, managerAttr.AttributeName)
 		}
 	}
-	for attr := range readAttributes {
-		if !slices.Contains(idracAttr, attr) {
+	for readAttr := range readAttributes {
+		if !slices.Contains(idracAttr, readAttr) {
 			resp.Diagnostics.AddError("Invalid iDRAC attributes provided", "")
 			return
 		}

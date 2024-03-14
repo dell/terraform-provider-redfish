@@ -256,13 +256,13 @@ func (r *dellLCAttributesResource) ImportState(ctx context.Context, req resource
 	}
 
 	var lcAttr []string
-	for _, attr := range managerAttributeRegistry.Attributes {
-		if strings.HasPrefix(attr.ID, "LifecycleController") {
-			lcAttr = append(lcAttr, attr.AttributeName)
+	for _, managerAttr := range managerAttributeRegistry.Attributes {
+		if strings.HasPrefix(managerAttr.ID, "LifecycleController") {
+			lcAttr = append(lcAttr, managerAttr.AttributeName)
 		}
 	}
-	for attr := range readAttributes {
-		if !slices.Contains(lcAttr, attr) {
+	for readAttr := range readAttributes {
+		if !slices.Contains(lcAttr, readAttr) {
 			resp.Diagnostics.AddError("Invalid LC attributes provided", "")
 			return
 		}
