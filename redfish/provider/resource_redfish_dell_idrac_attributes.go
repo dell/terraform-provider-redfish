@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"terraform-provider-redfish/gofish/dell"
@@ -210,7 +211,7 @@ func (*dellIdracAttributesResource) Delete(ctx context.Context, req resource.Del
 }
 
 // ImportState import state for existing DellIdracAttributes
-func (*dellIdracAttributesResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *dellIdracAttributesResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	type creds struct {
 		Username    string   `json:"username"`
 		Password    string   `json:"password"`
@@ -232,6 +233,14 @@ func (*dellIdracAttributesResource) ImportState(ctx context.Context, req resourc
 		SslInsecure: types.BoolValue(c.SslInsecure),
 	}
 
+	srv := []models.RedfishServer{server}
+
+	service, d := r.getiDRACEnv(&srv)
+	resp.Diagnostics = append(resp.Diagnostics, d...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	idAttrPath := path.Root("id")
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, idAttrPath, "importId")...)
 
@@ -243,11 +252,43 @@ func (*dellIdracAttributesResource) ImportState(ctx context.Context, req resourc
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, attributes, types.MapNull(types.StringType))...)
 		return
 	}
+
+	managerAttributeRegistry, err := getManagerAttributeRegistry(service)
+	if err != nil {
+		resp.Diagnostics.AddError("Error while getting manager attributes registry", err.Error())
+		return
+	}
+
 	readAttributes := make(map[string]attr.Value)
 	for _, k := range c.Attributes {
 		readAttributes[k] = types.StringValue("")
 	}
+
+	var idracAttr []string
+	for _, attr := range managerAttributeRegistry.Attributes {
+		if strings.HasPrefix(attr.ID, "iDRAC") {
+			idracAttr = append(idracAttr, attr.AttributeName)
+		}
+	}
+	for attr, _ := range readAttributes {
+		if !slices.Contains(idracAttr, attr) {
+			resp.Diagnostics.AddError("Invalid attributes provided", "")
+			return
+		}
+	}
+
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, attributes, types.MapValueMust(types.StringType, readAttributes))...)
+}
+
+func (r *dellIdracAttributesResource) getiDRACEnv(rserver *[]models.RedfishServer) (*gofish.Service, diag.Diagnostics) {
+	var d diag.Diagnostics
+	// Get service
+	service, err := NewConfig(r.p, rserver)
+	if err != nil {
+		d.AddError(ServiceErrorMsg, err.Error())
+		return nil, d
+	}
+	return service, nil
 }
 
 func updateRedfishDellIdracAttributes(ctx context.Context, service *gofish.Service, d *models.DellIdracAttributes) diag.Diagnostics {
