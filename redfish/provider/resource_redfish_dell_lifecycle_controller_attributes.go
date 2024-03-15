@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 	"terraform-provider-redfish/gofish/dell"
 	"terraform-provider-redfish/redfish/models"
@@ -203,7 +204,7 @@ func (*dellLCAttributesResource) Delete(ctx context.Context, _ resource.DeleteRe
 }
 
 // ImportState import state for existing DellLCAttributes
-func (*dellLCAttributesResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *dellLCAttributesResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	type creds struct {
 		Username    string   `json:"username"`
 		Password    string   `json:"password"`
@@ -224,6 +225,7 @@ func (*dellLCAttributesResource) ImportState(ctx context.Context, req resource.I
 		Endpoint:    types.StringValue(c.Endpoint),
 		SslInsecure: types.BoolValue(c.SslInsecure),
 	}
+	srv := []models.RedfishServer{server}
 
 	idAttrPath := path.Root("id")
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, idAttrPath, "importId")...)
@@ -240,7 +242,44 @@ func (*dellLCAttributesResource) ImportState(ctx context.Context, req resource.I
 	for _, k := range c.Attributes {
 		readAttributes[k] = types.StringValue("")
 	}
+
+	service, d := r.getLCEnv(&srv)
+	resp.Diagnostics = append(resp.Diagnostics, d...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	managerAttributeRegistry, err := getManagerAttributeRegistry(service)
+	if err != nil {
+		resp.Diagnostics.AddError("Error while getting manager attributes registry", err.Error())
+		return
+	}
+
+	var lcAttr []string
+	for _, managerAttr := range managerAttributeRegistry.Attributes {
+		if strings.HasPrefix(managerAttr.ID, "LifecycleController") {
+			lcAttr = append(lcAttr, managerAttr.AttributeName)
+		}
+	}
+	for readAttr := range readAttributes {
+		if !slices.Contains(lcAttr, readAttr) {
+			resp.Diagnostics.AddError("Invalid LC attributes provided", "")
+			return
+		}
+	}
+
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, attributes, types.MapValueMust(types.StringType, readAttributes))...)
+}
+
+func (r *dellLCAttributesResource) getLCEnv(rserver *[]models.RedfishServer) (*gofish.Service, diag.Diagnostics) {
+	var d diag.Diagnostics
+	// Get service
+	service, err := NewConfig(r.p, rserver)
+	if err != nil {
+		d.AddError(ServiceErrorMsg, err.Error())
+		return nil, d
+	}
+	return service, nil
 }
 
 func updateRedfishDellLCAttributes(ctx context.Context, service *gofish.Service, d *models.DellLCAttributes) diag.Diagnostics {
