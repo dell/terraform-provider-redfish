@@ -18,7 +18,8 @@ limitations under the License.
 terraform {
   required_providers {
     redfish = {
-      source = "registry.terraform.io/dell/redfish"
+      version = "1.2.0"
+      source  = "registry.terraform.io/dell/redfish"
     }
   }
 }
