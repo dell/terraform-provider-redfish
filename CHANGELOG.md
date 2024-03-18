@@ -18,6 +18,24 @@ limitations under the License.
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
+# v1.2.0 (March, 2024)
+## Release Summary
+The release supports resources and data sources mentioned in the Features section for RedFish.
+## Features
+
+### Resources
+* Lifecycle Controller Attributes Resource
+* System Attributes Resource
+* iDRAC Firmware Update Resource
+
+### Others
+N/A
+
+## Enhancements
+* Added storage controller details to storage datasource
+## Bug Fixes
+N/A
+
 # v1.1.0 (December, 2023)
 ## Release Summary
 The release supports resources and data sources mentioned in the Features section for RedFish.
