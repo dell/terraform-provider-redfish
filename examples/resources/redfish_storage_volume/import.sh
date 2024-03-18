@@ -15,4 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+# Odata ID of all available volumes on a storage controller can be fetched by running the following GET request on the iDRAC
+# "/redfish/v1/Systems/System.Embedded.1/Storage/<storage controller ID>/Volumes/"
+# Eg. redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/
+# The ID of any storage controller on the iDRAC, in turn, can be fetched using the "redfish_storage" data source
+
 terraform import redfish_storage_volume.volume "{\"id\":\"<odata id of the volume>\",\"username\":\"<username>\",\"password\":\"<password>\",\"endpoint\":\"<endpoint>\",\"ssl_insecure\":<true/false>}"
