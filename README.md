@@ -47,9 +47,9 @@ The Terraform Provider for RedFish is released and licensed under the MPL-2.0 li
 
 ## Prerequisites
 
-| **Terraform Provider** | **iDRAC Version** | **OS** | **Terraform** | **Golang** |
+| **Terraform Provider** | **iDRAC9 Firmware Version** | **OS** | **Terraform** | **Golang** |
 |---------------------|-----------------------|-------|--------------------|--------------------------|
-| v1.1.0 | 5.x <br> 6.x <br> 7.x | ubuntu22.04 <br> rhel9.x | 1.5.x <br> 1.6.x | 1.21
+| v1.2.0 | 5.x <br> 6.x <br> 7.x | ubuntu22.04 <br> rhel9.x | 1.5.x <br> 1.6.x | 1.21
 
 ## List of DataSources in Terraform Provider for RedFish
   * [Bios](docs/data-sources/bios.md)

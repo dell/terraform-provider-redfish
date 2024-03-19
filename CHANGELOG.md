@@ -29,10 +29,12 @@ The release supports resources and data sources mentioned in the Features sectio
 * iDRAC Firmware Update Resource
 
 ### Others
-N/A
+* Added Import functionality for Bios, iDRAC Attributes, Virtual Media and Boot Order resources.
 
 ## Enhancements
 * Added storage controller details to storage datasource
+* Added/Updated field in storage resource
+
 ## Bug Fixes
 N/A
 

@@ -51,6 +51,11 @@ After the successful execution of the above resource block, virtual disk would h
 {{ if .HasImport -}}
 ## Import
 
+~> **Note:** Odata ID of all available volumes on a storage controller can be fetched by running the following GET request on the iDRAC
+"/redfish/v1/Systems/System.Embedded.1/Storage/<storage controller ID>/Volumes/"
+Eg. redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/
+The ID of any storage controller on the iDRAC, in turn, can be fetched using the "redfish_storage" data source
+
 Import is supported using the following syntax:
 
 {{codefile "shell" .ImportFile }}
