@@ -116,7 +116,8 @@ limitations under the License.
 terraform {
   required_providers {
     redfish = {
-      source = "registry.terraform.io/dell/redfish"
+      version = "1.2.0"
+      source  = "registry.terraform.io/dell/redfish"
     }
   }
 }
@@ -251,6 +252,11 @@ Optional:
 - `user` (String) User name for login
 
 ## Import
+
+~> **Note:** Odata ID of all available volumes on a storage controller can be fetched by running the following GET request on the iDRAC
+"/redfish/v1/Systems/System.Embedded.1/Storage/<storage controller ID>/Volumes/"
+Eg. redfish/v1/Systems/System.Embedded.1/Storage/RAID.Integrated.1-1/Volumes/
+The ID of any storage controller on the iDRAC, in turn, can be fetched using the "redfish_storage" data source
 
 Import is supported using the following syntax:
 

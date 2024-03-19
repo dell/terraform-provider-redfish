@@ -67,9 +67,9 @@ func (*StorageDatasource) Metadata(_ context.Context, req datasource.MetadataReq
 // Schema implements datasource.DataSource
 func (*StorageDatasource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "This Terraform datasource is used to query existing storage volume details." +
+		MarkdownDescription: "This Terraform datasource is used to query existing storage details from iDRAC." +
 			" The information fetched from this block can be further used for resource block.",
-		Description: "This Terraform datasource is used to query existing storage volume details." +
+		Description: "This Terraform datasource is used to query existing storage details from iDRAC." +
 			" The information fetched from this block can be further used for resource block.",
 		Attributes: StorageDatasourceSchema(),
 		Blocks:     RedfishServerDatasourceBlockMap(),
@@ -85,20 +85,20 @@ func StorageDatasourceSchema() map[string]schema.Attribute {
 			Computed:            true,
 		},
 		"controller_ids": schema.ListAttribute{
-			MarkdownDescription: "ID of the storage controller ID",
-			Description:         "ID of the storage controller ID",
+			MarkdownDescription: "List of IDs of the storage controllers to be fetched.",
+			Description:         "List of IDs of the storage controllers to be fetched.",
 			Optional:            true,
 			ElementType:         types.StringType,
 		},
 		"controller_names": schema.ListAttribute{
-			MarkdownDescription: "ID of the storage controller name",
-			Description:         "ID of the storage controller name",
+			MarkdownDescription: "List of names of the storage controller to be fetched.",
+			Description:         "List of names of the storage controller to be fetched.",
 			Optional:            true,
 			ElementType:         types.StringType,
 		},
 		"storage": schema.ListNestedAttribute{
-			MarkdownDescription: "List of storage controllers",
-			Description:         "List of storage controllers",
+			MarkdownDescription: "List of storage controllers fetched.",
+			Description:         "List of storage controllers fetched.",
 			NestedObject: schema.NestedAttributeObject{
 				Attributes: StorageSchema(),
 			},

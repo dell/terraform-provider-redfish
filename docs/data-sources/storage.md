@@ -19,12 +19,12 @@ linkTitle: "redfish_storage"
 page_title: "redfish_storage Data Source - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  This Terraform datasource is used to query existing storage volume details. The information fetched from this block can be further used for resource block.
+  This Terraform datasource is used to query existing storage details from iDRAC. The information fetched from this block can be further used for resource block.
 ---
 
 # redfish_storage (Data Source)
 
-This Terraform datasource is used to query existing storage volume details. The information fetched from this block can be further used for resource block.
+This Terraform datasource is used to query existing storage details from iDRAC. The information fetched from this block can be further used for resource block.
 
 ## Example Usage
 
@@ -114,7 +114,7 @@ limitations under the License.
 terraform {
   required_providers {
     redfish = {
-      version = "1.1.0"
+      version = "1.2.0"
       source  = "registry.terraform.io/dell/redfish"
     }
   }
@@ -164,14 +164,14 @@ After the successful execution of the above data block, we can see the output in
 
 ### Optional
 
-- `controller_ids` (List of String) ID of the storage controller ID
-- `controller_names` (List of String) ID of the storage controller name
+- `controller_ids` (List of String) List of IDs of the storage controllers to be fetched.
+- `controller_names` (List of String) List of names of the storage controller to be fetched.
 - `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
 
 ### Read-Only
 
 - `id` (String) ID of the storage data-source
-- `storage` (Attributes List) List of storage controllers (see [below for nested schema](#nestedatt--storage))
+- `storage` (Attributes List) List of storage controllers fetched. (see [below for nested schema](#nestedatt--storage))
 
 <a id="nestedblock--redfish_server"></a>
 ### Nested Schema for `redfish_server`
