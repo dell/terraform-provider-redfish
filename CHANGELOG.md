@@ -33,7 +33,10 @@ The release supports resources and data sources mentioned in the Features sectio
 
 ## Enhancements
 * Added storage controller details to storage datasource
-* Added/Updated field in storage resource
+* Enhancements in storage resource
+    * Added `encrypted` field. It requires firmware versions 6 or greater and self encrypting disk(s).
+    * Added `raid_type` field for setting the RAID level. This replaces the deprecated `volume_type` attribute.
+    * Added support for creating storage volumes on BOSS controllers. Volumes on BOSS controllers must take up the whole disk. The fields `capacity_bytes` and `optimum_io_size_bytes` must not be set for these volumes.
 
 ## Bug Fixes
 N/A
