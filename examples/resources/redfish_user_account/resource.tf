@@ -26,10 +26,34 @@ resource "redfish_user_account" "rr" {
   }
 
   // user details for creating/modifying a user
-  user_id  = "4"
-  username = "test"
-  password = "Test@123"
-  role_id  = "Operator"
-  // to set user as active or inactive
-  enabled = true
+  # user_id  = "4"
+  #  username = "test"
+  #   password = "T0mPassword123!"
+  #   role_id  = "Operator"
+  #   // to set user as active or inactive
+  #   enabled = true
+
+  users = [
+    {
+      # user_id="9"
+      username = "tom",
+      password = "T0mPassword123!",
+      role_id  = "Operator",
+      enabled  = true,
+    },
+    {
+      # user_id="10"
+      username = "dick"
+      password = "D!ckPassword123!"
+      role_id  = "ReadOnly"
+      enabled  = true
+    },
+    {
+      # user_id="11"
+      username = "harry"
+      password = "H@rryPassword123!"
+      role_id  = "ReadOnly"
+      enabled  = true
+    },
+  ]
 }

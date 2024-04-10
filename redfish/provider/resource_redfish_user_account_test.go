@@ -92,6 +92,22 @@ func TestAccRedfishUser_basic(t *testing.T) {
 	})
 }
 
+func TestAccRedfishUser_Multiple(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceMultipleUserConfig(
+					creds),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_user_account.user_config", "users.0.username", "tom"),
+				),
+			},
+		},
+	})
+}
+
 // Test to create user with invalid role-id - Negative
 func TestAccRedfishUserInvalid_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -401,5 +417,45 @@ func testAccRedfishResourceUserConfig(testingInfo TestingServerCredentials,
 		roleId,
 		enabled,
 		userId,
+	)
+}
+
+func testAccRedfishResourceMultipleUserConfig(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+
+		resource "redfish_user_account" "user_config" {
+
+		  redfish_server {
+			user = "%s"
+			password = "%s"
+			endpoint = "https://%s"
+			ssl_insecure = true
+		  }
+
+		  users = [
+			{
+			    username = "tom",
+			    password = "T0mPassword123!",
+			    role_id = "Operator",
+			    enabled = true,
+			},
+			{
+			    username = "dick"
+			    password = "D!ckPassword123!"
+			    role_id = "ReadOnly"
+			    enabled = true
+			},
+			{
+			    username = "harry"
+			    password = "H@rryPassword123!"
+			    role_id = "ReadOnly"
+			    enabled = true
+			},
+		  ]
+		}
+		`,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
 	)
 }
