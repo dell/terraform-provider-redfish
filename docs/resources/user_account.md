@@ -196,7 +196,7 @@ After the successful execution of the above resource block, a new user would hav
 - `enabled` (Boolean) If the user is currently active or not.
 - `password` (String, Sensitive) Password of the user
 - `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
-- `role_id` (String) Role of the user. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. Default is "None"
+- `role_id` (String) Role of the user. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'.
 - `user_id` (String) The ID of the user. Cannot be updated.
 - `username` (String) The name of the user
 - `users` (Attributes List) Options to enable or disable the boot device. (see [below for nested schema](#nestedatt--users))
@@ -224,14 +224,14 @@ Optional:
 
 Required:
 
-- `password` (String, Sensitive) Password of the user
-- `username` (String) The name of the user
+- `password` (String, Sensitive) Password of the users
+- `username` (String) The name of the users
 
 Optional:
 
-- `enabled` (Boolean) If the user is currently active or not.
-- `role_id` (String) Role of the user. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. Default is "None"
-- `user_id` (String) The ID of the user. Cannot be updated.
+- `enabled` (Boolean) If the users is/are currently active or not.
+- `role_id` (String) Role of the users. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. Default is "None"
+- `user_id` (String) The ID of the users. Cannot be updated.
 
 ## Import
 

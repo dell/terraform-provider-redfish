@@ -31,7 +31,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	tfpath "github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -118,12 +117,10 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				},
 			},
 			"role_id": schema.StringAttribute{
-				MarkdownDescription: "Role of the user. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. " +
-					"Default is \"None\"",
-				Description: "Role of the user. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. " +
-					"Default is \"None\"",
-				Optional: true,
-				Computed: true,
+				MarkdownDescription: "Role of the user. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. ",
+				Description:         "Role of the user. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. ",
+				Optional:            true,
+				Computed:            true,
 				Validators: []validator.String{
 					stringvalidator.OneOf([]string{
 						"Operator",
@@ -155,22 +152,22 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"user_id": schema.StringAttribute{
-							MarkdownDescription: "The ID of the user. Cannot be updated.",
-							Description:         "The ID of the user. Cannot be updated.",
+							MarkdownDescription: "The ID of the users. Cannot be updated.",
+							Description:         "The ID of the users. Cannot be updated.",
 							Optional:            true,
 							Computed:            true,
 						},
 						"username": schema.StringAttribute{
-							MarkdownDescription: "The name of the user",
-							Description:         "The name of the user",
+							MarkdownDescription: "The name of the users",
+							Description:         "The name of the users",
 							Required:            true,
 							Validators: []validator.String{
 								stringvalidator.LengthBetween(minUserNameLength, maxUserNameLength),
 							},
 						},
 						"password": schema.StringAttribute{
-							MarkdownDescription: "Password of the user",
-							Description:         "Password of the user",
+							MarkdownDescription: "Password of the users",
+							Description:         "Password of the users",
 							Required:            true,
 							Sensitive:           true,
 							Validators: []validator.String{
@@ -178,9 +175,9 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 							},
 						},
 						"role_id": schema.StringAttribute{
-							MarkdownDescription: "Role of the user. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. " +
+							MarkdownDescription: "Role of the users. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. " +
 								"Default is \"None\"",
-							Description: "Role of the user. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. " +
+							Description: "Role of the users. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. " +
 								"Default is \"None\"",
 							Optional: true,
 							Computed: true,
@@ -195,8 +192,8 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 							},
 						},
 						"enabled": schema.BoolAttribute{
-							MarkdownDescription: "If the user is currently active or not.",
-							Description:         "If the user is currently active or not.",
+							MarkdownDescription: "If the users is/are currently active or not.",
+							Description:         "If the users is/are currently active or not.",
 							Optional:            true,
 							Computed:            true,
 						},
@@ -237,24 +234,8 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 		resp.Diagnostics.AddWarning("Single user support will soon be deprecated", "Use 'users' block instead")
 	}
 
-	if !plan.UserDetails.IsUnknown() && !plan.UserDetails.IsNull() {
-		userList, diags := r.getUserDetailsList(&plan)
-		if diags.HasError() {
-			resp.Diagnostics.Append(diags...)
-			return
-		}
-
-		for _, user := range userList {
-
-			userID, diags = r.createUser(plan, service, resp, operationCreate, user)
-			if diags.HasError() {
-				resp.Diagnostics.Append(diags...)
-				return
-			}
-			userIDs = append(userIDs, userID)
-		}
-	} else {
-		userID, diags = r.createUser(plan, service, resp, operationCreate, models.UserDetails{})
+	if plan.UserDetails.IsUnknown() || plan.UserDetails.IsNull() {
+		userID, diags = r.createUser(plan, service, models.UserDetails{})
 		if diags.HasError() {
 			resp.Diagnostics.Append(diags...)
 			return
@@ -276,9 +257,24 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
+	userList, diags := r.getUserDetailsList(&plan)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	for _, user := range userList {
+		userID, diags = r.createUser(plan, service, user)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+			return
+		}
+		userIDs = append(userIDs, userID)
+	}
+
 	tflog.Trace(ctx, "resource_user_account create: updating state finished, saving ...")
 	result := models.UserAccount{}
-	diags = r.updateServerMultipleUser(&plan, &result, service, userIDs, operationCreate)
+	diags = r.updateServerMultipleUser(&plan, &result, service, userIDs)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -315,7 +311,7 @@ func (r *UserAccountResource) Read(ctx context.Context, req resource.ReadRequest
 		for _, user := range userList {
 			userIDs = append(userIDs, user.UserID.ValueString())
 		}
-		r.updateServerMultipleUser(nil, &state, service, userIDs, operationRead)
+		r.updateServerMultipleUser(nil, &state, service, userIDs)
 	} else {
 		_, account, err := GetUserAccountFromID(service, state.ID.ValueString())
 		if err != nil {
@@ -369,7 +365,7 @@ func (r *UserAccountResource) Update(ctx context.Context, req resource.UpdateReq
 	// validate Password
 	err = validatePassword(plan.Password.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Password validation failed", err.Error())
+		resp.Diagnostics.AddError(RedfishPasswordErrorMsg, err.Error())
 		return
 	}
 
@@ -473,8 +469,8 @@ func (*UserAccountResource) ImportState(ctx context.Context, req resource.Import
 		SslInsecure: types.BoolValue(c.SslInsecure),
 	}
 
-	idAttrPath := path.Root("id")
-	redfishServer := path.Root("redfish_server")
+	idAttrPath := tfpath.Root("id")
+	redfishServer := tfpath.Root("redfish_server")
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, idAttrPath, c.Id)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, redfishServer, []models.RedfishServer{server})...)
 }
@@ -483,7 +479,7 @@ func (UserAccountResource) deleteUser(service *gofish.Service, userID string) (s
 	var diags diag.Diagnostics
 	_, account, err := GetUserAccountFromID(service, userID)
 	if err != nil {
-		diags.AddError("Password validation failed", err.Error())
+		diags.AddError(RedfishPasswordErrorMsg, err.Error())
 		return "", diags
 	}
 
@@ -493,7 +489,7 @@ func (UserAccountResource) deleteUser(service *gofish.Service, userID string) (s
 	payload["RoleId"] = "None"
 	_, err = service.GetClient().Patch(account.ODataID, payload)
 	if err != nil {
-		diags.AddError("Password validation failed", err.Error())
+		diags.AddError(RedfishPasswordErrorMsg, err.Error())
 		return "", diags
 	}
 
@@ -502,7 +498,7 @@ func (UserAccountResource) deleteUser(service *gofish.Service, userID string) (s
 	payload["UserName"] = ""
 	_, err = service.GetClient().Patch(account.ODataID, payload)
 	if err != nil {
-		diags.AddError("Password validation failed", err.Error())
+		diags.AddError(RedfishPasswordErrorMsg, err.Error())
 		return "", diags
 	}
 	return "", nil
@@ -521,14 +517,15 @@ func (UserAccountResource) updateServer(plan, state *models.UserAccount, account
 	}
 }
 
-func (r UserAccountResource) updateServerMultipleUser(plan, state *models.UserAccount, service *gofish.Service, userIds []string, operation operation) diag.Diagnostics {
+func (r UserAccountResource) updateServerMultipleUser(plan, state *models.UserAccount, service *gofish.Service,
+	userIds []string,
+) diag.Diagnostics {
 	var diags diag.Diagnostics
 	var userDetails []models.UserDetails
 	var userData models.UserDetails
+	var userList []models.UserDetails
 
-	userList := make([]models.UserDetails, 0)
-
-	if operation != operationRead {
+	if plan != nil {
 		state.RedfishServer = plan.RedfishServer
 		userList, diags = r.getUserDetailsList(plan)
 	} else {
@@ -546,7 +543,7 @@ func (r UserAccountResource) updateServerMultipleUser(plan, state *models.UserAc
 			diags.AddError("Error in fecthing user details", err.Error())
 			return diags
 		}
-		if operation != operationRead {
+		if plan != nil {
 			userData = models.UserDetails{
 				Password: userList[i].Password,
 				RoleID:   types.StringValue(account.RoleID),
@@ -566,7 +563,7 @@ func (r UserAccountResource) updateServerMultipleUser(plan, state *models.UserAc
 		userDetails = append(userDetails, userData)
 	}
 
-	bootOptionsTypes := map[string]attr.Type{
+	userOptionsTypes := map[string]attr.Type{
 		"role_id":  types.StringType,
 		"user_id":  types.StringType,
 		"username": types.StringType,
@@ -574,18 +571,18 @@ func (r UserAccountResource) updateServerMultipleUser(plan, state *models.UserAc
 		"password": types.StringType,
 	}
 
-	bootOptionsEleType := types.ObjectType{
-		AttrTypes: bootOptionsTypes,
+	userOptionsEleType := types.ObjectType{
+		AttrTypes: userOptionsTypes,
 	}
 
-	userDetailsValue, diags := types.ListValueFrom(context.Background(), bootOptionsEleType, userDetails)
+	userDetailsValue, diags := types.ListValueFrom(context.Background(), userOptionsEleType, userDetails)
 	if diags.HasError() {
 		diags.AddError("Error in processing user details", "Error in updating user details to state file")
 		return diags
 	}
 
 	state.UserDetails = userDetailsValue
-	state.ID = types.StringValue("user_id")
+	state.ID = types.StringValue("user")
 	return nil
 }
 
@@ -657,28 +654,28 @@ func GetUserAccountFromID(service *gofish.Service, userID string) ([]*redfish.Ma
 	return accountList, account, nil
 }
 
-func (r *UserAccountResource) createUser(plan models.UserAccount, service *gofish.Service, resp *resource.CreateResponse, operation operation, user models.UserDetails) (string, diag.Diagnostics) {
+func (*UserAccountResource) createUser(plan models.UserAccount, service *gofish.Service, user models.UserDetails) (string, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	var password, userName, userID, role_id string
+	var password, userName, userID, roleID string
 	var enabled bool
 	if plan.UserDetails.IsNull() || plan.UserDetails.IsUnknown() {
 		password = plan.Password.ValueString()
 		userName = plan.Username.ValueString()
 		userID = plan.UserID.ValueString()
-		role_id = plan.RoleID.ValueString()
+		roleID = plan.RoleID.ValueString()
 		enabled = plan.Enabled.ValueBool()
 	} else {
 		password = user.Password.ValueString()
 		userName = user.Username.ValueString()
 		userID = user.UserID.ValueString()
 		enabled = user.Enabled.ValueBool()
-		role_id = user.RoleID.ValueString()
+		roleID = user.RoleID.ValueString()
 	}
 
 	// validate Password
 	err := validatePassword(password)
 	if err != nil {
-		diags.AddError("Password validation failed", err.Error())
+		diags.AddError(RedfishPasswordErrorMsg, err.Error())
 		return "", diags
 	}
 
@@ -721,7 +718,7 @@ func (r *UserAccountResource) createUser(plan models.UserAccount, service *gofis
 			payload["UserName"] = userName
 			payload["Password"] = password
 			payload["Enabled"] = enabled
-			payload["RoleId"] = role_id
+			payload["RoleId"] = roleID
 			if len(userID) > 0 {
 				// update the account.ODataID URL to new account ID
 				account.ID = userID

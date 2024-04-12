@@ -33,4 +33,7 @@ const (
 
 	// RedfishJobErrorMsg specifies error details occured while tracking job details
 	RedfishJobErrorMsg = "Error, job wasn't able to complete"
+
+	// RedfishPasswordErrorMsg specifies if password validation fails in user resource
+	RedfishPasswordErrorMsg = "Password validation failed"
 )
