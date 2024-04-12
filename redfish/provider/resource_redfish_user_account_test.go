@@ -371,6 +371,10 @@ func TestAccRedfishUserValidation_basic(t *testing.T) {
 				),
 			},
 			{
+				Config:      testAccRedfishResourceMultipleUserNegative(creds),
+				ExpectError: regexp.MustCompile("Attribute \"username\" cannot be specified when \"users\" is specified"),
+			},
+			{
 				Config: testAccRedfishResourceUserConfig(
 					creds,
 					"test1",
@@ -431,6 +435,47 @@ func testAccRedfishResourceMultipleUserConfig(testingInfo TestingServerCredentia
 			endpoint = "https://%s"
 			ssl_insecure = true
 		  }
+
+		  users = [
+			{
+			    username = "tom",
+			    password = "T0mPassword123!",
+			    role_id = "Operator",
+			    enabled = true,
+			},
+			{
+			    username = "dick"
+			    password = "D!ckPassword123!"
+			    role_id = "ReadOnly"
+			    enabled = true
+			},
+			{
+			    username = "harry"
+			    password = "H@rryPassword123!"
+			    role_id = "ReadOnly"
+			    enabled = true
+			},
+		  ]
+		}
+		`,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+	)
+}
+
+func testAccRedfishResourceMultipleUserNegative(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+
+		resource "redfish_user_account" "user_config" {
+
+		  redfish_server {
+			user = "%s"
+			password = "%s"
+			endpoint = "https://%s"
+			ssl_insecure = true
+		  }
+		  username = "xyz"
 
 		  users = [
 			{
