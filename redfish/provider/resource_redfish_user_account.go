@@ -105,7 +105,9 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Optional:            true,
 				Validators: []validator.String{
 					stringvalidator.LengthBetween(minUserNameLength, maxUserNameLength),
+					stringvalidator.AlsoRequires(tfpath.MatchRoot("password")),
 				},
+				DeprecationMessage: "Single user support is deprecated and will be removed in an upcoming release. Use 'users' block instead.",
 			},
 			"password": schema.StringAttribute{
 				MarkdownDescription: "Password of the user",
@@ -137,16 +139,12 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Computed:            true,
 			},
 			"users": schema.ListNestedAttribute{
-				Description:         "Options to enable or disable the boot device.",
-				MarkdownDescription: "Options to enable or disable the boot device.",
+				Description:         "To create/delete/modify multiple users.",
+				MarkdownDescription: "To create/delete/modify multiple users.",
 				Optional:            true,
 				Validators: []validator.List{
-					listvalidator.ConflictsWith(tfpath.Expressions{
-						tfpath.MatchRoot("user_id"),
+					listvalidator.ExactlyOneOf(tfpath.Expressions{
 						tfpath.MatchRoot("username"),
-						tfpath.MatchRoot("password"),
-						tfpath.MatchRoot("role_id"),
-						tfpath.MatchRoot("enabled"),
 					}...),
 				},
 				NestedObject: schema.NestedAttributeObject{
@@ -228,10 +226,6 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 	if err != nil {
 		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
-	}
-
-	if plan.UserDetails.IsUnknown() || plan.UserDetails.IsNull() {
-		resp.Diagnostics.AddWarning("Single user support will soon be deprecated", "Use 'users' block instead")
 	}
 
 	if plan.UserDetails.IsUnknown() || plan.UserDetails.IsNull() {

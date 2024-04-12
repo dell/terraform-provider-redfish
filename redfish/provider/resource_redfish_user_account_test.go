@@ -372,7 +372,7 @@ func TestAccRedfishUserValidation_basic(t *testing.T) {
 			},
 			{
 				Config:      testAccRedfishResourceMultipleUserNegative(creds),
-				ExpectError: regexp.MustCompile("Attribute \"username\" cannot be specified when \"users\" is specified"),
+				ExpectError: regexp.MustCompile("Invalid Attribute Combination"),
 			},
 			{
 				Config: testAccRedfishResourceUserConfig(

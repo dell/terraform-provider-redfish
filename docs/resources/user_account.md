@@ -198,8 +198,8 @@ After the successful execution of the above resource block, a new user would hav
 - `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
 - `role_id` (String) Role of the user. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'.
 - `user_id` (String) The ID of the user. Cannot be updated.
-- `username` (String) The name of the user
-- `users` (Attributes List) Options to enable or disable the boot device. (see [below for nested schema](#nestedatt--users))
+- `username` (String, Deprecated) The name of the user
+- `users` (Attributes List) To create/delete/modify multiple users. (see [below for nested schema](#nestedatt--users))
 
 ### Read-Only
 
