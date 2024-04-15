@@ -38,21 +38,21 @@ resource "redfish_user_account" "rr" {
       # user_id="9"
       username = "tom",
       password = "T0mPassword123!",
-      role_id  = "Operator",
+      role     = "Operator",
       enabled  = true,
     },
     {
       # user_id="10"
       username = "dick"
       password = "D!ckPassword123!"
-      role_id  = "ReadOnly"
+      role     = "ReadOnly"
       enabled  = true
     },
     {
       # user_id="11"
       username = "harry"
       password = "H@rryPassword123!"
-      role_id  = "ReadOnly"
+      role     = "ReadOnly"
       enabled  = true
     },
   ]

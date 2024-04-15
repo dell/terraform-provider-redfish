@@ -50,6 +50,7 @@ const (
 	maxUserID         = 16
 	minUserID         = 2
 	password          = "password"
+	username          = "username"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -100,13 +101,12 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Optional:            true,
 				Computed:            true,
 			},
-			"username": schema.StringAttribute{
+			username: schema.StringAttribute{
 				MarkdownDescription: "The name of the user",
 				Description:         "The name of the user",
 				Optional:            true,
 				Validators: []validator.String{
 					stringvalidator.LengthBetween(minUserNameLength, maxUserNameLength),
-					stringvalidator.AlsoRequires(tfpath.MatchRoot(password)),
 				},
 				DeprecationMessage: "Single user support is deprecated and will be removed in an upcoming release. Use 'users' block instead.",
 			},
@@ -117,6 +117,7 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Sensitive:           true,
 				Validators: []validator.String{
 					stringvalidator.LengthBetween(minPasswordLength, maxPasswordLength),
+					stringvalidator.AlsoRequires(tfpath.MatchRoot(username)),
 				},
 			},
 			"role_id": schema.StringAttribute{
@@ -145,7 +146,13 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Optional:            true,
 				Validators: []validator.List{
 					listvalidator.ExactlyOneOf(tfpath.Expressions{
-						tfpath.MatchRoot("username"),
+						tfpath.MatchRoot(username),
+					}...),
+					listvalidator.ConflictsWith(tfpath.Expressions{
+						tfpath.MatchRoot(username),
+						tfpath.MatchRoot(password),
+						tfpath.MatchRoot("role_id"),
+						tfpath.MatchRoot("enabled"),
 					}...),
 				},
 				NestedObject: schema.NestedAttributeObject{
@@ -156,7 +163,7 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 							Optional:            true,
 							Computed:            true,
 						},
-						"username": schema.StringAttribute{
+						username: schema.StringAttribute{
 							MarkdownDescription: "The name of the users",
 							Description:         "The name of the users",
 							Required:            true,
@@ -173,7 +180,7 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 								stringvalidator.LengthBetween(minPasswordLength, maxPasswordLength),
 							},
 						},
-						"role_id": schema.StringAttribute{
+						"role": schema.StringAttribute{
 							MarkdownDescription: "Role of the users. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. " +
 								"Default is \"None\"",
 							Description: "Role of the users. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. " +
@@ -519,10 +526,16 @@ func (r UserAccountResource) updateServerMultipleUser(plan, state *models.UserAc
 	var userDetails []models.UserDetails
 	var userData models.UserDetails
 	var userList []models.UserDetails
+	var role string
 
 	if plan != nil {
 		state.RedfishServer = plan.RedfishServer
 		userList, diags = r.getUserDetailsList(plan)
+		if plan.UserDetails.IsUnknown() || plan.UserDetails.IsNull() {
+			role = "role_id"
+		} else {
+			role = "role"
+		}
 	} else {
 		userList, diags = r.getUserDetailsList(state)
 	}
@@ -559,11 +572,11 @@ func (r UserAccountResource) updateServerMultipleUser(plan, state *models.UserAc
 	}
 
 	userOptionsTypes := map[string]attr.Type{
-		"role_id":  types.StringType,
-		"user_id":  types.StringType,
-		"username": types.StringType,
-		"enabled":  types.BoolType,
-		password:   types.StringType,
+		role:      types.StringType,
+		"user_id": types.StringType,
+		username:  types.StringType,
+		"enabled": types.BoolType,
+		password:  types.StringType,
 	}
 
 	userOptionsEleType := types.ObjectType{

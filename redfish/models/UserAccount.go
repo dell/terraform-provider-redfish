@@ -37,7 +37,7 @@ type UserAccount struct {
 type UserDetails struct {
 	Enabled  types.Bool   `tfsdk:"enabled"`
 	Password types.String `tfsdk:"password"`
-	RoleID   types.String `tfsdk:"role_id"`
+	RoleID   types.String `tfsdk:"role"`
 	UserID   types.String `tfsdk:"user_id"`
 	Username types.String `tfsdk:"username"`
 }
