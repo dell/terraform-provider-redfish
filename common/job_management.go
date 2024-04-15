@@ -19,7 +19,9 @@ package common
 
 import (
 	"fmt"
+	"io"
 	"log"
+	"os"
 	"time"
 
 	"github.com/stmcginnis/gofish"
@@ -148,6 +150,55 @@ func GetJobDetailsOnFinish(service *gofish.Service, jobURI string, timeBetweenAt
 			}
 			log.Printf("[DEBUG] - Error. Timeout reached\n")
 			return nil, fmt.Errorf("Job wait timed out after %d minutes", timeout/60)
+		}
+	}
+}
+
+func GetJobAttachment(service *gofish.Service, jobURI string, fileName string, timeBetweenAttempts int64, timeout int64) error {
+	attemptTick := time.NewTicker(time.Duration(timeBetweenAttempts) * time.Second)
+	timeoutTick := time.NewTicker(time.Duration(timeout) * time.Second)
+	defer attemptTick.Stop()
+	defer timeoutTick.Stop()
+
+	for {
+		select {
+		case <-attemptTick.C:
+			// For some reason iDRAC 4.40.00.0 from time to time gives the following error:
+			// iDRAC is not ready. The configuration values cannot be accessed. Please retry after a few minutes.
+			resp, err := service.GetClient().Get(jobURI)
+			if err != nil {
+				return fmt.Errorf("error making request: %v", err)
+			}
+			defer resp.Body.Close()
+			if resp.StatusCode == StatusCodeSuccess {
+				file, err := os.Create(fileName)
+				if err != nil {
+					return fmt.Errorf("error creating file: %v", err)
+				}
+				defer file.Close()
+
+				// Copy the response body to the file
+				_, err = io.Copy(file, resp.Body)
+				if err != nil {
+					return fmt.Errorf("error writing to file: %v", err)
+				}
+				fmt.Printf("Attachment saved to %s\n", fileName)
+				return nil
+			}
+
+		case <-timeoutTick.C:
+			job, err := redfish.GetJob(service.GetClient(), jobURI)
+			if job == nil && err == nil {
+				return fmt.Errorf("job details not available. Possible timeout")
+			}
+			if job.JobState == redfish.StartingJobState ||
+				job.JobState == redfish.RunningJobState ||
+				job.JobState == redfish.PendingJobState ||
+				job.JobState == redfish.NewJobState {
+				return nil
+			}
+			log.Printf("[DEBUG] - Error. Timeout reached\n")
+			return fmt.Errorf("job wait timed out after %d minutes", timeout/60)
 		}
 	}
 }

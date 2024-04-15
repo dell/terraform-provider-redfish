@@ -89,7 +89,7 @@ func (m *ManagerActions) UnmarshalJSON(data []byte) error {
 	}
 
 	var tempActions struct {
-		ExportSystemConfiguration ExportSystemConfiguration `json:"#OemManager.v1_2_0.OemManager#OemManager.ExportSystemConfiguration"`
+		ExportSystemConfiguration ExportSystemConfiguration `json:"#OemManager.ExportSystemConfiguration"`
 		ImportSystemConfiguration ImportSystemConfiguration `json:"#OemManager.v1_2_0.OemManager#OemManager.ImportSystemConfiguration"`
 		//revive:disable-next-line:line-length-limit
 		ImportSystemConfigurationPreview ImportSystemConfigurationPreview `json:"#OemManager.v1_2_0.OemManager#OemManager.ImportSystemConfigurationPreview"`
