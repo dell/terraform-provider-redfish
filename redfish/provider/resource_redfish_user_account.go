@@ -49,6 +49,7 @@ const (
 	maxPasswordLength = 40
 	maxUserID         = 16
 	minUserID         = 2
+	password          = "password"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -105,11 +106,11 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Optional:            true,
 				Validators: []validator.String{
 					stringvalidator.LengthBetween(minUserNameLength, maxUserNameLength),
-					stringvalidator.AlsoRequires(tfpath.MatchRoot("password")),
+					stringvalidator.AlsoRequires(tfpath.MatchRoot(password)),
 				},
 				DeprecationMessage: "Single user support is deprecated and will be removed in an upcoming release. Use 'users' block instead.",
 			},
-			"password": schema.StringAttribute{
+			password: schema.StringAttribute{
 				MarkdownDescription: "Password of the user",
 				Description:         "Password of the user",
 				Optional:            true,
@@ -163,7 +164,7 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 								stringvalidator.LengthBetween(minUserNameLength, maxUserNameLength),
 							},
 						},
-						"password": schema.StringAttribute{
+						password: schema.StringAttribute{
 							MarkdownDescription: "Password of the users",
 							Description:         "Password of the users",
 							Required:            true,
@@ -562,7 +563,7 @@ func (r UserAccountResource) updateServerMultipleUser(plan, state *models.UserAc
 		"user_id":  types.StringType,
 		"username": types.StringType,
 		"enabled":  types.BoolType,
-		"password": types.StringType,
+		password:   types.StringType,
 	}
 
 	userOptionsEleType := types.ObjectType{
