@@ -27,7 +27,7 @@ permissions:
 env:
   # Go language version to use for building. This value should also be updated
   # in the testing workflow if changed.
-  GO_VERSION: '1.21'
+  GO_VERSION: '1.22'
   
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
