@@ -51,11 +51,13 @@ type ShareParameters struct {
 
 // ScpExport is the tfsdk model of ScpExport
 type RedfishScpExport struct {
+	ID                       types.String    `tfsdk:"id"`
 	RedfishServer            []RedfishServer `tfsdk:"redfish_server"`
 	ExportFormat             types.String    `tfsdk:"export_format"`
 	ExportUse                types.String    `tfsdk:"export_use"`
 	IncludeInExport          types.List      `tfsdk:"include_in_export"`
 	FileName                 types.String    `tfsdk:"filename"`
+	FileContent              types.String    `tfsdk:"file_content"`
 	IPAddress                types.String    `tfsdk:"ip_address"`
 	IgnoreCertificateWarning types.String    `tfsdk:"ignore_certificate_warning"`
 	Password                 types.String    `tfsdk:"password"`
