@@ -68,7 +68,7 @@ output "bios_attributes" {
 - `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
 - `share_name` (String) Share Name
 - `share_type` (String) Share Type
-- `target` (List of String) Include In Export
+- `target` (List of String) Filter configuration by target
 - `username` (String) User Name
 - `workgroup` (String) workgroup
 

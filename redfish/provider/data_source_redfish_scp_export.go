@@ -309,7 +309,7 @@ func setDefaultValues(plan *models.RedfishScpExport) {
 
 func validateShareType(plan *models.RedfishScpExport, resp *datasource.ReadResponse) {
 	shareType := plan.ShareType.ValueString()
-	validationError := "The validation encountered an error./"
+	validationError := "The validation encountered an error."
 	if shareType == "NFS" {
 		if plan.IPAddress.IsNull() || plan.ShareName.IsNull() {
 			resp.Diagnostics.AddError(
@@ -357,6 +357,9 @@ func (g *SCPExportDatasource) Read(ctx context.Context, req datasource.ReadReque
 		plan.ShareType = types.StringValue("LOCAL")
 	} else {
 		validateShareType(&plan, resp)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	service, err := NewConfig(g.p, &plan.RedfishServer)
@@ -377,8 +380,6 @@ func (g *SCPExportDatasource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 	exportURL := dellManager.Actions.ExportSystemConfigurationTarget
-	// plan.ExportFormat = types.StringValue(exportUrl)
-	// plan.FileName = types.StringValue(string(dellManager.OemActions))
 	var includeInExport, target []string
 	resp.Diagnostics.Append(plan.IncludeInExport.ElementsAs(ctx, &includeInExport, true)...)
 	resp.Diagnostics.Append(plan.Target.ElementsAs(ctx, &target, true)...)
