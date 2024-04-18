@@ -153,6 +153,7 @@ func GetJobDetailsOnFinish(service *gofish.Service, jobURI string, timeBetweenAt
 	}
 }
 
+// GetJobAttachment waits for a redfish job to finish and returns the job attachment.
 func GetJobAttachment(service *gofish.Service, jobURI string, timeBetweenAttempts int64, timeout int64) ([]byte, error) {
 	attemptTick := time.NewTicker(time.Duration(timeBetweenAttempts) * time.Second)
 	timeoutTick := time.NewTicker(time.Duration(timeout) * time.Second)
@@ -165,19 +166,18 @@ func GetJobAttachment(service *gofish.Service, jobURI string, timeBetweenAttempt
 			// iDRAC is not ready. The configuration values cannot be accessed. Please retry after a few minutes.
 			resp, err := service.GetClient().Get(jobURI)
 			if err != nil {
-				return nil, fmt.Errorf("error making request: %v", err)
+				return nil, fmt.Errorf("error making request: %w", err)
 			}
 			defer resp.Body.Close()
 			if resp.StatusCode == StatusCodeSuccess {
 				body, err := io.ReadAll(resp.Body)
 				if err != nil {
-					return nil, fmt.Errorf("error reading body: %v", err)
+					return nil, fmt.Errorf("error reading body: %w", err)
 				}
 				return body, nil
 			}
 
 		case <-timeoutTick.C:
-			log.Printf("[DEBUG] - Error. Timeout reached\n")
 			return nil, fmt.Errorf("job wait timed out after %d minutes", timeout/60)
 		}
 	}

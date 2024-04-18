@@ -21,7 +21,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// ScpExport to provide payload for server configuration profile
+// SCPExport to provide payload for server configuration profile
 type SCPExport struct {
 	ExportFormat    string          `json:"ExportFormat"`
 	ExportUse       string          `json:"ExportUse"`
@@ -49,7 +49,7 @@ type ShareParameters struct {
 	Workgroup                string   `json:"Workgroup,omitempty"`
 }
 
-// ScpExport is the tfsdk model of ScpExport
+// RedfishScpExport is the tfsdk model of ScpExport
 type RedfishScpExport struct {
 	ID                       types.String    `tfsdk:"id"`
 	RedfishServer            []RedfishServer `tfsdk:"redfish_server"`

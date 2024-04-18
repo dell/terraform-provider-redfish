@@ -39,6 +39,18 @@ var (
 	_ datasource.DataSourceWithConfigure = &SCPExportDatasource{}
 )
 
+const (
+	// HTTP represents the constant value for HTTP protocol
+	HTTP = "HTTP"
+	// HTTPS represents the constant value for HTTPS protocol
+	HTTPS = "HTTPS"
+
+	// defaultJobTimeout represents the default timeout value for the job in seconds
+	defaultJobTimeout int64 = 1200
+	// intervalJobCheckTime is the interval time to check the job status in seconds
+	intervalJobCheckTime int64 = 10
+)
+
 // NewSCPExportDatasource is new datasource for storage
 func NewSCPExportDatasource() datasource.DataSource {
 	return &SCPExportDatasource{}
@@ -190,7 +202,7 @@ func RedfishScpExportSchema() map[string]schema.Attribute {
 			Optional:            true,
 			Validators: []validator.String{
 				stringvalidator.OneOf([]string{
-					string("HTTP"),
+					string(HTTP),
 					string("SOCKS4"),
 				}...),
 			},
@@ -213,15 +225,15 @@ func RedfishScpExportSchema() map[string]schema.Attribute {
 				stringvalidator.OneOf([]string{
 					string("NFS"),
 					string("CIFS"),
-					string("HTTP"),
-					string("HTTPS"),
+					string(HTTP),
+					string(HTTPS),
 					string("LOCAL"),
 				}...),
 			},
 		},
 		"target": schema.ListAttribute{
-			MarkdownDescription: "Include In Export",
-			Description:         "Include In Export",
+			MarkdownDescription: "Filter configuration by target",
+			Description:         "Filter configuration by target",
 			Optional:            true,
 			ElementType:         types.StringType,
 			Validators: []validator.List{
@@ -256,12 +268,8 @@ func RedfishScpExportSchema() map[string]schema.Attribute {
 	}
 }
 
-// Read implements datasource.DataSource
-func (g *SCPExportDatasource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var plan models.RedfishScpExport
-	diags := req.Config.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	// set default value
+// setDefaultValues to set default values for scp export attributes
+func setDefaultValues(plan *models.RedfishScpExport) {
 	if plan.FileName.IsNull() {
 		plan.FileName = types.StringValue("export_scp")
 	}
@@ -280,45 +288,75 @@ func (g *SCPExportDatasource) Read(ctx context.Context, req datasource.ReadReque
 	if plan.ProxySupport.IsNull() {
 		plan.ProxySupport = types.StringValue("Disabled")
 	}
+	if plan.ShareType.ValueString() == HTTP || plan.ShareType.ValueString() == HTTPS {
+		if plan.PortNumber.IsNull() {
+			if plan.ShareType.ValueString() == HTTP {
+				plan.PortNumber = types.StringValue("80")
+			} else {
+				plan.PortNumber = types.StringValue("443")
+			}
+		}
+		if plan.ProxySupport.ValueString() == "Enabled" {
+			if plan.ProxyPort.IsNull() {
+				plan.ProxyPort = types.StringValue("80")
+			}
+			if plan.ProxyType.IsNull() {
+				plan.ProxyType = types.StringValue(HTTP)
+			}
+		}
+	}
+}
+
+func validateShareType(plan *models.RedfishScpExport, resp *datasource.ReadResponse) {
+	shareType := plan.ShareType.ValueString()
+	validationError := "The validation encountered an error./"
+	if shareType == "NFS" {
+		if plan.IPAddress.IsNull() || plan.ShareName.IsNull() {
+			resp.Diagnostics.AddError(
+				validationError,
+				"When configuring the share type as ‘NFS’, it is essential to provide both the IP address and the share name.")
+			return
+		}
+	} else if shareType == "CIFS" {
+		if plan.IPAddress.IsNull() || plan.ShareName.IsNull() || plan.Username.IsNull() || plan.Password.IsNull() {
+			resp.Diagnostics.AddError(
+				validationError,
+				"When configuring the share type as CIFS, it is essential to provide the IP address, share name, username and password.")
+			return
+		}
+	} else if shareType == HTTP || shareType == HTTPS {
+		if plan.IPAddress.IsNull() {
+			resp.Diagnostics.AddError(
+				validationError,
+				fmt.Sprintf(
+					"When configuring the share type as %s, it is essential to provide the IP address.",
+					shareType))
+			return
+		}
+		if plan.ProxySupport.ValueString() == "Enabled" {
+			if plan.ProxyServer.IsNull() {
+				resp.Diagnostics.AddError(
+					validationError,
+					fmt.Sprintf(
+						"When configuring the share type as %s and Proxy Support is enabled, it is essential to provide the proxy server.",
+						shareType))
+				return
+			}
+		}
+	}
+}
+
+// Read implements datasource.DataSource
+func (g *SCPExportDatasource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var plan models.RedfishScpExport
+	diags := req.Config.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	// set default value
+	setDefaultValues(&plan)
 	if plan.ShareType.IsNull() {
 		plan.ShareType = types.StringValue("LOCAL")
 	} else {
-		if plan.ShareType.ValueString() == "NFS" {
-			if plan.IPAddress.IsNull() || plan.ShareName.IsNull() {
-				resp.Diagnostics.AddError("The validation encountered an error.", "When configuring the share type as ‘NFS’, it is essential to provide both the IP address and the share name.")
-				return
-			}
-		} else if plan.ShareType.ValueString() == "CIFS" {
-			if plan.IPAddress.IsNull() || plan.ShareName.IsNull() || plan.Username.IsNull() || plan.Password.IsNull() {
-				resp.Diagnostics.AddError("The validation encountered an error.", "When configuring the share type as CIFS, it is essential to provide the IP address, share name, username and password.")
-				return
-			}
-		}
-		if plan.ShareType.ValueString() == "HTTP" || plan.ShareType.ValueString() == "HTTPS" {
-			if plan.IPAddress.IsNull() {
-				resp.Diagnostics.AddError("The validation encountered an error.", fmt.Sprintf("When configuring the share type as %s, it is essential to provide the IP address.", plan.ShareType.ValueString()))
-				return
-			}
-			if plan.PortNumber.IsNull() {
-				if plan.ShareType.ValueString() == "HTTP" {
-					plan.PortNumber = types.StringValue("80")
-				} else {
-					plan.PortNumber = types.StringValue("443")
-				}
-			}
-			if plan.ProxySupport.ValueString() == "Enabled" {
-				if plan.ProxyServer.IsNull() {
-					resp.Diagnostics.AddError("The validation encountered an error.", fmt.Sprintf("When configuring the share type as %s and Proxy Support is enabled, it is essential to provide the proxy server.", plan.ShareType.ValueString()))
-					return
-				}
-				if plan.ProxyPort.IsNull() {
-					plan.ProxyPort = types.StringValue("80")
-				}
-				if plan.ProxyType.IsNull() {
-					plan.ProxyType = types.StringValue("HTTP")
-				}
-			}
-		}
+		validateShareType(&plan, resp)
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	service, err := NewConfig(g.p, &plan.RedfishServer)
@@ -338,12 +376,12 @@ func (g *SCPExportDatasource) Read(ctx context.Context, req datasource.ReadReque
 		resp.Diagnostics.AddError("error while retrieving dell manager", err.Error())
 		return
 	}
-	exportUrl := dellManager.Actions.ExportSystemConfigurationTarget
+	exportURL := dellManager.Actions.ExportSystemConfigurationTarget
 	// plan.ExportFormat = types.StringValue(exportUrl)
 	// plan.FileName = types.StringValue(string(dellManager.OemActions))
-	var includeInExport, Target []string
+	var includeInExport, target []string
 	resp.Diagnostics.Append(plan.IncludeInExport.ElementsAs(ctx, &includeInExport, true)...)
-	resp.Diagnostics.Append(plan.Target.ElementsAs(ctx, &Target, true)...)
+	resp.Diagnostics.Append(plan.Target.ElementsAs(ctx, &target, true)...)
 	file := plan.FileName.ValueString() + "." + strings.ToLower(plan.ExportFormat.ValueString())
 	payload := models.SCPExport{
 		ExportFormat:    plan.ExportFormat.ValueString(),
@@ -363,12 +401,12 @@ func (g *SCPExportDatasource) Read(ctx context.Context, req datasource.ReadReque
 			ProxyUserName:            plan.ProxyUserName.ValueString(),
 			ShareName:                plan.ShareName.ValueString(),
 			ShareType:                plan.ShareType.ValueString(),
-			Target:                   Target,
+			Target:                   target,
 			Username:                 plan.Username.ValueString(),
 			Workgroup:                plan.Workgroup.ValueString(),
 		},
 	}
-	response, err := service.GetClient().Post(exportUrl, payload)
+	response, err := service.GetClient().Post(exportURL, payload)
 	if err != nil {
 		resp.Diagnostics.AddError("error during export", err.Error())
 		return
@@ -377,15 +415,19 @@ func (g *SCPExportDatasource) Read(ctx context.Context, req datasource.ReadReque
 		// tflog.Trace(r.ctx, "[DEBUG] BIOS configuration job uri: "+location.String())
 		taskURI := location.EscapedPath()
 		if plan.ShareType.ValueString() == "LOCAL" {
-			fileContent, err := common.GetJobAttachment(service, taskURI, 30, 200)
+			fileContent, err := common.GetJobAttachment(service, taskURI, intervalJobCheckTime, defaultJobTimeout)
 			if err != nil {
-				resp.Diagnostics.AddError("error waiting for SCP Export monitor task to be completed", err.Error())
+				resp.Diagnostics.AddError(
+					"error waiting for SCP Export monitor task to be completed",
+					err.Error())
 			}
 			plan.FileContent = types.StringValue(string(fileContent))
 		} else {
-			err = common.WaitForTaskToFinish(service, taskURI, 10, 200)
+			err = common.WaitForTaskToFinish(service, taskURI, intervalJobCheckTime, defaultJobTimeout)
 			if err != nil {
-				resp.Diagnostics.AddError("error waiting for SCP Export monitor task to be completed", err.Error())
+				resp.Diagnostics.AddError(
+					"error waiting for SCP Export monitor task to be completed",
+					err.Error())
 			}
 		}
 	}
