@@ -520,7 +520,7 @@ func (UserAccountResource) updateServer(plan, state *models.UserAccount, account
 }
 
 func (r UserAccountResource) updateServerMultipleUser(plan, state *models.UserAccount, service *gofish.Service,
-	userIds []string,
+	userIDs []string,
 ) diag.Diagnostics {
 	var diags diag.Diagnostics
 	var userDetails []models.UserDetails
@@ -545,7 +545,7 @@ func (r UserAccountResource) updateServerMultipleUser(plan, state *models.UserAc
 	}
 
 	// get userdetails from server
-	for i, userID := range userIds {
+	for i, userID := range userIDs {
 		_, account, err := GetUserAccountFromID(service, userID)
 		if err != nil {
 			diags.AddError("Error in fecthing user details", err.Error())

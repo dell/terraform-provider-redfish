@@ -168,11 +168,17 @@ func GetJobAttachment(service *gofish.Service, jobURI string, timeBetweenAttempt
 			if err != nil {
 				return nil, fmt.Errorf("error making request: %w", err)
 			}
-			defer resp.Body.Close()
+
 			if resp.StatusCode == StatusCodeSuccess {
 				body, err := io.ReadAll(resp.Body)
 				if err != nil {
 					return nil, fmt.Errorf("error reading body: %w", err)
+				}
+				if resp.Body != nil {
+					err = resp.Body.Close()
+					if err != nil {
+						return nil, fmt.Errorf("error closing body: %w", err)
+					}
 				}
 				return body, nil
 			}
