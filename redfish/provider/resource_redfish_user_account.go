@@ -27,11 +27,8 @@ import (
 	"strings"
 	"terraform-provider-redfish/redfish/models"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	tfpath "github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -49,8 +46,6 @@ const (
 	maxPasswordLength = 40
 	maxUserID         = 16
 	minUserID         = 2
-	password          = "password"
-	username          = "username"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -65,8 +60,7 @@ func NewUserAccountResource() resource.Resource {
 
 // UserAccountResource is the resource implementation.
 type UserAccountResource struct {
-	p   *redfishProvider
-	ctx context.Context
+	p *redfishProvider
 }
 
 // Configure implements resource.ResourceWithConfigure
@@ -101,30 +95,31 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Optional:            true,
 				Computed:            true,
 			},
-			username: schema.StringAttribute{
+			"username": schema.StringAttribute{
 				MarkdownDescription: "The name of the user",
 				Description:         "The name of the user",
-				Optional:            true,
+				Required:            true,
 				Validators: []validator.String{
 					stringvalidator.LengthBetween(minUserNameLength, maxUserNameLength),
 				},
-				DeprecationMessage: "Single user support is deprecated and will be removed in an upcoming release. Use 'users' block instead.",
 			},
-			password: schema.StringAttribute{
+			"password": schema.StringAttribute{
 				MarkdownDescription: "Password of the user",
 				Description:         "Password of the user",
-				Optional:            true,
+				Required:            true,
 				Sensitive:           true,
 				Validators: []validator.String{
 					stringvalidator.LengthBetween(minPasswordLength, maxPasswordLength),
-					stringvalidator.AlsoRequires(tfpath.MatchRoot(username)),
 				},
 			},
 			"role_id": schema.StringAttribute{
-				MarkdownDescription: "Role of the user. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. ",
-				Description:         "Role of the user. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. ",
-				Optional:            true,
-				Computed:            true,
+				MarkdownDescription: "Role of the user. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. " +
+					"Default is \"None\"",
+				Description: "Role of the user. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. " +
+					"Default is \"None\"",
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString("None"),
 				Validators: []validator.String{
 					stringvalidator.OneOf([]string{
 						"Operator",
@@ -140,72 +135,6 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Optional:            true,
 				Computed:            true,
 			},
-			"users": schema.ListNestedAttribute{
-				Description:         "To create/delete/modify multiple users.",
-				MarkdownDescription: "To create/delete/modify multiple users.",
-				Optional:            true,
-				Validators: []validator.List{
-					listvalidator.ExactlyOneOf(tfpath.Expressions{
-						tfpath.MatchRoot(username),
-					}...),
-					listvalidator.ConflictsWith(tfpath.Expressions{
-						tfpath.MatchRoot(username),
-						tfpath.MatchRoot(password),
-						tfpath.MatchRoot("role_id"),
-						tfpath.MatchRoot("enabled"),
-					}...),
-				},
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"user_id": schema.StringAttribute{
-							MarkdownDescription: "The ID of the users. Cannot be updated.",
-							Description:         "The ID of the users. Cannot be updated.",
-							Optional:            true,
-							Computed:            true,
-						},
-						username: schema.StringAttribute{
-							MarkdownDescription: "The name of the users",
-							Description:         "The name of the users",
-							Required:            true,
-							Validators: []validator.String{
-								stringvalidator.LengthBetween(minUserNameLength, maxUserNameLength),
-							},
-						},
-						password: schema.StringAttribute{
-							MarkdownDescription: "Password of the users",
-							Description:         "Password of the users",
-							Required:            true,
-							Sensitive:           true,
-							Validators: []validator.String{
-								stringvalidator.LengthBetween(minPasswordLength, maxPasswordLength),
-							},
-						},
-						"role": schema.StringAttribute{
-							MarkdownDescription: "Role of the users. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. " +
-								"Default is \"None\"",
-							Description: "Role of the users. Applicable values are 'Operator', 'Administrator', 'None', and 'ReadOnly'. " +
-								"Default is \"None\"",
-							Optional: true,
-							Computed: true,
-							Default:  stringdefault.StaticString("None"),
-							Validators: []validator.String{
-								stringvalidator.OneOf([]string{
-									"Operator",
-									"Administrator",
-									"ReadOnly",
-									"None",
-								}...),
-							},
-						},
-						"enabled": schema.BoolAttribute{
-							MarkdownDescription: "If the users is/are currently active or not.",
-							Description:         "If the users is/are currently active or not.",
-							Optional:            true,
-							Computed:            true,
-						},
-					},
-				},
-			},
 		},
 		Blocks: RedfishServerResourceBlockMap(),
 	}
@@ -215,18 +144,14 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	tflog.Trace(ctx, "resource_user_account create : Started")
 
-	r.ctx = ctx
 	// Get Plan Data
 	var plan models.UserAccount
-	var userID string
-	var userIDs []string
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Lock the mutex to avoid race conditions with other resources
 	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
 	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
 
@@ -236,51 +161,88 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	if plan.UserDetails.IsUnknown() || plan.UserDetails.IsNull() {
-		userID, diags = r.createUser(plan, service, models.UserDetails{})
-		if diags.HasError() {
-			resp.Diagnostics.Append(diags...)
-			return
-		}
-		_, account, err := GetUserAccountFromID(service, userID)
-		if err != nil {
-			resp.Diagnostics.AddError(RedfishFetchErrorMsg, err.Error())
-			return
-		}
-
-		result := models.UserAccount{}
-		r.updateServer(&plan, &result, account, operationCreate)
-
-		tflog.Trace(ctx, "resource_user_account create: updating state finished, saving ...")
-
-		// Save into State
-		diags = resp.State.Set(ctx, result)
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	userList, diags := r.getUserDetailsList(&plan)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	for _, user := range userList {
-		userID, diags = r.createUser(plan, service, user)
-		if diags.HasError() {
-			resp.Diagnostics.Append(diags...)
-			return
-		}
-		userIDs = append(userIDs, userID)
-	}
-
 	tflog.Trace(ctx, "resource_user_account create: updating state finished, saving ...")
-	result := models.UserAccount{}
-	diags = r.updateServerMultipleUser(&plan, &result, service, userIDs)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
+	password := plan.Password.ValueString()
+	userName := plan.Username.ValueString()
+	userID := plan.UserID.ValueString()
+
+	// validate Password
+	err = validatePassword(password)
+	if err != nil {
+		resp.Diagnostics.AddError("Password validation failed", err.Error())
 		return
 	}
+
+	accountList, err := getAccountList(service)
+	if err != nil {
+		resp.Diagnostics.AddError("Error when retrieving account list", err.Error())
+		return
+	}
+
+	// check if username already exists
+	err = checkUserNameExists(accountList, userName)
+	if err != nil {
+		resp.Diagnostics.AddError("Cannot check exsting user", err.Error())
+		return
+	}
+
+	// check if user id already exists
+	err = checkUserIDExists(accountList, userID)
+	if err != nil {
+		resp.Diagnostics.AddError("User ID already exists", err.Error())
+		return
+	}
+
+	// check if user id is valid or not
+	if len(userID) > 0 {
+		userIdInt, err := strconv.Atoi(userID)
+		if !(userIdInt > minUserID && userIdInt <= maxUserID) {
+			resp.Diagnostics.AddError("User_id can vary between 3 to 16 only", "Please update user ID")
+			return
+		}
+		if err != nil {
+			resp.Diagnostics.AddError("Invalid user ID", "Cannot convert user ID to int")
+			return
+		}
+	}
+
+	payload := make(map[string]interface{})
+	for _, account := range accountList {
+		if len(account.UserName) == 0 && account.ID != "1" { // ID 1 is reserved
+			payload["UserName"] = userName
+			payload["Password"] = password
+			payload["Enabled"] = plan.Enabled.ValueBool()
+			payload["RoleId"] = plan.RoleID.ValueString()
+			if len(userID) > 0 {
+				// update the account.ODataID URL to new account ID
+				account.ID = userID
+				url, _ := filepath.Split(account.ODataID)
+				account.ODataID = url + account.ID
+			} else {
+				userID = account.ID
+			}
+			// Ideally a go routine for each server should be done
+			_, err = service.GetClient().Patch(account.ODataID, payload)
+			if err != nil {
+				resp.Diagnostics.AddError(RedfishAPIErrorMsg, err.Error()) // This error might happen when a user was created outside terraform
+				return
+			}
+			break
+		} else if account.ID == "17" {
+			// No room for new users
+			resp.Diagnostics.AddError("There is no room for new users", "Please remove an existing user to proceed")
+			return
+		}
+	}
+
+	_, account, err := GetUserAccountFromID(service, userID)
+	if err != nil {
+		resp.Diagnostics.AddError(RedfishFetchErrorMsg, err.Error())
+		return
+	}
+
+	result := models.UserAccount{}
+	r.updateServer(&plan, &result, account, operationCreate)
 
 	// Save into State
 	diags = resp.State.Set(ctx, result)
@@ -293,8 +255,6 @@ func (r *UserAccountResource) Read(ctx context.Context, req resource.ReadRequest
 	tflog.Trace(ctx, "resource_user_account read: started")
 
 	var state models.UserAccount
-	var userIDs []string
-
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -307,24 +267,17 @@ func (r *UserAccountResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	if !(state.UserDetails.IsUnknown() || state.UserDetails.IsNull()) {
-		userList := make([]models.UserDetails, 0)
-		diags.Append(state.UserDetails.ElementsAs(ctx, &userList, false)...)
-		for _, user := range userList {
-			userIDs = append(userIDs, user.UserID.ValueString())
-		}
-		r.updateServerMultipleUser(nil, &state, service, userIDs)
-	} else {
-		_, account, err := GetUserAccountFromID(service, state.ID.ValueString())
-		if err != nil {
-			resp.Diagnostics.AddError(RedfishFetchErrorMsg, err.Error())
-		}
-		if account == nil { // User doesn't exist. Needs to be recreated.
-			resp.Diagnostics.AddError("Error when retrieving accounts", "User does not exists, needs to be recreated")
-			return
-		}
-		r.updateServer(nil, &state, account, operationRead)
+	_, account, err := GetUserAccountFromID(service, state.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(RedfishFetchErrorMsg, err.Error())
 	}
+
+	if account == nil { // User doesn't exist. Needs to be recreated.
+		resp.Diagnostics.AddError("Error when retrieving accounts", "User does not exists, needs to be recreated")
+		return
+	}
+
+	r.updateServer(nil, &state, account, operationRead)
 
 	tflog.Trace(ctx, "resource_user_account read: finished reading state")
 	// Save into State
@@ -354,7 +307,6 @@ func (r *UserAccountResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	// Lock the mutex to avoid race conditions with other resources
 	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
 	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
 
@@ -367,7 +319,7 @@ func (r *UserAccountResource) Update(ctx context.Context, req resource.UpdateReq
 	// validate Password
 	err = validatePassword(plan.Password.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError(RedfishPasswordErrorMsg, err.Error())
+		resp.Diagnostics.AddError("Password validation failed", err.Error())
 		return
 	}
 
@@ -436,15 +388,30 @@ func (r *UserAccountResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	if !state.UserDetails.IsUnknown() && !state.UserDetails.IsNull() {
-		userList := make([]models.UserDetails, 0)
-		diags.Append(state.UserDetails.ElementsAs(ctx, &userList, false)...)
-		for _, user := range userList {
-			r.deleteUser(service, user.UserID.ValueString())
-		}
-	} else {
-		r.deleteUser(service, state.ID.ValueString())
+	_, account, err := GetUserAccountFromID(service, state.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(RedfishFetchErrorMsg, err.Error())
 	}
+
+	// First set Role ID as "" and Enabled as false
+	payload := make(map[string]interface{})
+	payload["Enable"] = "false"
+	payload["RoleId"] = "None"
+	_, err = service.GetClient().Patch(account.ODataID, payload)
+	if err != nil {
+		resp.Diagnostics.AddError(RedfishAPIErrorMsg, err.Error())
+		return
+	}
+
+	// second PATCH call to remove username.
+	payload = make(map[string]interface{})
+	payload["UserName"] = ""
+	_, err = service.GetClient().Patch(account.ODataID, payload)
+	if err != nil {
+		resp.Diagnostics.AddError(RedfishAPIErrorMsg, err.Error())
+		return
+	}
+
 	tflog.Trace(ctx, "resource_user_account delete: finished")
 }
 
@@ -471,39 +438,10 @@ func (*UserAccountResource) ImportState(ctx context.Context, req resource.Import
 		SslInsecure: types.BoolValue(c.SslInsecure),
 	}
 
-	idAttrPath := tfpath.Root("id")
-	redfishServer := tfpath.Root("redfish_server")
+	idAttrPath := path.Root("id")
+	redfishServer := path.Root("redfish_server")
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, idAttrPath, c.Id)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, redfishServer, []models.RedfishServer{server})...)
-}
-
-func (UserAccountResource) deleteUser(service *gofish.Service, userID string) (string, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	_, account, err := GetUserAccountFromID(service, userID)
-	if err != nil {
-		diags.AddError(RedfishPasswordErrorMsg, err.Error())
-		return "", diags
-	}
-
-	// First set Role ID as "" and Enabled as false
-	payload := make(map[string]interface{})
-	payload["Enable"] = "false"
-	payload["RoleId"] = "None"
-	_, err = service.GetClient().Patch(account.ODataID, payload)
-	if err != nil {
-		diags.AddError(RedfishPasswordErrorMsg, err.Error())
-		return "", diags
-	}
-
-	// second PATCH call to remove username.
-	payload = make(map[string]interface{})
-	payload["UserName"] = ""
-	_, err = service.GetClient().Patch(account.ODataID, payload)
-	if err != nil {
-		diags.AddError(RedfishPasswordErrorMsg, err.Error())
-		return "", diags
-	}
-	return "", nil
 }
 
 func (UserAccountResource) updateServer(plan, state *models.UserAccount, account *redfish.ManagerAccount, operation operation) {
@@ -515,83 +453,7 @@ func (UserAccountResource) updateServer(plan, state *models.UserAccount, account
 	if operation != operationRead {
 		state.Password = plan.Password
 		state.RedfishServer = plan.RedfishServer
-		state.UserDetails = plan.UserDetails
 	}
-}
-
-func (r UserAccountResource) updateServerMultipleUser(plan, state *models.UserAccount, service *gofish.Service,
-	userIDs []string,
-) diag.Diagnostics {
-	var diags diag.Diagnostics
-	var userDetails []models.UserDetails
-	var userData models.UserDetails
-	var userList []models.UserDetails
-	var role string
-
-	if plan != nil {
-		state.RedfishServer = plan.RedfishServer
-		userList, diags = r.getUserDetailsList(plan)
-		if plan.UserDetails.IsUnknown() || plan.UserDetails.IsNull() {
-			role = "role_id"
-		} else {
-			role = "role"
-		}
-	} else {
-		userList, diags = r.getUserDetailsList(state)
-	}
-	if diags.HasError() {
-		diags.AddError("Error in processing user details", "Error when retrieving user account details as list")
-		return diags
-	}
-
-	// get userdetails from server
-	for i, userID := range userIDs {
-		_, account, err := GetUserAccountFromID(service, userID)
-		if err != nil {
-			diags.AddError("Error in fecthing user details", err.Error())
-			return diags
-		}
-		if plan != nil {
-			userData = models.UserDetails{
-				Password: userList[i].Password,
-				RoleID:   types.StringValue(account.RoleID),
-				UserID:   types.StringValue(account.ID),
-				Username: types.StringValue(account.UserName),
-				Enabled:  types.BoolValue(account.Enabled),
-			}
-		} else {
-			userData = models.UserDetails{
-				RoleID:   types.StringValue(account.RoleID),
-				UserID:   types.StringValue(account.ID),
-				Username: types.StringValue(account.UserName),
-				Enabled:  types.BoolValue(account.Enabled),
-				Password: userList[i].Password,
-			}
-		}
-		userDetails = append(userDetails, userData)
-	}
-
-	userOptionsTypes := map[string]attr.Type{
-		role:      types.StringType,
-		"user_id": types.StringType,
-		username:  types.StringType,
-		"enabled": types.BoolType,
-		password:  types.StringType,
-	}
-
-	userOptionsEleType := types.ObjectType{
-		AttrTypes: userOptionsTypes,
-	}
-
-	userDetailsValue, diags := types.ListValueFrom(context.Background(), userOptionsEleType, userDetails)
-	if diags.HasError() {
-		diags.AddError("Error in processing user details", "Error in updating user details to state file")
-		return diags
-	}
-
-	state.UserDetails = userDetailsValue
-	state.ID = types.StringValue("user")
-	return nil
 }
 
 func getAccountList(c *gofish.Service) ([]*redfish.ManagerAccount, error) {
@@ -660,100 +522,4 @@ func GetUserAccountFromID(service *gofish.Service, userID string) ([]*redfish.Ma
 		return nil, nil, fmt.Errorf("error when retrieving accounts %v", err.Error())
 	}
 	return accountList, account, nil
-}
-
-func (*UserAccountResource) createUser(plan models.UserAccount, service *gofish.Service, user models.UserDetails) (string, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	var password, userName, userID, roleID string
-	var enabled bool
-	if plan.UserDetails.IsNull() || plan.UserDetails.IsUnknown() {
-		password = plan.Password.ValueString()
-		userName = plan.Username.ValueString()
-		userID = plan.UserID.ValueString()
-		roleID = plan.RoleID.ValueString()
-		enabled = plan.Enabled.ValueBool()
-	} else {
-		password = user.Password.ValueString()
-		userName = user.Username.ValueString()
-		userID = user.UserID.ValueString()
-		enabled = user.Enabled.ValueBool()
-		roleID = user.RoleID.ValueString()
-	}
-
-	// validate Password
-	err := validatePassword(password)
-	if err != nil {
-		diags.AddError(RedfishPasswordErrorMsg, err.Error())
-		return "", diags
-	}
-
-	accountList, err := getAccountList(service)
-	if err != nil {
-		diags.AddError("Error when retrieving account list ", err.Error())
-		return "", diags
-	}
-
-	// check if username already exists
-	err = checkUserNameExists(accountList, userName)
-	if err != nil {
-		diags.AddError("Cannot check exsting user ", err.Error())
-		return "", diags
-	}
-
-	// check if user id already exists
-	err = checkUserIDExists(accountList, userID)
-	if err != nil {
-		diags.AddError("User ID already exists %v", err.Error())
-		return "", diags
-	}
-
-	// check if user id is valid or not
-	if len(userID) > 0 {
-		userIdInt, err := strconv.Atoi(userID)
-		if !(userIdInt > minUserID && userIdInt <= maxUserID) {
-			diags.AddError("User_id can vary between 3 to 16 only", "Please update user ID")
-			return "", diags
-		}
-		if err != nil {
-			diags.AddError("Invalid user ID", "Cannot convert user ID to int")
-			return "", diags
-		}
-	}
-
-	payload := make(map[string]interface{})
-	for _, account := range accountList {
-		if len(account.UserName) == 0 && account.ID != "1" { // ID 1 is reserved
-			payload["UserName"] = userName
-			payload["Password"] = password
-			payload["Enabled"] = enabled
-			payload["RoleId"] = roleID
-			if len(userID) > 0 {
-				// update the account.ODataID URL to new account ID
-				account.ID = userID
-				url, _ := filepath.Split(account.ODataID)
-				account.ODataID = url + account.ID
-			} else {
-				userID = account.ID
-			}
-			// Ideally a go routine for each server should be done
-			_, err = service.GetClient().Patch(account.ODataID, payload)
-			if err != nil {
-				diags.AddError(RedfishAPIErrorMsg, err.Error()) // This error might happen when a user was created outside terraform
-				return "", diags
-			}
-			break
-		} else if account.ID == "17" {
-			// No room for new users
-			diags.AddError("There is no room for new users", "Please remove an existing user to proceed")
-			return "", diags
-		}
-	}
-	return userID, nil
-}
-
-func (r *UserAccountResource) getUserDetailsList(d *models.UserAccount) ([]models.UserDetails, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	userList := make([]models.UserDetails, 0)
-	diags.Append(d.UserDetails.ElementsAs(r.ctx, &userList, false)...)
-	return userList, diags
 }
