@@ -34,7 +34,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -97,7 +101,6 @@ func RedfishScpExportSchema() map[string]schema.Attribute {
 		"file_content": schema.StringAttribute{
 			MarkdownDescription: "File Content",
 			Description:         "File Content",
-			Optional:            true,
 			Computed:            true,
 		},
 		"export_format": schema.StringAttribute{
@@ -113,6 +116,9 @@ func RedfishScpExportSchema() map[string]schema.Attribute {
 					string("XML"),
 				}...),
 			},
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplace(),
+			},
 		},
 		"export_use": schema.StringAttribute{
 			MarkdownDescription: "Specify the type of Server Configuration Profile (SCP) to be exported.",
@@ -127,6 +133,9 @@ func RedfishScpExportSchema() map[string]schema.Attribute {
 					string("Clone"),
 					string("Replace"),
 				}...),
+			},
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplace(),
 			},
 		},
 		"include_in_export": schema.ListAttribute{
@@ -152,12 +161,18 @@ func RedfishScpExportSchema() map[string]schema.Attribute {
 					string("IncludeCustomTelemetry"),
 				}...)),
 			},
+			PlanModifiers: []planmodifier.List{
+				listplanmodifier.RequiresReplace(),
+			},
 		},
 		"share_parameters": schema.SingleNestedAttribute{
 			MarkdownDescription: "Share Parameters",
 			Description:         "Share Parameters",
 			Required:            true,
 			Attributes:          ShareParametersExportSchema(),
+			PlanModifiers: []planmodifier.Object{
+				objectplanmodifier.RequiresReplace(),
+			},
 		},
 	}
 }
@@ -282,6 +297,7 @@ func ShareParametersExportSchema() map[string]schema.Attribute {
 				"If not specified, the Server Configuration Profile export operation will" +
 				" attempt to connect to the Server Configuration Profile share server directly.",
 			Optional: true,
+			Computed: true,
 			Validators: []validator.String{
 				stringvalidator.LengthAtLeast(1),
 				stringvalidator.OneOf([]string{
@@ -289,6 +305,7 @@ func ShareParametersExportSchema() map[string]schema.Attribute {
 					string("SOCKS4"),
 				}...),
 			},
+			Default: stringdefault.StaticString("HTTP"),
 		},
 		"proxy_username": schema.StringAttribute{
 			MarkdownDescription: "The username to be used when connecting to the proxy server.",
@@ -456,38 +473,11 @@ func (r *ScpExportResource) Create(ctx context.Context, req resource.CreateReque
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
-func (r *ScpExportResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Get state Data
-	tflog.Trace(ctx, "resource_ScpExport update: started")
-	var plan models.TFRedfishScpExport
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
-	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
-
-	service, err := NewConfig(r.p, &plan.RedfishServer)
-	if err != nil {
-		resp.Diagnostics.AddError("service error - config update", err.Error())
-		return
-	}
-
-	content, err := scpExportExecutor(service, plan)
-	if err != nil {
-		resp.Diagnostics.AddError("executor error", err.Error())
-		return
-	}
-	plan.FileContent = types.StringValue(content)
-
-	tflog.Trace(ctx, "resource_ScpExport update: finished state update")
-	// Save into State
-	plan.ID = types.StringValue("scpExport")
-	diags = resp.State.Set(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	tflog.Trace(ctx, "resource_ScpExport update: finished")
+func (*ScpExportResource) Update(_ context.Context, _ resource.UpdateRequest, resp *resource.UpdateResponse) {
+	resp.Diagnostics.AddError(
+		"Error updating Export Server Configuration Profile.",
+		"An update plan of Export Server Configuration Profile should never be invoked. This resource is supposed to be replaced on update.",
+	)
 }
 
 // Read refreshes the Terraform state with the latest data.
@@ -524,7 +514,7 @@ func scpExportExecutor(service *gofish.Service, plan models.TFRedfishScpExport) 
 			}
 			return base64.StdEncoding.EncodeToString(fileContent), nil
 		}
-		if err := common.WaitForTaskToFinish(service, taskURI, intervalJobCheckTime, defaultJobTimeout); err != nil {
+		if err := common.WaitForDellJobToFinish(service, taskURI, intervalJobCheckTime, defaultJobTimeout); err != nil {
 			return "", err
 		}
 	}
@@ -542,12 +532,11 @@ func constructExportPayload(plan models.TFRedfishScpExport) models.SCPExport {
 		IncludeInExport: includeInExport,
 		ShareParameters: models.ShareParameters{},
 	}
-
-	// Set ignoreCertificateWarning to "Enabled" if the plan's ignoreCertificateWarning value is true,
-	// otherwise set it to "Disabled".
-	ignoreCertificateWarning := "Enabled"
+	// Set ignoreCertificateWarning to "Disabled" if the plan's ignoreCertificateWarning value is true,
+	// otherwise set it to "Enabled".
+	ignoreCertificateWarning := "Disabled"
 	if !plan.ShareParameters.IgnoreCertificateWarning.ValueBool() {
-		ignoreCertificateWarning = "Disabled"
+		ignoreCertificateWarning = "Enabled"
 	}
 
 	portNumber := strconv.FormatInt(plan.ShareParameters.PortNumber.ValueInt64(), defaultIntBase)

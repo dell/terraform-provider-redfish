@@ -33,8 +33,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -115,6 +119,9 @@ func RedfishScpImportSchema() map[string]schema.Attribute {
 					string("Off"),
 				}...),
 			},
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplace(),
+			},
 		},
 		"import_buffer": schema.StringAttribute{
 			MarkdownDescription: "Buffer content to perform Import." +
@@ -126,6 +133,9 @@ func RedfishScpImportSchema() map[string]schema.Attribute {
 			Optional: true,
 			Validators: []validator.String{
 				stringvalidator.LengthAtLeast(1),
+			},
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplace(),
 			},
 		},
 		"shutdown_type": schema.StringAttribute{
@@ -158,6 +168,9 @@ func RedfishScpImportSchema() map[string]schema.Attribute {
 					string("NoReboot"),
 				}...),
 			},
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplace(),
+			},
 		},
 		"time_to_wait": schema.Int64Attribute{
 			MarkdownDescription: `Time To Wait (in seconds) - specifies the time to wait for the server configuration profile
@@ -184,12 +197,18 @@ func RedfishScpImportSchema() map[string]schema.Attribute {
 			Validators: []validator.Int64{
 				int64validator.Between(minScpImportTimeout, maxScpImportTimeout),
 			},
+			PlanModifiers: []planmodifier.Int64{
+				int64planmodifier.RequiresReplace(),
+			},
 		},
 		"share_parameters": schema.SingleNestedAttribute{
 			MarkdownDescription: "Share Parameters",
 			Description:         "Share Parameters",
 			Required:            true,
 			Attributes:          ShareParametersSchema(),
+			PlanModifiers: []planmodifier.Object{
+				objectplanmodifier.RequiresReplace(),
+			},
 		},
 	}
 }
@@ -314,6 +333,7 @@ func ShareParametersSchema() map[string]schema.Attribute {
 				"If not specified, the Server Configuration Profile import operation will" +
 				" attempt to connect to the Server Configuration Profile share server directly.",
 			Optional: true,
+			Computed: true,
 			Validators: []validator.String{
 				stringvalidator.LengthAtLeast(1),
 				stringvalidator.OneOf([]string{
@@ -321,6 +341,7 @@ func ShareParametersSchema() map[string]schema.Attribute {
 					string("SOCKS4"),
 				}...),
 			},
+			Default: stringdefault.StaticString("HTTP"),
 		},
 		"proxy_username": schema.StringAttribute{
 			MarkdownDescription: "The username to be used when connecting to the proxy server.",
@@ -483,37 +504,11 @@ func (r *ScpImportResource) Create(ctx context.Context, req resource.CreateReque
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
-func (r *ScpImportResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Get state Data
-	tflog.Trace(ctx, "resource_ScpImport update: started")
-	var plan models.RedfishScpImport
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
-	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
-
-	service, err := NewConfig(r.p, &plan.RedfishServer)
-	if err != nil {
-		resp.Diagnostics.AddError("service error", err.Error())
-		return
-	}
-
-	log, err := scpImportExecutor(service, constructPayload(plan), intervalJobCheckTime, plan.TimeToWait.ValueInt64())
-	if err != nil {
-		resp.Diagnostics.AddError(log, err.Error())
-		return
-	}
-
-	tflog.Trace(ctx, "resource_ScpImport update: finished state update")
-	// Save into State
-	plan.ID = types.StringValue("scpimport")
-	diags = resp.State.Set(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	tflog.Trace(ctx, "resource_ScpImport update: finished")
+func (*ScpImportResource) Update(_ context.Context, _ resource.UpdateRequest, resp *resource.UpdateResponse) {
+	resp.Diagnostics.AddError(
+		"Error updating Import Server Configuration Profile.",
+		"An update plan of Import Server Configuration Profile should never be invoked. This resource is supposed to be replaced on update.",
+	)
 }
 
 // Read refreshes the Terraform state with the latest data.
@@ -556,7 +551,7 @@ func scpImportExecutor(service *gofish.Service, scpImportPayload models.SCPImpor
 
 	if location, err := response.Location(); err == nil {
 		taskURI := location.EscapedPath()
-		err = common.WaitForTaskToFinish(service, taskURI, jobCheckIntervalTime, jobDefaultTimeout)
+		err = common.WaitForDellJobToFinish(service, taskURI, jobCheckIntervalTime, jobDefaultTimeout)
 		if err != nil {
 			return "error waiting for SCP Export monitor task to be completed", err
 		}
@@ -588,11 +583,11 @@ func constructPayload(plan models.RedfishScpImport) models.SCPImport {
 		TimeToWait:     plan.TimeToWait.ValueInt64(),
 	}
 
-	// Set ignoreCertificateWarning to "Enabled" if the plan's ignoreCertificateWarning value is true,
-	// otherwise set it to "Disabled".
-	ignoreCertificateWarning := "Enabled"
+	// Set ignoreCertificateWarning to "Disabled" if the plan's ignoreCertificateWarning value is true,
+	// otherwise set it to "Enabled".
+	ignoreCertificateWarning := "Disabled"
 	if !plan.ShareParameters.IgnoreCertificateWarning.ValueBool() {
-		ignoreCertificateWarning = "Disabled"
+		ignoreCertificateWarning = "Enabled"
 	}
 
 	portNumber := strconv.FormatInt(plan.ShareParameters.PortNumber.ValueInt64(), defaultIntBase)

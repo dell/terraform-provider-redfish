@@ -18,6 +18,7 @@ limitations under the License.
 package common
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -185,6 +186,64 @@ func GetJobAttachment(service *gofish.Service, jobURI string, timeBetweenAttempt
 
 		case <-timeoutTick.C:
 			return nil, fmt.Errorf("job wait timed out after %d minutes", timeout/60)
+		}
+	}
+}
+
+// OEMJob contains the job details
+type OEMJob struct {
+	JobState       string `json:"JobState"`
+	JobType        string `json:"JobType"`
+	Message        string `json:"Message"`
+	MessageId      string `json:"MessageId"`
+	Name           string `json:"Name"`
+	CompletionTime string `json:"CompletionTime"`
+}
+
+// Dell contains the job details
+type Dell struct {
+	OEMJob
+}
+
+// DellJob contains the job details
+type DellJob struct {
+	Dell Dell
+}
+
+// WaitForDellJobToFinish waits for a redfish job to finish and returns the job details.
+func WaitForDellJobToFinish(service *gofish.Service, jobURI string, timeBetweenAttempts int64, timeout int64) error {
+	var oemJob DellJob
+	// Create tickers
+	attemptTick := time.NewTicker(time.Duration(timeBetweenAttempts) * time.Second)
+	timeoutTick := time.NewTicker(time.Duration(timeout) * time.Second)
+	for {
+		select {
+		case <-attemptTick.C:
+			// For some reason iDRAC 4.40.00.0 from time to time gives the following error:
+			// iDRAC is not ready. The configuration values cannot be accessed. Please retry after a few minutes.
+			job, err := redfish.GetTask(service.GetClient(), jobURI)
+			if err == nil {
+				// Check if job has finished
+				switch status := job.TaskState; status {
+				case redfish.CompletedTaskState:
+					if job.Oem != nil {
+						err = json.Unmarshal(job.Oem, &oemJob)
+						if err != nil {
+							return err
+						}
+						if oemJob.Dell.JobState == "Failed" {
+							return fmt.Errorf("job failed with message: %s", oemJob.Dell.Message)
+						}
+					}
+					return nil
+				case redfish.KilledTaskState:
+					return fmt.Errorf(JobErrorWithState, job.TaskState)
+				case redfish.ExceptionTaskState:
+					return fmt.Errorf(JobErrorWithState, job.TaskState)
+				}
+			}
+		case <-timeoutTick.C:
+			return fmt.Errorf("timeout waiting for the job to finish")
 		}
 	}
 }
