@@ -173,7 +173,7 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	accountList, err := getAccountList(service)
+	accountList, err := GetAccountList(service)
 	if err != nil {
 		resp.Diagnostics.AddError("Error when retrieving account list", err.Error())
 		return
@@ -456,7 +456,8 @@ func (UserAccountResource) updateServer(plan, state *models.UserAccount, account
 	}
 }
 
-func getAccountList(c *gofish.Service) ([]*redfish.ManagerAccount, error) {
+// GetAccountList returns the list of all the user accounts
+func GetAccountList(c *gofish.Service) ([]*redfish.ManagerAccount, error) {
 	accountService, err := c.AccountService()
 	if err != nil {
 		return nil, err
@@ -511,7 +512,7 @@ func validatePassword(password string) error {
 
 // GetUserAccountFromID fetches specific user details for the given userID
 func GetUserAccountFromID(service *gofish.Service, userID string) ([]*redfish.ManagerAccount, *redfish.ManagerAccount, error) {
-	accountList, err := getAccountList(service)
+	accountList, err := GetAccountList(service)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error when retrieving account list %v", err.Error())
 	}
