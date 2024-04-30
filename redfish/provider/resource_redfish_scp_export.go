@@ -181,12 +181,8 @@ func RedfishScpExportSchema() map[string]schema.Attribute {
 func ShareParametersExportSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"filename": schema.StringAttribute{
-			MarkdownDescription: "File Name - The name of the server configuration profile file to export. This is the name of the file " +
-				"that was previously exported using the Server Configuration Profile Export operation. This file is typically " +
-				"in the xml/json format",
-			Description: "File Name - The name of the server configuration profile file to export. This is the name of the file " +
-				"that was previously exported using the Server Configuration Profile Export operation. This file is typically " +
-				"in the xml/json format",
+			MarkdownDescription: "File Name - The name of the server configuration profile file to export.",
+			Description: "File Name - The name of the server configuration profile file to export.",
 			Required: true,
 			Validators: []validator.String{
 				stringvalidator.LengthAtLeast(1),
@@ -328,7 +324,7 @@ func ShareParametersExportSchema() map[string]schema.Attribute {
 		"share_type": schema.StringAttribute{
 			MarkdownDescription: "Share Type - The type of share being used to export the Server Configuration Profile file.",
 			Description:         "Share Type - The type of share being used to export the Server Configuration Profile file.",
-			Optional:            true,
+			Required:            true,
 			Validators: []validator.String{
 				stringvalidator.LengthAtLeast(1),
 				stringvalidator.OneOf([]string{

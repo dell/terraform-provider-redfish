@@ -364,7 +364,7 @@ func ShareParametersSchema() map[string]schema.Attribute {
 		"share_type": schema.StringAttribute{
 			MarkdownDescription: "Share Type - The type of share being used to import the Server Configuration Profile file.",
 			Description:         "Share Type - The type of share being used to import the Server Configuration Profile file.",
-			Optional:            true,
+			Required:            true,
 			Validators: []validator.String{
 				stringvalidator.LengthAtLeast(1),
 				stringvalidator.OneOf([]string{

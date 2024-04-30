@@ -153,7 +153,8 @@ resource "redfish_idrac_server_configuration_profile_export" "http" {
 
 Required:
 
-- `filename` (String) File Name - The name of the server configuration profile file to export. This is the name of the file that was previously exported using the Server Configuration Profile Export operation. This file is typically in the xml/json format
+- `filename` (String) File Name - The name of the server configuration profile file to export.
+- `share_type` (String) Share Type - The type of share being used to export the Server Configuration Profile file.
 
 Optional:
 
@@ -178,7 +179,6 @@ Optional:
 - `proxy_username` (String) The username to be used when connecting to the proxy server.
 - `share_name` (String) Share Name - The name of the directory or share on the server 
 			that contains the Server Configuration Profile file to export.
-- `share_type` (String) Share Type - The type of share being used to export the Server Configuration Profile file.
 - `target` (List of String) Filter configuration by target
 - `username` (String) Username - The username to use when authenticating with the server
 			 that contains the Server Configuration Profile file being exported.
