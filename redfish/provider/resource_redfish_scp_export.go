@@ -182,8 +182,8 @@ func ShareParametersExportSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"filename": schema.StringAttribute{
 			MarkdownDescription: "File Name - The name of the server configuration profile file to export.",
-			Description: "File Name - The name of the server configuration profile file to export.",
-			Required: true,
+			Description:         "File Name - The name of the server configuration profile file to export.",
+			Required:            true,
 			Validators: []validator.String{
 				stringvalidator.LengthAtLeast(1),
 			},
