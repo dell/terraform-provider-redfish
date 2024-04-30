@@ -128,6 +128,7 @@ func (*redfishProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewDellLCAttributesResource,
 		NewDellSystemAttributesResource,
 		NewIdracFirmwareUpdateResource,
+		NewUserAccountPasswordResource,
 	}
 }
 
