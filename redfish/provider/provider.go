@@ -128,6 +128,8 @@ func (*redfishProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewDellLCAttributesResource,
 		NewDellSystemAttributesResource,
 		NewIdracFirmwareUpdateResource,
+		NewScpImportResource,
+		NewScpExportResource,
 	}
 }
 
@@ -140,6 +142,5 @@ func (*redfishProvider) DataSources(_ context.Context) []func() datasource.DataS
 		NewDellVirtualMediaDatasource,
 		NewSystemBootDatasource,
 		NewFirmwareInventoryDatasource,
-		NewSCPExportDatasource,
 	}
 }
