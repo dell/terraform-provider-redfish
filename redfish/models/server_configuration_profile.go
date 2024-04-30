@@ -58,24 +58,26 @@ type ShareParameters struct {
 
 // RedfishScpImport defines the SCP import resource.
 type RedfishScpImport struct {
-	ID              types.String      `tfsdk:"id"`
-	RedfishServer   []RedfishServer   `tfsdk:"redfish_server"`
-	HostPowerState  types.String      `tfsdk:"host_power_state"`
-	ImportBuffer    types.String      `tfsdk:"import_buffer"`
-	ShutdownType    types.String      `tfsdk:"shutdown_type"`
-	TimeToWait      types.Int64       `tfsdk:"time_to_wait"`
-	ShareParameters TFShareParameters `tfsdk:"share_parameters"`
+	ID             types.String    `tfsdk:"id"`
+	RedfishServer  []RedfishServer `tfsdk:"redfish_server"`
+	HostPowerState types.String    `tfsdk:"host_power_state"`
+	ImportBuffer   types.String    `tfsdk:"import_buffer"`
+	ShutdownType   types.String    `tfsdk:"shutdown_type"`
+	TimeToWait     types.Int64     `tfsdk:"time_to_wait"`
+	// ShareParameters Object of type TFShareParameters
+	ShareParameters types.Object `tfsdk:"share_parameters"`
 }
 
 // TFRedfishScpExport is the tfsdk model of ScpExport
 type TFRedfishScpExport struct {
-	ID              types.String      `tfsdk:"id"`
-	RedfishServer   []RedfishServer   `tfsdk:"redfish_server"`
-	FileContent     types.String      `tfsdk:"file_content"`
-	ExportFormat    types.String      `tfsdk:"export_format"`
-	ExportUse       types.String      `tfsdk:"export_use"`
-	IncludeInExport types.List        `tfsdk:"include_in_export"`
-	ShareParameters TFShareParameters `tfsdk:"share_parameters"`
+	ID              types.String    `tfsdk:"id"`
+	RedfishServer   []RedfishServer `tfsdk:"redfish_server"`
+	FileContent     types.String    `tfsdk:"file_content"`
+	ExportFormat    types.String    `tfsdk:"export_format"`
+	ExportUse       types.String    `tfsdk:"export_use"`
+	IncludeInExport types.List      `tfsdk:"include_in_export"`
+	// ShareParameters Object of type TFShareParameters
+	ShareParameters types.Object `tfsdk:"share_parameters"`
 }
 
 // TFShareParameters to provide configuration for local/network share type

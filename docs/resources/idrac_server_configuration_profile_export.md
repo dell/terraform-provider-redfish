@@ -29,6 +29,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+resource "terraform_data" "trigger_by_timestamp" {
+  input = timestamp()
+}
 
 resource "redfish_idrac_server_configuration_profile_export" "local" {
   for_each = var.rack1
@@ -44,6 +47,9 @@ resource "redfish_idrac_server_configuration_profile_export" "local" {
     filename   = "demo_local.xml"
     target     = ["NIC"]
     share_type = "LOCAL"
+  }
+  lifecycle {
+    replace_triggered_by = [terraform_data.trigger_by_timestamp]
   }
 }
 
@@ -63,6 +69,10 @@ resource "redfish_idrac_server_configuration_profile_export" "nfs" {
     share_type = "NFS"
     ip_address = "10.0.0.01"
     share_name = "/dell/terraform-idrac-nfs"
+  }
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.trigger_by_timestamp]
   }
 }
 
@@ -85,6 +95,10 @@ resource "redfish_idrac_server_configuration_profile_export" "cifs" {
     username   = "awesomeadmin"
     password   = "C00lP@ssw0rd"
   }
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.trigger_by_timestamp]
+  }
 }
 
 resource "redfish_idrac_server_configuration_profile_export" "https" {
@@ -103,6 +117,10 @@ resource "redfish_idrac_server_configuration_profile_export" "https" {
     share_type  = "HTTPS"
     ip_address  = "10.0.0.03"
     port_number = 443
+  }
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.trigger_by_timestamp]
   }
 }
 
@@ -125,6 +143,10 @@ resource "redfish_idrac_server_configuration_profile_export" "http" {
     proxy_support = true
     proxy_server  = "10.0.0.05"
     proxy_port    = 5000
+  }
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.trigger_by_timestamp]
   }
 }
 ```

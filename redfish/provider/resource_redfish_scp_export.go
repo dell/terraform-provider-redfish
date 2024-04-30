@@ -41,6 +41,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/stmcginnis/gofish"
 )
@@ -392,7 +393,11 @@ func (*ScpExportResource) ValidateConfig(ctx context.Context, req resource.Valid
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	sp := plan.ShareParameters
+	if plan.ShareParameters.IsUnknown() {
+		return
+	}
+	var sp models.TFShareParameters
+	plan.ShareParameters.As(ctx, &sp, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true})
 	shareType := sp.ShareType.ValueString()
 	if shareType == "NFS" {
 		if sp.IPAddress.IsNull() || sp.ShareName.IsNull() {
@@ -444,6 +449,12 @@ func (r *ScpExportResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
+	if plan.ShareParameters.IsUnknown() {
+		return
+	}
+	var sp models.TFShareParameters
+	plan.ShareParameters.As(ctx, &sp, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true})
+
 	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
 	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
 
@@ -453,7 +464,7 @@ func (r *ScpExportResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	content, err := scpExportExecutor(service, plan)
+	content, err := scpExportExecutor(ctx, service, plan)
 	if err != nil {
 		resp.Diagnostics.AddError("executor error", err.Error())
 		return
@@ -487,7 +498,9 @@ func (*ScpExportResource) Delete(ctx context.Context, _ resource.DeleteRequest, 
 }
 
 // scpExportExecutor executes the SCP export process.
-func scpExportExecutor(service *gofish.Service, plan models.TFRedfishScpExport) (string, error) {
+func scpExportExecutor(ctx context.Context, service *gofish.Service, plan models.TFRedfishScpExport) (string, error) {
+	var sp models.TFShareParameters
+	plan.ShareParameters.As(ctx, &sp, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true})
 	managers, err := service.Managers()
 	if err != nil {
 		return "", err
@@ -497,13 +510,13 @@ func scpExportExecutor(service *gofish.Service, plan models.TFRedfishScpExport) 
 		return "", err
 	}
 	exportURL := dellManager.Actions.ExportSystemConfigurationTarget
-	resp, err := service.GetClient().Post(exportURL, constructExportPayload(plan))
+	resp, err := service.GetClient().Post(exportURL, constructExportPayload(ctx, plan))
 	if err != nil {
 		return "", err
 	}
 	if location, err := resp.Location(); err == nil {
 		taskURI := location.EscapedPath()
-		if plan.ShareParameters.ShareType.ValueString() == "LOCAL" {
+		if sp.ShareType.ValueString() == "LOCAL" {
 			fileContent, err := common.GetJobAttachment(service, taskURI, intervalJobCheckTime, defaultJobTimeout)
 			if err != nil {
 				return "", err
@@ -518,10 +531,12 @@ func scpExportExecutor(service *gofish.Service, plan models.TFRedfishScpExport) 
 }
 
 // constructExportPayload is a function that constructs the SCP export payload
-func constructExportPayload(plan models.TFRedfishScpExport) models.SCPExport {
+func constructExportPayload(ctx context.Context, plan models.TFRedfishScpExport) models.SCPExport {
+	var sp models.TFShareParameters
+	plan.ShareParameters.As(ctx, &sp, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true})
 	var target, includeInExport []string
 	plan.IncludeInExport.ElementsAs(context.Background(), &includeInExport, true)
-	plan.ShareParameters.Target.ElementsAs(context.Background(), &target, true)
+	sp.Target.ElementsAs(context.Background(), &target, true)
 	scpExport := models.SCPExport{
 		ExportFormat:    plan.ExportFormat.ValueString(),
 		ExportUse:       plan.ExportUse.ValueString(),
@@ -531,34 +546,34 @@ func constructExportPayload(plan models.TFRedfishScpExport) models.SCPExport {
 	// Set ignoreCertificateWarning to "Disabled" if the plan's ignoreCertificateWarning value is true,
 	// otherwise set it to "Enabled".
 	ignoreCertificateWarning := "Disabled"
-	if !plan.ShareParameters.IgnoreCertificateWarning.ValueBool() {
+	if !sp.IgnoreCertificateWarning.ValueBool() {
 		ignoreCertificateWarning = "Enabled"
 	}
 
-	portNumber := strconv.FormatInt(plan.ShareParameters.PortNumber.ValueInt64(), defaultIntBase)
+	portNumber := strconv.FormatInt(sp.PortNumber.ValueInt64(), defaultIntBase)
 	scpExport.ShareParameters = models.ShareParameters{
-		FileName:                 plan.ShareParameters.FileName.ValueString(),
-		IPAddress:                plan.ShareParameters.IPAddress.ValueString(),
+		FileName:                 sp.FileName.ValueString(),
+		IPAddress:                sp.IPAddress.ValueString(),
 		IgnoreCertificateWarning: ignoreCertificateWarning,
-		Password:                 plan.ShareParameters.Password.ValueString(),
+		Password:                 sp.Password.ValueString(),
 		PortNumber:               portNumber,
-		ShareName:                plan.ShareParameters.ShareName.ValueString(),
-		ShareType:                plan.ShareParameters.ShareType.ValueString(),
+		ShareName:                sp.ShareName.ValueString(),
+		ShareType:                sp.ShareType.ValueString(),
 		Target:                   target,
-		Username:                 plan.ShareParameters.Username.ValueString(),
+		Username:                 sp.Username.ValueString(),
 	}
 
 	// Set proxySupport to "Enabled" if the plan's proxySupport value is true,
 	// otherwise set it to "Disabled".
 	proxySupport := "Enabled"
-	if !plan.ShareParameters.ProxySupport.ValueBool() {
+	if !sp.ProxySupport.ValueBool() {
 		proxySupport = "Disabled"
 	}
-	proxyPassword := plan.ShareParameters.ProxyPassword.ValueString()
-	proxyPort := strconv.FormatInt(plan.ShareParameters.ProxyPort.ValueInt64(), defaultIntBase)
-	proxyServer := plan.ShareParameters.ProxyServer.ValueString()
-	proxyType := plan.ShareParameters.ProxyType.ValueString()
-	proxyUserName := plan.ShareParameters.ProxyUserName.ValueString()
+	proxyPassword := sp.ProxyPassword.ValueString()
+	proxyPort := strconv.FormatInt(sp.ProxyPort.ValueInt64(), defaultIntBase)
+	proxyServer := sp.ProxyServer.ValueString()
+	proxyType := sp.ProxyType.ValueString()
+	proxyUserName := sp.ProxyUserName.ValueString()
 
 	scpExport.ShareParameters.ProxyPassword = proxyPassword
 	scpExport.ShareParameters.ProxyPort = proxyPort

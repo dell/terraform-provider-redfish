@@ -41,6 +41,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/stmcginnis/gofish"
 )
@@ -431,7 +432,11 @@ func (*ScpImportResource) ValidateConfig(ctx context.Context, req resource.Valid
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	sp := plan.ShareParameters
+	if plan.ShareParameters.IsUnknown() {
+		return
+	}
+	var sp models.TFShareParameters
+	plan.ShareParameters.As(ctx, &sp, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true})
 	shareType := sp.ShareType.ValueString()
 	if shareType == "NFS" {
 		if sp.IPAddress.IsNull() || sp.ShareName.IsNull() {
@@ -480,6 +485,12 @@ func (r *ScpImportResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
+	if plan.ShareParameters.IsUnknown() {
+		return
+	}
+	var sp models.TFShareParameters
+	plan.ShareParameters.As(ctx, &sp, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true})
+
 	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
 	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
 
@@ -489,7 +500,7 @@ func (r *ScpImportResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	log, err := scpImportExecutor(service, constructPayload(plan), intervalJobCheckTime, plan.TimeToWait.ValueInt64())
+	log, err := scpImportExecutor(service, constructPayload(ctx, plan), intervalJobCheckTime, plan.TimeToWait.ValueInt64())
 	if err != nil {
 		resp.Diagnostics.AddError(log, err.Error())
 		return
@@ -572,10 +583,12 @@ func scpImportExecutor(service *gofish.Service, scpImportPayload models.SCPImpor
 //
 // Return:
 // - models.SCPImport: The constructed SCPImport payload.
-func constructPayload(plan models.RedfishScpImport) models.SCPImport {
-	var target []string
+func constructPayload(ctx context.Context, plan models.RedfishScpImport) models.SCPImport {
+	var sp models.TFShareParameters
+	plan.ShareParameters.As(ctx, &sp, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true})
 
-	plan.ShareParameters.Target.ElementsAs(context.Background(), &target, true)
+	var target []string
+	sp.Target.ElementsAs(context.Background(), &target, true)
 	scpImport := models.SCPImport{
 		HostPowerState: plan.HostPowerState.ValueString(),
 		ImportBuffer:   plan.ImportBuffer.ValueString(),
@@ -586,34 +599,34 @@ func constructPayload(plan models.RedfishScpImport) models.SCPImport {
 	// Set ignoreCertificateWarning to "Disabled" if the plan's ignoreCertificateWarning value is true,
 	// otherwise set it to "Enabled".
 	ignoreCertificateWarning := "Disabled"
-	if !plan.ShareParameters.IgnoreCertificateWarning.ValueBool() {
+	if !sp.IgnoreCertificateWarning.ValueBool() {
 		ignoreCertificateWarning = "Enabled"
 	}
 
-	portNumber := strconv.FormatInt(plan.ShareParameters.PortNumber.ValueInt64(), defaultIntBase)
+	portNumber := strconv.FormatInt(sp.PortNumber.ValueInt64(), defaultIntBase)
 	scpImport.ShareParameters = models.ShareParameters{
-		FileName:                 plan.ShareParameters.FileName.ValueString(),
-		IPAddress:                plan.ShareParameters.IPAddress.ValueString(),
+		FileName:                 sp.FileName.ValueString(),
+		IPAddress:                sp.IPAddress.ValueString(),
 		IgnoreCertificateWarning: ignoreCertificateWarning,
-		Password:                 plan.ShareParameters.Password.ValueString(),
+		Password:                 sp.Password.ValueString(),
 		PortNumber:               portNumber,
-		ShareName:                plan.ShareParameters.ShareName.ValueString(),
-		ShareType:                plan.ShareParameters.ShareType.ValueString(),
+		ShareName:                sp.ShareName.ValueString(),
+		ShareType:                sp.ShareType.ValueString(),
 		Target:                   target,
-		Username:                 plan.ShareParameters.Username.ValueString(),
+		Username:                 sp.Username.ValueString(),
 	}
 
 	// Set proxySupport to "Enabled" if the plan's proxySupport value is true,
 	// otherwise set it to "Disabled".
 	proxySupport := "Enabled"
-	if !plan.ShareParameters.ProxySupport.ValueBool() {
+	if !sp.ProxySupport.ValueBool() {
 		proxySupport = "Disabled"
 	}
-	proxyPassword := plan.ShareParameters.ProxyPassword.ValueString()
-	proxyPort := strconv.FormatInt(plan.ShareParameters.ProxyPort.ValueInt64(), defaultIntBase)
-	proxyServer := plan.ShareParameters.ProxyServer.ValueString()
-	proxyType := plan.ShareParameters.ProxyType.ValueString()
-	proxyUserName := plan.ShareParameters.ProxyUserName.ValueString()
+	proxyPassword := sp.ProxyPassword.ValueString()
+	proxyPort := strconv.FormatInt(sp.ProxyPort.ValueInt64(), defaultIntBase)
+	proxyServer := sp.ProxyServer.ValueString()
+	proxyType := sp.ProxyType.ValueString()
+	proxyUserName := sp.ProxyUserName.ValueString()
 
 	scpImport.ShareParameters.ProxyPassword = proxyPassword
 	scpImport.ShareParameters.ProxyPort = proxyPort

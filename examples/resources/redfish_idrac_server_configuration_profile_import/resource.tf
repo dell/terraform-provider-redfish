@@ -15,6 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+resource "terraform_data" "trigger_by_timestamp" {
+  input = timestamp()
+}
+
 resource "redfish_idrac_server_configuration_profile_import" "local" {
   for_each = var.rack1
 
@@ -29,6 +33,10 @@ resource "redfish_idrac_server_configuration_profile_import" "local" {
     filename   = "demo_local.xml"
     target     = ["NIC"]
     share_type = "LOCAL"
+  }
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.trigger_by_timestamp]
   }
 }
 
@@ -48,6 +56,10 @@ resource "redfish_idrac_server_configuration_profile_import" "nfs" {
     share_type = "NFS"
     ip_address = "10.0.0.01"
     share_name = "/dell/terraform-idrac-nfs"
+  }
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.trigger_by_timestamp]
   }
 }
 
@@ -70,6 +82,10 @@ resource "redfish_idrac_server_configuration_profile_import" "cifs" {
     username   = "awesomeadmin"
     password   = "C00lP@ssw0rd"
   }
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.trigger_by_timestamp]
+  }
 }
 
 resource "redfish_idrac_server_configuration_profile_import" "https" {
@@ -88,6 +104,10 @@ resource "redfish_idrac_server_configuration_profile_import" "https" {
     share_type  = "HTTPS"
     ip_address  = "10.0.0.03"
     port_number = 443
+  }
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.trigger_by_timestamp]
   }
 }
 
@@ -110,5 +130,9 @@ resource "redfish_idrac_server_configuration_profile_import" "http" {
     proxy_support = true
     proxy_server  = "10.0.0.05"
     proxy_port    = 5000
+  }
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.trigger_by_timestamp]
   }
 }
