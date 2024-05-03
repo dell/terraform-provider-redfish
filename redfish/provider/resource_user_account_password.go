@@ -208,7 +208,7 @@ func (*UserAccountPasswordResource) Read(ctx context.Context, req resource.ReadR
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
-func (*UserAccountPasswordResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (*UserAccountPasswordResource) Update(_ context.Context, _ resource.UpdateRequest, resp *resource.UpdateResponse) {
 	resp.Diagnostics.AddError(
 		"Error updating User Password Resource.",
 		"This resource is supposed to be replaced on update.",
