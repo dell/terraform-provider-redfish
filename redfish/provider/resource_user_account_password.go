@@ -209,16 +209,10 @@ func (*UserAccountPasswordResource) Read(ctx context.Context, req resource.ReadR
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (*UserAccountPasswordResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Get state Data
-	tflog.Trace(ctx, "resource_user_account_Password update: started")
-	var plan models.UserAccountPassword
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
-	tflog.Trace(ctx, "resource_user_account_Password update: finish")
+	resp.Diagnostics.AddError(
+		"Error updating User Password Resource.",
+		"This resource is supposed to be replaced on update.",
+	)
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
