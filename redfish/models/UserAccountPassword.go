@@ -27,6 +27,6 @@ type UserAccountPassword struct {
 	Endpoint    types.String `tfsdk:"endpoint"`
 	SslInsecure types.Bool   `tfsdk:"ssl_insecure"`
 	Username    types.String `tfsdk:"username"`
-	OldPassword types.String `tfsdk:"old_pass"`
-	NewPassword types.String `tfsdk:"new_pass"`
+	OldPassword types.String `tfsdk:"old_password"`
+	NewPassword types.String `tfsdk:"new_password"`
 }

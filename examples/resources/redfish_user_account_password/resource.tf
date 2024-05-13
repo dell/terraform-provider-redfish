@@ -19,6 +19,6 @@ resource "redfish_user_account_password" "root" {
   username     = "root"
   endpoint     = "https://my-server-1.myawesomecompany.org"
   ssl_insecure = false
-  old_pass     = "Test@1234"
-  new_pass     = "Root@1234"
+  old_password = "Test@1234"
+  new_password = "Root@1234"
 }
