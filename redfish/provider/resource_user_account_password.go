@@ -226,5 +226,5 @@ func fetchAccountFromUserName(accountList []*redfish.ManagerAccount, username st
 			return account, nil
 		}
 	}
-	return nil, fmt.Errorf("Account not found")
+	return nil, fmt.Errorf("account not found")
 }
