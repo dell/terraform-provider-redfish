@@ -43,7 +43,7 @@ func TestAccRedfishUserPassword_basic(t *testing.T) {
 					testAccRedfishResourceUserConfig(creds, "test", "Test@123", "Administrator", true, "15"), testAccRedfishResourceUserPasswordConfig(creds, "test", "Test@123", "Test@1234", dependsOnUser())),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test"),
-					resource.TestCheckResourceAttr("redfish_user_account_password.user", "new_pass", "Test@1234"),
+					resource.TestCheckResourceAttr("redfish_user_account_password.user", "new_password", "Test@1234"),
 				),
 			},
 			{
@@ -77,8 +77,8 @@ func testAccRedfishResourceUserPasswordConfig(
 			username     = "%s"
 			endpoint     = "https://%s"
 			ssl_insecure = true
-			old_pass     = "%s"
-			new_pass     = "%s"
+			old_password     = "%s"
+			new_password     = "%s"
 			%s
 		}
 		`,

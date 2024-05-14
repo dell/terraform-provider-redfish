@@ -91,7 +91,7 @@ func (*UserAccountPasswordResource) Schema(_ context.Context, _ resource.SchemaR
 					stringplanmodifier.RequiresReplaceIfConfigured(),
 				},
 			},
-			"old_pass": schema.StringAttribute{
+			"old_password": schema.StringAttribute{
 				MarkdownDescription: "Old/current password of the user to be updated",
 				Description:         "Old/current password of the user to be updated",
 				Required:            true,
@@ -99,7 +99,7 @@ func (*UserAccountPasswordResource) Schema(_ context.Context, _ resource.SchemaR
 					stringplanmodifier.RequiresReplaceIfConfigured(),
 				},
 			},
-			"new_pass": schema.StringAttribute{
+			"new_password": schema.StringAttribute{
 				MarkdownDescription: "New Password of the user for login",
 				Description:         "New Password of the user for login",
 				Required:            true,
@@ -226,5 +226,5 @@ func fetchAccountFromUserName(accountList []*redfish.ManagerAccount, username st
 			return account, nil
 		}
 	}
-	return nil, fmt.Errorf("Account not found")
+	return nil, fmt.Errorf("account not found")
 }

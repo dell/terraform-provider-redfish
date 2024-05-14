@@ -34,8 +34,8 @@ resource "redfish_user_account_password" "root" {
   username     = "root"
   endpoint     = "https://my-server-1.myawesomecompany.org"
   ssl_insecure = false
-  old_pass     = "Test@1234"
-  new_pass     = "Root@1234"
+  old_password = "Test@1234"
+  new_password = "Root@1234"
 }
 ```
 
@@ -45,8 +45,8 @@ resource "redfish_user_account_password" "root" {
 ### Required
 
 - `endpoint` (String) The endpoint of the iDRAC.
-- `new_pass` (String) New Password of the user for login
-- `old_pass` (String) Old/current password of the user to be updated
+- `new_password` (String) New Password of the user for login
+- `old_password` (String) Old/current password of the user to be updated
 
 ### Optional
 
