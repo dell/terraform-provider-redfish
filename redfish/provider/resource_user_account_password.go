@@ -184,9 +184,8 @@ func (r *UserAccountPasswordResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
-	// add an API call to verify login since only the config is created in previous step
-	_, err = GetAccountList(service)
-	if err != nil {
+	systems, err := service.Systems()
+	if len(systems) == 0 || err != nil {
 		resp.Diagnostics.AddError("login failed using new password", err.Error())
 		return
 	}
