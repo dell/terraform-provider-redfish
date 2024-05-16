@@ -91,6 +91,14 @@ func BiosDatasourceSchema() map[string]schema.Attribute {
 			ElementType:         types.StringType,
 			Computed:            true,
 		},
+		"boot_options": schema.ListNestedAttribute{
+			MarkdownDescription: "List of BIOS boot options.",
+			Description:         "List of BIOS boot options.",
+			NestedObject: schema.NestedAttributeObject{
+				Attributes: BootOptionsSchema(),
+			},
+			Computed: true,
+		},
 	}
 }
 
@@ -129,6 +137,12 @@ func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (mod
 		return d, diags
 	}
 
+	bootOptions, err := systems[0].BootOptions()
+	if err != nil {
+		diags.AddError("Error fetching boot", err.Error())
+		return d, diags
+	}
+
 	// TODO: BIOS Attributes' values might be any of several types.
 	// terraform-sdk currently does not support a map with different
 	// value types. So we will convert int and float values to string
@@ -147,5 +161,39 @@ func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (mod
 	d.ID = types.StringValue(bios.ID)
 	d.Attributes, diags = types.MapValue(types.StringType, attributes)
 
+	boot_options := []attr.Value{}
+	bootOptionsTypes := map[string]attr.Type{
+		"description": types.StringType,
+		"name":        types.StringType,
+	}
+	for i, _ := range bootOptions {
+		test_data := map[string]attr.Value{
+			"description": types.StringValue(bootOptions[i].BootOptionReference),
+			"name":        types.StringValue(bootOptions[i].DisplayName),
+		}
+		objVal, _ := types.ObjectValue(bootOptionsTypes, test_data)
+		boot_options = append(boot_options, objVal)
+	}
+	bootOptionsEleType := types.ObjectType{
+		AttrTypes: bootOptionsTypes,
+	}
+	d.BootOptions, diags = types.ListValue(bootOptionsEleType, boot_options)
+
 	return d, diags
+}
+
+// BootOptionsSchema is a function that returns the schema for Boot Options
+func BootOptionsSchema() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"description": schema.StringAttribute{
+			MarkdownDescription: "description of the boot option",
+			Description:         "description of the boot option",
+			Computed:            true,
+		},
+		"name": schema.StringAttribute{
+			MarkdownDescription: "name of the boot option",
+			Description:         "name of the boot option",
+			Computed:            true,
+		},
+	}
 }

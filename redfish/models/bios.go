@@ -27,6 +27,7 @@ type BiosDatasource struct {
 	OdataID       types.String    `tfsdk:"odata_id"`
 	RedfishServer []RedfishServer `tfsdk:"redfish_server"`
 	Attributes    types.Map       `tfsdk:"attributes"`
+	BootOptions   types.List      `tfsdk:"boot_options"`
 }
 
 // Bios is struct to create schema for bios resource
