@@ -163,13 +163,21 @@ func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (mod
 
 	boot_options := []attr.Value{}
 	bootOptionsTypes := map[string]attr.Type{
-		"description": types.StringType,
-		"name":        types.StringType,
+		"boot_option_enabled":   types.BoolType,
+		"boot_option_reference": types.StringType,
+		"display_name":          types.StringType,
+		"id":                    types.StringType,
+		"name":                  types.StringType,
+		"uefi_device_path":      types.StringType,
 	}
 	for i, _ := range bootOptions {
 		test_data := map[string]attr.Value{
-			"description": types.StringValue(bootOptions[i].BootOptionReference),
-			"name":        types.StringValue(bootOptions[i].DisplayName),
+			"boot_option_enabled":   types.BoolValue(bootOptions[i].BootOptionEnabled),
+			"boot_option_reference": types.StringValue(bootOptions[i].BootOptionReference),
+			"display_name":          types.StringValue(bootOptions[i].DisplayName),
+			"id":                    types.StringValue(bootOptions[i].ID),
+			"name":                  types.StringValue(bootOptions[i].Name),
+			"uefi_device_path":      types.StringValue(bootOptions[i].UefiDevicePath),
 		}
 		objVal, _ := types.ObjectValue(bootOptionsTypes, test_data)
 		boot_options = append(boot_options, objVal)
@@ -185,14 +193,34 @@ func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (mod
 // BootOptionsSchema is a function that returns the schema for Boot Options
 func BootOptionsSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
-		"description": schema.StringAttribute{
-			MarkdownDescription: "description of the boot option",
-			Description:         "description of the boot option",
+		"boot_option_enabled": schema.BoolAttribute{
+			MarkdownDescription: "enable or disable the boot device.",
+			Description:         "enable or disable the boot device.",
+			Computed:            true,
+		},
+		"boot_option_reference": schema.StringAttribute{
+			MarkdownDescription: "FQDD of the boot device.",
+			Description:         "FQDD of the boot device.",
+			Computed:            true,
+		},
+		"display_name": schema.StringAttribute{
+			MarkdownDescription: "display name of the boot option",
+			Description:         "display name of the boot option",
+			Computed:            true,
+		},
+		"id": schema.StringAttribute{
+			MarkdownDescription: "id of the boot option",
+			Description:         "id of the boot option",
 			Computed:            true,
 		},
 		"name": schema.StringAttribute{
 			MarkdownDescription: "name of the boot option",
 			Description:         "name of the boot option",
+			Computed:            true,
+		},
+		"uefi_device_path": schema.StringAttribute{
+			MarkdownDescription: "device path of the boot option",
+			Description:         "device path of the boot option",
 			Computed:            true,
 		},
 	}
