@@ -160,7 +160,7 @@ func (r *UserAccountPasswordResource) Create(ctx context.Context, req resource.C
 	}
 	userAccount, err := fetchAccountFromUserName(accountList, plan.Username.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to fetch user account", err.Error())
+		resp.Diagnostics.AddError("failed to fetch user account", err.Error())
 		return
 	}
 
@@ -171,15 +171,21 @@ func (r *UserAccountPasswordResource) Create(ctx context.Context, req resource.C
 
 	_, err = service.GetClient().Patch(userAccount.ODataID, payload)
 	if err != nil {
-		resp.Diagnostics.AddError("Password update failed", err.Error())
+		resp.Diagnostics.AddError("password update failed", err.Error())
 		return
 	}
 
 	// update password to new password and check if login is successful
 	redfishServer[0].Password = types.StringValue(plan.NewPassword.ValueString())
 
-	_, err = NewConfig(r.p, &redfishServer)
+	service, err = NewConfig(r.p, &redfishServer)
 	if err != nil {
+		resp.Diagnostics.AddError("login failed using new password", err.Error())
+		return
+	}
+
+	systems, err := service.Systems()
+	if len(systems) == 0 || err != nil {
 		resp.Diagnostics.AddError("login failed using new password", err.Error())
 		return
 	}
