@@ -19,7 +19,7 @@ resource "terraform_data" "trigger_by_timestamp" {
   input = timestamp()
 }
 
-resource "redfish_idrac_server_configuration_profile_import" "local" {
+resource "redfish_idrac_server_configuration_profile_import" "share_type_local" {
   for_each = var.rack1
 
   redfish_server {
@@ -40,7 +40,7 @@ resource "redfish_idrac_server_configuration_profile_import" "local" {
   }
 }
 
-resource "redfish_idrac_server_configuration_profile_import" "nfs" {
+resource "redfish_idrac_server_configuration_profile_import" "share_type_nfs" {
   for_each = var.rack1
 
   redfish_server {
@@ -63,7 +63,7 @@ resource "redfish_idrac_server_configuration_profile_import" "nfs" {
   }
 }
 
-resource "redfish_idrac_server_configuration_profile_import" "cifs" {
+resource "redfish_idrac_server_configuration_profile_import" "share_type_cifs" {
   for_each = var.rack1
 
   redfish_server {
@@ -79,8 +79,8 @@ resource "redfish_idrac_server_configuration_profile_import" "cifs" {
     share_type = "CIFS"
     ip_address = "10.0.0.02"
     share_name = "/dell/terraform-idrac-nfs"
-    username   = "awesomeadmin"
-    password   = "C00lP@ssw0rd"
+    username   = var.cifs_username
+    password   = var.cifs_password
   }
 
   lifecycle {
@@ -88,7 +88,7 @@ resource "redfish_idrac_server_configuration_profile_import" "cifs" {
   }
 }
 
-resource "redfish_idrac_server_configuration_profile_import" "https" {
+resource "redfish_idrac_server_configuration_profile_import" "share_type_https" {
   for_each = var.rack1
 
   redfish_server {
@@ -111,7 +111,7 @@ resource "redfish_idrac_server_configuration_profile_import" "https" {
   }
 }
 
-resource "redfish_idrac_server_configuration_profile_import" "http" {
+resource "redfish_idrac_server_configuration_profile_import" "share_type_http" {
   for_each = var.rack1
 
   redfish_server {
