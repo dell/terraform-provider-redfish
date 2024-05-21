@@ -23,3 +23,14 @@ variable "rack1" {
     ssl_insecure = bool
   }))
 }
+
+variable "cifs_username" {
+  type    = string
+  default = "awesomeadmin"
+}
+
+variable "cifs_password" {
+  type    = string
+  default = "C00lP@ssw0rd"
+
+}
