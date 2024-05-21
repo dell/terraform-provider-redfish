@@ -91,7 +91,7 @@ func (*UserAccountPasswordResource) Schema(_ context.Context, _ resource.SchemaR
 					stringplanmodifier.RequiresReplaceIfConfigured(),
 				},
 			},
-			"old_pass": schema.StringAttribute{
+			"old_password": schema.StringAttribute{
 				MarkdownDescription: "Old/current password of the user to be updated",
 				Description:         "Old/current password of the user to be updated",
 				Required:            true,
@@ -99,7 +99,7 @@ func (*UserAccountPasswordResource) Schema(_ context.Context, _ resource.SchemaR
 					stringplanmodifier.RequiresReplaceIfConfigured(),
 				},
 			},
-			"new_pass": schema.StringAttribute{
+			"new_password": schema.StringAttribute{
 				MarkdownDescription: "New Password of the user for login",
 				Description:         "New Password of the user for login",
 				Required:            true,
@@ -160,7 +160,7 @@ func (r *UserAccountPasswordResource) Create(ctx context.Context, req resource.C
 	}
 	userAccount, err := fetchAccountFromUserName(accountList, plan.Username.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to fetch user account", err.Error())
+		resp.Diagnostics.AddError("failed to fetch user account", err.Error())
 		return
 	}
 
@@ -171,15 +171,21 @@ func (r *UserAccountPasswordResource) Create(ctx context.Context, req resource.C
 
 	_, err = service.GetClient().Patch(userAccount.ODataID, payload)
 	if err != nil {
-		resp.Diagnostics.AddError("Password update failed", err.Error())
+		resp.Diagnostics.AddError("password update failed", err.Error())
 		return
 	}
 
 	// update password to new password and check if login is successful
 	redfishServer[0].Password = types.StringValue(plan.NewPassword.ValueString())
 
-	_, err = NewConfig(r.p, &redfishServer)
+	service, err = NewConfig(r.p, &redfishServer)
 	if err != nil {
+		resp.Diagnostics.AddError("login failed using new password", err.Error())
+		return
+	}
+
+	systems, err := service.Systems()
+	if len(systems) == 0 || err != nil {
 		resp.Diagnostics.AddError("login failed using new password", err.Error())
 		return
 	}
@@ -226,5 +232,5 @@ func fetchAccountFromUserName(accountList []*redfish.ManagerAccount, username st
 			return account, nil
 		}
 	}
-	return nil, fmt.Errorf("Account not found")
+	return nil, fmt.Errorf("account not found")
 }
