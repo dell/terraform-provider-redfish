@@ -18,12 +18,14 @@ title: "Using Export and Import Server Configuration Profile"
 linkTitle: "Using Export and Import Server Configuration Profile"
 ---
 
+The guide provides a terraform configuration of using the Redfish Provider to export and import server configuration profiles. It sets default values for sharing a file using HTTPS, exports the server configuration profile using Redfish, waits for 10 seconds, and then imports the server configuration profile using Redfish.
+
 ## Variables
 The configuration defines several variables to configure the share parameters for different sharing types.
 
 ### Share Type - Local
 
-```
+```terraform
 variable "local_setting" {
   default = {
     filename   = "demo_local.xml"
@@ -33,7 +35,7 @@ variable "local_setting" {
 }
 ```
 
-```
+
 The local_setting variable is defined with a default value that specifies the settings for sharing a file locally.
 
 Here's a breakdown of the configuration:
@@ -48,11 +50,11 @@ target: This specifies the target devices or systems to which the file will be s
 share_type: This specifies the type of sharing to be used. In this example, the sharing type is "LOCAL".
 
 Overall, this configuration sets the default values for sharing a file locally using the local_setting variable.
-```
+
 
 ### Share Type - NFS
 
-```
+```terraform
 variable "nfs_setting" {
   default = {
     filename   = "demo_nfs.xml"
@@ -64,7 +66,6 @@ variable "nfs_setting" {
 }
 ```
 
-```
 The nfs_setting variable is defined with a default value that specifies the settings for sharing a file using NFS (Network File System).
 
 Here's a breakdown of the configuration:
@@ -83,11 +84,11 @@ ip_address: This specifies the IP address of the NFS server. In this example, th
 share_name: This specifies the name of the NFS share. In this example, the share name is "/nfs/terraform".
 
 Overall, this configuration sets the default values for sharing a file using NFS using the nfs_setting variable.
-```
+
 
 ### Share Type - CIFS
 
-```
+```terraform
 variable "cifs_username" {
     type = string 
     default = "awesomeadmin"
@@ -111,7 +112,6 @@ variable "cifs_setting" {
 }
 ```
 
-```
 The cifs_setting variable is defined with a default value that specifies the settings for sharing a file using CIFS (Common Internet File System).
 
 Here's a breakdown of the configuration:
@@ -138,11 +138,11 @@ username: This specifies the username for accessing the CIFS share. It is set to
 password: This specifies the password for accessing the CIFS share. It is set to the value of the cifs_password variable.
 
 Overall, this configuration sets the default values for sharing a file using CIFS using the cifs_setting variable. It also uses the cifs_username and cifs_password variables to store the username and password for accessing the CIFS share.
-```
+
 
 ### Share Type - HTTPS
 
-```
+```terraform
 variable "https_setting" {
   default = {
     filename    = "demo_https.xml"
@@ -154,7 +154,6 @@ variable "https_setting" {
 }
 ```
 
-```
 The https_setting variable is defined with a default value that specifies the settings for sharing a file using HTTPS (Hypertext Transfer Protocol Secure).
 
 Here's a breakdown of the configuration:
@@ -172,10 +171,11 @@ ip_address: This specifies the IP address of the HTTPS server. In this example, 
 port_number: This specifies the port number to be used for the HTTPS connection. In this example, the port number is 443.
 
 Overall, this configuration sets the default values for sharing a file using HTTPS using the https_setting variable. It specifies the IP address and port number for the HTTPS connection.
-```
+
+
 ### Share Type - HTTP
 
-```
+```terraform
 variable "http_setting" {
   default = {
     filename      = "demo_http.xml"
@@ -190,7 +190,6 @@ variable "http_setting" {
 }
 ```
 
-```
 The https_setting variable is defined with a default value that specifies the settings for sharing a file using HTTPS (Hypertext Transfer Protocol Secure).
 
 Here's a breakdown of the configuration:
@@ -209,12 +208,12 @@ ip_address: This specifies the IP address of the HTTPS server. In this example, 
 port_number: This specifies the port number to be used for the HTTPS connection. In this example, the port number is 443.
 
 Overall, this configuration sets the default values for sharing a file using HTTPS using the https_setting variable. It specifies the IP address and port number for the HTTPS connection.
-```
+
 
 
 ## Import and Export Server Configuration Profile 
 
-```
+```terraform
 resource "terraform_data" "trigger_by_timestamp" {
   input = timestamp()
 }
@@ -257,7 +256,6 @@ resource "redfish_idrac_server_configuration_profile_import" "servers" {
 }
 ```
 
-```
 The provided code snippet defines a Terraform configuration that exports and imports a server configuration profile using the Redfish API.
 
 Here's a breakdown of the configuration:
@@ -273,5 +271,3 @@ The lifecycle block specifies that the resource should be replaced when the trig
 redfish_idrac_server_configuration_profile_import.servers: This resource imports the server configuration profile using the Redfish API. It specifies the Redfish server details and the import buffer, which is the content of the exported configuration profile. 
 
 The lifecycle block specifies that the resource should be replaced when the trigger_by_timestamp value changes. The depends_on block ensures that the import resource waits for the export resource and the 10-second delay before executing.
-
-```
