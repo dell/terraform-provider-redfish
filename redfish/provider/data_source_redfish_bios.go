@@ -161,7 +161,7 @@ func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (mod
 	d.ID = types.StringValue(bios.ID)
 	d.Attributes, diags = types.MapValue(types.StringType, attributes)
 
-	boot_options := []attr.Value{}
+	bootOptionsList := []attr.Value{}
 	bootOptionsTypes := map[string]attr.Type{
 		"boot_option_enabled":   types.BoolType,
 		"boot_option_reference": types.StringType,
@@ -171,7 +171,7 @@ func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (mod
 		"uefi_device_path":      types.StringType,
 	}
 	for i, _ := range bootOptions {
-		test_data := map[string]attr.Value{
+		testData := map[string]attr.Value{
 			"boot_option_enabled":   types.BoolValue(bootOptions[i].BootOptionEnabled),
 			"boot_option_reference": types.StringValue(bootOptions[i].BootOptionReference),
 			"display_name":          types.StringValue(bootOptions[i].DisplayName),
@@ -179,13 +179,13 @@ func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (mod
 			"name":                  types.StringValue(bootOptions[i].Name),
 			"uefi_device_path":      types.StringValue(bootOptions[i].UefiDevicePath),
 		}
-		objVal, _ := types.ObjectValue(bootOptionsTypes, test_data)
-		boot_options = append(boot_options, objVal)
+		objVal, _ := types.ObjectValue(bootOptionsTypes, testData)
+		bootOptionsList = append(bootOptionsList, objVal)
 	}
 	bootOptionsEleType := types.ObjectType{
 		AttrTypes: bootOptionsTypes,
 	}
-	d.BootOptions, diags = types.ListValue(bootOptionsEleType, boot_options)
+	d.BootOptions, diags = types.ListValue(bootOptionsEleType, bootOptionsList)
 
 	return d, diags
 }
@@ -194,8 +194,8 @@ func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (mod
 func BootOptionsSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"boot_option_enabled": schema.BoolAttribute{
-			MarkdownDescription: "enable or disable the boot device.",
-			Description:         "enable or disable the boot device.",
+			MarkdownDescription: "Enable or disable the boot device.",
+			Description:         "Enable or disable the boot device.",
 			Computed:            true,
 		},
 		"boot_option_reference": schema.StringAttribute{
@@ -204,23 +204,23 @@ func BootOptionsSchema() map[string]schema.Attribute {
 			Computed:            true,
 		},
 		"display_name": schema.StringAttribute{
-			MarkdownDescription: "display name of the boot option",
-			Description:         "display name of the boot option",
+			MarkdownDescription: "Display name of the boot option",
+			Description:         "Display name of the boot option",
 			Computed:            true,
 		},
 		"id": schema.StringAttribute{
-			MarkdownDescription: "id of the boot option",
-			Description:         "id of the boot option",
+			MarkdownDescription: "ID of the boot option",
+			Description:         "ID of the boot option",
 			Computed:            true,
 		},
 		"name": schema.StringAttribute{
-			MarkdownDescription: "name of the boot option",
-			Description:         "name of the boot option",
+			MarkdownDescription: "Name of the boot option",
+			Description:         "Name of the boot option",
 			Computed:            true,
 		},
 		"uefi_device_path": schema.StringAttribute{
-			MarkdownDescription: "device path of the boot option",
-			Description:         "device path of the boot option",
+			MarkdownDescription: "Device path of the boot option",
+			Description:         "Device path of the boot option",
 			Computed:            true,
 		},
 	}
