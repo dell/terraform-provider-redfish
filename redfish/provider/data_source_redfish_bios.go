@@ -170,7 +170,7 @@ func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (mod
 		"name":                  types.StringType,
 		"uefi_device_path":      types.StringType,
 	}
-	for i, _ := range bootOptions {
+	for i := range bootOptions {
 		testData := map[string]attr.Value{
 			"boot_option_enabled":   types.BoolValue(bootOptions[i].BootOptionEnabled),
 			"boot_option_reference": types.StringValue(bootOptions[i].BootOptionReference),
@@ -185,7 +185,7 @@ func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (mod
 	bootOptionsEleType := types.ObjectType{
 		AttrTypes: bootOptionsTypes,
 	}
-	d.BootOptions, diags = types.ListValue(bootOptionsEleType, bootOptionsList)
+	d.BootOptions, _ = types.ListValue(bootOptionsEleType, bootOptionsList)
 
 	return d, diags
 }
