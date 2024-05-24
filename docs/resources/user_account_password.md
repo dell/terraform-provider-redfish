@@ -27,7 +27,10 @@ description: |-
 This Terraform resource is used to update password for a user of the iDRAC Server.
 
 ~> **Note:** Only user with role as "Administrator" has privilige to update password using this resource. For other users, use user module or user resource.
+
 ~> **Note:** Please refer to iDRAC password policy before updating the password.
+
+~> **Note:** To create/maintain multiple users at the same time, use user module and to create/maintain a single user use user resource.
 
 ## Example Usage
 

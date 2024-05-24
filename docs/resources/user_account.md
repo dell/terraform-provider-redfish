@@ -28,6 +28,10 @@ This Terraform resource is used to manage user entity of the iDRAC Server. We ca
 
 ~> **Note:** In the absence of `user_id`, first available `user_id` is assigned to the given user.
 
+~> **Note:** To create/maintain multiple users at the same time, use user module.
+
+~> **Note:** To update the password of a root/admin user, use user account password resource.
+
 ## Example Usage
 
 variables.tf
