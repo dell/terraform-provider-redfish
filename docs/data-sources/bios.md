@@ -169,6 +169,7 @@ After the successful execution of the above data block, we can see the output in
 ### Read-Only
 
 - `attributes` (Map of String) BIOS attributes.
+- `boot_options` (Attributes List) List of BIOS boot options. (see [below for nested schema](#nestedatt--boot_options))
 - `id` (String) ID of the BIOS data-source
 - `odata_id` (String) OData ID of the BIOS data-source
 
@@ -184,4 +185,17 @@ Optional:
 - `password` (String, Sensitive) User password for login
 - `ssl_insecure` (Boolean) This field indicates whether the SSL/TLS certificate must be verified or not
 - `user` (String) User name for login
+
+
+<a id="nestedatt--boot_options"></a>
+### Nested Schema for `boot_options`
+
+Read-Only:
+
+- `boot_option_enabled` (Boolean) Enable or disable the boot device.
+- `boot_option_reference` (String) FQDD of the boot device.
+- `display_name` (String) Display name of the boot option
+- `id` (String) ID of the boot option
+- `name` (String) Name of the boot option
+- `uefi_device_path` (String) Device path of the boot option
 
