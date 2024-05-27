@@ -27,7 +27,14 @@ description: |-
 This Terraform resource is used to update password for a user of the iDRAC Server.
 
 ~> **Note:** Only user with role as "Administrator" has privilige to update password using this resource. For other users, use user module or user resource.
+
 ~> **Note:** Please refer to iDRAC password policy before updating the password.
+
+~> **Note:** For managing (Create/Update/Delete/Change password) a single user at a time, use the resource 'redfish_user_account'
+
+~> **Note:** For managing (Create/Update/Delete/Change password) multiple users at a time, use the module 'user_module'
+
+~> **Note:** For changing the password of Administrator/root user alone, use the resource 'user_account_password'
 
 ## Example Usage
 
