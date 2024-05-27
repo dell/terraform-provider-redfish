@@ -28,6 +28,12 @@ This Terraform resource is used to manage user entity of the iDRAC Server. We ca
 
 ~> **Note:** In the absence of `user_id`, first available `user_id` is assigned to the given user.
 
+~> **Note:** For managing (Create/Update/Delete/Change password) a single user at a time, use the resource 'redfish_user_account'
+
+~> **Note:** For managing (Create/Update/Delete/Change password) multiple users at a time, use the module 'user_module'
+
+~> **Note:** For changing the password of Administrator/root user alone, use the resource 'user_account_password'
+
 ## Example Usage
 
 variables.tf
