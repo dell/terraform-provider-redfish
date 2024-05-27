@@ -501,7 +501,7 @@ func (r *ScpImportResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	log, err := scpImportExecutor(ctx, service, plan, intervalJobCheckTime, plan.TimeToWait.ValueInt64())
+	log, err := scpImportExecutor(ctx, service, plan)
 	if err != nil {
 		resp.Diagnostics.AddError(log, err.Error())
 		return
@@ -544,9 +544,7 @@ func (*ScpImportResource) Delete(ctx context.Context, _ resource.DeleteRequest, 
 // Returns:
 // - string: a message indicating the result of the SCP import.
 // - error: an error object if there was an error during the import process.
-func scpImportExecutor(ctx context.Context, service *gofish.Service, plan models.RedfishScpImport,
-	jobCheckIntervalTime int64, jobDefaultTimeout int64,
-) (string, error) {
+func scpImportExecutor(ctx context.Context, service *gofish.Service, plan models.RedfishScpImport) (string, error) {
 	managers, err := service.Managers()
 	if err != nil {
 		return "error while retrieving managers", err
@@ -563,7 +561,7 @@ func scpImportExecutor(ctx context.Context, service *gofish.Service, plan models
 
 	if location, err := response.Location(); err == nil {
 		taskURI := location.EscapedPath()
-		err = common.WaitForDellJobToFinish(service, taskURI, jobCheckIntervalTime, jobDefaultTimeout)
+		err = common.WaitForDellJobToFinish(service, taskURI, intervalJobCheckTime, defaultJobTimeout)
 		if err != nil {
 			return "error waiting for SCP Export monitor task to be completed", err
 		}
