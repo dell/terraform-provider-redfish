@@ -41,7 +41,7 @@ type Bios struct {
 	JobTimeout        types.Int64     `tfsdk:"bios_job_timeout"`
 }
 
-// BootOptions is strut for configuring boot options
+// BiosBootOptions is strut for configuring boot options
 type BiosBootOptions struct {
 	BootOptionReference types.String `tfsdk:"boot_option_reference"`
 	BootOptionEnabled   types.Bool   `tfsdk:"boot_option_enabled"`
