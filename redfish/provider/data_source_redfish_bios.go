@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stmcginnis/gofish"
+	"github.com/stmcginnis/gofish/redfish"
 )
 
 var (
@@ -161,33 +162,25 @@ func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (mod
 	d.ID = types.StringValue(bios.ID)
 	d.Attributes, diags = types.MapValue(types.StringType, attributes)
 
-	bootOptionsList := []attr.Value{}
-	bootOptionsTypes := map[string]attr.Type{
-		"boot_option_enabled":   types.BoolType,
-		"boot_option_reference": types.StringType,
-		"display_name":          types.StringType,
-		"id":                    types.StringType,
-		"name":                  types.StringType,
-		"uefi_device_path":      types.StringType,
-	}
+	bootOptionsList := make([]models.BiosBootOptions, 0)
 	for i := range bootOptions {
-		testData := map[string]attr.Value{
-			"boot_option_enabled":   types.BoolValue(bootOptions[i].BootOptionEnabled),
-			"boot_option_reference": types.StringValue(bootOptions[i].BootOptionReference),
-			"display_name":          types.StringValue(bootOptions[i].DisplayName),
-			"id":                    types.StringValue(bootOptions[i].ID),
-			"name":                  types.StringValue(bootOptions[i].Name),
-			"uefi_device_path":      types.StringValue(bootOptions[i].UefiDevicePath),
-		}
-		objVal, _ := types.ObjectValue(bootOptionsTypes, testData)
-		bootOptionsList = append(bootOptionsList, objVal)
+		bootOptionsList = append(bootOptionsList, newBootOption(bootOptions[i]))
 	}
-	bootOptionsEleType := types.ObjectType{
-		AttrTypes: bootOptionsTypes,
-	}
-	d.BootOptions, _ = types.ListValue(bootOptionsEleType, bootOptionsList)
+	d.BootOptions = bootOptionsList
 
 	return d, diags
+}
+
+// newBootOption converts client.BiosBootOptions to models.BiosBootOptions
+func newBootOption(input *redfish.BootOption) models.BiosBootOptions {
+	return models.BiosBootOptions{
+		BootOptionEnabled:   types.BoolValue(input.BootOptionEnabled),
+		BootOptionReference: types.StringValue(input.BootOptionReference),
+		DisplayName:         types.StringValue(input.DisplayName),
+		ID:                  types.StringValue(input.ID),
+		Name:                types.StringValue(input.Name),
+		UefiDevicePath:      types.StringValue(input.UefiDevicePath),
+	}
 }
 
 // BootOptionsSchema is a function that returns the schema for Boot Options
