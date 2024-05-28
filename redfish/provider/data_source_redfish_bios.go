@@ -140,7 +140,7 @@ func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (mod
 
 	bootOptions, err := systems[0].BootOptions()
 	if err != nil {
-		diags.AddError("Error fetching boot", err.Error())
+		diags.AddError("Error fetching boot options", err.Error())
 		return d, diags
 	}
 
@@ -163,8 +163,8 @@ func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (mod
 	d.Attributes, diags = types.MapValue(types.StringType, attributes)
 
 	bootOptionsList := make([]models.BiosBootOptions, 0)
-	for i := range bootOptions {
-		bootOptionsList = append(bootOptionsList, newBootOption(bootOptions[i]))
+	for _, bootOption := range bootOptions {
+		bootOptionsList = append(bootOptionsList, newBootOption(bootOption))
 	}
 	d.BootOptions = bootOptionsList
 
@@ -188,7 +188,7 @@ func BootOptionsSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"boot_option_enabled": schema.BoolAttribute{
 			MarkdownDescription: "Enable or disable the boot device.",
-			Description:         "Enable or disable the boot device.",
+			Description:         "Whether the boot device is enabled or not.",
 			Computed:            true,
 		},
 		"boot_option_reference": schema.StringAttribute{
