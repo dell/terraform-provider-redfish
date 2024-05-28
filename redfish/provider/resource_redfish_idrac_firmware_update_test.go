@@ -44,7 +44,7 @@ func TestAccRedfishIdracFirmwareUpdateResource(t *testing.T) {
 					creds),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_idrac_firmware_update.update2", "apply_update", "false"),
-					resource.TestCheckResourceAttr("redfish_idrac_firmware_update.update2", "ip_address", "10.225.104.166"),
+					resource.TestCheckResourceAttr("redfish_idrac_firmware_update.update2", "ip_address", firmwareUpdateIP),
 				),
 			},
 		},
@@ -149,7 +149,7 @@ func testAccRedfishIdracFirmwareUpdateReapply(testingInfo TestingServerCredentia
 		  ssl_insecure = true
 		}
 	  
-		ip_address = "10.225.104.166"
+		ip_address = "%s"
 		share_type = "HTTP"
 		apply_update = false
 		reboot_needed = false
@@ -158,5 +158,6 @@ func testAccRedfishIdracFirmwareUpdateReapply(testingInfo TestingServerCredentia
 		testingInfo.Username,
 		testingInfo.Password,
 		testingInfo.Endpoint,
+		firmwareUpdateIP,
 	)
 }
