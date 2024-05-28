@@ -19,7 +19,6 @@ package provider
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"testing"
 
@@ -28,7 +27,6 @@ import (
 
 // test redfish bios settings
 func TestAccRedfishIdracFirmwareUpdateResource(t *testing.T) {
-	os.Setenv("TF_ACC", "1")
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
