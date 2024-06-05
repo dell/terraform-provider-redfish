@@ -33,6 +33,9 @@ func TestAccRedfishBiosDataSource_basic(t *testing.T) {
 			{
 				Config: testAccRedfishDataSourceBiosConfig(creds),
 			},
+			{
+				Config: testAccRedfishDataSourceBiosConfigWithSystemID(creds),
+			},
 		},
 	})
 }
@@ -47,6 +50,25 @@ func testAccRedfishDataSourceBiosConfig(testingInfo TestingServerCredentials) st
 			endpoint = "https://%s"
 			ssl_insecure = true
 		  }
+		}
+		`,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+	)
+}
+
+func testAccRedfishDataSourceBiosConfigWithSystemID(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+		
+		data "redfish_bios" "bios" {		
+		  redfish_server {
+			user = "%s"
+			password = "%s"
+			endpoint = "https://%s"
+			ssl_insecure = true
+		  }
+		  system_id = "System.Embedded.1"
 		}
 		`,
 		testingInfo.Username,

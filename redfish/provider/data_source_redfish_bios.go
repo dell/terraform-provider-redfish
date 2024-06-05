@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stmcginnis/gofish"
+	"github.com/stmcginnis/gofish/redfish"
 )
 
 var (
@@ -91,6 +92,12 @@ func BiosDatasourceSchema() map[string]schema.Attribute {
 			ElementType:         types.StringType,
 			Computed:            true,
 		},
+		"system_id": schema.StringAttribute{
+			MarkdownDescription: "System ID of the system",
+			Description:         "System ID of the system",
+			Computed:            true,
+			Optional:            true,
+		},
 	}
 }
 
@@ -123,7 +130,23 @@ func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (mod
 		return d, diags
 	}
 
-	bios, err := systems[0].Bios()
+	var system *redfish.ComputerSystem
+	if d.SystemID.IsNull() || d.SystemID.IsUnknown() || d.SystemID.ValueString() == "" {
+		d.SystemID = types.StringValue(systems[0].ID)
+	} else {
+		for _, s := range systems {
+			if s.ID == d.SystemID.ValueString() {
+				system = s
+				break
+			}
+		}
+		if system == nil {
+			diags.AddError("Could not find a ComputerSystem", "")
+			return d, diags
+		}
+	}
+
+	bios, err := system.Bios()
 	if err != nil {
 		diags.AddError("Error fetching bios", err.Error())
 		return d, diags
