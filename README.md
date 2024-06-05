@@ -92,3 +92,9 @@ Released code versions are located on tags in the form of "vx.y.z" where x.y.z c
 ## Documentation
 
 For more detailed information, please refer to [Dell Terraform Providers Documentation](https://dell.github.io/terraform-docs/).
+
+## Terraform Redfish Modules
+
+**Check the following links for the terraform-modules repository and registry**
+[Terraform Redfish Modules Github](https://github.com/dell/terraform-redfish-modules)
+[Terraform Redfish Modules Registry](https://registry.terraform.io/modules/dell/modules/redfish/latest)
