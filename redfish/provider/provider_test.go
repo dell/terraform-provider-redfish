@@ -34,6 +34,7 @@ var (
 	image64Boot                     string
 	imageEfiBoot                    string
 	drive                           string
+	firmwareUpdateIP                string
 )
 
 // // TestingServerCredentials Struct used to store the credentials we pass for testing. This allows us to pass testing
@@ -70,6 +71,7 @@ func init() {
 	imageEfiBoot = os.Getenv("TF_TESTING_VIRTUAL_MEDIA_IMAGE_PATH_EfiBoot")
 	// storage volume environment varibale
 	drive = os.Getenv("TF_TESTING_STORAGE_VOLUME_DRIVE")
+	firmwareUpdateIP = os.Getenv("TF_TESTING_FIRMWARE_UPDATE_IP")
 }
 
 func testAccPreCheck(t *testing.T) {

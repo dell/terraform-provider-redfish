@@ -89,8 +89,10 @@ func (m *ManagerActions) UnmarshalJSON(data []byte) error {
 	}
 
 	var tempActions struct {
-		ExportSystemConfiguration ExportSystemConfiguration `json:"#OemManager.ExportSystemConfiguration"`
-		ImportSystemConfiguration ImportSystemConfiguration `json:"#OemManager.ImportSystemConfiguration"`
+		ExportSystemConfiguration   ExportSystemConfiguration `json:"#OemManager.ExportSystemConfiguration"`
+		ImportSystemConfiguration   ImportSystemConfiguration `json:"#OemManager.ImportSystemConfiguration"`
+		ExportSystemConfigurationV5 ExportSystemConfiguration `json:"#OemManager.v1_4_0.OemManager#OemManager.ExportSystemConfiguration"`
+		ImportSystemConfigurationV5 ImportSystemConfiguration `json:"#OemManager.v1_4_0.OemManager#OemManager.ImportSystemConfiguration"`
 		//revive:disable-next-line:line-length-limit
 		ImportSystemConfigurationPreview ImportSystemConfigurationPreview `json:"#OemManager.v1_2_0.OemManager#OemManager.ImportSystemConfigurationPreview"`
 		ResetToDefaults                  ResetToDefaults                  `json:"DellManager.v1_0_0#DellManager.ResetToDefaults"`
@@ -99,6 +101,13 @@ func (m *ManagerActions) UnmarshalJSON(data []byte) error {
 	err := json.Unmarshal(data, &tempActions)
 	if err != nil {
 		return err
+	}
+
+	if tempActions.ExportSystemConfigurationV5.Target != "" {
+		tempActions.ExportSystemConfiguration = tempActions.ExportSystemConfigurationV5
+	}
+	if tempActions.ImportSystemConfigurationV5.Target != "" {
+		tempActions.ImportSystemConfiguration = tempActions.ImportSystemConfigurationV5
 	}
 
 	// Fill actions

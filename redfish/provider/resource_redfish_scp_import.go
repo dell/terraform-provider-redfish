@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023-2024 Dell Inc., or its subsidiaries. All Rights Reserved.
+Copyright (c) 2024 Dell Inc., or its subsidiaries. All Rights Reserved.
 
 Licensed under the Mozilla Public License Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"terraform-provider-redfish/common"
 	"terraform-provider-redfish/gofish/dell"
 	"terraform-provider-redfish/redfish/models"
@@ -500,7 +501,7 @@ func (r *ScpImportResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	log, err := scpImportExecutor(service, constructPayload(ctx, plan), intervalJobCheckTime, plan.TimeToWait.ValueInt64())
+	log, err := scpImportExecutor(ctx, service, plan)
 	if err != nil {
 		resp.Diagnostics.AddError(log, err.Error())
 		return
@@ -543,9 +544,7 @@ func (*ScpImportResource) Delete(ctx context.Context, _ resource.DeleteRequest, 
 // Returns:
 // - string: a message indicating the result of the SCP import.
 // - error: an error object if there was an error during the import process.
-func scpImportExecutor(service *gofish.Service, scpImportPayload models.SCPImport,
-	jobCheckIntervalTime int64, jobDefaultTimeout int64,
-) (string, error) {
+func scpImportExecutor(ctx context.Context, service *gofish.Service, plan models.RedfishScpImport) (string, error) {
 	managers, err := service.Managers()
 	if err != nil {
 		return "error while retrieving managers", err
@@ -555,14 +554,14 @@ func scpImportExecutor(service *gofish.Service, scpImportPayload models.SCPImpor
 		return "error while retrieving dell manager", err
 	}
 	importURL := dellManager.Actions.ImportSystemConfigurationTarget
-	response, err := service.GetClient().Post(importURL, scpImportPayload)
+	response, err := service.GetClient().Post(importURL, constructPayload(ctx, plan, dellManager.FirmwareVersion))
 	if err != nil {
 		return "error during import", err
 	}
 
 	if location, err := response.Location(); err == nil {
 		taskURI := location.EscapedPath()
-		err = common.WaitForDellJobToFinish(service, taskURI, jobCheckIntervalTime, jobDefaultTimeout)
+		err = common.WaitForDellJobToFinish(service, taskURI, intervalJobCheckTime, defaultJobTimeout)
 		if err != nil {
 			return "error waiting for SCP Export monitor task to be completed", err
 		}
@@ -583,7 +582,7 @@ func scpImportExecutor(service *gofish.Service, scpImportPayload models.SCPImpor
 //
 // Return:
 // - models.SCPImport: The constructed SCPImport payload.
-func constructPayload(ctx context.Context, plan models.RedfishScpImport) models.SCPImport {
+func constructPayload(ctx context.Context, plan models.RedfishScpImport, firmwareVersion string) models.SCPImport {
 	var sp models.TFShareParameters
 	plan.ShareParameters.As(ctx, &sp, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true})
 
@@ -612,8 +611,13 @@ func constructPayload(ctx context.Context, plan models.RedfishScpImport) models.
 		PortNumber:               portNumber,
 		ShareName:                sp.ShareName.ValueString(),
 		ShareType:                sp.ShareType.ValueString(),
-		Target:                   target,
 		Username:                 sp.Username.ValueString(),
+	}
+
+	if strings.HasPrefix(firmwareVersion, "5.") {
+		scpImport.ShareParameters.Target = strings.Join(target, ", ")
+	} else {
+		scpImport.ShareParameters.Target = target
 	}
 
 	// Set proxySupport to "Enabled" if the plan's proxySupport value is true,

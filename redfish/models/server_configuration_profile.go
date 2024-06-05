@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023-2024 Dell Inc., or its subsidiaries. All Rights Reserved.
+Copyright (c) 2024 Dell Inc., or its subsidiaries. All Rights Reserved.
 
 Licensed under the Mozilla Public License Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,22 +38,22 @@ type SCPImport struct {
 
 // ShareParameters to provide configuration for local/network share type
 type ShareParameters struct {
-	FileName                 string   `json:"FileName"`
-	Target                   []string `json:"Target,omitempty"`
-	IPAddress                string   `json:"IPAddress,omitempty"`
-	IgnoreCertificateWarning string   `json:"IgnoreCertificateWarning,omitempty"`
-	Password                 string   `json:"Password,omitempty"`
-	PortNumber               string   `json:"PortNumber,omitempty"`
-	ProxyPassword            string   `json:"ProxyPassword,omitempty"`
-	ProxyPort                string   `json:"ProxyPort,omitempty"`
-	ProxyServer              string   `json:"ProxyServer,omitempty"`
-	ProxySupport             string   `json:"ProxySupport,omitempty"`
-	ProxyType                string   `json:"ProxyType,omitempty"`
-	ProxyUserName            string   `json:"ProxyUserName,omitempty"`
-	ShareName                string   `json:"ShareName,omitempty"`
-	ShareType                string   `json:"ShareType,omitempty"`
-	Username                 string   `json:"Username,omitempty"`
-	Workgroup                string   `json:"Workgroup,omitempty"`
+	FileName                 string      `json:"FileName"`
+	Target                   interface{} `json:"Target,omitempty"`
+	IPAddress                string      `json:"IPAddress,omitempty"`
+	IgnoreCertificateWarning string      `json:"IgnoreCertificateWarning,omitempty"`
+	Password                 string      `json:"Password,omitempty"`
+	PortNumber               string      `json:"PortNumber,omitempty"`
+	ProxyPassword            string      `json:"ProxyPassword,omitempty"`
+	ProxyPort                string      `json:"ProxyPort,omitempty"`
+	ProxyServer              string      `json:"ProxyServer,omitempty"`
+	ProxySupport             string      `json:"ProxySupport,omitempty"`
+	ProxyType                string      `json:"ProxyType,omitempty"`
+	ProxyUserName            string      `json:"ProxyUserName,omitempty"`
+	ShareName                string      `json:"ShareName,omitempty"`
+	ShareType                string      `json:"ShareType,omitempty"`
+	Username                 string      `json:"Username,omitempty"`
+	Workgroup                string      `json:"Workgroup,omitempty"`
 }
 
 // RedfishScpImport defines the SCP import resource.

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023-2024 Dell Inc., or its subsidiaries. All Rights Reserved.
+Copyright (c) 2024 Dell Inc., or its subsidiaries. All Rights Reserved.
 
 Licensed under the Mozilla Public License Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strconv"
+	"strings"
 	"terraform-provider-redfish/common"
 	"terraform-provider-redfish/gofish/dell"
 	"terraform-provider-redfish/redfish/models"
@@ -510,7 +511,7 @@ func scpExportExecutor(ctx context.Context, service *gofish.Service, plan models
 		return "", err
 	}
 	exportURL := dellManager.Actions.ExportSystemConfigurationTarget
-	resp, err := service.GetClient().Post(exportURL, constructExportPayload(ctx, plan))
+	resp, err := service.GetClient().Post(exportURL, constructExportPayload(ctx, plan, dellManager.FirmwareVersion))
 	if err != nil {
 		return "", err
 	}
@@ -531,7 +532,7 @@ func scpExportExecutor(ctx context.Context, service *gofish.Service, plan models
 }
 
 // constructExportPayload is a function that constructs the SCP export payload
-func constructExportPayload(ctx context.Context, plan models.TFRedfishScpExport) models.SCPExport {
+func constructExportPayload(ctx context.Context, plan models.TFRedfishScpExport, firmwareVersion string) models.SCPExport {
 	var sp models.TFShareParameters
 	plan.ShareParameters.As(ctx, &sp, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true})
 	var target, includeInExport []string
@@ -559,8 +560,13 @@ func constructExportPayload(ctx context.Context, plan models.TFRedfishScpExport)
 		PortNumber:               portNumber,
 		ShareName:                sp.ShareName.ValueString(),
 		ShareType:                sp.ShareType.ValueString(),
-		Target:                   target,
 		Username:                 sp.Username.ValueString(),
+	}
+
+	if strings.HasPrefix(firmwareVersion, "5.") {
+		scpExport.ShareParameters.Target = strings.Join(target, ",")
+	} else {
+		scpExport.ShareParameters.Target = target
 	}
 
 	// Set proxySupport to "Enabled" if the plan's proxySupport value is true,
@@ -581,6 +587,5 @@ func constructExportPayload(ctx context.Context, plan models.TFRedfishScpExport)
 	scpExport.ShareParameters.ProxySupport = proxySupport
 	scpExport.ShareParameters.ProxyType = proxyType
 	scpExport.ShareParameters.ProxyUserName = proxyUserName
-
 	return scpExport
 }
