@@ -19,7 +19,6 @@ package provider
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -32,14 +31,20 @@ func TestAccRedfishBiosDataSource_basic(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRedfishDataSourceBiosConfig(creds),
-			},
-			{
-				Config: testAccRedfishDataSourceBootOptions(creds, os.Getenv("TF_TESTING_BOOT_OPTION_REFERENCE"), true, os.Getenv("TF_TESTING_DISPLAY_NAME"), os.Getenv("TF_TESTING_ID"), os.Getenv("TF_TESTING_NAME"), os.Getenv("TF_TESTING_UEFI_DEVICE_PATH")),
+				Config: testAccRedfishDataSourceBiosConfig(creds) + devDataOut,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckOutput("boot_options", "true"),
+				),
 			},
 		},
 	})
 }
+
+var devDataOut = `
+output "boot_options" {
+	value = length(data.redfish_bios.bios.boot_options) != 0
+}
+`
 
 func testAccRedfishDataSourceBiosConfig(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
@@ -56,30 +61,5 @@ func testAccRedfishDataSourceBiosConfig(testingInfo TestingServerCredentials) st
 		testingInfo.Username,
 		testingInfo.Password,
 		testingInfo.Endpoint,
-	)
-}
-
-func testAccRedfishDataSourceBootOptions(testingInfo TestingServerCredentials, bootOptionReference string, bootOptionEnabled bool, displayName string, id string, name string, uefiDevicePath string) string {
-	return fmt.Sprintf(`
-		
-		data "redfish_bios" "bios" {		
-		  redfish_server {
-			user = "%s"
-			password = "%s"
-			endpoint = "https://%s"
-			ssl_insecure = true
-		  }
-		  boot_options = [{boot_option_reference="%s", boot_option_enabled=%t", display_name="%s", id="%s", name="%s", uefi_device_path="%s"}]
-		}
-		`,
-		testingInfo.Username,
-		testingInfo.Password,
-		testingInfo.Endpoint,
-		bootOptionReference,
-		bootOptionEnabled,
-		displayName,
-		id,
-		name,
-		uefiDevicePath,
 	)
 }
