@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stmcginnis/gofish"
+	"github.com/stmcginnis/gofish/redfish"
 )
 
 var (
@@ -91,6 +92,14 @@ func BiosDatasourceSchema() map[string]schema.Attribute {
 			ElementType:         types.StringType,
 			Computed:            true,
 		},
+		"boot_options": schema.ListNestedAttribute{
+			MarkdownDescription: "List of BIOS boot options.",
+			Description:         "List of BIOS boot options.",
+			NestedObject: schema.NestedAttributeObject{
+				Attributes: BootOptionsSchema(),
+			},
+			Computed: true,
+		},
 	}
 }
 
@@ -129,6 +138,12 @@ func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (mod
 		return d, diags
 	}
 
+	bootOptions, err := systems[0].BootOptions()
+	if err != nil {
+		diags.AddError("Error fetching boot options", err.Error())
+		return d, diags
+	}
+
 	// TODO: BIOS Attributes' values might be any of several types.
 	// terraform-sdk currently does not support a map with different
 	// value types. So we will convert int and float values to string
@@ -147,5 +162,59 @@ func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (mod
 	d.ID = types.StringValue(bios.ID)
 	d.Attributes, diags = types.MapValue(types.StringType, attributes)
 
+	bootOptionsList := make([]models.BiosBootOptions, 0)
+	for _, bootOption := range bootOptions {
+		bootOptionsList = append(bootOptionsList, newBootOption(bootOption))
+	}
+	d.BootOptions = bootOptionsList
+
 	return d, diags
+}
+
+// newBootOption converts client.BiosBootOptions to models.BiosBootOptions
+func newBootOption(input *redfish.BootOption) models.BiosBootOptions {
+	return models.BiosBootOptions{
+		BootOptionEnabled:   types.BoolValue(input.BootOptionEnabled),
+		BootOptionReference: types.StringValue(input.BootOptionReference),
+		DisplayName:         types.StringValue(input.DisplayName),
+		ID:                  types.StringValue(input.ID),
+		Name:                types.StringValue(input.Name),
+		UefiDevicePath:      types.StringValue(input.UefiDevicePath),
+	}
+}
+
+// BootOptionsSchema is a function that returns the schema for Boot Options
+func BootOptionsSchema() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"boot_option_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Enable or disable the boot device.",
+			Description:         "Whether the boot device is enabled or not.",
+			Computed:            true,
+		},
+		"boot_option_reference": schema.StringAttribute{
+			MarkdownDescription: "FQDD of the boot device.",
+			Description:         "FQDD of the boot device.",
+			Computed:            true,
+		},
+		"display_name": schema.StringAttribute{
+			MarkdownDescription: "Display name of the boot option",
+			Description:         "Display name of the boot option",
+			Computed:            true,
+		},
+		"id": schema.StringAttribute{
+			MarkdownDescription: "ID of the boot option",
+			Description:         "ID of the boot option",
+			Computed:            true,
+		},
+		"name": schema.StringAttribute{
+			MarkdownDescription: "Name of the boot option",
+			Description:         "Name of the boot option",
+			Computed:            true,
+		},
+		"uefi_device_path": schema.StringAttribute{
+			MarkdownDescription: "Device path of the boot option",
+			Description:         "Device path of the boot option",
+			Computed:            true,
+		},
+	}
 }

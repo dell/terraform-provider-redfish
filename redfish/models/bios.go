@@ -23,10 +23,11 @@ import (
 
 // BiosDatasource to is struct for bios data-source
 type BiosDatasource struct {
-	ID            types.String    `tfsdk:"id"`
-	OdataID       types.String    `tfsdk:"odata_id"`
-	RedfishServer []RedfishServer `tfsdk:"redfish_server"`
-	Attributes    types.Map       `tfsdk:"attributes"`
+	ID            types.String      `tfsdk:"id"`
+	OdataID       types.String      `tfsdk:"odata_id"`
+	RedfishServer []RedfishServer   `tfsdk:"redfish_server"`
+	Attributes    types.Map         `tfsdk:"attributes"`
+	BootOptions   []BiosBootOptions `tfsdk:"boot_options"`
 }
 
 // Bios is struct to create schema for bios resource
@@ -38,4 +39,14 @@ type Bios struct {
 	ResetType         types.String    `tfsdk:"reset_type"`
 	ResetTimeout      types.Int64     `tfsdk:"reset_timeout"`
 	JobTimeout        types.Int64     `tfsdk:"bios_job_timeout"`
+}
+
+// BiosBootOptions is strut for configuring boot options
+type BiosBootOptions struct {
+	BootOptionReference types.String `tfsdk:"boot_option_reference"`
+	BootOptionEnabled   types.Bool   `tfsdk:"boot_option_enabled"`
+	DisplayName         types.String `tfsdk:"display_name"`
+	ID                  types.String `tfsdk:"id"`
+	Name                types.String `tfsdk:"name"`
+	UefiDevicePath      types.String `tfsdk:"uefi_device_path"`
 }

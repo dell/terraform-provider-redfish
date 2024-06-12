@@ -31,11 +31,20 @@ func TestAccRedfishBiosDataSource_basic(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRedfishDataSourceBiosConfig(creds),
+				Config: testAccRedfishDataSourceBiosConfig(creds) + devDataOut,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckOutput("boot_options", "true"),
+				),
 			},
 		},
 	})
 }
+
+var devDataOut = `
+output "boot_options" {
+	value = length(data.redfish_bios.bios.boot_options) != 0
+}
+`
 
 func testAccRedfishDataSourceBiosConfig(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
