@@ -149,6 +149,12 @@ func BootOrderSchema() map[string]schema.Attribute {
 			Description:         "Time in seconds that the provider waits for the simple update job to be completed before timing out.",
 			MarkdownDescription: "Time in seconds that the provider waits for the BootSource override job to be completed before timing out.",
 		},
+		"system_id": schema.StringAttribute{
+			MarkdownDescription: "System ID of the system",
+			Description:         "System ID of the system",
+			Computed:            true,
+			Optional:            true,
+		},
 	}
 }
 
@@ -262,7 +268,7 @@ func (r *BootOrderResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	system, err := getSystemResource(service)
+	system, err := getSystemResource(service, state.SystemID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("[ERROR]: Failed to get updated system resource", err.Error())
 		return
@@ -448,7 +454,7 @@ func (r *BootOrderResource) updateBootOptions(service *gofish.Service, d *models
 	var url string
 	var diags diag.Diagnostics
 
-	system, err := getSystemResource(service)
+	system, err := getSystemResource(service, d.SystemID.ValueString())
 	if err != nil {
 		diags.AddError("[ERROR]: Failed to get system resource", err.Error())
 		return nil, diags
@@ -493,7 +499,7 @@ func (r *BootOrderResource) updateBootOptions(service *gofish.Service, d *models
 
 func (*BootOrderResource) setBootOrder(service *gofish.Service, d *models.BootOrder) (*http.Response, error) {
 	var resp *http.Response
-	system, err := getSystemResource(service)
+	system, err := getSystemResource(service, d.SystemID.ValueString())
 	if err != nil {
 		return nil, fmt.Errorf("[ERROR]: Failed to get system resource %w", err)
 	}
@@ -546,7 +552,7 @@ func (*BootOrderResource) setBootOrder(service *gofish.Service, d *models.BootOr
 func (r *BootOrderResource) updateServer(service *gofish.Service, plan models.BootOrder) (*models.BootOrder, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	// Fetch Updated details
-	system, err := getSystemResource(service)
+	system, err := getSystemResource(service, plan.SystemID.ValueString())
 	if err != nil {
 		diags.AddError("[ERROR]: Failed to get updated system resource", err.Error())
 		return nil, diags
@@ -570,7 +576,7 @@ func (*BootOrderResource) restartServer(ctx context.Context, service *gofish.Ser
 
 	// reboot the server
 	pOp := powerOperator{ctx, service}
-	_, err := pOp.PowerOperation(resetType, resetTimeout, intervalBootOrderJobCheckTime)
+	_, err := pOp.PowerOperation(plan.SystemID.ValueString(), resetType, resetTimeout, intervalBootOrderJobCheckTime)
 	if err != nil {
 		diags.AddError("there was an issue restarting the server ", err.Error())
 		return diags

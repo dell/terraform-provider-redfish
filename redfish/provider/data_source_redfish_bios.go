@@ -100,6 +100,12 @@ func BiosDatasourceSchema() map[string]schema.Attribute {
 			},
 			Computed: true,
 		},
+		"system_id": schema.StringAttribute{
+			MarkdownDescription: "System ID of the system",
+			Description:         "System ID of the system",
+			Computed:            true,
+			Optional:            true,
+		},
 	}
 }
 
@@ -126,19 +132,19 @@ func (g *BiosDatasource) Read(ctx context.Context, req datasource.ReadRequest, r
 func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (models.BiosDatasource, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	systems, err := g.service.Systems()
+	system, err := getSystemResource(g.service, d.SystemID.ValueString())
 	if err != nil {
 		diags.AddError("Error fetching computer systems collection", err.Error())
 		return d, diags
 	}
 
-	bios, err := systems[0].Bios()
+	bios, err := system.Bios()
 	if err != nil {
 		diags.AddError("Error fetching bios", err.Error())
 		return d, diags
 	}
 
-	bootOptions, err := systems[0].BootOptions()
+	bootOptions, err := system.BootOptions()
 	if err != nil {
 		diags.AddError("Error fetching boot options", err.Error())
 		return d, diags

@@ -152,6 +152,12 @@ func (*BiosResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				Default:  int64default.StaticInt64(int64(defaultBiosConfigJobTimeout)),
 				Computed: true,
 			},
+			"system_id": schema.StringAttribute{
+				MarkdownDescription: "System ID of the system",
+				Description:         "System ID of the system",
+				Computed:            true,
+				Optional:            true,
+			},
 		},
 		Blocks: RedfishServerResourceBlockMap(),
 	}
@@ -302,7 +308,7 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
 	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
 
-	bios, err := r.getBiosResource(service)
+	bios, err := r.getBiosResource(service, plan.SystemID.ValueString())
 	if err != nil {
 		diags.AddError("error fetching bios resource", err.Error())
 		return nil, diags
@@ -340,7 +346,7 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 		tflog.Info(ctx, "rebooting the server")
 		// reboot the server
 		pOp := powerOperator{ctx, service}
-		_, err := pOp.PowerOperation(resetType, resetTimeout, intervalBiosConfigJobCheckTime)
+		_, err := pOp.PowerOperation(plan.SystemID.ValueString(),resetType, resetTimeout, intervalBiosConfigJobCheckTime)
 		if err != nil {
 			// TODO: handle this scenario
 			diags.AddError("there was an issue restarting the server", err.Error())
@@ -374,7 +380,7 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 }
 
 func (r *BiosResource) readRedfishDellBiosAttributes(service *gofish.Service, d *models.Bios) error {
-	bios, err := r.getBiosResource(service)
+	bios, err := r.getBiosResource(service, d.SystemID.ValueString())
 	if err != nil {
 		return fmt.Errorf("error fetching BIOS resource: %w", err)
 	}
@@ -405,8 +411,8 @@ func (r *BiosResource) readRedfishDellBiosAttributes(service *gofish.Service, d 
 	return nil
 }
 
-func (r *BiosResource) getBiosResource(service *gofish.Service) (*redfish.Bios, error) {
-	system, err := getSystemResource(service)
+func (r *BiosResource) getBiosResource(service *gofish.Service, sysID string) (*redfish.Bios, error) {
+	system, err := getSystemResource(service, sysID)
 	if err != nil {
 		tflog.Trace(r.ctx, "[ERROR]: Failed to get system resource: "+err.Error())
 		return nil, err

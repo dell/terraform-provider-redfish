@@ -122,6 +122,12 @@ func PowerSchema() map[string]schema.Attribute {
 				"'GracefulRestart','GracefulShutdown','PowerCycle', 'PushPowerButton', 'Nmi'.",
 			Computed: true,
 		},
+		"system_id": schema.StringAttribute{
+			MarkdownDescription: "System ID of the system",
+			Description:         "System ID of the system",
+			Computed:            true,
+			Optional:            true,
+		},
 	}
 }
 
@@ -157,7 +163,7 @@ func (r *powerResource) Create(ctx context.Context, req resource.CreateRequest, 
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
-	system, err := getSystemResource(service)
+	system, err := getSystemResource(service, plan.SystemID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("system error", err.Error())
 		return
@@ -167,7 +173,7 @@ func (r *powerResource) Create(ctx context.Context, req resource.CreateRequest, 
 
 	resetType := plan.DesiredPowerAction.ValueString()
 	pOp := powerOperator{ctx, service}
-	powerState, pErr := pOp.PowerOperation(resetType, plan.MaximumWaitTime.ValueInt64(), plan.CheckInterval.ValueInt64())
+	powerState, pErr := pOp.PowerOperation(plan.SystemID.ValueString(), resetType, plan.MaximumWaitTime.ValueInt64(), plan.CheckInterval.ValueInt64())
 	if pErr != nil {
 		return
 	}
@@ -203,7 +209,7 @@ func (r *powerResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
-	system, err := getSystemResource(service)
+	system, err := getSystemResource(service, state.SystemID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("system error", err.Error())
 		return

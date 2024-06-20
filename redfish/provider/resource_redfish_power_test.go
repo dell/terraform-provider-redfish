@@ -116,7 +116,7 @@ func testAccRedfishResourcePowerConfig(testingInfo TestingServerCredentials,
 			endpoint = "https://%s"
 			ssl_insecure = true
 		  }
-
+		  system_id = "System.Embedded.1"
 		  desired_power_action = "%s"
 		  maximum_wait_time = %d
 		  check_interval = %d

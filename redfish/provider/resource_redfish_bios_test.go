@@ -111,6 +111,7 @@ func testAccRedfishResourceBiosConfigOn(testingInfo TestingServerCredentials) st
 			"NumLock" = "On"
 		  }
 		  reset_type = "ForceRestart"
+		  system_id = "System.Embedded.1"
 		}
 		`,
 		testingInfo.Username,

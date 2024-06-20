@@ -121,6 +121,12 @@ func VirtualMediaSchema() map[string]schema.Attribute {
 			MarkdownDescription: "Indicates whether the remote device media prevents writing to that media.",
 			Default:             booldefault.StaticBool(true),
 		},
+		"system_id": schema.StringAttribute{
+			MarkdownDescription: "System ID of the system",
+			Description:         "System ID of the system",
+			Computed:            true,
+			Optional:            true,
+		},
 	}
 }
 
@@ -165,7 +171,7 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		TransferProtocolType: redfish.TransferProtocolType(plan.TransferProtocolType.ValueString()),
 		WriteProtected:       plan.WriteProtected.ValueBool(),
 	}
-	env, d := r.getVMEnv(&plan.RedfishServer)
+	env, d := r.getVMEnv(&plan.RedfishServer, plan.SystemID.ValueString())
 	resp.Diagnostics = append(resp.Diagnostics, d...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -224,7 +230,7 @@ type virtualMediaEnvironment struct {
 	service    *gofish.Service
 }
 
-func (r *virtualMediaResource) getVMEnv(rserver *[]models.RedfishServer) (virtualMediaEnvironment, diag.Diagnostics) {
+func (r *virtualMediaResource) getVMEnv(rserver *[]models.RedfishServer, sysID string) (virtualMediaEnvironment, diag.Diagnostics) {
 	var d diag.Diagnostics
 	var env virtualMediaEnvironment
 	// Get service
@@ -235,7 +241,7 @@ func (r *virtualMediaResource) getVMEnv(rserver *[]models.RedfishServer) (virtua
 	}
 	env.service = service
 	// Get Systems details
-	system, err := getSystemResource(service)
+	system, err := getSystemResource(service, sysID)
 	if err != nil {
 		d.AddError("Error when retrieving systems", err.Error())
 		return env, d
@@ -313,6 +319,7 @@ func (r *virtualMediaResource) Read(ctx context.Context, req resource.ReadReques
 // VMediaImportConfig is the JSON configuration for importing a virtual media
 type VMediaImportConfig struct {
 	ServerConf
+	SystemID string `json:"system_id"`
 	ID string `json:"id"`
 }
 
@@ -334,7 +341,7 @@ func (r *virtualMediaResource) ImportState(ctx context.Context, req resource.Imp
 
 	creds := []models.RedfishServer{server}
 
-	env, d := r.getVMEnv(&creds)
+	env, d := r.getVMEnv(&creds, c.SystemID)
 	resp.Diagnostics = append(resp.Diagnostics, d...)
 	if resp.Diagnostics.HasError() {
 		return

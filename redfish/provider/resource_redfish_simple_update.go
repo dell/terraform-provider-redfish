@@ -171,6 +171,12 @@ func simpleUpdateSchema() map[string]schema.Attribute {
 				stringplanmodifier.UseStateForUnknown(),
 			},
 		},
+		"system_id": schema.StringAttribute{
+			MarkdownDescription: "System ID of the system",
+			Description:         "System ID of the system",
+			Computed:            true,
+			Optional:            true,
+		},
 	}
 }
 
@@ -221,7 +227,7 @@ func (r *simpleUpdateResource) Create(ctx context.Context, req resource.CreateRe
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
-	system, err := getSystemResource(service)
+	system, err := getSystemResource(service, plan.SystemID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("system error", err.Error())
 		return
@@ -587,7 +593,7 @@ func (u *simpleUpdater) updateJobStatus(d models.SimpleUpdateRes) error {
 	// Reboot the server
 	tflog.Debug(u.ctx, "Rebooting the server")
 	pOp := powerOperator{u.ctx, u.service}
-	_, err := pOp.PowerOperation(d.ResetType.ValueString(), resetTimeout, intervalSimpleUpdateJobCheckTime)
+	_, err := pOp.PowerOperation(d.SystemID.ValueString(), d.ResetType.ValueString(), resetTimeout, intervalSimpleUpdateJobCheckTime)
 	if err != nil {
 		// Delete uploaded package - TBD
 		return fmt.Errorf("there was an issue when restarting the server: %w", err)

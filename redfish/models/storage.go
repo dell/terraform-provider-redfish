@@ -28,6 +28,7 @@ type StorageDatasource struct {
 	Storages        []Storage       `tfsdk:"storage"`
 	ControllerIDs   types.List      `tfsdk:"controller_ids"`
 	ControllerNames types.List      `tfsdk:"controller_names"`
+	SystemID        types.String    `tfsdk:"system_id"`
 }
 
 // Storage is the tfsdk model of Storage

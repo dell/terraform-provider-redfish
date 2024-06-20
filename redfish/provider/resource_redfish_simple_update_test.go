@@ -108,7 +108,7 @@ func testAccRedfishResourceUpdateConfig(testingInfo TestingServerCredentials,
 			endpoint = "https://%s"
 			ssl_insecure = true
 		  }
-
+		  system_id = "System.Embedded.1"
 		  transfer_protocol     = "%s"
 		  target_firmware_image = "%s"
 		  reset_type  = "ForceRestart"

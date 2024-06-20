@@ -32,4 +32,5 @@ type SimpleUpdateRes struct {
 	JobTimeout    types.Int64     `tfsdk:"simple_update_job_timeout"`
 	SoftwareId    types.String    `tfsdk:"software_id"`
 	Version       types.String    `tfsdk:"version"`
+	SystemID      types.String    `tfsdk:"system_id"`
 }

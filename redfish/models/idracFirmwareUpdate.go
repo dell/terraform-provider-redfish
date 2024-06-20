@@ -43,6 +43,7 @@ type IdracFirmwareUpdate struct {
 	MountPoint               types.String    `tfsdk:"mount_point"`
 	ApplyUpdate              types.Bool      `tfsdk:"apply_update"`
 	RebootNeeded             types.Bool      `tfsdk:"reboot_needed"`
+	SystemID                 types.String    `tfsdk:"system_id"`
 	UpdateList               types.List      `tfsdk:"update_list"`
 }
 

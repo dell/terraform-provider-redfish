@@ -81,7 +81,7 @@ func testAccRedfishIdracFirmwareUpdateCreate(testingInfo TestingServerCredential
 		  endpoint     = "https://%s"
 		  ssl_insecure = true
 		}
-	  
+	  	system_id = "System.Embedded.1"
 		ip_address = "downloads.dell.com"
 		share_type = "HTTP"
 		// These two fields should are set to true by default. It will check the repository for any updates that are available for the server and apply those updates.

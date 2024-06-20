@@ -30,6 +30,7 @@ type BootOrder struct {
 	JobTimeout    types.Int64     `tfsdk:"boot_order_job_timeout"`
 	BootOrder     types.List      `tfsdk:"boot_order"`
 	RedfishServer []RedfishServer `tfsdk:"redfish_server"`
+	SystemID      types.String    `tfsdk:"system_id"`
 }
 
 // BootOptions is strut for configuring boot options
@@ -48,5 +49,6 @@ type BootSourceOverride struct {
 	ResetTimeout                 types.Int64     `tfsdk:"reset_timeout"`
 	JobTimeout                   types.Int64     `tfsdk:"boot_source_job_timeout"`
 	UefiTargetBootSourceOverride types.String    `tfsdk:"uefi_target_boot_source_override"`
+	SystemID                     types.String    `tfsdk:"system_id"`
 	RedfishServer                []RedfishServer `tfsdk:"redfish_server"`
 }

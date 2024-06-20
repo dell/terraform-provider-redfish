@@ -209,6 +209,12 @@ func idracFirmwareUpdateSchema() map[string]schema.Attribute {
 			Optional: true,
 			Default:  booldefault.StaticBool(true),
 		},
+		"system_id": schema.StringAttribute{
+			MarkdownDescription: "System ID of the system",
+			Description:         "System ID of the system",
+			Computed:            true,
+			Optional:            true,
+		},
 		"update_list": schema.ListNestedAttribute{
 			Description:         "List of properties of the update list.",
 			MarkdownDescription: "List of properties of the update list.",
@@ -296,7 +302,7 @@ func (r *idracFirmwareUpdateResource) Create(ctx context.Context, req resource.C
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
-	system, err := getSystemResource(service)
+	system, err := getSystemResource(service, plan.SystemID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("system error", err.Error())
 		return

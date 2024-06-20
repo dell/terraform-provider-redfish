@@ -261,6 +261,12 @@ func VolumeSchema() map[string]schema.Attribute {
 				}...),
 			},
 		},
+		"system_id": schema.StringAttribute{
+			MarkdownDescription: "System ID of the system",
+			Description:         "System ID of the system",
+			Computed:            true,
+			Optional:            true,
+		},
 	}
 }
 
@@ -472,7 +478,7 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 	diags.Append(d.Drives.ElementsAs(ctx, &driveNames, true)...)
 
 	// Get storage
-	storage, err := getStorage(service, storageID)
+	storage, err := getStorage(service, d.SystemID.ValueString(), storageID)
 	if err != nil {
 		diags.AddError("Error when retreiving the Storage from the Redfish API", err.Error())
 		return diags
@@ -539,7 +545,7 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 
 		// Reboot the server
 		pOp := powerOperator{ctx, service}
-		_, err := pOp.PowerOperation(resetType, resetTimeout, intervalStorageVolumeJobCheckTime)
+		_, err := pOp.PowerOperation(d.SystemID.ValueString(), resetType, resetTimeout, intervalStorageVolumeJobCheckTime)
 		if err != nil {
 			diags.AddError(RedfishJobErrorMsg, err.Error())
 			return diags
@@ -634,7 +640,7 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service,
 	volumeJobTimeout := d.ResetTimeout.ValueInt64()
 
 	// Get storage
-	storage, err := getStorage(service, storageID)
+	storage, err := getStorage(service, d.SystemID.ValueString(), storageID)
 	if err != nil {
 		diags.AddError("Error when retreiving storage details from the Redfish API", err.Error())
 		return diags
@@ -681,7 +687,7 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service,
 
 		// Reboot the server
 		pOp := powerOperator{ctx, service}
-		_, err := pOp.PowerOperation(resetType, resetTimeout, intervalStorageVolumeJobCheckTime)
+		_, err := pOp.PowerOperation(d.SystemID.ValueString(), resetType, resetTimeout, intervalStorageVolumeJobCheckTime)
 		if err != nil {
 			diags.AddError(RedfishJobErrorMsg, err.Error())
 			return diags
@@ -736,7 +742,7 @@ func deleteRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 
 		// Reboot the server
 		pOp := powerOperator{ctx, service}
-		_, err := pOp.PowerOperation(resetType, resetTimeout, intervalStorageVolumeJobCheckTime)
+		_, err := pOp.PowerOperation(d.SystemID.ValueString(), resetType, resetTimeout, intervalStorageVolumeJobCheckTime)
 		if err != nil {
 			diags.AddError(RedfishJobErrorMsg, err.Error())
 			return diags
@@ -805,13 +811,13 @@ func checkSettingsApplyTime(storage *redfish.Storage, applyTime string) error {
 	return nil
 }
 
-func getStorage(service *gofish.Service, storageID string) (*redfish.Storage, error) {
-	systems, err := service.Systems()
+func getStorage(service *gofish.Service, sysID string, storageID string) (*redfish.Storage, error) {
+	system, err := getSystemResource(service, sysID)
 	if err != nil {
 		return nil, fmt.Errorf("error when retreiving the Systems from the Redfish API: %w", err)
 	}
 
-	storageControllers, err := systems[0].Storage()
+	storageControllers, err := system.Storage()
 	if err != nil {
 		return nil, fmt.Errorf("error when retreiving the Storage from the Redfish API: %w", err)
 	}

@@ -71,7 +71,7 @@ func testAccRedfishResourceBootSourceLegacyconfig(testingInfo TestingServerCrede
 			endpoint = "https://%s"
 			ssl_insecure = true
 		}
-	   
+	    system_id = "System.Embedded.1"
 		boot_source_override_enabled = "Once"
 		boot_source_override_target = "Pxe"
 		boot_source_override_mode = "Legacy"

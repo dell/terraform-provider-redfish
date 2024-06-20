@@ -76,7 +76,7 @@ func testAccRedfishResourceBootOrder(testingInfo TestingServerCredentials, bootO
 			endpoint = "https://%s"
 			ssl_insecure = true
 		}
-	   
+	   	system_id = "System.Embedded.1"
 		reset_type="ForceRestart"
 		boot_order=%s
 	}	  
