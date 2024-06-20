@@ -152,7 +152,7 @@ func (r *managerResetResource) Create(ctx context.Context, req resource.CreateRe
 		Interval: defaultCheckInterval,
 		Timeout:  defaultCheckTimeout,
 	}
-	err = checker.Check(ctx,"")
+	err = checker.Check(ctx, "")
 	if err != nil {
 		resp.Diagnostics.AddError("Error while rebooting iDRAC. Operation may take longer duration to complete", err.Error())
 		return

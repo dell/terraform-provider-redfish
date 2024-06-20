@@ -320,7 +320,7 @@ func (r *virtualMediaResource) Read(ctx context.Context, req resource.ReadReques
 type VMediaImportConfig struct {
 	ServerConf
 	SystemID string `json:"system_id"`
-	ID string `json:"id"`
+	ID       string `json:"id"`
 }
 
 // ImportState is the RPC called to import state for existing Virtual Media

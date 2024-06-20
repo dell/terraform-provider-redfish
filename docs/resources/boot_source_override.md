@@ -192,6 +192,7 @@ After the successful execution of the above resource block, the boot source over
 - `boot_source_override_target` (String) The boot source override target device to use during the next boot instead of the normal boot device.
 - `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
 - `reset_timeout` (Number) Time in seconds that the provider waits for the server to be reset before timing out.
+- `system_id` (String) System ID of the system
 - `uefi_target_boot_source_override` (String) The UEFI device path of the device from which to boot when boot_source_override_target is UefiTarget
 
 ### Read-Only

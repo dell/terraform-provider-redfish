@@ -271,7 +271,7 @@ func certutils(params CertUtilsParam) (ok bool, summary string, details string) 
 		Interval: defaultCheckInterval,
 		Timeout:  defaultCheckTimeout,
 	}
-	err = checker.Check(params.ctx,"")
+	err = checker.Check(params.ctx, "")
 	if err != nil {
 		return false, "Error while rebooting iDRAC. Operation may take longer duration to complete", err.Error()
 	}

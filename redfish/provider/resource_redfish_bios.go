@@ -346,7 +346,7 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 		tflog.Info(ctx, "rebooting the server")
 		// reboot the server
 		pOp := powerOperator{ctx, service}
-		_, err := pOp.PowerOperation(plan.SystemID.ValueString(),resetType, resetTimeout, intervalBiosConfigJobCheckTime)
+		_, err := pOp.PowerOperation(plan.SystemID.ValueString(), resetType, resetTimeout, intervalBiosConfigJobCheckTime)
 		if err != nil {
 			// TODO: handle this scenario
 			diags.AddError("there was an issue restarting the server", err.Error())

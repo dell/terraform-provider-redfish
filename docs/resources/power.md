@@ -195,6 +195,7 @@ After the successful execution of the above resource block, Power state would ha
 - `check_interval` (Number) The frequency with which to check the server's power state in seconds
 - `maximum_wait_time` (Number) The maximum amount of time to wait for the server to enter the correct power state beforegiving up in seconds
 - `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
+- `system_id` (String) System ID of the system
 
 ### Read-Only
 

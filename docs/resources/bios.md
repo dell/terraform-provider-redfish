@@ -179,6 +179,7 @@ After the successful execution of the above resource block, Bios configuration w
 - `reset_timeout` (Number) reset_timeout is the time in seconds that the provider waits for the server to be reset before timing out.
 - `reset_type` (String) Reset type to apply on the computer system after the BIOS settings are applied. Applicable values are 'ForceRestart', 'GracefulRestart', and 'PowerCycle'.Default = "GracefulRestart".
 - `settings_apply_time` (String) The time when the BIOS settings can be applied. Applicable value is 'OnReset' only. In upcoming releases other apply time values will be supported. Default is "OnReset".
+- `system_id` (String) System ID of the system
 
 ### Read-Only
 

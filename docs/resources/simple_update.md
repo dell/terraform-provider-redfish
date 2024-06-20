@@ -187,6 +187,7 @@ After the successful execution of the above resource block, firmware would have 
 - `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
 - `reset_timeout` (Number) Time in seconds that the provider waits for the server to be reset before timing out.
 - `simple_update_job_timeout` (Number) Time in seconds that the provider waits for the simple update job to be completed before timing out.
+- `system_id` (String) System ID of the system
 
 ### Read-Only
 

@@ -184,6 +184,7 @@ After the successful execution of the above resource block, the boot order would
 - `boot_order_job_timeout` (Number) Time in seconds that the provider waits for the BootSource override job to be completed before timing out.
 - `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
 - `reset_timeout` (Number) Time in seconds that the provider waits for the server to be reset before timing out.
+- `system_id` (String) System ID of the system
 
 ### Read-Only
 
