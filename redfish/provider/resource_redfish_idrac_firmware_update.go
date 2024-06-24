@@ -291,7 +291,6 @@ func (r *idracFirmwareUpdateResource) Create(ctx context.Context, req resource.C
 	// Get Plan Data
 	var plan models.IdracFirmwareUpdate
 	diags := req.Plan.Get(ctx, &plan)
-
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -313,39 +312,34 @@ func (r *idracFirmwareUpdateResource) Create(ctx context.Context, req resource.C
 	plan.SystemID = types.StringValue(system.ID)
 	systemId := system.ODataID
 	plan.Id = types.StringValue("idrac_firmware_update")
-
 	payload, payloadError := GetInstallFirmwareUpdatePayload(plan)
-
 	if payloadError != nil {
 		resp.Diagnostics.AddError("Payload error", payloadError.Error())
 		return
 	}
 
 	res, err := service.GetClient().Post(fmt.Sprintf("%v%v", systemId, installURLLink), payload)
-	if err != nil {
+	if err != nil || res.StatusCode != http.StatusAccepted {
 		resp.Diagnostics.AddError("Post Install error", err.Error())
 		return
 	}
-	if res.StatusCode != http.StatusAccepted {
-		resp.Diagnostics.AddError("Post Install error", "the query was unsucessfull")
-		return
-	}
+
 	repoUpdateJobId := ExtractJobID(res.Header.Get("Location"))
 	if repoUpdateJobId == "" {
 		resp.Diagnostics.AddError("Check repository Updates job error", "job id not found")
 		return
 	}
+
 	repoUpdateJob, err := common.GetJobDetailsOnFinish(service, fmt.Sprintf("/redfish/v1/JobService/Jobs/%s", repoUpdateJobId),
 		int64(common.TimeBetweenAttempts), int64(common.Timeout))
 	if err != nil {
 		resp.Diagnostics.AddError("Check repository Updates job error", err.Error())
 		return
 	}
-	if repoUpdateJob != nil {
-		if repoUpdateJob.JobStatus == "Critical" {
-			resp.Diagnostics.AddError("Check repository Updates job error", repoUpdateJob.Messages[0].Message)
-			return
-		}
+
+	if repoUpdateJob != nil && repoUpdateJob.JobStatus == "Critical" {
+		resp.Diagnostics.AddError("Check repository Updates job error", repoUpdateJob.Messages[0].Message)
+		return
 	}
 
 	getpayload := map[string]interface{}{}
@@ -384,12 +378,10 @@ func (r *idracFirmwareUpdateResource) Create(ctx context.Context, req resource.C
 			return
 		}
 	}
-
 	// Use input values from plan
 	var state models.IdracFirmwareUpdate = plan
 	// Update the list of updates available using the parsed response
 	state.UpdateList, _ = GetUpdatedList(result, jobs)
-
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 

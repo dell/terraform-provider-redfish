@@ -303,7 +303,7 @@ func (r *BootSourceOverrideResource) bootOperation(ctx context.Context, service 
 	}
 
 	plan.SystemID = types.StringValue(system.ID)
-	
+
 	type Boot struct {
 		BootSourceOverrideMode    redfish.BootSourceOverrideMode
 		BootSourceOverrideEnabled redfish.BootSourceOverrideEnabled

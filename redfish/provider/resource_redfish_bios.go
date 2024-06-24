@@ -392,10 +392,10 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 	return state, nil
 }
 
-func (r *BiosResource) readRedfishDellBiosAttributes(service *gofish.Service, d *models.Bios) error {
+func (*BiosResource) readRedfishDellBiosAttributes(service *gofish.Service, d *models.Bios) error {
 	system, err := getSystemResource(service, d.SystemID.ValueString())
 	if err != nil {
-		return  fmt.Errorf("error fetching BIOS resource: %w", err)
+		return fmt.Errorf("error fetching BIOS resource: %w", err)
 	}
 
 	d.SystemID = types.StringValue(system.ID)
