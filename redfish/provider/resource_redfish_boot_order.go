@@ -35,6 +35,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -154,6 +156,9 @@ func BootOrderSchema() map[string]schema.Attribute {
 			Description:         "System ID of the system",
 			Computed:            true,
 			Optional:            true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplaceIfConfigured(),
+			},
 		},
 	}
 }
@@ -292,6 +297,7 @@ func (*BootOrderResource) ImportState(ctx context.Context, req resource.ImportSt
 		Password    string `json:"password"`
 		Endpoint    string `json:"endpoint"`
 		SslInsecure bool   `json:"ssl_insecure"`
+		SystemID    string `json:"system_id"`
 	}
 
 	var c creds
@@ -308,6 +314,7 @@ func (*BootOrderResource) ImportState(ctx context.Context, req resource.ImportSt
 
 	redfishServer := tfpath.Root("redfish_server")
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, redfishServer, []models.RedfishServer{server})...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, tfpath.Root("system_id"), types.StringValue(c.SystemID))...)
 }
 
 func (r *BootOrderResource) bootOperation(ctx context.Context, service *gofish.Service, plan *models.BootOrder) diag.Diagnostics {
@@ -370,6 +377,7 @@ func (r *BootOrderResource) readRedfishBootAttributes(system *redfish.ComputerSy
 	d.ResetType = plan.ResetType
 	stateval, diags := r.getUpdatedBootOptions(system, plan)
 	d.BootOptions = stateval
+	d.SystemID = types.StringValue(system.ID)
 	return diags
 }
 

@@ -214,6 +214,9 @@ func idracFirmwareUpdateSchema() map[string]schema.Attribute {
 			Description:         "System ID of the system",
 			Computed:            true,
 			Optional:            true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplaceIfConfigured(),
+			},
 		},
 		"update_list": schema.ListNestedAttribute{
 			Description:         "List of properties of the update list.",
@@ -307,6 +310,7 @@ func (r *idracFirmwareUpdateResource) Create(ctx context.Context, req resource.C
 		resp.Diagnostics.AddError("system error", err.Error())
 		return
 	}
+	plan.SystemID = types.StringValue(system.ID)
 	systemId := system.ODataID
 	plan.Id = types.StringValue("idrac_firmware_update")
 

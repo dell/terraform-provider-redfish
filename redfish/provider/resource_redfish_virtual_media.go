@@ -30,6 +30,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -126,6 +128,9 @@ func VirtualMediaSchema() map[string]schema.Attribute {
 			Description:         "System ID of the system",
 			Computed:            true,
 			Optional:            true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplaceIfConfigured(),
+			},
 		},
 	}
 }
@@ -172,6 +177,7 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		WriteProtected:       plan.WriteProtected.ValueBool(),
 	}
 	env, d := r.getVMEnv(&plan.RedfishServer, plan.SystemID.ValueString())
+	plan.SystemID = types.StringValue(env.system.ID)
 	resp.Diagnostics = append(resp.Diagnostics, d...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -228,6 +234,7 @@ type virtualMediaEnvironment struct {
 	isManager  bool
 	collection []*redfish.VirtualMedia
 	service    *gofish.Service
+	system     *redfish.ComputerSystem
 }
 
 func (r *virtualMediaResource) getVMEnv(rserver *[]models.RedfishServer, sysID string) (virtualMediaEnvironment, diag.Diagnostics) {
@@ -246,7 +253,7 @@ func (r *virtualMediaResource) getVMEnv(rserver *[]models.RedfishServer, sysID s
 		d.AddError("Error when retrieving systems", err.Error())
 		return env, d
 	}
-	// env.system = system
+	env.system = system
 	// Get virtual media collection from system
 	virtualMediaCollection, err := system.VirtualMedia()
 	if err != nil {

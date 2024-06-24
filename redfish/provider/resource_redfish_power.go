@@ -127,6 +127,9 @@ func PowerSchema() map[string]schema.Attribute {
 			Description:         "System ID of the system",
 			Computed:            true,
 			Optional:            true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplaceIfConfigured(),
+			},
 		},
 	}
 }
@@ -168,7 +171,7 @@ func (r *powerResource) Create(ctx context.Context, req resource.CreateRequest, 
 		resp.Diagnostics.AddError("system error", err.Error())
 		return
 	}
-
+	plan.SystemID = types.StringValue(system.ID)
 	plan.PowerId = types.StringValue(system.SerialNumber + "_power")
 
 	resetType := plan.DesiredPowerAction.ValueString()
@@ -214,7 +217,7 @@ func (r *powerResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		resp.Diagnostics.AddError("system error", err.Error())
 		return
 	}
-
+	state.SystemID = types.StringValue(system.ID)
 	state.PowerState = types.StringValue(string(system.PowerState))
 
 	tflog.Trace(ctx, "resource_power read: finished reading state")
@@ -245,7 +248,7 @@ func (*powerResource) Update(ctx context.Context, req resource.UpdateRequest, re
 	state.MaximumWaitTime = plan.MaximumWaitTime
 	state.CheckInterval = plan.CheckInterval
 	state.RedfishServer = plan.RedfishServer
-
+	state.SystemID = plan.SystemID
 	tflog.Trace(ctx, "resource_power update: finished state update")
 	// Save into State
 	diags = resp.State.Set(ctx, &state)

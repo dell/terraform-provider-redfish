@@ -38,7 +38,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -266,6 +268,9 @@ func VolumeSchema() map[string]schema.Attribute {
 			Description:         "System ID of the system",
 			Computed:            true,
 			Optional:            true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplaceIfConfigured(),
+			},
 		},
 	}
 }
@@ -420,6 +425,7 @@ func (*RedfishStorageVolumeResource) ImportState(ctx context.Context, req resour
 		Endpoint    string `json:"endpoint"`
 		SslInsecure bool   `json:"ssl_insecure"`
 		Id          string `json:"id"`
+		SystemID    string `json:"system_id"`
 	}
 
 	var c creds
@@ -441,12 +447,14 @@ func (*RedfishStorageVolumeResource) ImportState(ctx context.Context, req resour
 	resetType := path.Root("reset_type")
 	volumeJobTimeout := path.Root("volume_job_timeout")
 	settingsApplyTime := path.Root("settings_apply_time")
+	systemID := path.Root("system_id")
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, resetTimeout, defaultStorageVolumeResetTimeout)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, resetType, string(redfish.ForceRestartResetType))...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, volumeJobTimeout, defaultStorageVolumeJobTimeout)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, settingsApplyTime, string(redfishcommon.ImmediateApplyTime))...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, idAttrPath, c.Id)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, redfishServer, []models.RedfishServer{server})...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, systemID, c.SystemID)...)
 }
 
 func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d *models.RedfishStorageVolume) diag.Diagnostics {
@@ -478,11 +486,13 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 	diags.Append(d.Drives.ElementsAs(ctx, &driveNames, true)...)
 
 	// Get storage
-	storage, err := getStorage(service, d.SystemID.ValueString(), storageID)
+	storage, system, err := getStorage(service, d.SystemID.ValueString(), storageID)
 	if err != nil {
 		diags.AddError("Error when retreiving the Storage from the Redfish API", err.Error())
 		return diags
 	}
+
+	d.SystemID = types.StringValue(system.ID)
 
 	// Check if settings_apply_time is doable on this controller
 	err = checkSettingsApplyTime(storage, applyTime)
@@ -640,12 +650,13 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service,
 	volumeJobTimeout := d.ResetTimeout.ValueInt64()
 
 	// Get storage
-	storage, err := getStorage(service, d.SystemID.ValueString(), storageID)
+	storage, system, err := getStorage(service, d.SystemID.ValueString(), storageID)
 	if err != nil {
 		diags.AddError("Error when retreiving storage details from the Redfish API", err.Error())
 		return diags
 	}
 
+	d.SystemID = types.StringValue(system.ID)
 	// Check if settings_apply_time is doable on this controller
 	err = checkSettingsApplyTime(storage, applyTime)
 	if err != nil {
@@ -811,22 +822,22 @@ func checkSettingsApplyTime(storage *redfish.Storage, applyTime string) error {
 	return nil
 }
 
-func getStorage(service *gofish.Service, sysID string, storageID string) (*redfish.Storage, error) {
+func getStorage(service *gofish.Service, sysID string, storageID string) (*redfish.Storage, *redfish.ComputerSystem, error) {
 	system, err := getSystemResource(service, sysID)
 	if err != nil {
-		return nil, fmt.Errorf("error when retreiving the Systems from the Redfish API: %w", err)
+		return nil, nil, fmt.Errorf("error when retreiving the Systems from the Redfish API: %w", err)
 	}
 
 	storageControllers, err := system.Storage()
 	if err != nil {
-		return nil, fmt.Errorf("error when retreiving the Storage from the Redfish API: %w", err)
+		return nil, system, fmt.Errorf("error when retreiving the Storage from the Redfish API: %w", err)
 	}
 
 	storage, err := getStorageController(storageControllers, storageID)
 	if err != nil {
-		return nil, fmt.Errorf("error when getting the storage struct: %w", err)
+		return nil, system, fmt.Errorf("error when getting the storage struct: %w", err)
 	}
-	return storage, nil
+	return storage, system, nil
 }
 
 /*

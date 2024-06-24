@@ -176,6 +176,9 @@ func simpleUpdateSchema() map[string]schema.Attribute {
 			Description:         "System ID of the system",
 			Computed:            true,
 			Optional:            true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplaceIfConfigured(),
+			},
 		},
 	}
 }
@@ -232,7 +235,7 @@ func (r *simpleUpdateResource) Create(ctx context.Context, req resource.CreateRe
 		resp.Diagnostics.AddError("system error", err.Error())
 		return
 	}
-
+	plan.SystemID = types.StringValue(system.ID)
 	plan.Id = types.StringValue(system.SerialNumber + "_simple_update")
 
 	// resetType := plan.DesiredPowerAction.ValueString()
@@ -322,7 +325,7 @@ func (u *simpleUpdater) updateRedfishSimpleUpdate(d models.SimpleUpdateRes) (dia
 	resetType := d.ResetType.ValueString()
 
 	// Check if chosen reset type is supported before doing anything else
-	systems, err := u.service.Systems()
+	system, err := getSystemResource(u.service, d.SystemID.ValueString())
 	if err != nil {
 		diags.AddError(
 			"Couldn't retrieve allowed reset types from systems",
@@ -332,7 +335,7 @@ func (u *simpleUpdater) updateRedfishSimpleUpdate(d models.SimpleUpdateRes) (dia
 	}
 	tflog.Debug(u.ctx, "resource_simple_update : found system")
 
-	if ok := checkResetType(resetType, systems[0].SupportedResetTypes); !ok {
+	if ok := checkResetType(resetType, system.SupportedResetTypes); !ok {
 		diags.AddError(
 			fmt.Sprintf("Reset type %s is not available in this redfish implementation", resetType),
 			err.Error(),

@@ -196,6 +196,9 @@ func BootSourceOverrideSchema() map[string]schema.Attribute {
 			Description:         "System ID of the system",
 			Computed:            true,
 			Optional:            true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplaceIfConfigured(),
+			},
 		},
 	}
 }
@@ -299,6 +302,8 @@ func (r *BootSourceOverrideResource) bootOperation(ctx context.Context, service 
 		return diags
 	}
 
+	plan.SystemID = types.StringValue(system.ID)
+	
 	type Boot struct {
 		BootSourceOverrideMode    redfish.BootSourceOverrideMode
 		BootSourceOverrideEnabled redfish.BootSourceOverrideEnabled
