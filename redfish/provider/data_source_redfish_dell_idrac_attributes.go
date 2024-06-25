@@ -104,11 +104,13 @@ func (g *DellIdracAttributesDatasource) Read(ctx context.Context, req datasource
 	if state.ID.IsUnknown() {
 		state.ID = types.StringValue("placeholder")
 	}
-	service, err := NewConfig(g.p, &state.RedfishServer)
+	api, err := NewConfig(g.p, &state.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 	diags = readDatasourceRedfishDellIdracAttributes(service, &state)
 	resp.Diagnostics.Append(diags...)
 	diags = resp.State.Set(ctx, &state)

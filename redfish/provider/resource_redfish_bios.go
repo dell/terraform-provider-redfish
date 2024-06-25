@@ -169,11 +169,13 @@ func (r *BiosResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
-	service, err := NewConfig(r.p, &plan.RedfishServer)
+	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	state, diags := r.updateRedfishDellBiosAttributes(ctx, service, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -199,11 +201,13 @@ func (r *BiosResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
-	service, err := NewConfig(r.p, &state.RedfishServer)
+	api, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	err = r.readRedfishDellBiosAttributes(service, &state)
 	if err != nil {
@@ -233,11 +237,13 @@ func (r *BiosResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	service, err := NewConfig(r.p, &plan.RedfishServer)
+	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	state, diags := r.updateRedfishDellBiosAttributes(ctx, service, &plan)
 	resp.Diagnostics.Append(diags...)

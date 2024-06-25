@@ -495,11 +495,13 @@ func (r *ScpImportResource) Create(ctx context.Context, req resource.CreateReque
 	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
 	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
 
-	service, err := NewConfig(r.p, &plan.RedfishServer)
+	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	log, err := scpImportExecutor(ctx, service, plan)
 	if err != nil {

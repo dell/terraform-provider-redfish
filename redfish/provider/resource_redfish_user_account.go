@@ -155,11 +155,13 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
 	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
 
-	service, err := NewConfig(r.p, &plan.RedfishServer)
+	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	tflog.Trace(ctx, "resource_user_account create: updating state finished, saving ...")
 	password := plan.Password.ValueString()
@@ -261,11 +263,13 @@ func (r *UserAccountResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	service, err := NewConfig(r.p, &state.RedfishServer)
+	api, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	_, account, err := GetUserAccountFromID(service, state.ID.ValueString())
 	if err != nil {
@@ -310,11 +314,13 @@ func (r *UserAccountResource) Update(ctx context.Context, req resource.UpdateReq
 	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
 	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
 
-	service, err := NewConfig(r.p, &plan.RedfishServer)
+	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	// validate Password
 	err = validatePassword(plan.Password.ValueString())
@@ -382,11 +388,13 @@ func (r *UserAccountResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	service, err := NewConfig(r.p, &state.RedfishServer)
+	api, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	_, account, err := GetUserAccountFromID(service, state.ID.ValueString())
 	if err != nil {

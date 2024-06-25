@@ -19,7 +19,6 @@ package provider
 
 import (
 	"context"
-
 	"terraform-provider-redfish/redfish/models"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -119,11 +118,13 @@ func (g *SystemBootDatasource) Read(ctx context.Context, req datasource.ReadRequ
 	var plan models.SystemBootDataSource
 	diags := req.Config.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
-	service, err := NewConfig(g.p, &plan.RedfishServer)
+	api, err := NewConfig(g.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 	state, diags := readRedfishSystemBoot(service, plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {

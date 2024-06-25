@@ -459,11 +459,13 @@ func (r *ScpExportResource) Create(ctx context.Context, req resource.CreateReque
 	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
 	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
 
-	service, err := NewConfig(r.p, &plan.RedfishServer)
+	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error - config create", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	content, err := scpExportExecutor(ctx, service, plan)
 	if err != nil {

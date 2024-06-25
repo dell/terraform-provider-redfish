@@ -291,11 +291,14 @@ func (r *idracFirmwareUpdateResource) Create(ctx context.Context, req resource.C
 	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
 	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
 
-	service, err := NewConfig(r.p, &plan.RedfishServer)
+	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
+
 	system, err := getSystemResource(service)
 	if err != nil {
 		resp.Diagnostics.AddError("system error", err.Error())
@@ -305,7 +308,6 @@ func (r *idracFirmwareUpdateResource) Create(ctx context.Context, req resource.C
 	plan.Id = types.StringValue("idrac_firmware_update")
 
 	payload, payloadError := GetInstallFirmwareUpdatePayload(plan)
-
 	if payloadError != nil {
 		resp.Diagnostics.AddError("Payload error", payloadError.Error())
 		return
@@ -379,7 +381,6 @@ func (r *idracFirmwareUpdateResource) Create(ctx context.Context, req resource.C
 	var state models.IdracFirmwareUpdate = plan
 	// Update the list of updates available using the parsed response
 	state.UpdateList, _ = GetUpdatedList(result, jobs)
-
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
