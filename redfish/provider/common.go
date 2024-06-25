@@ -153,7 +153,7 @@ func getSystemResource(service *gofish.Service) (*redfish.ComputerSystem, error)
 // See https://github.com/stmcginnis/gofish for details. This function returns a Service struct which can then be
 // used to make any required API calls.
 // To-Do: Verify from plan modifier, if required implement wrapper for validation of unknown in redfish_server.
-func NewConfig(pconfig *redfishProvider, rserver *[]models.RedfishServer) (*gofish.Service, error) {
+func NewConfig(pconfig *redfishProvider, rserver *[]models.RedfishServer) (*gofish.APIClient, error) {
 	if len(*rserver) == 0 {
 		return nil, fmt.Errorf("no provider block was found")
 	}
@@ -186,18 +186,18 @@ func NewConfig(pconfig *redfishProvider, rserver *[]models.RedfishServer) (*gofi
 	}
 
 	clientConfig := gofish.ClientConfig{
-		Endpoint:  rserver1.Endpoint.ValueString(),
-		Username:  redfishClientUser,
-		Password:  redfishClientPass,
-		BasicAuth: true,
-		Insecure:  rserver1.SslInsecure.ValueBool(),
+		Endpoint: rserver1.Endpoint.ValueString(),
+		Username: redfishClientUser,
+		Password: redfishClientPass,
+		Insecure: rserver1.SslInsecure.ValueBool(),
 	}
+
 	api, err := gofish.Connect(clientConfig)
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to redfish API: %w", err)
 	}
 	log.Printf("Connection with the redfish endpoint %v was sucessful\n", rserver1.Endpoint.ValueString())
-	return api.Service, nil
+	return api, nil
 }
 
 type powerOperator struct {

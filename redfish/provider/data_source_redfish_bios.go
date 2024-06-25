@@ -108,13 +108,14 @@ func (g *BiosDatasource) Read(ctx context.Context, req datasource.ReadRequest, r
 	var plan models.BiosDatasource
 	diags := req.Config.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
-	service, err := NewConfig(g.p, &plan.RedfishServer)
+	api, err := NewConfig(g.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
+	defer api.Logout()
 	g.ctx = ctx
-	g.service = service
+	g.service = api.Service
 	state, diags := g.readDatasourceRedfishBios(plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {

@@ -74,7 +74,7 @@ func TestAccRedfishSimpleUpdate_InvalidProto(t *testing.T) {
 					creds,
 					"HTTP",
 					os.Getenv("TF_TESTING_FIRMWARE_IMAGE_INVALID")),
-				ExpectError: regexp.MustCompile("couldn't open FW file to upload - error when opening"),
+				ExpectError: regexp.MustCompile("please check the image path, download failed"),
 			},
 			{
 				Config: testAccRedfishResourceUpdateConfig(

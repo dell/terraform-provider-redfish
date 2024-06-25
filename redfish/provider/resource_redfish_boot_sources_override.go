@@ -221,11 +221,13 @@ func (r *BootSourceOverrideResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
-	service, err := NewConfig(r.p, &plan.RedfishServer)
+	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	diags = r.bootOperation(ctx, service, &plan)
 	resp.Diagnostics.Append(diags...)

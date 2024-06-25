@@ -165,11 +165,12 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		TransferProtocolType: redfish.TransferProtocolType(plan.TransferProtocolType.ValueString()),
 		WriteProtected:       plan.WriteProtected.ValueBool(),
 	}
-	env, d := r.getVMEnv(&plan.RedfishServer)
+	api, env, d := r.getVMEnv(&plan.RedfishServer)
 	resp.Diagnostics = append(resp.Diagnostics, d...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	defer api.Logout()
 	service, virtualMediaCollection := env.service, env.collection
 
 	if !env.isManager {
@@ -224,34 +225,35 @@ type virtualMediaEnvironment struct {
 	service    *gofish.Service
 }
 
-func (r *virtualMediaResource) getVMEnv(rserver *[]models.RedfishServer) (virtualMediaEnvironment, diag.Diagnostics) {
+func (r *virtualMediaResource) getVMEnv(rserver *[]models.RedfishServer) (*gofish.APIClient, virtualMediaEnvironment, diag.Diagnostics) {
 	var d diag.Diagnostics
 	var env virtualMediaEnvironment
 	// Get service
-	service, err := NewConfig(r.p, rserver)
+	api, err := NewConfig(r.p, rserver)
 	if err != nil {
 		d.AddError(ServiceErrorMsg, err.Error())
-		return env, d
+		return api, env, d
 	}
+	service := api.Service
 	env.service = service
 	// Get Systems details
 	system, err := getSystemResource(service)
 	if err != nil {
 		d.AddError("Error when retrieving systems", err.Error())
-		return env, d
+		return api, env, d
 	}
 	// env.system = system
 	// Get virtual media collection from system
 	virtualMediaCollection, err := system.VirtualMedia()
 	if err != nil {
 		d.AddError("Couldn't retrieve virtual media collection from redfish API", err.Error())
-		return env, d
+		return api, env, d
 	}
 	if len(virtualMediaCollection) != 0 {
 		// This happens in iDRAC 6.x and later
 		env.collection = virtualMediaCollection
 		env.isManager = false
-		return env, d
+		return api, env, d
 	}
 	// This implementation is added to support iDRAC firmware version 5.x. As virtual media can only be accessed through Managers card on 5.x.
 	// Get OOB Manager card - managers[0] will be our oob card
@@ -259,16 +261,16 @@ func (r *virtualMediaResource) getVMEnv(rserver *[]models.RedfishServer) (virtua
 	managers, err := service.Managers()
 	if err != nil {
 		d.AddError("Couldn't retrieve managers from redfish API: ", err.Error())
-		return env, d
+		return api, env, d
 	}
 	// Get virtual media collection from manager
 	virtualMediaCollection, err = managers[0].VirtualMedia()
 	if err != nil {
 		d.AddError("Couldn't retrieve virtual media collection from redfish API: ", err.Error())
-		return env, d
+		return api, env, d
 	}
 	env.collection = virtualMediaCollection
-	return env, d
+	return api, env, d
 }
 
 // Read refreshes the Terraform state with the latest data.
@@ -283,11 +285,13 @@ func (r *virtualMediaResource) Read(ctx context.Context, req resource.ReadReques
 	}
 
 	// Get service
-	service, err := NewConfig(r.p, &state.RedfishServer)
+	api, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	// Get virtual media details
 	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), state.VirtualMediaID.ValueString())
@@ -334,11 +338,12 @@ func (r *virtualMediaResource) ImportState(ctx context.Context, req resource.Imp
 
 	creds := []models.RedfishServer{server}
 
-	env, d := r.getVMEnv(&creds)
+	api, env, d := r.getVMEnv(&creds)
 	resp.Diagnostics = append(resp.Diagnostics, d...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	defer api.Logout()
 
 	// get virtual media with given ID
 	var media *redfish.VirtualMedia
@@ -390,11 +395,13 @@ func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRe
 	}
 
 	// Get service
-	service, err := NewConfig(r.p, &plan.RedfishServer)
+	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	// Validate image extension
 	image := plan.Image.ValueString()
@@ -477,11 +484,13 @@ func (r *virtualMediaResource) Delete(ctx context.Context, req resource.DeleteRe
 	}
 
 	// Get service
-	service, err := NewConfig(r.p, &state.RedfishServer)
+	api, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	// Get virtual media details
 	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), state.VirtualMediaID.ValueString())
