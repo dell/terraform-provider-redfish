@@ -96,6 +96,12 @@ func StorageDatasourceSchema() map[string]schema.Attribute {
 			Optional:            true,
 			ElementType:         types.StringType,
 		},
+		"system_id": schema.StringAttribute{
+			MarkdownDescription: "System ID of the system",
+			Description:         "System ID of the system",
+			Computed:            true,
+			Optional:            true,
+		},
 		"storage": schema.ListNestedAttribute{
 			MarkdownDescription: "List of storage controllers fetched.",
 			Description:         "List of storage controllers fetched.",
@@ -137,13 +143,13 @@ func (g *StorageDatasource) readDatasourceRedfishStorage(d models.StorageDatasou
 	controllers := append(controllerIDs, controllerNames...)
 	d.ID = types.StringValue(fmt.Sprintf("%d", time.Now().Unix()))
 
-	systems, err := g.service.Systems()
+	system, err := getSystemResource(g.service, d.SystemID.ValueString())
 	if err != nil {
-		diags.AddError("Error fetching computer systems collection", err.Error())
+		diags.AddError("Error fetching computer system", err.Error())
 		return d, diags
 	}
 
-	storage, err := systems[0].Storage()
+	storage, err := system.Storage()
 	if err != nil {
 		diags.AddError("Error fetching storage", err.Error())
 		return d, diags

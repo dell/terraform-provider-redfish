@@ -332,7 +332,7 @@ func testAccRedfishResourceStorageVolumeConfig(testingInfo TestingServerCredenti
 		  endpoint     = "https://%s"
 		  ssl_insecure = true
 		}
-	  
+
 		storage_controller_id = "%s"
 		volume_name           = "%s"
 		raid_type           = "%s"
@@ -431,7 +431,7 @@ func testAccRedfishResourceStorageVolumeMinConfig(testingInfo TestingServerCrede
 		  endpoint     = "https://%s"
 		  ssl_insecure = true
 		}
-	  
+	    system_id = "System.Embedded.1"
 		storage_controller_id = "%s"
 		volume_name           = "%s"
 		raid_type           = "%s"

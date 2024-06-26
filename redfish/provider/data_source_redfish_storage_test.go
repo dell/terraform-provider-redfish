@@ -110,6 +110,7 @@ func testAccStorageDatasourceWithBothConfig(testingInfo TestingServerCredentials
 		  endpoint     = "https://%s"
 		  ssl_insecure = true
 		}
+		system_id = "System.Embedded.1"
 		controller_ids = ["AHCI.Embedded.2-1"]
 		controller_names = ["PERC H730P Mini"]
 	  }

@@ -122,6 +122,15 @@ func PowerSchema() map[string]schema.Attribute {
 				"'GracefulRestart','GracefulShutdown','PowerCycle', 'PushPowerButton', 'Nmi'.",
 			Computed: true,
 		},
+		"system_id": schema.StringAttribute{
+			MarkdownDescription: "System ID of the system",
+			Description:         "System ID of the system",
+			Computed:            true,
+			Optional:            true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplaceIfConfigured(),
+			},
+		},
 	}
 }
 
@@ -159,16 +168,16 @@ func (r *powerResource) Create(ctx context.Context, req resource.CreateRequest, 
 	}
 	service := api.Service
 	defer api.Logout()
-	system, err := getSystemResource(service)
+	system, err := getSystemResource(service, plan.SystemID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("system error", err.Error())
 		return
 	}
-
+	plan.SystemID = types.StringValue(system.ID)
 	plan.PowerId = types.StringValue(system.SerialNumber + "_power")
 
 	resetType := plan.DesiredPowerAction.ValueString()
-	pOp := powerOperator{ctx, service}
+	pOp := powerOperator{ctx, service, plan.SystemID.ValueString()}
 	powerState, pErr := pOp.PowerOperation(resetType, plan.MaximumWaitTime.ValueInt64(), plan.CheckInterval.ValueInt64())
 	if pErr != nil {
 		return
@@ -207,12 +216,12 @@ func (r *powerResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	service := api.Service
 	defer api.Logout()
 
-	system, err := getSystemResource(service)
+	system, err := getSystemResource(service, state.SystemID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("system error", err.Error())
 		return
 	}
-
+	state.SystemID = types.StringValue(system.ID)
 	state.PowerState = types.StringValue(string(system.PowerState))
 
 	tflog.Trace(ctx, "resource_power read: finished reading state")
@@ -243,7 +252,7 @@ func (*powerResource) Update(ctx context.Context, req resource.UpdateRequest, re
 	state.MaximumWaitTime = plan.MaximumWaitTime
 	state.CheckInterval = plan.CheckInterval
 	state.RedfishServer = plan.RedfishServer
-
+	state.SystemID = plan.SystemID
 	tflog.Trace(ctx, "resource_power update: finished state update")
 	// Save into State
 	diags = resp.State.Set(ctx, &state)

@@ -28,6 +28,7 @@ type BiosDatasource struct {
 	RedfishServer []RedfishServer   `tfsdk:"redfish_server"`
 	Attributes    types.Map         `tfsdk:"attributes"`
 	BootOptions   []BiosBootOptions `tfsdk:"boot_options"`
+	SystemID      types.String      `tfsdk:"system_id"`
 }
 
 // Bios is struct to create schema for bios resource
@@ -39,6 +40,7 @@ type Bios struct {
 	ResetType         types.String    `tfsdk:"reset_type"`
 	ResetTimeout      types.Int64     `tfsdk:"reset_timeout"`
 	JobTimeout        types.Int64     `tfsdk:"bios_job_timeout"`
+	SystemID          types.String    `tfsdk:"system_id"`
 }
 
 // BiosBootOptions is strut for configuring boot options

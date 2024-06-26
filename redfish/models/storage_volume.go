@@ -38,4 +38,5 @@ type RedfishStorageVolume struct {
 	VolumeType          types.String    `tfsdk:"volume_type"`
 	WriteCachePolicy    types.String    `tfsdk:"write_cache_policy"`
 	Encrypted           types.Bool      `tfsdk:"encrypted"`
+	SystemID            types.String    `tfsdk:"system_id"`
 }

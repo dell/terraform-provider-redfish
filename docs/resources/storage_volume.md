@@ -230,6 +230,7 @@ After the successful execution of the above resource block, virtual disk would h
 - `reset_timeout` (Number) Reset Timeout
 - `reset_type` (String) Reset Type
 - `settings_apply_time` (String) Settings Apply Time
+- `system_id` (String) System ID of the system
 - `volume_job_timeout` (Number) Volume Job Timeout
 - `volume_type` (String, Deprecated) Volume Type
 - `write_cache_policy` (String) Write Cache Policy

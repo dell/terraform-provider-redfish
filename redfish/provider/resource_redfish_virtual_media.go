@@ -30,6 +30,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -121,6 +123,15 @@ func VirtualMediaSchema() map[string]schema.Attribute {
 			MarkdownDescription: "Indicates whether the remote device media prevents writing to that media.",
 			Default:             booldefault.StaticBool(true),
 		},
+		"system_id": schema.StringAttribute{
+			MarkdownDescription: "System ID of the system",
+			Description:         "System ID of the system",
+			Computed:            true,
+			Optional:            true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplaceIfConfigured(),
+			},
+		},
 	}
 }
 
@@ -165,7 +176,8 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		TransferProtocolType: redfish.TransferProtocolType(plan.TransferProtocolType.ValueString()),
 		WriteProtected:       plan.WriteProtected.ValueBool(),
 	}
-	api, env, d := r.getVMEnv(&plan.RedfishServer)
+	api, env, d := r.getVMEnv(&plan.RedfishServer, plan.SystemID.ValueString())
+	plan.SystemID = types.StringValue(env.system.ID)
 	resp.Diagnostics = append(resp.Diagnostics, d...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -223,9 +235,12 @@ type virtualMediaEnvironment struct {
 	isManager  bool
 	collection []*redfish.VirtualMedia
 	service    *gofish.Service
+	system     *redfish.ComputerSystem
 }
 
-func (r *virtualMediaResource) getVMEnv(rserver *[]models.RedfishServer) (*gofish.APIClient, virtualMediaEnvironment, diag.Diagnostics) {
+func (r *virtualMediaResource) getVMEnv(rserver *[]models.RedfishServer, sysID string) (
+	*gofish.APIClient, virtualMediaEnvironment, diag.Diagnostics,
+) {
 	var d diag.Diagnostics
 	var env virtualMediaEnvironment
 	// Get service
@@ -237,12 +252,12 @@ func (r *virtualMediaResource) getVMEnv(rserver *[]models.RedfishServer) (*gofis
 	service := api.Service
 	env.service = service
 	// Get Systems details
-	system, err := getSystemResource(service)
+	system, err := getSystemResource(service, sysID)
 	if err != nil {
 		d.AddError("Error when retrieving systems", err.Error())
 		return api, env, d
 	}
-	// env.system = system
+	env.system = system
 	// Get virtual media collection from system
 	virtualMediaCollection, err := system.VirtualMedia()
 	if err != nil {
@@ -317,7 +332,8 @@ func (r *virtualMediaResource) Read(ctx context.Context, req resource.ReadReques
 // VMediaImportConfig is the JSON configuration for importing a virtual media
 type VMediaImportConfig struct {
 	ServerConf
-	ID string `json:"id"`
+	SystemID string `json:"system_id"`
+	ID       string `json:"id"`
 }
 
 // ImportState is the RPC called to import state for existing Virtual Media
@@ -338,7 +354,7 @@ func (r *virtualMediaResource) ImportState(ctx context.Context, req resource.Imp
 
 	creds := []models.RedfishServer{server}
 
-	api, env, d := r.getVMEnv(&creds)
+	api, env, d := r.getVMEnv(&creds, c.SystemID)
 	resp.Diagnostics = append(resp.Diagnostics, d...)
 	if resp.Diagnostics.HasError() {
 		return

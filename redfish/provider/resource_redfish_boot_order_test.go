@@ -60,6 +60,12 @@ func TestAccRedfishBootOrderOptions_basic(t *testing.T) {
 				ExpectError:   nil,
 			},
 			{
+				ResourceName:  "redfish_boot_order.boot",
+				ImportState:   true,
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true, \"system_id\":\"System.Embedded.1\"}",
+				ExpectError:   nil,
+			},
+			{
 				Config: testAccRedfishResourceBootOptions(creds, os.Getenv("TF_TESTING_BOOT_OPTION_REFERENCE"), false),
 			},
 		},
@@ -76,7 +82,7 @@ func testAccRedfishResourceBootOrder(testingInfo TestingServerCredentials, bootO
 			endpoint = "https://%s"
 			ssl_insecure = true
 		}
-	   
+	   	system_id = "System.Embedded.1"
 		reset_type="ForceRestart"
 		boot_order=%s
 	}	  

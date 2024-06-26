@@ -165,6 +165,7 @@ After the successful execution of the above data block, we can see the output in
 ### Optional
 
 - `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
+- `system_id` (String) System ID of the system
 
 ### Read-Only
 

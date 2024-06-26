@@ -29,4 +29,5 @@ type Power struct {
 	MaximumWaitTime    types.Int64     `tfsdk:"maximum_wait_time"`
 	CheckInterval      types.Int64     `tfsdk:"check_interval"`
 	PowerState         types.String    `tfsdk:"power_state"`
+	SystemID           types.String    `tfsdk:"system_id"`
 }

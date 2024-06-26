@@ -95,6 +95,23 @@ func TestAccRedfishBios_Import(t *testing.T) {
 	})
 }
 
+func TestAccRedfishBios_ImportSystemID(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceBiosConfigOn(
+					creds),
+				ResourceName:  "redfish_bios.bios",
+				ImportState:   true,
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true,\"system_id\":\"System.Embedded.1\"}",
+				ExpectError:   nil,
+			},
+		},
+	})
+}
+
 func testAccRedfishResourceBiosConfigOn(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
 
@@ -111,6 +128,7 @@ func testAccRedfishResourceBiosConfigOn(testingInfo TestingServerCredentials) st
 			"NumLock" = "On"
 		  }
 		  reset_type = "ForceRestart"
+		//   system_id = "System.Embedded.1"
 		}
 		`,
 		testingInfo.Username,

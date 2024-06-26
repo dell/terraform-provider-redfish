@@ -167,6 +167,7 @@ After the successful execution of the above data block, we can see the output in
 - `controller_ids` (List of String) List of IDs of the storage controllers to be fetched.
 - `controller_names` (List of String) List of names of the storage controller to be fetched.
 - `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
+- `system_id` (String) System ID of the system
 
 ### Read-Only
 

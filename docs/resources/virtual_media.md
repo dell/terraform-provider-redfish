@@ -184,6 +184,7 @@ After the successful execution of the above resource block, virtual media would 
 ### Optional
 
 - `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
+- `system_id` (String) System ID of the system
 - `transfer_method` (String) Indicates how the data is transferred
 - `transfer_protocol_type` (String) The protocol used to transfer.
 - `write_protected` (Boolean) Indicates whether the remote device media prevents writing to that media.

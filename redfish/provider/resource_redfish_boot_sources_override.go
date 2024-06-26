@@ -191,6 +191,15 @@ func BootSourceOverrideSchema() map[string]schema.Attribute {
 			Description:         "Time in seconds that the provider waits for the BootSource override job to be completed before timing out.",
 			MarkdownDescription: "Time in seconds that the provider waits for the BootSource override job to be completed before timing out.",
 		},
+		"system_id": schema.StringAttribute{
+			MarkdownDescription: "System ID of the system",
+			Description:         "System ID of the system",
+			Computed:            true,
+			Optional:            true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplaceIfConfigured(),
+			},
+		},
 	}
 }
 
@@ -289,11 +298,13 @@ func (r *BootSourceOverrideResource) bootOperation(ctx context.Context, service 
 	var resp *http.Response
 	var diags diag.Diagnostics
 
-	system, err := getSystemResource(service)
+	system, err := getSystemResource(service, plan.SystemID.ValueString())
 	if err != nil {
 		diags.AddError("[ERROR]: Failed to get system resource", err.Error())
 		return diags
 	}
+
+	plan.SystemID = types.StringValue(system.ID)
 
 	type Boot struct {
 		BootSourceOverrideMode    redfish.BootSourceOverrideMode
@@ -329,7 +340,7 @@ func (*BootSourceOverrideResource) restartServer(ctx context.Context, service *g
 	bootSourceOverrideJobTimeout := plan.JobTimeout.ValueInt64()
 
 	// reboot the server
-	pOp := powerOperator{ctx, service}
+	pOp := powerOperator{ctx, service, plan.SystemID.ValueString()}
 	_, err := pOp.PowerOperation(resetType, resetTimeout, intervalBootSourceOverrideJobCheckTime)
 	if err != nil {
 		diags.AddError("there was an issue restarting the server ", err.Error())

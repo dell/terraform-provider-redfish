@@ -171,6 +171,15 @@ func simpleUpdateSchema() map[string]schema.Attribute {
 				stringplanmodifier.UseStateForUnknown(),
 			},
 		},
+		"system_id": schema.StringAttribute{
+			MarkdownDescription: "System ID of the system",
+			Description:         "System ID of the system",
+			Computed:            true,
+			Optional:            true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplaceIfConfigured(),
+			},
+		},
 	}
 }
 
@@ -223,12 +232,12 @@ func (r *simpleUpdateResource) Create(ctx context.Context, req resource.CreateRe
 	}
 	service := api.Service
 	defer api.Logout()
-	system, err := getSystemResource(service)
+	system, err := getSystemResource(service, plan.SystemID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("system error", err.Error())
 		return
 	}
-
+	plan.SystemID = types.StringValue(system.ID)
 	plan.Id = types.StringValue(system.SerialNumber + "_simple_update")
 
 	// resetType := plan.DesiredPowerAction.ValueString()
@@ -320,7 +329,7 @@ func (u *simpleUpdater) updateRedfishSimpleUpdate(d models.SimpleUpdateRes) (dia
 	resetType := d.ResetType.ValueString()
 
 	// Check if chosen reset type is supported before doing anything else
-	systems, err := u.service.Systems()
+	system, err := getSystemResource(u.service, d.SystemID.ValueString())
 	if err != nil {
 		diags.AddError(
 			"Couldn't retrieve allowed reset types from systems",
@@ -330,7 +339,7 @@ func (u *simpleUpdater) updateRedfishSimpleUpdate(d models.SimpleUpdateRes) (dia
 	}
 	tflog.Debug(u.ctx, "resource_simple_update : found system")
 
-	if ok := checkResetType(resetType, systems[0].SupportedResetTypes); !ok {
+	if ok := checkResetType(resetType, system.SupportedResetTypes); !ok {
 		diags.AddError(
 			fmt.Sprintf("Reset type %s is not available in this redfish implementation", resetType),
 			err.Error(),
@@ -590,7 +599,7 @@ func (u *simpleUpdater) updateJobStatus(d models.SimpleUpdateRes) error {
 
 	// Reboot the server
 	tflog.Debug(u.ctx, "Rebooting the server")
-	pOp := powerOperator{u.ctx, u.service}
+	pOp := powerOperator{u.ctx, u.service, d.SystemID.ValueString()}
 	_, err := pOp.PowerOperation(d.ResetType.ValueString(), resetTimeout, intervalSimpleUpdateJobCheckTime)
 	if err != nil {
 		// Delete uploaded package - TBD

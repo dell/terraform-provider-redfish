@@ -220,6 +220,7 @@ After the successful execution of the above resource block, iDRAC firmware attri
 - `share_name` (String) Name of the CIFS share or full path to the NFS share. Optional for HTTP/HTTPS share (if supported)this may be treated as the path of the directory containing the file.
 - `share_password` (String) Network share user password. This option is mandatory for CIFS Network Share.
 - `share_user` (String) Network share user in the format 'user@domain' or 'domain\user' if user is part of a domain else 'user'.This option is mandatory for CIFS Network Share.
+- `system_id` (String) System ID of the system
 
 ### Read-Only
 

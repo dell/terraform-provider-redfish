@@ -136,17 +136,42 @@ func RedfishServerDatasourceBlockMap() map[string]datasourceSchema.Block {
 	}
 }
 
-// Based on an instance of Service from the gofish library, retrieve a concrete system on which we can take action
-func getSystemResource(service *gofish.Service) (*redfish.ComputerSystem, error) {
+// getSystemResourceWithService retrieves a concrete ComputerSystem resource for a given Service instance,
+// optionally filtering the systems using the given sysid.
+//
+// The function takes the following arguments:
+// - service: a pointer to a Service instance.
+// - sysid: an optional string representing the system ID to filter the systems.
+//
+// The function returns a pointer to a ComputerSystem instance and an error, if any.
+// Based on an instance of Service from the gofish library, retrieve a concrete ComputerSystem on which we can take action.
+// If sysid is not empty, filter the systems using sysid.
+func getSystemResource(service *gofish.Service, sysid string) (*redfish.ComputerSystem, error) {
+	if service == nil {
+		return nil, fmt.Errorf("gofish.Service is nil")
+	}
+
 	systems, err := service.Systems()
 	if err != nil {
 		return nil, err
 	}
+
 	if len(systems) == 0 {
 		return nil, errors.New("no computer systems found")
 	}
 
-	return systems[0], err
+	if len(sysid) == 0 {
+		// Use the first system if sysid is not provided
+		return systems[0], nil
+	}
+
+	for _, system := range systems {
+		if system.ID == sysid {
+			return system, nil
+		}
+	}
+
+	return nil, errors.New("no computer system found with given system id")
 }
 
 // NewConfig function creates the needed gofish structs to query the redfish API
@@ -203,6 +228,7 @@ func NewConfig(pconfig *redfishProvider, rserver *[]models.RedfishServer) (*gofi
 type powerOperator struct {
 	ctx     context.Context
 	service *gofish.Service
+	sysid   string
 }
 
 // PowerOperation Executes a power operation against the target server. It takes four arguments. The first is the reset
@@ -215,7 +241,7 @@ type powerOperator struct {
 func (p powerOperator) PowerOperation(resetType string, maximumWaitTime int64, checkInterval int64) (redfish.PowerState, error) {
 	const powerON redfish.PowerState = "On"
 	const powerOFF redfish.PowerState = "Off"
-	system, err := getSystemResource(p.service)
+	system, err := getSystemResource(p.service, p.sysid)
 	if err != nil {
 		tflog.Error(p.ctx, fmt.Sprintf("Failed to identify system: %s", err))
 		return "", fmt.Errorf("failed to identify system: %w", err)
@@ -271,7 +297,7 @@ func (p powerOperator) PowerOperation(resetType string, maximumWaitTime int64, c
 		totalTime += checkInterval
 		tflog.Trace(p.ctx, fmt.Sprintf("Total time is %d seconds. Checking power state now.", totalTime))
 
-		system, err := getSystemResource(p.service)
+		system, err := getSystemResource(p.service, p.sysid)
 		if err != nil {
 			tflog.Error(p.ctx, fmt.Sprintf("Failed to identify system: %s", err))
 			return targetPowerState, err
@@ -307,7 +333,7 @@ func (s *ServerStatusChecker) Check(ctx context.Context) error {
 		if err != nil {
 			continue
 		}
-		_, err := getSystemResource(s.Service)
+		_, err := getSystemResource(s.Service, "")
 		if err == nil {
 			return nil
 		}

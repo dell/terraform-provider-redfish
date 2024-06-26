@@ -152,6 +152,15 @@ func (*BiosResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				Default:  int64default.StaticInt64(int64(defaultBiosConfigJobTimeout)),
 				Computed: true,
 			},
+			"system_id": schema.StringAttribute{
+				MarkdownDescription: "System ID of the system",
+				Description:         "System ID of the system",
+				Computed:            true,
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplaceIfConfigured(),
+				},
+			},
 		},
 		Blocks: RedfishServerResourceBlockMap(),
 	}
@@ -280,6 +289,7 @@ func (*BiosResource) ImportState(ctx context.Context, req resource.ImportStateRe
 		Password    string `json:"password"`
 		Endpoint    string `json:"endpoint"`
 		SslInsecure bool   `json:"ssl_insecure"`
+		SystemID    string `json:"system_id"`
 	}
 
 	var c creds
@@ -297,6 +307,7 @@ func (*BiosResource) ImportState(ctx context.Context, req resource.ImportStateRe
 
 	redfishServer := tfpath.Root("redfish_server")
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, redfishServer, []models.RedfishServer{server})...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, tfpath.Root("system_id"), types.StringValue(c.SystemID))...)
 }
 
 func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, service *gofish.Service, plan *models.Bios,
@@ -308,7 +319,15 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
 	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
 
-	bios, err := r.getBiosResource(service)
+	system, err := getSystemResource(service, state.SystemID.ValueString())
+	if err != nil {
+		diags.AddError("error fetching system resource", err.Error())
+		return nil, diags
+	}
+
+	state.SystemID = types.StringValue(system.ID)
+
+	bios, err := system.Bios()
 	if err != nil {
 		diags.AddError("error fetching bios resource", err.Error())
 		return nil, diags
@@ -345,7 +364,7 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 		tflog.Info(ctx, "Submitting patch request for bios attributes completed successfully")
 		tflog.Info(ctx, "rebooting the server")
 		// reboot the server
-		pOp := powerOperator{ctx, service}
+		pOp := powerOperator{ctx, service, plan.SystemID.ValueString()}
 		_, err := pOp.PowerOperation(resetType, resetTimeout, intervalBiosConfigJobCheckTime)
 		if err != nil {
 			// TODO: handle this scenario
@@ -379,8 +398,15 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 	return state, nil
 }
 
-func (r *BiosResource) readRedfishDellBiosAttributes(service *gofish.Service, d *models.Bios) error {
-	bios, err := r.getBiosResource(service)
+func (*BiosResource) readRedfishDellBiosAttributes(service *gofish.Service, d *models.Bios) error {
+	system, err := getSystemResource(service, d.SystemID.ValueString())
+	if err != nil {
+		return fmt.Errorf("error fetching BIOS resource: %w", err)
+	}
+
+	d.SystemID = types.StringValue(system.ID)
+
+	bios, err := system.Bios()
 	if err != nil {
 		return fmt.Errorf("error fetching BIOS resource: %w", err)
 	}
@@ -409,22 +435,6 @@ func (r *BiosResource) readRedfishDellBiosAttributes(service *gofish.Service, d 
 	d.Attributes = types.MapValueMust(types.StringType, attributesTF)
 	d.ID = types.StringValue(bios.ID)
 	return nil
-}
-
-func (r *BiosResource) getBiosResource(service *gofish.Service) (*redfish.Bios, error) {
-	system, err := getSystemResource(service)
-	if err != nil {
-		tflog.Trace(r.ctx, "[ERROR]: Failed to get system resource: "+err.Error())
-		return nil, err
-	}
-
-	bios, err := system.Bios()
-	if err != nil {
-		tflog.Trace(r.ctx, "[ERROR]: Failed to get Bios resource: "+err.Error())
-		return nil, err
-	}
-
-	return bios, nil
 }
 
 func copyBiosAttributes(bios *redfish.Bios, attributes map[string]string) error {
