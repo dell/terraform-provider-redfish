@@ -589,8 +589,8 @@ func (*BootOrderResource) restartServer(ctx context.Context, service *gofish.Ser
 	bootOrderJobTimeout := plan.JobTimeout.ValueInt64()
 
 	// reboot the server
-	pOp := powerOperator{ctx, service}
-	_, err := pOp.PowerOperation(plan.SystemID.ValueString(), resetType, resetTimeout, intervalBootOrderJobCheckTime)
+	pOp := powerOperator{ctx, service, plan.SystemID.ValueString()}
+	_, err := pOp.PowerOperation(resetType, resetTimeout, intervalBootOrderJobCheckTime)
 	if err != nil {
 		diags.AddError("there was an issue restarting the server ", err.Error())
 		return diags

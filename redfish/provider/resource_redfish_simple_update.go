@@ -599,8 +599,8 @@ func (u *simpleUpdater) updateJobStatus(d models.SimpleUpdateRes) error {
 
 	// Reboot the server
 	tflog.Debug(u.ctx, "Rebooting the server")
-	pOp := powerOperator{u.ctx, u.service}
-	_, err := pOp.PowerOperation(d.SystemID.ValueString(), d.ResetType.ValueString(), resetTimeout, intervalSimpleUpdateJobCheckTime)
+	pOp := powerOperator{u.ctx, u.service, d.SystemID.ValueString()}
+	_, err := pOp.PowerOperation(d.ResetType.ValueString(), resetTimeout, intervalSimpleUpdateJobCheckTime)
 	if err != nil {
 		// Delete uploaded package - TBD
 		return fmt.Errorf("there was an issue when restarting the server: %w", err)

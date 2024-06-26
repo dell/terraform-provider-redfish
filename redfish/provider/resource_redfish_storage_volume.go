@@ -562,8 +562,8 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 		resetTimeout := d.ResetTimeout.ValueInt64()
 
 		// Reboot the server
-		pOp := powerOperator{ctx, service}
-		_, err := pOp.PowerOperation(d.SystemID.ValueString(), resetType, resetTimeout, intervalStorageVolumeJobCheckTime)
+		pOp := powerOperator{ctx, service, d.SystemID.ValueString()}
+		_, err := pOp.PowerOperation(resetType, resetTimeout, intervalStorageVolumeJobCheckTime)
 		if err != nil {
 			diags.AddError(RedfishJobErrorMsg, err.Error())
 			return diags
@@ -705,8 +705,8 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service,
 		resetTimeout := d.ResetTimeout.ValueInt64()
 
 		// Reboot the server
-		pOp := powerOperator{ctx, service}
-		_, err := pOp.PowerOperation(d.SystemID.ValueString(), resetType, resetTimeout, intervalStorageVolumeJobCheckTime)
+		pOp := powerOperator{ctx, service, d.SystemID.ValueString()}
+		_, err := pOp.PowerOperation(resetType, resetTimeout, intervalStorageVolumeJobCheckTime)
 		if err != nil {
 			diags.AddError(RedfishJobErrorMsg, err.Error())
 			return diags
@@ -760,8 +760,8 @@ func deleteRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 		resetTimeout := d.ResetTimeout.ValueInt64()
 
 		// Reboot the server
-		pOp := powerOperator{ctx, service}
-		_, err := pOp.PowerOperation(d.SystemID.ValueString(), resetType, resetTimeout, intervalStorageVolumeJobCheckTime)
+		pOp := powerOperator{ctx, service, d.SystemID.ValueString()}
+		_, err := pOp.PowerOperation(resetType, resetTimeout, intervalStorageVolumeJobCheckTime)
 		if err != nil {
 			diags.AddError(RedfishJobErrorMsg, err.Error())
 			return diags

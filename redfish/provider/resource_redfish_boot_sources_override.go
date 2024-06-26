@@ -340,8 +340,8 @@ func (*BootSourceOverrideResource) restartServer(ctx context.Context, service *g
 	bootSourceOverrideJobTimeout := plan.JobTimeout.ValueInt64()
 
 	// reboot the server
-	pOp := powerOperator{ctx, service}
-	_, err := pOp.PowerOperation(plan.SystemID.ValueString(), resetType, resetTimeout, intervalBootSourceOverrideJobCheckTime)
+	pOp := powerOperator{ctx, service, plan.SystemID.ValueString()}
+	_, err := pOp.PowerOperation(resetType, resetTimeout, intervalBootSourceOverrideJobCheckTime)
 	if err != nil {
 		diags.AddError("there was an issue restarting the server ", err.Error())
 		return diags

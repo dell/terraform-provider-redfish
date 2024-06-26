@@ -228,6 +228,7 @@ func NewConfig(pconfig *redfishProvider, rserver *[]models.RedfishServer) (*gofi
 type powerOperator struct {
 	ctx     context.Context
 	service *gofish.Service
+	sysid   string
 }
 
 // PowerOperation Executes a power operation against the target server. It takes four arguments. The first is the reset
@@ -237,10 +238,10 @@ type powerOperator struct {
 // server's power state for updates. The last is a pointer to a gofish.Service object with which the function can
 // interact with the server. It will return a tuple consisting of the server's power state at time of return and
 // diagnostics
-func (p powerOperator) PowerOperation(sysid string, resetType string, maximumWaitTime int64, checkInterval int64) (redfish.PowerState, error) {
+func (p powerOperator) PowerOperation(resetType string, maximumWaitTime int64, checkInterval int64) (redfish.PowerState, error) {
 	const powerON redfish.PowerState = "On"
 	const powerOFF redfish.PowerState = "Off"
-	system, err := getSystemResource(p.service, sysid)
+	system, err := getSystemResource(p.service, p.sysid)
 	if err != nil {
 		tflog.Error(p.ctx, fmt.Sprintf("Failed to identify system: %s", err))
 		return "", fmt.Errorf("failed to identify system: %w", err)
@@ -296,7 +297,7 @@ func (p powerOperator) PowerOperation(sysid string, resetType string, maximumWai
 		totalTime += checkInterval
 		tflog.Trace(p.ctx, fmt.Sprintf("Total time is %d seconds. Checking power state now.", totalTime))
 
-		system, err := getSystemResource(p.service, sysid)
+		system, err := getSystemResource(p.service, p.sysid)
 		if err != nil {
 			tflog.Error(p.ctx, fmt.Sprintf("Failed to identify system: %s", err))
 			return targetPowerState, err
@@ -315,7 +316,7 @@ func (p powerOperator) PowerOperation(sysid string, resetType string, maximumWai
 }
 
 // Check checks iDRAC server status after provided interval until the provided timeout time
-func (s *ServerStatusChecker) Check(ctx context.Context, sysid string) error {
+func (s *ServerStatusChecker) Check(ctx context.Context) error {
 	var err error
 	addr, err := url.Parse(s.Endpoint)
 	if err != nil {
@@ -332,7 +333,7 @@ func (s *ServerStatusChecker) Check(ctx context.Context, sysid string) error {
 		if err != nil {
 			continue
 		}
-		_, err := getSystemResource(s.Service, sysid)
+		_, err := getSystemResource(s.Service, "")
 		if err == nil {
 			return nil
 		}
