@@ -146,11 +146,13 @@ func (r *UserAccountPasswordResource) Create(ctx context.Context, req resource.C
 	redfishMutexKV.Lock(redfishServer[0].Endpoint.ValueString())
 	defer redfishMutexKV.Unlock(redfishServer[0].Endpoint.ValueString())
 
-	service, err := NewConfig(r.p, &redfishServer)
+	api, err := NewConfig(r.p, &redfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	// Fetch user account for which password needs to be updated
 	accountList, err := GetAccountList(service)
@@ -178,11 +180,13 @@ func (r *UserAccountPasswordResource) Create(ctx context.Context, req resource.C
 	// update password to new password and check if login is successful
 	redfishServer[0].Password = types.StringValue(plan.NewPassword.ValueString())
 
-	service, err = NewConfig(r.p, &redfishServer)
+	api, err = NewConfig(r.p, &redfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("login failed using new password", err.Error())
 		return
 	}
+	service = api.Service
+	defer api.Logout()
 
 	systems, err := service.Systems()
 	if len(systems) == 0 || err != nil {

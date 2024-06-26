@@ -51,7 +51,7 @@ func TestAccRedfishUserPassword_basic(t *testing.T) {
 				%s
 				`,
 					testAccRedfishResourceUserPasswordConfig(creds, "test1", "Test@1234", "Test@1235", "")),
-				ExpectError: regexp.MustCompile("unable to access user data, please check access credentials"),
+				ExpectError: regexp.MustCompile(ServiceErrorMsg),
 			},
 			{
 				Config: fmt.Sprintf(`

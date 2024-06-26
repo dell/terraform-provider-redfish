@@ -242,10 +242,12 @@ type CertUtilsParam struct {
 
 func certutils(params CertUtilsParam) (ok bool, summary string, details string) {
 	// Get service
-	service, err := NewConfig(params.pconfig, params.rserver)
+	api, err := NewConfig(params.pconfig, params.rserver)
 	if err != nil {
 		return false, ServiceErrorMsg, err.Error()
 	}
+	service := api.Service
+	defer api.Logout()
 	managers, err := service.Managers()
 	if err != nil {
 		return false, "Couldn't retrieve managers from redfish API: ", err.Error()

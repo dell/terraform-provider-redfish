@@ -115,11 +115,13 @@ func (r *dellIdracAttributesResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
-	service, err := NewConfig(r.p, &plan.RedfishServer)
+	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	diags = updateRedfishDellIdracAttributes(ctx, service, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -144,11 +146,13 @@ func (r *dellIdracAttributesResource) Read(ctx context.Context, req resource.Rea
 		return
 	}
 
-	service, err := NewConfig(r.p, &state.RedfishServer)
+	api, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	diags = readRedfishDellIdracAttributes(ctx, service, &state)
 	resp.Diagnostics.Append(diags...)
@@ -176,11 +180,13 @@ func (r *dellIdracAttributesResource) Update(ctx context.Context, req resource.U
 		return
 	}
 
-	service, err := NewConfig(r.p, &plan.RedfishServer)
+	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	diags = updateRedfishDellIdracAttributes(ctx, service, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -235,12 +241,14 @@ func (r *dellIdracAttributesResource) ImportState(ctx context.Context, req resou
 
 	srv := []models.RedfishServer{server}
 
-	service, d := r.getiDRACEnv(&srv)
+	api, d := r.getiDRACEnv(&srv)
 	resp.Diagnostics = append(resp.Diagnostics, d...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
+	service := api.Service
+	defer api.Logout()
 	idAttrPath := path.Root("id")
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, idAttrPath, "importId")...)
 
@@ -280,15 +288,15 @@ func (r *dellIdracAttributesResource) ImportState(ctx context.Context, req resou
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, attributes, types.MapValueMust(types.StringType, readAttributes))...)
 }
 
-func (r *dellIdracAttributesResource) getiDRACEnv(rserver *[]models.RedfishServer) (*gofish.Service, diag.Diagnostics) {
+func (r *dellIdracAttributesResource) getiDRACEnv(rserver *[]models.RedfishServer) (*gofish.APIClient, diag.Diagnostics) {
 	var d diag.Diagnostics
 	// Get service
-	service, err := NewConfig(r.p, rserver)
+	api, err := NewConfig(r.p, rserver)
 	if err != nil {
 		d.AddError(ServiceErrorMsg, err.Error())
 		return nil, d
 	}
-	return service, nil
+	return api, nil
 }
 
 func updateRedfishDellIdracAttributes(ctx context.Context, service *gofish.Service, d *models.DellIdracAttributes) diag.Diagnostics {

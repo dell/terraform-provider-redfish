@@ -115,11 +115,13 @@ func (r *dellLCAttributesResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
-	service, err := NewConfig(r.p, &plan.RedfishServer)
+	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	diags = updateRedfishDellLCAttributes(ctx, service, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -144,11 +146,13 @@ func (r *dellLCAttributesResource) Read(ctx context.Context, req resource.ReadRe
 		return
 	}
 
-	service, err := NewConfig(r.p, &state.RedfishServer)
+	api, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	diags = readRedfishDellLCAttributes(ctx, service, &state)
 	resp.Diagnostics.Append(diags...)
@@ -176,11 +180,13 @@ func (r *dellLCAttributesResource) Update(ctx context.Context, req resource.Upda
 		return
 	}
 
-	service, err := NewConfig(r.p, &plan.RedfishServer)
+	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	diags = updateRedfishDellLCAttributes(ctx, service, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -243,11 +249,13 @@ func (r *dellLCAttributesResource) ImportState(ctx context.Context, req resource
 		readAttributes[k] = types.StringValue("")
 	}
 
-	service, d := r.getLCEnv(&srv)
+	api, d := r.getLCEnv(&srv)
 	resp.Diagnostics = append(resp.Diagnostics, d...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	managerAttributeRegistry, err := getManagerAttributeRegistry(service)
 	if err != nil {
@@ -271,15 +279,15 @@ func (r *dellLCAttributesResource) ImportState(ctx context.Context, req resource
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, attributes, types.MapValueMust(types.StringType, readAttributes))...)
 }
 
-func (r *dellLCAttributesResource) getLCEnv(rserver *[]models.RedfishServer) (*gofish.Service, diag.Diagnostics) {
+func (r *dellLCAttributesResource) getLCEnv(rserver *[]models.RedfishServer) (*gofish.APIClient, diag.Diagnostics) {
 	var d diag.Diagnostics
 	// Get service
-	service, err := NewConfig(r.p, rserver)
+	api, err := NewConfig(r.p, rserver)
 	if err != nil {
 		d.AddError(ServiceErrorMsg, err.Error())
 		return nil, d
 	}
-	return service, nil
+	return api, nil
 }
 
 func updateRedfishDellLCAttributes(ctx context.Context, service *gofish.Service, d *models.DellLCAttributes) diag.Diagnostics {

@@ -298,11 +298,13 @@ func (r *RedfishStorageVolumeResource) Create(ctx context.Context, req resource.
 		return
 	}
 
-	service, err := NewConfig(r.p, &plan.RedfishServer)
+	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	diags = createRedfishStorageVolume(ctx, service, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -327,11 +329,13 @@ func (r *RedfishStorageVolumeResource) Read(ctx context.Context, req resource.Re
 		return
 	}
 
-	service, err := NewConfig(r.p, &state.RedfishServer)
+	api, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	diags, cleanup := readRedfishStorageVolume(service, &state)
 	if cleanup {
@@ -373,11 +377,13 @@ func (r *RedfishStorageVolumeResource) Update(ctx context.Context, req resource.
 			"Cannot disable encryption, once a disk is encrypted it cannot be transformed back into an non-encrypted state.")
 		return
 	}
-	service, err := NewConfig(r.p, &plan.RedfishServer)
+	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	diags = updateRedfishStorageVolume(ctx, service, &plan, &state)
 	resp.Diagnostics.Append(diags...)
@@ -402,11 +408,13 @@ func (r *RedfishStorageVolumeResource) Delete(ctx context.Context, req resource.
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	service, err := NewConfig(r.p, &state.RedfishServer)
+	api, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	diags = deleteRedfishStorageVolume(ctx, service, &state)
 	resp.Diagnostics.Append(diags...)

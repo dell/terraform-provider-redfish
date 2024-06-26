@@ -115,11 +115,13 @@ func (g *FirmwareInventoryDatasource) Read(ctx context.Context, req datasource.R
 	var plan models.FirmwareInventory
 	diags := req.Config.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
-	service, err := NewConfig(g.p, &plan.RedfishServer)
+	api, err := NewConfig(g.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 	state, err := readRedfishFirmwareInventory(service)
 	if err != nil {
 		diags.AddError("failed to fetch firmware inventory details", err.Error())

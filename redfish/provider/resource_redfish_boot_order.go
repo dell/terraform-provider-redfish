@@ -190,11 +190,13 @@ func (r *BootOrderResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	service, err := NewConfig(r.p, &plan.RedfishServer)
+	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	diags = r.bootOperation(ctx, service, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -227,11 +229,13 @@ func (r *BootOrderResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	service, err := NewConfig(r.p, &plan.RedfishServer)
+	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	diags = r.bootOperation(ctx, service, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -267,11 +271,13 @@ func (r *BootOrderResource) Read(ctx context.Context, req resource.ReadRequest, 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	service, err := NewConfig(r.p, &state.RedfishServer)
+	api, err := NewConfig(r.p, &state.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	system, err := getSystemResource(service, state.SystemID.ValueString())
 	if err != nil {

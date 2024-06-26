@@ -118,11 +118,13 @@ func (g *StorageDatasource) Read(ctx context.Context, req datasource.ReadRequest
 	var plan models.StorageDatasource
 	diags := req.Config.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
-	service, err := NewConfig(g.p, &plan.RedfishServer)
+	api, err := NewConfig(g.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("service error", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 	g.ctx = ctx
 	g.service = service
 

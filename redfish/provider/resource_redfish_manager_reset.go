@@ -139,11 +139,13 @@ func (r *managerResetResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	service, err := NewConfig(r.p, &plan.RedfishServer)
+	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("Error while getting service", err.Error())
 		return
 	}
+	service := api.Service
+	defer api.Logout()
 
 	// Check iDRAC status
 	checker := ServerStatusChecker{
@@ -226,10 +228,13 @@ func getManagerFromCollection(managers []*redfish.Manager, managerID string) (*r
 }
 
 func getManager(r *managerResetResource, d models.RedfishManagerReset, managerID string) (*redfish.Manager, error) {
-	service, err := NewConfig(r.p, &d.RedfishServer)
+	api, err := NewConfig(r.p, &d.RedfishServer)
 	if err != nil {
 		return nil, err
 	}
+
+	service := api.Service
+	defer api.Logout()
 
 	managers, err := service.Managers()
 	if err != nil {
