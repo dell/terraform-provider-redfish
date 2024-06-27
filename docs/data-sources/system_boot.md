@@ -167,7 +167,7 @@ output "system_boot" {
 ### Optional
 
 - `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
-- `resource_id` (String) Resource ID of the computer system. If not provided, the first system resource is used
+- `resource_id` (String, Deprecated) Resource ID of the computer system. If not provided, the first system resource is used
 
 ### Read-Only
 

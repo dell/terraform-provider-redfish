@@ -83,6 +83,7 @@ func SystemBootDatasourceSchema() map[string]schema.Attribute {
 			Description:         "Resource ID of the computer system. If not provided, the first system resource is used",
 			Optional:            true,
 			Computed:            true,
+			DeprecationMessage:  "resource_id will be deprecated and replaced by system_id in next release",
 		},
 		"boot_order": schema.ListAttribute{
 			MarkdownDescription: "An array of BootOptionReference strings that represent the persistent boot order for this computer system",
