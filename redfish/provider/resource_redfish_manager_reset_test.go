@@ -47,7 +47,7 @@ func TestAccRedfishManagerReset_Invalid_ManagerID_Negative(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccRedfishResourceManagerResetConfig(creds, "iDRAC.Embedded.0", "GracefulRestart"),
-				ExpectError: regexp.MustCompile("Invalid Manager ID provided"),
+				ExpectError: regexp.MustCompile("invalid Manager ID provided"),
 			},
 		},
 	})
@@ -67,7 +67,7 @@ func TestAccRedfishManagerReset_Update_Negative(t *testing.T) {
 			},
 			{
 				Config:      testAccRedfishResourceManagerResetConfig(creds, "iDRAC.Embedded", "GracefulRestart"),
-				ExpectError: regexp.MustCompile("Invalid Manager ID provided"),
+				ExpectError: regexp.MustCompile("invalid Manager ID provided"),
 			},
 		},
 	})

@@ -30,6 +30,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
 )
 
@@ -125,8 +126,16 @@ func (r *managerResetResource) Create(ctx context.Context, req resource.CreateRe
 	resetType := plan.ResetType.ValueString()
 	managerID := plan.Id.ValueString()
 
+	api, err := NewConfig(r.p, &plan.RedfishServer)
+	if err != nil {
+		resp.Diagnostics.AddError("Error while getting service", err.Error())
+		return
+	}
+	service := api.Service
+	defer api.Logout()
+
 	// Get manager
-	manager, err := getManager(r, plan, managerID)
+	manager, err := getManager(service, managerID)
 	if err != nil {
 		resp.Diagnostics.AddError("Error while retrieving manager from redfish API", err.Error())
 		return
@@ -139,12 +148,12 @@ func (r *managerResetResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	api, err := NewConfig(r.p, &plan.RedfishServer)
+	api, err = NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError("Error while getting service", err.Error())
 		return
 	}
-	service := api.Service
+	service = api.Service
 	defer api.Logout()
 
 	// Check iDRAC status
@@ -177,10 +186,19 @@ func (r *managerResetResource) Read(ctx context.Context, req resource.ReadReques
 		return
 	}
 
+	api, err := NewConfig(r.p, &state.RedfishServer)
+	if err != nil {
+		resp.Diagnostics.AddError("Error while getting service", err.Error())
+		return
+	}
+
+	service := api.Service
+	defer api.Logout()
+
 	managerID := state.Id.ValueString()
 
 	// Get manager
-	manager, err := getManager(r, state, managerID)
+	manager, err := getManager(service, managerID)
 	if err != nil {
 		resp.Diagnostics.AddError("Error while retrieving manager from redfish API", err.Error())
 		return
@@ -227,15 +245,7 @@ func getManagerFromCollection(managers []*redfish.Manager, managerID string) (*r
 	return nil, fmt.Errorf("invalid Manager ID provided")
 }
 
-func getManager(r *managerResetResource, d models.RedfishManagerReset, managerID string) (*redfish.Manager, error) {
-	api, err := NewConfig(r.p, &d.RedfishServer)
-	if err != nil {
-		return nil, err
-	}
-
-	service := api.Service
-	defer api.Logout()
-
+func getManager(service *gofish.Service, managerID string) (*redfish.Manager, error) {
 	managers, err := service.Managers()
 	if err != nil {
 		return nil, err
