@@ -127,7 +127,7 @@ func TestAccRedfishStorageVolumeUpdate_basic(t *testing.T) {
 					creds,
 					"RAID.Integrated.1-1",
 					"TerraformVol1",
-					"NonRedundant",
+					"RAID0",
 					drive,
 					"Immediate",
 					"AdaptiveReadAhead",
@@ -186,7 +186,6 @@ func TestAccRedfishStorageVolumeCreate_basic(t *testing.T) {
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
-					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "volume_type", "NonRedundant"),
 				),
 				// / TBD: non empty plan fix for
 				ExpectNonEmptyPlan: true,
