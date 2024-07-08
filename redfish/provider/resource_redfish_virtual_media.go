@@ -177,15 +177,16 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		WriteProtected:       plan.WriteProtected.ValueBool(),
 	}
 	api, env, d := r.getVMEnv(&plan.RedfishServer, plan.SystemID.ValueString())
-	plan.SystemID = types.StringValue(env.system.ID)
+	
 	resp.Diagnostics = append(resp.Diagnostics, d...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 	defer api.Logout()
 	service, virtualMediaCollection := env.service, env.collection
-
 	if !env.isManager {
+		// This implementation is added to support iDRAC firmware version 6.x/7.x.
+		plan.SystemID = types.StringValue(env.system.ID)
 		for index := range virtualMediaCollection {
 			virtualMedia, err := insertMedia(virtualMediaCollection[index].ID, virtualMediaCollection, virtualMediaConfig, service)
 			if err != nil {
@@ -205,6 +206,7 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		// This implementation is added to support iDRAC firmware version 5.x. As virtual media can only be accessed through Managers card on 5.x.
 		// Get OOB Manager card - managers[0] will be our oob card
 		var virtualMediaID string
+		plan.SystemID = types.StringValue("")
 		if strings.HasSuffix(plan.Image.ValueString(), ".iso") {
 			virtualMediaID = "CD"
 		} else {
