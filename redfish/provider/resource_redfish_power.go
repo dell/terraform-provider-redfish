@@ -248,7 +248,7 @@ func (*powerResource) Update(ctx context.Context, req resource.UpdateRequest, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	
+
 	state.MaximumWaitTime = plan.MaximumWaitTime
 	state.CheckInterval = plan.CheckInterval
 	state.RedfishServer = plan.RedfishServer

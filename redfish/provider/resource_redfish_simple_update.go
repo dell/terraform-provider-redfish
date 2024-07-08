@@ -340,7 +340,7 @@ func (u *simpleUpdater) updateRedfishSimpleUpdate(d models.SimpleUpdateRes) (dia
 	}
 	tflog.Debug(u.ctx, "resource_simple_update : found system")
 	d.SystemID = types.StringValue(system.ID)
-	
+
 	if ok := checkResetType(resetType, system.SupportedResetTypes); !ok {
 		diags.AddError(
 			fmt.Sprintf("Reset type %s is not available in this redfish implementation", resetType),

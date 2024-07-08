@@ -177,7 +177,7 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		WriteProtected:       plan.WriteProtected.ValueBool(),
 	}
 	api, env, d := r.getVMEnv(&plan.RedfishServer, plan.SystemID.ValueString())
-	
+
 	resp.Diagnostics = append(resp.Diagnostics, d...)
 	if resp.Diagnostics.HasError() {
 		return
