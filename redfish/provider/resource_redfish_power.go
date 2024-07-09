@@ -252,7 +252,6 @@ func (*powerResource) Update(ctx context.Context, req resource.UpdateRequest, re
 	state.MaximumWaitTime = plan.MaximumWaitTime
 	state.CheckInterval = plan.CheckInterval
 	state.RedfishServer = plan.RedfishServer
-	state.SystemID = plan.SystemID
 	tflog.Trace(ctx, "resource_power update: finished state update")
 	// Save into State
 	diags = resp.State.Set(ctx, &state)
