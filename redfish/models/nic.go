@@ -21,6 +21,82 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+// NICResource is struct for NIC resource.
+type NICResource struct {
+	RedfishServer []RedfishServer `tfsdk:"redfish_server"`
+
+	ID types.String `tfsdk:"id"`
+	// Required params
+	NetworkAdapterID        types.String `tfsdk:"network_adapter_id"`
+	NetworkDeviceFunctionID types.String `tfsdk:"network_device_function_id"`
+	ApplyTime               types.String `tfsdk:"apply_time"`
+	// Optional params
+	SystemID             types.String       `tfsdk:"system_id"`
+	Networktributes      types.Object       `tfsdk:"network_attributes"`
+	OemNetworkAttributes types.Object       `tfsdk:"oem_network_attributes"`
+	JobTimeout           types.Int64        `tfsdk:"job_timeout"`
+	MaintenanceWindow    *MaintenanceWindow `tfsdk:"maintenance_window"`
+	ResetTimeout         types.Int64        `tfsdk:"reset_timeout"`
+	ResetType            types.String       `tfsdk:"reset_type"`
+}
+
+// NetworkDeviceFunctionSettings is the tfsdk model of NetworkDeviceFunctionSettings.
+type NetworkDeviceFunctionSettings struct {
+	ODataID                        types.String   `tfsdk:"odata_id"`
+	ID                             types.String   `tfsdk:"id"`
+	Description                    types.String   `tfsdk:"description"`
+	Name                           types.String   `tfsdk:"name"`
+	PhysicalPortAssignment         types.String   `tfsdk:"physical_port_assignment"`
+	Ethernet                       types.Object   `tfsdk:"ethernet"`
+	FibreChannel                   types.Object   `tfsdk:"fibre_channel"`
+	ISCSIBoot                      types.Object   `tfsdk:"iscsi_boot"`
+	MaxVirtualFunctions            types.Int64    `tfsdk:"max_virtual_functions"`
+	NetDevFuncCapabilities         []types.String `tfsdk:"net_dev_func_capabilities"`
+	NetDevFuncType                 types.String   `tfsdk:"net_dev_func_type"`
+	Status                         types.Object   `tfsdk:"status"`
+	AssignablePhysicalPorts        []types.String `tfsdk:"assignable_physical_ports"`
+	AssignablePhysicalNetworkPorts []types.String `tfsdk:"assignable_physical_network_ports"`
+}
+
+// EthernetSettings is the tfsdk model of EthernetSettings.
+type EthernetSettings struct {
+	MACAddress          types.String `tfsdk:"mac_address"`
+	MTUSize             types.Int64  `tfsdk:"mtu_size"`
+	PermanentMACAddress types.String `tfsdk:"permanent_mac_address"`
+	VLAN                types.Object `tfsdk:"vlan"`
+}
+
+// FibreChannelSettings is the tfsdk model of FibreChannelSettings.
+type FibreChannelSettings struct {
+	AllowFIPVLANDiscovery types.Bool   `tfsdk:"allow_fip_vlan_discovery"`
+	BootTargets           types.List   `tfsdk:"boot_targets"`
+	FCoEActiveVLANId      types.Int64  `tfsdk:"fcoe_active_vlan_id"`
+	FCoELocalVLANId       types.Int64  `tfsdk:"fcoe_local_vlan_id"`
+	PermanentWWNN         types.String `tfsdk:"permanent_wwnn"`
+	PermanentWWPN         types.String `tfsdk:"permanent_wwpn"`
+	WWNN                  types.String `tfsdk:"wwnn"`
+	WWNSource             types.String `tfsdk:"wwn_source"`
+	WWPN                  types.String `tfsdk:"wwpn"`
+	FibreChannelId        types.String `tfsdk:"fibre_channel_id"`
+}
+
+// MaintenanceWindow is struct for maintenance window.
+type MaintenanceWindow struct {
+	StartTime types.String `tfsdk:"start_time"`
+	Duration  types.Int64  `tfsdk:"duration"`
+}
+
+// OemNetworkAttributes is struct for oem network attributes.
+type OemNetworkAttributes struct {
+	Attributes        types.Map    `tfsdk:"attributes"`
+	ClearPending      types.Bool   `tfsdk:"clear_pending"`
+	AttributeRegistry types.String `tfsdk:"attribute_registry"`
+	ODataID           types.String `tfsdk:"odata_id"`
+	ID                types.String `tfsdk:"id"`
+	Description       types.String `tfsdk:"description"`
+	Name              types.String `tfsdk:"name"`
+}
+
 // NICDatasource to is struct for NIC data-source.
 type NICDatasource struct {
 	ID            types.String       `tfsdk:"id"`
@@ -187,7 +263,6 @@ type SupportedLinkCapability struct {
 }
 
 // NetworkDeviceFunction is the tfsdk model of NetworkDeviceFunction.
-// checked with official default values
 type NetworkDeviceFunction struct {
 	ODataID                        types.String             `tfsdk:"odata_id"`
 	ID                             types.String             `tfsdk:"id"`

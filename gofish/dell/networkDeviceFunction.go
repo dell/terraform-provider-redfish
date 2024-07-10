@@ -274,6 +274,18 @@ type NetworkDeviceFunctionExtended struct {
 	DellAssignablePhysicalNetworkPorts []Entity
 	DellPhysicalPortAssignment         Entity
 	DellEthernet                       Ethernet
+	DellNetworkAttributes              Entity
+	SettingsObject                     Entity
+}
+
+// NICSettings holds the NICSettings entity.
+type NICSettings struct {
+	Settings NICSettingsObject `json:"@Redfish.Settings"`
+}
+
+// NICSettingsObject holds the SettingsObject entity.
+type NICSettingsObject struct {
+	SettingsObject Entity `json:"SettingsObject"`
 }
 
 // Ethernet is the json model of Ethernet including VLAN data.
@@ -308,6 +320,7 @@ func NetworkDeviceFunction(deviceFunction *redfish.NetworkDeviceFunction) (*Netw
 		"Oem.Dell.DellNIC", "Oem.Dell.DellNICPortMetrics", "Oem.Dell.DellNICCapabilities",
 		"Oem.Dell.DellFC", "Oem.Dell.DellFCPortMetrics", "Oem.Dell.DellFCCapabilities",
 		"Ethernet", "AssignablePhysicalPorts", "AssignablePhysicalNetworkPorts",
+		"Links.Oem.Dell.DellNetworkAttributes",
 	}
 	for _, node := range desiredJSONNodes {
 		nodeRawData, found := GetNodeFromRawDataBytes(rawDataBytes, node)
@@ -361,8 +374,16 @@ func NetworkDeviceFunction(deviceFunction *redfish.NetworkDeviceFunction) (*Netw
 			if err = json.Unmarshal(nodeRawData, &oemNode); err == nil {
 				dellNetworkDeviceFunction.OemData.Dell.DellFCCapabilities = oemNode
 			}
+		case "Links.Oem.Dell.DellNetworkAttributes":
+			var dellNetworkAttributes Entity
+			if err = json.Unmarshal(nodeRawData, &dellNetworkAttributes); err == nil {
+				dellNetworkDeviceFunction.DellNetworkAttributes = dellNetworkAttributes
+			}
 		}
 	}
-
+	var settings NICSettings
+	if err = json.Unmarshal(rawDataBytes, &settings); err == nil {
+		dellNetworkDeviceFunction.SettingsObject = settings.Settings.SettingsObject
+	}
 	return dellNetworkDeviceFunction, nil
 }

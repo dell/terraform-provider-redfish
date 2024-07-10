@@ -131,6 +131,7 @@ func (*redfishProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewUserAccountPasswordResource,
 		NewScpImportResource,
 		NewScpExportResource,
+		NewRedfishNICResource,
 	}
 }
 
