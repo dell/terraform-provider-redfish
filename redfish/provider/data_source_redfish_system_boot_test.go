@@ -34,6 +34,9 @@ func TestAccRedfishSystemBoot_fetch(t *testing.T) {
 				Config: testAccRedfishDatasourceSystemBootConfig(creds, "System.Embedded.1"),
 			},
 			{
+				Config: testAccRedfishDatasourceSystemBootConfigWithSystemID(creds, "System.Embedded.1"),
+			},
+			{
 				Config: testAccRedfishDatasourceSystemBootConfigBasic(creds),
 			},
 		},
@@ -57,6 +60,25 @@ func testAccRedfishDatasourceSystemBootConfig(testingInfo TestingServerCredentia
 	return fmt.Sprintf(`
 	data "redfish_system_boot" "system_boot" {
 		resource_id = "%s"
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "https://%s"
+		  ssl_insecure = true
+		}
+	  }	  
+	`,
+		id,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+	)
+}
+
+func testAccRedfishDatasourceSystemBootConfigWithSystemID(testingInfo TestingServerCredentials, id string) string {
+	return fmt.Sprintf(`
+	data "redfish_system_boot" "system_boot" {
+		system_id = "%s"
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
