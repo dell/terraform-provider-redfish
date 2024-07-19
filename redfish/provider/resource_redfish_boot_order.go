@@ -588,6 +588,12 @@ func (*BootOrderResource) restartServer(ctx context.Context, service *gofish.Ser
 	resetTimeout := plan.ResetTimeout.ValueInt64()
 	bootOrderJobTimeout := plan.JobTimeout.ValueInt64()
 
+	jobID := resp.Header.Get("Location")
+	if jobID == "" {
+		diags.AddWarning("this configuration is already set ", "Update the configuration and run again")
+		return diags
+	}
+
 	// reboot the server
 	pOp := powerOperator{ctx, service, plan.SystemID.ValueString()}
 	_, err := pOp.PowerOperation(resetType, resetTimeout, intervalBootOrderJobCheckTime)
@@ -595,19 +601,13 @@ func (*BootOrderResource) restartServer(ctx context.Context, service *gofish.Ser
 		diags.AddError("there was an issue restarting the server ", err.Error())
 		return diags
 	}
-
-	jobID := resp.Header.Get("Location")
-	if jobID == "" {
-		diags.AddError("this configuration is already set ", "Update the configuration and run again")
-		return nil
-	}
 	// wait for the bios config job to finish
 	err = common.WaitForJobToFinish(service, jobID, intervalBootOrderJobCheckTime, bootOrderJobTimeout)
 	if err != nil {
 		diags.AddError("error waiting for Bios config monitor task to be completed", err.Error())
 		return diags
 	}
-	time.Sleep(60 * time.Second)
+	time.Sleep(180 * time.Second)
 	return nil
 }
 
