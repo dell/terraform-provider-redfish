@@ -381,7 +381,7 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 			return nil, diags
 		}
 		tflog.Info(ctx, "Bios config job has completed successfully")
-		time.Sleep(60 * time.Second)
+		time.Sleep(180 * time.Second)
 	} else {
 		tflog.Info(ctx, "BIOS attributes are already set")
 	}

@@ -198,6 +198,7 @@ func BootSourceOverrideSchema() map[string]schema.Attribute {
 			Optional:            true,
 			PlanModifiers: []planmodifier.String{
 				stringplanmodifier.RequiresReplaceIfConfigured(),
+				stringplanmodifier.UseStateForUnknown(),
 			},
 		},
 	}
@@ -266,7 +267,6 @@ func (*BootSourceOverrideResource) Update(ctx context.Context, req resource.Upda
 	state.JobTimeout = plan.JobTimeout
 	state.ResetTimeout = plan.ResetTimeout
 	state.ResetType = plan.ResetType
-	state.SystemID = plan.SystemID
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Trace(ctx, "resource_Boot_source update: finish")
 }
