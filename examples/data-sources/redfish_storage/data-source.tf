@@ -24,6 +24,9 @@ data "redfish_storage" "storage" {
     endpoint     = each.value.endpoint
     ssl_insecure = each.value.ssl_insecure
   }
+
+  // by default, the data source uses the first system 
+  # system_id = "System.Embedded.1"
 }
 
 output "storage_volume" {

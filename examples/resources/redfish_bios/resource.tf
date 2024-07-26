@@ -38,4 +38,7 @@ resource "redfish_bios" "bios" {
   reset_timeout = "120"
   // The maximum amount of time to wait for the bios job to be completed
   bios_job_timeout = "1200"
+
+  // by default, the resource uses the first system
+  # system_id = "System.Embedded.1"
 }

@@ -168,6 +168,9 @@ resource "redfish_simple_update" "update" {
   reset_timeout = 120 // If not set, by default will be 120s
   // The maximum amount of time to wait for the simple update job to be completed
   simple_update_job_timeout = 1200 // If not set, by default will be 1200s
+
+  // by default, the resource uses the first system
+  # system_id = "System.Embedded.1"
 }
 ```
 
