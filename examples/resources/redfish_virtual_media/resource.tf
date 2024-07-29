@@ -39,4 +39,7 @@ resource "redfish_virtual_media" "vm" {
   */
   transfer_protocol_type = "HTTP"
   write_protected        = true
+
+  // by default, the resource uses the first system
+  # system_id = "System.Embedded.1"
 }

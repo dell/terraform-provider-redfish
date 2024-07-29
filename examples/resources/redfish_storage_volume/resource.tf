@@ -71,6 +71,9 @@ resource "redfish_storage_volume" "volume" {
   // This flag is only supported on firmware levels 6 and above
   encrypted = true
 
+  // by default, the resource uses the first system
+  # system_id = "System.Embedded.1"
+
   lifecycle {
     ignore_changes = [
       capacity_bytes,

@@ -183,6 +183,9 @@ resource "redfish_idrac_firmware_update" "update" {
   # proxy_server = "xx.xx.xx.xx"
   # proxy_port = 80
 
+  // by default, the resource uses the first system
+  # system_id = "System.Embedded.1"
+
   // This will allow terraform create process to trigger each time we run terraform apply.
   lifecycle {
     replace_triggered_by = [

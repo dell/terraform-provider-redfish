@@ -49,6 +49,9 @@ resource "redfish_power" "system_power" {
 
   // The frequency with which to check the server's power state in seconds
   check_interval = 10
+
+  // by default, the resource uses the first system
+  # system_id = "System.Embedded.1"
 }
 
 output "current_power_state" {
