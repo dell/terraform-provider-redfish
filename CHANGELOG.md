@@ -18,6 +18,27 @@ limitations under the License.
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
+# v1.4.0 (July, 2024)
+## Release Summary
+The release supports resources and data sources mentioned in the Features section for RedFish.
+## Features
+
+### Resources
+* Server NIC Resource
+
+### DataSources
+* Server NIC DataSource
+
+### Others
+* Added session based authentication for the provider.
+* Added System ID to selected resources and data sources.
+
+## Enhancements
+N/A
+
+## Bug Fixes
+N/A
+
 # v1.3.0 (May, 2024)
 ## Release Summary
 The release supports resources and data sources mentioned in the Features section for RedFish.
