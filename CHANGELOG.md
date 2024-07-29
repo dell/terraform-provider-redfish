@@ -31,7 +31,7 @@ The release supports resources and data sources mentioned in the Features sectio
 
 ### Others
 * Added session based authentication for the provider.
-* System ID is added for few resources and datasources.
+* Added System ID to selected resources and data sources.
 
 ## Enhancements
 N/A
