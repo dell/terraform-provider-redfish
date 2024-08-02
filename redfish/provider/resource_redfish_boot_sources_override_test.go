@@ -20,6 +20,7 @@ package provider
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
@@ -46,13 +47,17 @@ func TestAccRedfishBootSourceOverride_updated(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRedfishResourceBootSourceUEFIconfig(creds),
+
+				Config: testAccRedfishResourceBootSourceResetType(creds),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_boot_source_override.boot", "boot_source_override_mode", "UEFI"),
 				),
 			},
 			{
-				Config: testAccRedfishResourceBootSourceResetType(creds),
+				PreConfig: func() {
+					time.Sleep(120 * time.Second)
+				},
+				Config: testAccRedfishResourceBootSourceUEFIconfig(creds),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_boot_source_override.boot", "boot_source_override_mode", "UEFI"),
 				),

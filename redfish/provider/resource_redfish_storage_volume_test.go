@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -69,6 +70,9 @@ func TestAccRedfishStorageVolume_InvalidDrive(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
+				PreConfig: func() {
+					time.Sleep(180 * time.Second)
+				},
 				Config: testAccRedfishResourceStorageVolumeConfig(
 					creds,
 					"RAID.Integrated.1-1",

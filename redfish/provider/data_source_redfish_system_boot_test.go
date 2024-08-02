@@ -50,7 +50,7 @@ func TestAccRedfishSystemBoot_fetchInvalidID(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccRedfishDatasourceSystemBootConfig(creds, "invalid-id"),
-				ExpectError: regexp.MustCompile("Could not find a ComputerSystem"),
+				ExpectError: regexp.MustCompile("Error fetching computer system"),
 			},
 		},
 	})
