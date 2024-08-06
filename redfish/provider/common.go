@@ -269,9 +269,8 @@ func (p powerOperator) PowerOperation(resetType string, maximumWaitTime int64, c
 		// If someone asks for a reset while the server is off, change the reset type to on instead
 		if system.PowerState == powerOFF {
 			resetType = "On"
-		} else {
-			targetPowerState = powerON
 		}
+		targetPowerState = powerON
 	}
 
 	if resetType == "PushPowerButton" {

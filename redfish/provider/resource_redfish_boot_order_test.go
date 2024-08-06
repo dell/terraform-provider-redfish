@@ -32,7 +32,7 @@ func TestAccRedfishBootOrder_basic(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRedfishResourceBootOrder(creds, `["Boot0003","Boot0004","Boot0005"]`),
+				Config: testAccRedfishResourceBootOrder(creds, os.Getenv("TF_TESTING_BOOT_ORDER")),
 			},
 			{
 				ResourceName:  "redfish_boot_order.boot",
