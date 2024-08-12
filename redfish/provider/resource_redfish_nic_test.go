@@ -93,6 +93,81 @@ func TestAccRedfishNICAttributesBasic(t *testing.T) {
 	})
 }
 
+func TestAccRedfishNICAttributesFC(t *testing.T) {
+	terraformResourceName := "redfish_network_adapter.nic"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// error create without `maintenance_window` when `apply_time` is `AtMaintenanceWindowStart`
+			{
+				Config:      testAccRedfishResourceFCConfigWithoutMW(fcParams),
+				ExpectError: regexp.MustCompile("Input param is not valid"),
+			},
+			// error create with outdated `maintenance_window`
+			{
+				Config:      testAccRedfishResourceFCConfigOutDatedMW(fcParams),
+				ExpectError: regexp.MustCompile("there was an issue when creating/updating network attributes"),
+			},
+			// create with `network_attributes` only for FC
+			{
+				Config: testAccRedfishResourceFCConfigNetworkAttrs(fcParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(terraformResourceName, "network_attributes.fibre_channel.wwnn", "20:00:F4:E9:D4:56:10:AB"),
+					resource.TestCheckResourceAttr(terraformResourceName, "network_attributes.fibre_channel.boot_targets.0.lun_id", "2"),
+				),
+			},
+			// error update `oem_network_attributes` for FC with outdated `maintenance_window`
+			{
+				Config:      testAccRedfishResourceFCConfigUpdateOutDatedMW(fcParams),
+				ExpectError: regexp.MustCompile("there was an issue when creating/updating ome network attributes"),
+			},
+			// add `oem_network_attributes` for FC
+			{
+				Config: testAccRedfishResourceFCConfig(fcParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(terraformResourceName, "network_attributes.fibre_channel.wwnn", "20:00:F4:E9:D4:56:10:AB"),
+					resource.TestCheckResourceAttr(terraformResourceName, "network_attributes.fibre_channel.boot_targets.0.lun_id", "2"),
+					resource.TestCheckResourceAttr(terraformResourceName, "oem_network_attributes.attributes.PortLoginTimeout", "4000"),
+				),
+			},
+			// update `network_attributes` for FC
+			{
+				Config: testAccRedfishResourceFCConfigUpdateNetAttrs(fcParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(terraformResourceName, "network_attributes.fibre_channel.wwnn", "20:00:F4:E9:D4:56:10:CD"),
+					resource.TestCheckResourceAttr(terraformResourceName, "network_attributes.fibre_channel.boot_targets.0.lun_id", "1"),
+					resource.TestCheckResourceAttr(terraformResourceName, "oem_network_attributes.attributes.PortLoginTimeout", "4000"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccRedfishNICAttributesISCSI(t *testing.T) {
+	terraformResourceName := "redfish_network_adapter.nic"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// create with `network_attributes` only for ISCSI
+			{
+				Config: testAccRedfishResourceNICAttributesIscsiConfig(nicParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(terraformResourceName, "network_attributes.iscsi_boot.authentication_method", "CHAP"),
+				),
+			},
+			// update `network_attributes` for ISCSI
+			{
+				Config: testAccRedfishResourceNICAttributesIscsiConfigUpdate(nicParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(terraformResourceName, "network_attributes.iscsi_boot.authentication_method", "None"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccRedfishNICAttributesImport(t *testing.T) {
 	importReqID := fmt.Sprintf("{\"system_id\":\"%s\",\"network_adapter_id\":\"%s\",\"network_device_function_id\":\"%s\",\"username\":\"%s\",\"password\":\"%s\",\"endpoint\":\"https://%s\",\"ssl_insecure\":true}",
 		nicParams.SystemID, nicParams.NetworkAdapterID, nicParams.NetworkDeviceFunctionID, nicParams.Username, nicParams.Password, nicParams.Endpoint)
@@ -141,8 +216,8 @@ func testAccRedfishResourceNICAttributesConfigNetworkAttrs(testingInfo testingNI
 	}
 	  `,
 		testingInfo.Username,
-		testingInfo.Password,
-		testingInfo.Endpoint,
+		testingInfo.PasswordNIC,
+		testingInfo.EndpointNIC,
 		testingInfo.SystemID,
 		testingInfo.NetworkAdapterID,
 		testingInfo.NetworkDeviceFunctionID,
@@ -184,8 +259,8 @@ func testAccRedfishResourceNICAttributesConfig(testingInfo testingNICInputs) str
 	}
 	  `,
 		testingInfo.Username,
-		testingInfo.Password,
-		testingInfo.Endpoint,
+		testingInfo.PasswordNIC,
+		testingInfo.EndpointNIC,
 		testingInfo.SystemID,
 		testingInfo.NetworkAdapterID,
 		testingInfo.NetworkDeviceFunctionID,
@@ -227,8 +302,315 @@ func testAccRedfishResourceNICAttributesConfigUpdateNetAttrs(testingInfo testing
 	}
 	  `,
 		testingInfo.Username,
-		testingInfo.Password,
-		testingInfo.Endpoint,
+		testingInfo.PasswordNIC,
+		testingInfo.EndpointNIC,
+		testingInfo.SystemID,
+		testingInfo.NetworkAdapterID,
+		testingInfo.NetworkDeviceFunctionID,
+	)
+}
+
+func testAccRedfishResourceFCConfigWithoutMW(testingInfo testingNICInputs) string {
+	return fmt.Sprintf(`
+	resource "redfish_network_adapter" "nic" {
+	  redfish_server {
+		user         = "%s"
+		password     = "%s"
+		endpoint     = "https://%s"
+		ssl_insecure = true
+	  }
+	  system_id = "%s"
+	  network_adapter_id         = "%s"
+	  network_device_function_id = "%s"
+	  apply_time = "AtMaintenanceWindowStart"
+	  job_timeout = 1200
+
+	  network_attributes = {
+    	fibre_channel = {
+      	  wwnn    = "20:00:F4:E9:D4:56:10:AB"
+      	  boot_targets = [
+        	{
+          		lun_id        = "2"
+        	}
+      	  ]
+    	}
+	  }
+	}
+	  `,
+		testingInfo.Username,
+		testingInfo.PasswordNIC,
+		testingInfo.EndpointNIC,
+		testingInfo.SystemID,
+		testingInfo.NetworkAdapterID,
+		testingInfo.NetworkDeviceFunctionID,
+	)
+}
+
+func testAccRedfishResourceFCConfigOutDatedMW(testingInfo testingNICInputs) string {
+	return fmt.Sprintf(`
+	resource "redfish_network_adapter" "nic" {
+	  redfish_server {
+		user         = "%s"
+		password     = "%s"
+		endpoint     = "https://%s"
+		ssl_insecure = true
+	  }
+	  system_id = "%s"
+	  network_adapter_id         = "%s"
+	  network_device_function_id = "%s"
+	  apply_time = "AtMaintenanceWindowStart"
+	  job_timeout = 1200
+	  maintenance_window = {
+	    start_time = "2024-06-30T05:15:40-05:00"
+		duration = 600
+	  }
+
+	  network_attributes = {
+    	fibre_channel = {
+      	  wwnn    = "20:00:F4:E9:D4:56:10:AB"
+      	  boot_targets = [
+        	{
+          		lun_id        = "2"
+        	}
+      	  ]
+    	}
+	  }
+	}
+	  `,
+		testingInfo.Username,
+		testingInfo.PasswordNIC,
+		testingInfo.EndpointNIC,
+		testingInfo.SystemID,
+		testingInfo.NetworkAdapterID,
+		testingInfo.NetworkDeviceFunctionID,
+	)
+}
+
+func testAccRedfishResourceFCConfigNetworkAttrs(testingInfo testingNICInputs) string {
+	return fmt.Sprintf(`
+	resource "redfish_network_adapter" "nic" {
+	  redfish_server {
+		user         = "%s"
+		password     = "%s"
+		endpoint     = "https://%s"
+		ssl_insecure = true
+	  }
+	  system_id = "%s"
+	  network_adapter_id         = "%s"
+	  network_device_function_id = "%s"
+	  apply_time = "OnReset"
+	  job_timeout = 1200
+
+	  network_attributes = {
+    	fibre_channel = {
+      	  wwnn    = "20:00:F4:E9:D4:56:10:AB"
+      	  boot_targets = [
+        	{
+          		lun_id        = "2"
+        	}
+      	  ]
+    	}
+	  }
+	}
+	  `,
+		testingInfo.Username,
+		testingInfo.PasswordNIC,
+		testingInfo.EndpointNIC,
+		testingInfo.SystemID,
+		testingInfo.NetworkAdapterID,
+		testingInfo.NetworkDeviceFunctionID,
+	)
+}
+
+func testAccRedfishResourceFCConfigUpdateOutDatedMW(testingInfo testingNICInputs) string {
+	return fmt.Sprintf(`
+	resource "redfish_network_adapter" "nic" {
+	  redfish_server {
+		user         = "%s"
+		password     = "%s"
+		endpoint     = "https://%s"
+		ssl_insecure = true
+	  }
+	  system_id = "%s"
+	  network_adapter_id         = "%s"
+	  network_device_function_id = "%s"
+	  apply_time = "AtMaintenanceWindowStart"
+	  job_timeout = 1200
+	  maintenance_window = {
+	    start_time = "2024-06-30T05:15:40-05:00"
+		duration = 600
+	  }
+
+	  network_attributes = {
+    	fibre_channel = {
+      	  wwnn    = "20:00:F4:E9:D4:56:10:AB"
+      	  boot_targets = [
+        	{
+          		lun_id        = "2"
+        	}
+      	  ]
+    	}
+	  }
+
+	  oem_network_attributes = {
+	  	clear_pending = true
+	  	attributes = {
+	  		"PortLoginTimeout" = "4000"
+	  	}
+  	  }
+	}
+	  `,
+		testingInfo.Username,
+		testingInfo.PasswordNIC,
+		testingInfo.EndpointNIC,
+		testingInfo.SystemID,
+		testingInfo.NetworkAdapterID,
+		testingInfo.NetworkDeviceFunctionID,
+	)
+}
+
+func testAccRedfishResourceFCConfig(testingInfo testingNICInputs) string {
+	return fmt.Sprintf(`
+	resource "redfish_network_adapter" "nic" {
+	  redfish_server {
+		user         = "%s"
+		password     = "%s"
+		endpoint     = "https://%s"
+		ssl_insecure = true
+	  }
+	  system_id = "%s"
+	  network_adapter_id         = "%s"
+	  network_device_function_id = "%s"
+	  apply_time = "OnReset"
+	  job_timeout = 1200
+
+	  network_attributes = {
+    	fibre_channel = {
+      	  wwnn    = "20:00:F4:E9:D4:56:10:AB"
+      	  boot_targets = [
+        	{
+          		lun_id        = "2"
+        	}
+      	  ]
+    	}
+	  }
+
+	  oem_network_attributes = {
+	  	clear_pending = true
+	  	attributes = {
+	  		"PortLoginTimeout" = "4000"
+	  	}
+  	  }
+	}
+	  `,
+		testingInfo.Username,
+		testingInfo.PasswordNIC,
+		testingInfo.EndpointNIC,
+		testingInfo.SystemID,
+		testingInfo.NetworkAdapterID,
+		testingInfo.NetworkDeviceFunctionID,
+	)
+}
+
+func testAccRedfishResourceFCConfigUpdateNetAttrs(testingInfo testingNICInputs) string {
+	return fmt.Sprintf(`
+	resource "redfish_network_adapter" "nic" {
+	  redfish_server {
+		user         = "%s"
+		password     = "%s"
+		endpoint     = "https://%s"
+		ssl_insecure = true
+	  }
+	  system_id = "%s"
+	  network_adapter_id         = "%s"
+	  network_device_function_id = "%s"
+	  apply_time = "OnReset"
+	  job_timeout = 1200
+
+	  network_attributes = {
+    	fibre_channel = {
+      	  wwnn    = "20:00:F4:E9:D4:56:10:CD"
+      	  boot_targets = [
+        	{
+          		lun_id        = "1"
+        	}
+      	  ]
+    	}
+	  }
+
+	  oem_network_attributes = {
+	  	clear_pending = false
+	  	attributes = {
+	  		"PortLoginTimeout" = "4000"
+	  	}
+  	  }
+	}
+	  `,
+		testingInfo.Username,
+		testingInfo.PasswordNIC,
+		testingInfo.EndpointNIC,
+		testingInfo.SystemID,
+		testingInfo.NetworkAdapterID,
+		testingInfo.NetworkDeviceFunctionID,
+	)
+}
+
+func testAccRedfishResourceNICAttributesIscsiConfig(testingInfo testingNICInputs) string {
+	return fmt.Sprintf(`
+	resource "redfish_network_adapter" "nic" {
+	  redfish_server {
+		user         = "%s"
+		password     = "%s"
+		endpoint     = "https://%s"
+		ssl_insecure = true
+	  }
+	  system_id = "%s"
+	  network_adapter_id         = "%s"
+	  network_device_function_id = "%s"
+	  apply_time = "OnReset"
+	  job_timeout = 1200
+
+	  network_attributes = {
+	    iscsi_boot = {
+      	  authentication_method  = "CHAP"
+    	}
+	  }
+	}
+	  `,
+		testingInfo.Username,
+		testingInfo.PasswordNIC,
+		testingInfo.EndpointNIC,
+		testingInfo.SystemID,
+		testingInfo.NetworkAdapterID,
+		testingInfo.NetworkDeviceFunctionID,
+	)
+}
+
+func testAccRedfishResourceNICAttributesIscsiConfigUpdate(testingInfo testingNICInputs) string {
+	return fmt.Sprintf(`
+	resource "redfish_network_adapter" "nic" {
+	  redfish_server {
+		user         = "%s"
+		password     = "%s"
+		endpoint     = "https://%s"
+		ssl_insecure = true
+	  }
+	  system_id = "%s"
+	  network_adapter_id         = "%s"
+	  network_device_function_id = "%s"
+	  apply_time = "OnReset"
+	  job_timeout = 1200
+
+	  network_attributes = {
+	    iscsi_boot = {
+      	  authentication_method  = "None"
+    	}
+	  }
+	}
+	  `,
+		testingInfo.Username,
+		testingInfo.PasswordNIC,
+		testingInfo.EndpointNIC,
 		testingInfo.SystemID,
 		testingInfo.NetworkAdapterID,
 		testingInfo.NetworkDeviceFunctionID,
