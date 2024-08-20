@@ -40,11 +40,13 @@ var (
 // // TestingServerCredentials Struct used to store the credentials we pass for testing. This allows us to pass testing
 // // credentials via environment variables instead of having them hard coded
 type TestingServerCredentials struct {
-	Username  string
-	Password  string
-	Endpoint  string
-	Endpoint2 string
-	Insecure  bool
+	Username    string
+	Password    string
+	PasswordNIC string
+	Endpoint    string
+	Endpoint2   string
+	EndpointNIC string
+	Insecure    bool
 }
 
 func init() {
@@ -59,13 +61,20 @@ func init() {
 	}
 
 	creds = TestingServerCredentials{
-		Username:  os.Getenv("TF_TESTING_USERNAME"),
-		Password:  os.Getenv("TF_TESTING_PASSWORD"),
-		Endpoint:  os.Getenv("TF_TESTING_ENDPOINT"),
-		Endpoint2: os.Getenv("TF_TESTING_ENDPOINT2"),
-		Insecure:  false,
+		Username:    os.Getenv("TF_TESTING_USERNAME"),
+		Password:    os.Getenv("TF_TESTING_PASSWORD"),
+		Endpoint:    os.Getenv("TF_TESTING_ENDPOINT"),
+		Endpoint2:   os.Getenv("TF_TESTING_ENDPOINT2"),
+		EndpointNIC: os.Getenv("TF_TESTING_ENDPOINT_NIC"),
+		PasswordNIC: os.Getenv("TF_TESTING_PASSWORD_NIC"),
+		Insecure:    false,
 	}
-
+	if creds.EndpointNIC == "" {
+		creds.EndpointNIC = creds.Endpoint
+	}
+	if creds.PasswordNIC == "" {
+		creds.PasswordNIC = creds.Password
+	}
 	// virtual media environment variable
 	image64Boot = os.Getenv("TF_TESTING_VIRTUAL_MEDIA_IMAGE_PATH_64Boot")
 	imageEfiBoot = os.Getenv("TF_TESTING_VIRTUAL_MEDIA_IMAGE_PATH_EfiBoot")
