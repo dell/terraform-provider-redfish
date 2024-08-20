@@ -28,7 +28,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	datasourceSchema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	resourceSchema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -45,7 +47,10 @@ const (
 	operationUpdate
 	operationDelete
 	operationImport
-	redfishServerMD string = "List of server BMCs and their respective user credentials"
+	redfishServerMD       = "List of server BMCs and their respective user credentials"
+	redfishAliasMD        = "Alias name for server BMCs. The key in provider's `redfish_servers` map"
+	endpointFieldName     = "endpoint"
+	redfishAliasFieldName = "redfish_alias"
 )
 
 // ServerStatusChecker has required fields for Check() method
@@ -68,13 +73,30 @@ func RedfishServerSchema() map[string]resourceSchema.Attribute {
 			Description: "User password for login",
 			Sensitive:   true,
 		},
-		"endpoint": resourceSchema.StringAttribute{
-			Required:    true,
+		endpointFieldName: resourceSchema.StringAttribute{
+			Optional:    true,
 			Description: "Server BMC IP address or hostname",
+			Validators: []validator.String{
+				stringvalidator.AtLeastOneOf(
+					path.MatchRelative().AtParent().AtName(redfishAliasFieldName),
+					path.MatchRelative().AtParent().AtName(endpointFieldName),
+				),
+			},
 		},
 		"ssl_insecure": resourceSchema.BoolAttribute{
 			Optional:    true,
 			Description: "This field indicates whether the SSL/TLS certificate must be verified or not",
+		},
+		redfishAliasFieldName: resourceSchema.StringAttribute{
+			MarkdownDescription: redfishAliasMD,
+			Description:         redfishAliasMD,
+			Optional:            true,
+			Validators: []validator.String{
+				stringvalidator.AtLeastOneOf(
+					path.MatchRelative().AtParent().AtName(redfishAliasFieldName),
+					path.MatchRelative().AtParent().AtName(endpointFieldName),
+				),
+			},
 		},
 	}
 }
@@ -91,13 +113,30 @@ func RedfishServerDatasourceSchema() map[string]datasourceSchema.Attribute {
 			Description: "User password for login",
 			Sensitive:   true,
 		},
-		"endpoint": datasourceSchema.StringAttribute{
-			Required:    true,
+		endpointFieldName: datasourceSchema.StringAttribute{
+			Optional:    true,
 			Description: "Server BMC IP address or hostname",
+			Validators: []validator.String{
+				stringvalidator.AtLeastOneOf(
+					path.MatchRelative().AtParent().AtName(redfishAliasFieldName),
+					path.MatchRelative().AtParent().AtName(endpointFieldName),
+				),
+			},
 		},
 		"ssl_insecure": datasourceSchema.BoolAttribute{
 			Optional:    true,
 			Description: "This field indicates whether the SSL/TLS certificate must be verified or not",
+		},
+		redfishAliasFieldName: datasourceSchema.StringAttribute{
+			MarkdownDescription: redfishAliasMD,
+			Description:         redfishAliasMD,
+			Optional:            true,
+			Validators: []validator.String{
+				stringvalidator.AtLeastOneOf(
+					path.MatchRelative().AtParent().AtName(redfishAliasFieldName),
+					path.MatchRelative().AtParent().AtName(endpointFieldName),
+				),
+			},
 		},
 	}
 }
@@ -183,25 +222,25 @@ func NewConfig(pconfig *redfishProvider, rserver *[]models.RedfishServer) (*gofi
 		return nil, fmt.Errorf("no provider block was found")
 	}
 
-	// first redfish server block
-	if len(*rserver) == 0 {
-		return nil, errors.New("redfish server config not present")
-	}
 	rserver1 := (*rserver)[0]
 	var redfishClientUser, redfishClientPass string
+	// if `redfish_alias` is not null, get RedfishServer from provider's `redfish_servers`.
+	if err := getActiveAliasRedfishServer(pconfig, &rserver1); err != nil {
+		return nil, err
+	}
 
 	if len(rserver1.User.ValueString()) > 0 {
 		redfishClientUser = rserver1.User.ValueString()
-	} else if len(pconfig.Username) > 0 {
-		redfishClientUser = pconfig.Username
+	} else if len(pconfig.Username.ValueString()) > 0 {
+		redfishClientUser = pconfig.Username.ValueString()
 	} else {
 		return nil, fmt.Errorf("error. Either provide username at provider level or resource level. Please check your configuration")
 	}
 
 	if len(rserver1.Password.ValueString()) > 0 {
 		redfishClientPass = rserver1.Password.ValueString()
-	} else if len(pconfig.Password) > 0 {
-		redfishClientPass = pconfig.Password
+	} else if len(pconfig.Password.ValueString()) > 0 {
+		redfishClientPass = pconfig.Password.ValueString()
 	} else {
 		return nil, fmt.Errorf("error. Either provide password at provider level or resource level. Please check your configuration")
 	}
@@ -223,6 +262,31 @@ func NewConfig(pconfig *redfishProvider, rserver *[]models.RedfishServer) (*gofi
 	}
 	log.Printf("Connection with the redfish endpoint %v was sucessful\n", rserver1.Endpoint.ValueString())
 	return api, nil
+}
+
+// getActiveAliasRedfishServer is a helper function to get the active alias server from provider block.
+func getActiveAliasRedfishServer(pconfig *redfishProvider, rserver *models.RedfishServer) error {
+	serverAlias := rserver.RedfishAlias.ValueString()
+	// if `redfish_alias` is null, do nothing
+	if serverAlias == "" {
+		return nil
+	}
+
+	if serverAlias != "" && pconfig.Servers.IsNull() {
+		return fmt.Errorf("when `redfish_alias` is not null, provider's `redfish_servers` is required")
+	}
+
+	serversMap := make(map[string]models.RedfishServerPure)
+	_ = pconfig.Servers.ElementsAs(context.TODO(), &serversMap, true)
+	aliasServer, ok := serversMap[serverAlias]
+	if !ok {
+		return fmt.Errorf("redfish_alias: %s is not key in the map of provider's `redfish_servers`", serverAlias)
+	}
+	rserver.Endpoint = aliasServer.Endpoint
+	rserver.User = aliasServer.User
+	rserver.Password = aliasServer.Password
+	rserver.SslInsecure = aliasServer.SslInsecure
+	return nil
 }
 
 type powerOperator struct {

@@ -236,6 +236,7 @@ func (*RedfishNICResource) ImportState(ctx context.Context, req resource.ImportS
 		SystemID                string `json:"system_id"`
 		NetworkAdapterID        string `json:"network_adapter_id"`
 		NetworkDeviceFunctionID string `json:"network_device_function_id"`
+		RedfishAlias            string `json:"redfish_alias"`
 	}
 
 	var c creds
@@ -244,10 +245,11 @@ func (*RedfishNICResource) ImportState(ctx context.Context, req resource.ImportS
 		resp.Diagnostics.AddError("Error while unmarshalling id", err.Error())
 	}
 	server := models.RedfishServer{
-		User:        types.StringValue(c.Username),
-		Password:    types.StringValue(c.Password),
-		Endpoint:    types.StringValue(c.Endpoint),
-		SslInsecure: types.BoolValue(c.SslInsecure),
+		User:         types.StringValue(c.Username),
+		Password:     types.StringValue(c.Password),
+		Endpoint:     types.StringValue(c.Endpoint),
+		SslInsecure:  types.BoolValue(c.SslInsecure),
+		RedfishAlias: types.StringValue(c.RedfishAlias),
 	}
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(NICComponmentSchemaID), "importId")...)

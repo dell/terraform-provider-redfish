@@ -285,11 +285,12 @@ func (*BiosResource) Delete(ctx context.Context, req resource.DeleteRequest, res
 // ImportState import state for existing resource
 func (*BiosResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	type creds struct {
-		Username    string `json:"username"`
-		Password    string `json:"password"`
-		Endpoint    string `json:"endpoint"`
-		SslInsecure bool   `json:"ssl_insecure"`
-		SystemID    string `json:"system_id"`
+		Username     string `json:"username"`
+		Password     string `json:"password"`
+		Endpoint     string `json:"endpoint"`
+		SslInsecure  bool   `json:"ssl_insecure"`
+		SystemID     string `json:"system_id"`
+		RedfishAlias string `json:"redfish_alias"`
 	}
 
 	var c creds
@@ -299,10 +300,11 @@ func (*BiosResource) ImportState(ctx context.Context, req resource.ImportStateRe
 	}
 
 	server := models.RedfishServer{
-		User:        types.StringValue(c.Username),
-		Password:    types.StringValue(c.Password),
-		Endpoint:    types.StringValue(c.Endpoint),
-		SslInsecure: types.BoolValue(c.SslInsecure),
+		User:         types.StringValue(c.Username),
+		Password:     types.StringValue(c.Password),
+		Endpoint:     types.StringValue(c.Endpoint),
+		SslInsecure:  types.BoolValue(c.SslInsecure),
+		RedfishAlias: types.StringValue(c.RedfishAlias),
 	}
 
 	redfishServer := tfpath.Root("redfish_server")

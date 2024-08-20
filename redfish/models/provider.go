@@ -25,10 +25,20 @@ import (
 type ProviderConfig struct {
 	Username types.String `tfsdk:"user"`
 	Password types.String `tfsdk:"password"`
+	Servers  types.Map    `tfsdk:"redfish_servers"`
 }
 
 // RedfishServer to configure server config for resource/datasource.
 type RedfishServer struct {
+	RedfishAlias types.String `tfsdk:"redfish_alias"`
+	User         types.String `tfsdk:"user"`
+	Password     types.String `tfsdk:"password"`
+	Endpoint     types.String `tfsdk:"endpoint"`
+	SslInsecure  types.Bool   `tfsdk:"ssl_insecure"`
+}
+
+// RedfishServerPure defines server config without RedfishAlias.
+type RedfishServerPure struct {
 	User        types.String `tfsdk:"user"`
 	Password    types.String `tfsdk:"password"`
 	Endpoint    types.String `tfsdk:"endpoint"`

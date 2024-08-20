@@ -127,6 +127,13 @@ terraform {
     }
   }
 }
+
+provider "redfish" {
+  # `redfish_servers` is used to align with enhancements to password management.
+  # Map of server BMCs with their alias keys and respective user credentials.
+  # This is required when resource/datasource's `redfish_alias` is not null
+  redfish_servers = var.rack1
+}
 ```
 
 main.tf
@@ -152,10 +159,14 @@ resource "redfish_user_account" "rr" {
   for_each = var.rack1
 
   redfish_server {
-    user         = each.value.user
-    password     = each.value.password
-    endpoint     = each.value.endpoint
-    ssl_insecure = true
+    # Alias name for server BMCs. The key in provider's `redfish_servers` map
+    # `redfish_alias` is used to align with enhancements to password management.
+    # When using redfish_alias, provider's `redfish_servers` is required.
+    redfish_alias = each.key
+    user          = each.value.user
+    password      = each.value.password
+    endpoint      = each.value.endpoint
+    ssl_insecure  = true
   }
 
   // user details for creating/modifying a user
@@ -192,13 +203,11 @@ Upon successful execution of the preceding resource block, a new user account wi
 <a id="nestedblock--redfish_server"></a>
 ### Nested Schema for `redfish_server`
 
-Required:
-
-- `endpoint` (String) Server BMC IP address or hostname
-
 Optional:
 
+- `endpoint` (String) Server BMC IP address or hostname
 - `password` (String, Sensitive) User password for login
+- `redfish_alias` (String) Alias name for server BMCs. The key in provider's `redfish_servers` map
 - `ssl_insecure` (Boolean) This field indicates whether the SSL/TLS certificate must be verified or not
 - `user` (String) User name for login
 
@@ -225,6 +234,10 @@ limitations under the License.
 */
 
 terraform import redfish_user_account.rr "{\"id\":\"<id>\",\"username\":\"<username>\",\"password\":\"<password>\",\"endpoint\":\"<endpoint>\",\"ssl_insecure\":<true/false>}"
+
+# terraform import with redfish_alias. When using redfish_alias, provider's `redfish_servers` is required.
+# redfish_alias is used to align with enhancements to password management.
+terraform import redfish_user_account.rr "{\"id\":\"<id>\",\"redfish_alias\":\"<redfish_alias>\",\"endpoint\":\"<endpoint>\"}"
 ```
 
 1. This will import the user instance with specified ID into your Terraform state.
