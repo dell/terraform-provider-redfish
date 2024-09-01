@@ -25,9 +25,9 @@ data "redfish_system_boot" "system_boot" {
     ssl_insecure = each.value.ssl_insecure
   }
 
-  // resource_id is an optional argument. By default, the data source uses
+  // system_id is an optional argument. By default, the data source uses
   // the first ComputerSystem resource present in the ComputerSystem collection
-  resource_id = "System.Embedded.1"
+  system_id = "System.Embedded.1"
 }
 
 output "system_boot" {
