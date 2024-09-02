@@ -150,9 +150,9 @@ data "redfish_system_boot" "system_boot" {
     ssl_insecure = each.value.ssl_insecure
   }
 
-  // resource_id is an optional argument. By default, the data source uses
+  // system_id is an optional argument. By default, the data source uses
   // the first ComputerSystem resource present in the ComputerSystem collection
-  resource_id = "System.Embedded.1"
+  system_id = "System.Embedded.1"
 }
 
 output "system_boot" {
@@ -167,7 +167,6 @@ output "system_boot" {
 ### Optional
 
 - `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
-- `resource_id` (String, Deprecated) Resource ID of the computer system. If not provided, the first system resource is used
 - `system_id` (String) System ID of the computer system. If not provided, the first system resource is used
 
 ### Read-Only

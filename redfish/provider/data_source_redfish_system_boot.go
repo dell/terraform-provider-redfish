@@ -26,7 +26,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stmcginnis/gofish"
@@ -81,22 +80,12 @@ func SystemBootDatasourceSchema() map[string]schema.Attribute {
 			Description:         "Resource ID of the computer system used.",
 			Computed:            true,
 		},
-		"resource_id": schema.StringAttribute{
-			MarkdownDescription: "Resource ID of the computer system. If not provided, the first system resource is used",
-			Description:         "Resource ID of the computer system. If not provided, the first system resource is used",
-			Optional:            true,
-			Computed:            true,
-			DeprecationMessage:  "resource_id is deprecated, use system_id instead",
-		},
 		"system_id": schema.StringAttribute{
 			MarkdownDescription: "System ID of the computer system. If not provided, the first system resource is used",
 			Description:         "System ID of the computer system. If not provided, the first system resource is used",
 			Optional:            true,
 			Computed:            true,
-			Validators: []validator.String{
-				stringvalidator.LengthAtLeast(1),
-				stringvalidator.ConflictsWith(path.MatchRoot("resource_id")),
-			},
+			Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
 		},
 		"boot_order": schema.ListAttribute{
 			MarkdownDescription: "An array of BootOptionReference strings that represent the persistent boot order for this computer system",
@@ -152,30 +141,13 @@ func readRedfishSystemBoot(service *gofish.Service, d models.SystemBootDataSourc
 	// get the boot resource
 	var computerSystem *redfish.ComputerSystem
 	var boot redfish.Boot
-	// TODO take sysid either from resource_id or system_id and get the redfish.Boot
-	// TODO get the redfish.Boot using the sysid from the resource_id or system_id, whichever is present in the datasource
-	if d.ResourceID.ValueString() != "" {
-		system, err := getSystemResource(service, d.ResourceID.ValueString())
-		if err != nil {
-			diags.AddError("Error fetching computer system", err.Error())
-			return d, diags
-		}
-		computerSystem = system
-	} else if d.SystemID.ValueString() != "" {
-		system, err := getSystemResource(service, d.SystemID.ValueString())
-		if err != nil {
-			diags.AddError("Error fetching computer system", err.Error())
-			return d, diags
-		}
-		computerSystem = system
-	} else {
-		system, err := getSystemResource(service, "")
-		if err != nil {
-			diags.AddError("Error fetching computer system", err.Error())
-			return d, diags
-		}
-		computerSystem = system
+
+	system, err := getSystemResource(service, d.SystemID.ValueString())
+	if err != nil {
+		diags.AddError("Error fetching computer system", err.Error())
+		return d, diags
 	}
+	computerSystem = system
 
 	if computerSystem != nil {
 		boot = computerSystem.Boot
@@ -191,7 +163,6 @@ func readRedfishSystemBoot(service *gofish.Service, d models.SystemBootDataSourc
 	d.BootSourceOverrideMode = types.StringValue(string(boot.BootSourceOverrideMode))
 	d.BootSourceOverrideTarget = types.StringValue(string(boot.BootSourceOverrideTarget))
 	d.UefiTargetBootSourceOverride = types.StringValue(string(boot.UefiTargetBootSourceOverride))
-	d.ResourceID = types.StringValue(computerSystem.ODataID)
 	d.SystemID = types.StringValue(computerSystem.ID)
 	d.ID = types.StringValue(computerSystem.ODataID)
 
