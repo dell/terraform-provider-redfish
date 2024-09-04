@@ -426,11 +426,12 @@ func (r *UserAccountResource) Delete(ctx context.Context, req resource.DeleteReq
 // ImportState import state for existing user
 func (*UserAccountResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	type creds struct {
-		Username    string `json:"username"`
-		Password    string `json:"password"`
-		Endpoint    string `json:"endpoint"`
-		SslInsecure bool   `json:"ssl_insecure"`
-		Id          string `json:"id"`
+		Username     string `json:"username"`
+		Password     string `json:"password"`
+		Endpoint     string `json:"endpoint"`
+		SslInsecure  bool   `json:"ssl_insecure"`
+		Id           string `json:"id"`
+		RedfishAlias string `json:"redfish_alias"`
 	}
 
 	var c creds
@@ -440,10 +441,11 @@ func (*UserAccountResource) ImportState(ctx context.Context, req resource.Import
 	}
 
 	server := models.RedfishServer{
-		User:        types.StringValue(c.Username),
-		Password:    types.StringValue(c.Password),
-		Endpoint:    types.StringValue(c.Endpoint),
-		SslInsecure: types.BoolValue(c.SslInsecure),
+		User:         types.StringValue(c.Username),
+		Password:     types.StringValue(c.Password),
+		Endpoint:     types.StringValue(c.Endpoint),
+		SslInsecure:  types.BoolValue(c.SslInsecure),
+		RedfishAlias: types.StringValue(c.RedfishAlias),
 	}
 
 	idAttrPath := path.Root("id")

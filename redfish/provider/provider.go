@@ -25,10 +25,13 @@ import (
 	"terraform-provider-redfish/mutexkv"
 	"terraform-provider-redfish/redfish/models"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
@@ -44,8 +47,7 @@ func New() provider.Provider {
 }
 
 type redfishProvider struct {
-	Username string
-	Password string
+	models.ProviderConfig
 }
 
 // Metadata - provider metadata AKA name.
@@ -68,6 +70,37 @@ func (*redfishProvider) Schema(ctx context.Context, _ provider.SchemaRequest, re
 				Description:         "This field is the password related to the user given",
 				Optional:            true,
 				Sensitive:           true,
+			},
+			"redfish_servers": schema.MapNestedAttribute{
+				MarkdownDescription: "Map of server BMCs with their alias keys and respective user credentials. " +
+					"This is required when resource/datasource's `redfish_alias` is not null",
+				Description: "Map of server BMCs with their alias keys and respective user credentials. " +
+					"This is required when resource/datasource's `redfish_alias` is not null",
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"user": schema.StringAttribute{
+							Optional:    true,
+							Description: "User name for login",
+						},
+						"password": schema.StringAttribute{
+							Optional:    true,
+							Description: "User password for login",
+							Sensitive:   true,
+						},
+						"endpoint": schema.StringAttribute{
+							Required:    true,
+							Description: "Server BMC IP address or hostname",
+						},
+						"ssl_insecure": schema.BoolAttribute{
+							Optional:    true,
+							Description: "This field indicates whether the SSL/TLS certificate must be verified or not",
+						},
+					},
+				},
+				Validators: []validator.Map{
+					mapvalidator.KeysAre(stringvalidator.LengthAtLeast(1)),
+				},
 			},
 		},
 	}
@@ -101,13 +134,14 @@ func (p *redfishProvider) Configure(ctx context.Context, req provider.ConfigureR
 		return
 	}
 
-	p.Username = config.Username.ValueString()
-	p.Password = config.Password.ValueString()
+	p.Username = config.Username
+	p.Password = config.Password
+	p.Servers = config.Servers
 
 	resp.ResourceData = p
 	resp.DataSourceData = p
 
-	tflog.Trace(ctx, p.Username+" "+p.Password)
+	tflog.Trace(ctx, config.Username.ValueString()+" "+config.Password.ValueString())
 	tflog.Trace(ctx, "Finished configuring the provider")
 }
 

@@ -245,13 +245,11 @@ After the successful execution of the above resource block, virtual disk would h
 <a id="nestedblock--redfish_server"></a>
 ### Nested Schema for `redfish_server`
 
-Required:
-
-- `endpoint` (String) Server BMC IP address or hostname
-
 Optional:
 
+- `endpoint` (String) Server BMC IP address or hostname
 - `password` (String, Sensitive) User password for login
+- `redfish_alias` (String) Alias name for server BMCs. The key in provider's `redfish_servers` map
 - `ssl_insecure` (Boolean) This field indicates whether the SSL/TLS certificate must be verified or not
 - `user` (String) User name for login
 

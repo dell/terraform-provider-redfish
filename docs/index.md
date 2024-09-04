@@ -182,7 +182,10 @@ terraform {
 }
 
 provider "redfish" {
-
+  # # `redfish_servers` is used to align with enhancements to password management.
+  # # Map of server BMCs with their alias keys and respective user credentials.
+  # # This is required when resource/datasource's `redfish_alias` is not null
+  # redfish_servers  = var.rack1
 }
 ```
 
@@ -222,4 +225,18 @@ variable "rack1" {
 ### Optional
 
 - `password` (String, Sensitive) This field is the password related to the user given
+- `redfish_servers` (Attributes Map) Map of server BMCs with their alias keys and respective user credentials. This is required when resource/datasource's `redfish_alias` is not null (see [below for nested schema](#nestedatt--redfish_servers))
 - `user` (String) This field is the user to login against the redfish API
+
+<a id="nestedatt--redfish_servers"></a>
+### Nested Schema for `redfish_servers`
+
+Required:
+
+- `endpoint` (String) Server BMC IP address or hostname
+
+Optional:
+
+- `password` (String, Sensitive) User password for login
+- `ssl_insecure` (Boolean) This field indicates whether the SSL/TLS certificate must be verified or not
+- `user` (String) User name for login

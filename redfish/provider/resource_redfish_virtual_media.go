@@ -334,8 +334,9 @@ func (r *virtualMediaResource) Read(ctx context.Context, req resource.ReadReques
 // VMediaImportConfig is the JSON configuration for importing a virtual media
 type VMediaImportConfig struct {
 	ServerConf
-	SystemID string `json:"system_id"`
-	ID       string `json:"id"`
+	SystemID     string `json:"system_id"`
+	ID           string `json:"id"`
+	RedfishAlias string `json:"redfish_alias"`
 }
 
 // ImportState is the RPC called to import state for existing Virtual Media
@@ -348,10 +349,11 @@ func (r *virtualMediaResource) ImportState(ctx context.Context, req resource.Imp
 	}
 
 	server := models.RedfishServer{
-		User:        types.StringValue(c.Username),
-		Password:    types.StringValue(c.Password),
-		Endpoint:    types.StringValue(c.Endpoint),
-		SslInsecure: types.BoolValue(c.SslInsecure),
+		User:         types.StringValue(c.Username),
+		Password:     types.StringValue(c.Password),
+		Endpoint:     types.StringValue(c.Endpoint),
+		SslInsecure:  types.BoolValue(c.SslInsecure),
+		RedfishAlias: types.StringValue(c.RedfishAlias),
 	}
 
 	creds := []models.RedfishServer{server}

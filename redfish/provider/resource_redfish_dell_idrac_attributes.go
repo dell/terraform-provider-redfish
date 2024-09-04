@@ -219,11 +219,12 @@ func (*dellIdracAttributesResource) Delete(ctx context.Context, req resource.Del
 // ImportState import state for existing DellIdracAttributes
 func (r *dellIdracAttributesResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	type creds struct {
-		Username    string   `json:"username"`
-		Password    string   `json:"password"`
-		Endpoint    string   `json:"endpoint"`
-		SslInsecure bool     `json:"ssl_insecure"`
-		Attributes  []string `json:"attributes"`
+		Username     string   `json:"username"`
+		Password     string   `json:"password"`
+		Endpoint     string   `json:"endpoint"`
+		SslInsecure  bool     `json:"ssl_insecure"`
+		Attributes   []string `json:"attributes"`
+		RedfishAlias string   `json:"redfish_alias"`
 	}
 
 	var c creds
@@ -233,10 +234,11 @@ func (r *dellIdracAttributesResource) ImportState(ctx context.Context, req resou
 	}
 
 	server := models.RedfishServer{
-		User:        types.StringValue(c.Username),
-		Password:    types.StringValue(c.Password),
-		Endpoint:    types.StringValue(c.Endpoint),
-		SslInsecure: types.BoolValue(c.SslInsecure),
+		User:         types.StringValue(c.Username),
+		Password:     types.StringValue(c.Password),
+		Endpoint:     types.StringValue(c.Endpoint),
+		SslInsecure:  types.BoolValue(c.SslInsecure),
+		RedfishAlias: types.StringValue(c.RedfishAlias),
 	}
 
 	srv := []models.RedfishServer{server}
