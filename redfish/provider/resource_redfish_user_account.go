@@ -28,6 +28,7 @@ import (
 	"terraform-provider-redfish/redfish/models"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -368,6 +369,12 @@ func (r *UserAccountResource) Update(ctx context.Context, req resource.UpdateReq
 		resp.Diagnostics.AddError("Error when retrieving accounts", "User does not exists, needs to be recreated")
 		return
 	}
+
+	// updates provider creds if username or password is changed
+	if diags = r.updateProviderServers(ctx, &plan, &state); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 	r.updateServer(&plan, &state, account, operationUpdate)
 
 	tflog.Trace(ctx, "resource_user_account update: finished state update")
@@ -533,4 +540,32 @@ func GetUserAccountFromID(service *gofish.Service, userID string) ([]*redfish.Ma
 		return nil, nil, fmt.Errorf("error when retrieving accounts %v", err.Error())
 	}
 	return accountList, account, nil
+}
+
+// updateProviderServers updates redfish_servers of provider by alias if username or password is changed
+func (r *UserAccountResource) updateProviderServers(ctx context.Context, plan, state *models.UserAccount) (diags diag.Diagnostics) {
+	alias := plan.RedfishServer[0].RedfishAlias.ValueString()
+	var newUser, newPassword string
+	if plan.Password.ValueString() != state.Password.ValueString() {
+		newPassword = plan.Password.ValueString()
+	}
+	if plan.Username.ValueString() != state.Username.ValueString() {
+		newUser = plan.Username.ValueString()
+	}
+
+	// do nothing if alias is empty, or user/password not changed
+	if newUser == "" && newPassword == "" || alias == "" {
+		return
+	}
+
+	server := models.RedfishServer{RedfishAlias: types.StringValue(alias)}
+	if err := getActiveAliasRedfishServer(r.p, &server); err != nil {
+		diags.AddError("Error when update redfish_servers of provider", err.Error())
+	}
+
+	// do nothing if the user was not the same user given in alias
+	if server.User.ValueString() != state.Username.ValueString() {
+		return
+	}
+	return r.p.updateProviderServersByAlias(ctx, plan.RedfishServer[0].RedfishAlias.ValueString(), newUser, newPassword)
 }
