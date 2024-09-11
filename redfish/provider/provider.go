@@ -27,12 +27,20 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+)
+
+const (
+	fieldNameUser     = "user"
+	fieldNamePassword = "password"
 )
 
 // This is a global MutexKV for use within this plugin
@@ -60,12 +68,12 @@ func (*redfishProvider) Schema(ctx context.Context, _ provider.SchemaRequest, re
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Terraform Provider Redfish",
 		Attributes: map[string]schema.Attribute{
-			"user": schema.StringAttribute{
+			fieldNameUser: schema.StringAttribute{
 				MarkdownDescription: "This field is the user to login against the redfish API",
 				Description:         "This field is the user to login against the redfish API",
 				Optional:            true,
 			},
-			"password": schema.StringAttribute{
+			fieldNamePassword: schema.StringAttribute{
 				MarkdownDescription: "This field is the password related to the user given",
 				Description:         "This field is the password related to the user given",
 				Optional:            true,
@@ -79,11 +87,11 @@ func (*redfishProvider) Schema(ctx context.Context, _ provider.SchemaRequest, re
 				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"user": schema.StringAttribute{
+						fieldNameUser: schema.StringAttribute{
 							Optional:    true,
 							Description: "User name for login",
 						},
-						"password": schema.StringAttribute{
+						fieldNamePassword: schema.StringAttribute{
 							Optional:    true,
 							Description: "User password for login",
 							Sensitive:   true,
@@ -180,4 +188,54 @@ func (*redfishProvider) DataSources(_ context.Context) []func() datasource.DataS
 		NewFirmwareInventoryDatasource,
 		NewNICDatasource,
 	}
+}
+
+func (*redfishProvider) getProviderServersModelType() map[string]attr.Type {
+	return map[string]attr.Type{
+		fieldNameUser:     types.StringType,
+		fieldNamePassword: types.StringType,
+		"endpoint":        types.StringType,
+		"ssl_insecure":    types.BoolType,
+	}
+}
+
+func (p *redfishProvider) updateProviderServersByAlias(ctx context.Context, alias, newUser, newPassword string) (diags diag.Diagnostics) {
+	// do nothing if alias is empty, or user/password not changed
+	if newUser == "" && newPassword == "" || alias == "" {
+		return
+	}
+
+	attributes := make(map[string]attr.Value)
+	serversMap := make(map[string]models.RedfishServerPure)
+	if diags = p.Servers.ElementsAs(ctx, &serversMap, true); diags.HasError() {
+		return
+	}
+	for key, value := range serversMap {
+		serverItemMap := map[string]attr.Value{
+			fieldNameUser:     types.StringValue(value.User.ValueString()),
+			fieldNamePassword: types.StringValue(value.Password.ValueString()),
+			"endpoint":        types.StringValue(value.Endpoint.ValueString()),
+			"ssl_insecure":    types.BoolValue(value.SslInsecure.ValueBool()),
+		}
+		if alias == key {
+			if newPassword != "" {
+				serverItemMap[fieldNamePassword] = types.StringValue(newPassword)
+			}
+			if newUser != "" {
+				serverItemMap[fieldNameUser] = types.StringValue(newUser)
+			}
+		}
+		newValue, diags := types.ObjectValue(p.getProviderServersModelType(), serverItemMap)
+		if diags.HasError() {
+			return diags
+		}
+		attributes[key] = newValue
+	}
+
+	newServerMap, diags := types.MapValue(types.ObjectType{AttrTypes: p.getProviderServersModelType()}, attributes)
+	if diags.HasError() {
+		return diags
+	}
+	p.Servers = newServerMap
+	return
 }
