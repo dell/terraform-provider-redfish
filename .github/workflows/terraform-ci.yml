@@ -52,6 +52,8 @@ jobs:
     steps:
       - name: Checkout the code
         uses: actions/checkout@v3
+      - name: Replace "master" with "main" in ATTRIBUTION.md
+        run: sed -i 's/\/master/\/main/g' about/ATTRIBUTION.md
       - name: Run the forbidden words scan
         uses: dell/common-github-actions/code-sanitizer@main
         with:
