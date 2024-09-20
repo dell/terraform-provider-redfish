@@ -1,0 +1,13 @@
+# CODEOWNERS
+#
+# documentation for this file can be found at:
+# https://help.github.com/en/articles/about-code-owners
+
+# These are the default owners for the code and will
+# be requested for review when someone opens a pull request.
+# Order is alphabetical for easier maintenance.
+#
+# All Terraform Engineers in Dell (dell/TerraformDell)
+
+# for all files:
+* @dell/TerraformDell
