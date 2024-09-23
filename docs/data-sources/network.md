@@ -277,25 +277,25 @@ Read-Only:
 - `firmware_package_version` (String) The version of the user-facing firmware package
 
 <a id="nestedatt--network_interfaces--network_adapter--controllers--controller_capabilities"></a>
-### Nested Schema for `network_interfaces.network_adapter.controllers.firmware_package_version`
+### Nested Schema for `network_interfaces.network_adapter.controllers.controller_capabilities`
 
 Read-Only:
 
-- `data_center_bridging` (Attributes) Data center bridging (DCB) for capabilities of a controller (see [below for nested schema](#nestedatt--network_interfaces--network_adapter--controllers--firmware_package_version--data_center_bridging))
-- `npar` (Attributes) NIC Partitioning capability, status, and configuration for a controller (see [below for nested schema](#nestedatt--network_interfaces--network_adapter--controllers--firmware_package_version--npar))
-- `npiv` (Attributes) N_Port ID Virtualization (NPIV) capabilities for a controller (see [below for nested schema](#nestedatt--network_interfaces--network_adapter--controllers--firmware_package_version--npiv))
-- `virtualization_offload` (Attributes) A Virtualization offload capability of a controller (see [below for nested schema](#nestedatt--network_interfaces--network_adapter--controllers--firmware_package_version--virtualization_offload))
+- `data_center_bridging` (Attributes) Data center bridging (DCB) for capabilities of a controller (see [below for nested schema](#nestedatt--network_interfaces--network_adapter--controllers--controller_capabilities--data_center_bridging))
+- `npar` (Attributes) NIC Partitioning capability, status, and configuration for a controller (see [below for nested schema](#nestedatt--network_interfaces--network_adapter--controllers--controller_capabilities--npar))
+- `npiv` (Attributes) N_Port ID Virtualization (NPIV) capabilities for a controller (see [below for nested schema](#nestedatt--network_interfaces--network_adapter--controllers--controller_capabilities--npiv))
+- `virtualization_offload` (Attributes) A Virtualization offload capability of a controller (see [below for nested schema](#nestedatt--network_interfaces--network_adapter--controllers--controller_capabilities--virtualization_offload))
 
-<a id="nestedatt--network_interfaces--network_adapter--controllers--firmware_package_version--data_center_bridging"></a>
-### Nested Schema for `network_interfaces.network_adapter.controllers.firmware_package_version.data_center_bridging`
+<a id="nestedatt--network_interfaces--network_adapter--controllers--controller_capabilities--data_center_bridging"></a>
+### Nested Schema for `network_interfaces.network_adapter.controllers.controller_capabilities.data_center_bridging`
 
 Read-Only:
 
 - `capable` (Boolean) An indication of whether this controller is capable of data center bridging (DCB)
 
 
-<a id="nestedatt--network_interfaces--network_adapter--controllers--firmware_package_version--npar"></a>
-### Nested Schema for `network_interfaces.network_adapter.controllers.firmware_package_version.npar`
+<a id="nestedatt--network_interfaces--network_adapter--controllers--controller_capabilities--npar"></a>
+### Nested Schema for `network_interfaces.network_adapter.controllers.controller_capabilities.npar`
 
 Read-Only:
 
@@ -303,8 +303,8 @@ Read-Only:
 - `npar_enabled` (Boolean) An indication of whether NIC function partitioning is active on this controller.
 
 
-<a id="nestedatt--network_interfaces--network_adapter--controllers--firmware_package_version--npiv"></a>
-### Nested Schema for `network_interfaces.network_adapter.controllers.firmware_package_version.npiv`
+<a id="nestedatt--network_interfaces--network_adapter--controllers--controller_capabilities--npiv"></a>
+### Nested Schema for `network_interfaces.network_adapter.controllers.controller_capabilities.npiv`
 
 Read-Only:
 
@@ -312,24 +312,24 @@ Read-Only:
 - `max_port_logins` (Number) The maximum number of N_Port ID Virtualization (NPIV) logins allowed per physical port on this controller
 
 
-<a id="nestedatt--network_interfaces--network_adapter--controllers--firmware_package_version--virtualization_offload"></a>
-### Nested Schema for `network_interfaces.network_adapter.controllers.firmware_package_version.virtualization_offload`
+<a id="nestedatt--network_interfaces--network_adapter--controllers--controller_capabilities--virtualization_offload"></a>
+### Nested Schema for `network_interfaces.network_adapter.controllers.controller_capabilities.virtualization_offload`
 
 Read-Only:
 
-- `sriov` (Attributes) Single-root input/output virtualization (SR-IOV) capabilities (see [below for nested schema](#nestedatt--network_interfaces--network_adapter--controllers--firmware_package_version--virtualization_offload--sriov))
-- `virtual_function` (Attributes) A virtual function of a controller (see [below for nested schema](#nestedatt--network_interfaces--network_adapter--controllers--firmware_package_version--virtualization_offload--virtual_function))
+- `sriov` (Attributes) Single-root input/output virtualization (SR-IOV) capabilities (see [below for nested schema](#nestedatt--network_interfaces--network_adapter--controllers--controller_capabilities--virtualization_offload--sriov))
+- `virtual_function` (Attributes) A virtual function of a controller (see [below for nested schema](#nestedatt--network_interfaces--network_adapter--controllers--controller_capabilities--virtualization_offload--virtual_function))
 
-<a id="nestedatt--network_interfaces--network_adapter--controllers--firmware_package_version--virtualization_offload--sriov"></a>
-### Nested Schema for `network_interfaces.network_adapter.controllers.firmware_package_version.virtualization_offload.virtual_function`
+<a id="nestedatt--network_interfaces--network_adapter--controllers--controller_capabilities--virtualization_offload--sriov"></a>
+### Nested Schema for `network_interfaces.network_adapter.controllers.controller_capabilities.virtualization_offload.sriov`
 
 Read-Only:
 
 - `sriov_vepa_capable` (Boolean) An indication of whether this controller supports single root input/output virtualization (SR-IOV)in Virtual Ethernet Port Aggregator (VEPA) mode
 
 
-<a id="nestedatt--network_interfaces--network_adapter--controllers--firmware_package_version--virtualization_offload--virtual_function"></a>
-### Nested Schema for `network_interfaces.network_adapter.controllers.firmware_package_version.virtualization_offload.virtual_function`
+<a id="nestedatt--network_interfaces--network_adapter--controllers--controller_capabilities--virtualization_offload--virtual_function"></a>
+### Nested Schema for `network_interfaces.network_adapter.controllers.controller_capabilities.virtualization_offload.virtual_function`
 
 Read-Only:
 
@@ -410,7 +410,7 @@ Read-Only:
 - `wwpn` (String) The currently configured World Wide Port Name (WWPN) address of this function
 
 <a id="nestedatt--network_interfaces--network_device_functions--fibre_channel--boot_targets"></a>
-### Nested Schema for `network_interfaces.network_device_functions.fibre_channel.wwpn`
+### Nested Schema for `network_interfaces.network_device_functions.fibre_channel.boot_targets`
 
 Read-Only:
 
@@ -467,7 +467,7 @@ Read-Only:
 - `dell_nic_port_metrics` (Attributes) The OEM extension of Dell NIC port metrics for this network device function (see [below for nested schema](#nestedatt--network_interfaces--network_device_functions--oem--dell_nic_port_metrics))
 
 <a id="nestedatt--network_interfaces--network_device_functions--oem--dell_fc"></a>
-### Nested Schema for `network_interfaces.network_device_functions.oem.dell_nic_port_metrics`
+### Nested Schema for `network_interfaces.network_device_functions.oem.dell_fc`
 
 Read-Only:
 
@@ -514,7 +514,7 @@ Read-Only:
 
 
 <a id="nestedatt--network_interfaces--network_device_functions--oem--dell_fc_port_capabilities"></a>
-### Nested Schema for `network_interfaces.network_device_functions.oem.dell_nic_port_metrics`
+### Nested Schema for `network_interfaces.network_device_functions.oem.dell_fc_port_capabilities`
 
 Read-Only:
 
@@ -531,7 +531,7 @@ Read-Only:
 
 
 <a id="nestedatt--network_interfaces--network_device_functions--oem--dell_fc_port_metrics"></a>
-### Nested Schema for `network_interfaces.network_device_functions.oem.dell_nic_port_metrics`
+### Nested Schema for `network_interfaces.network_device_functions.oem.dell_fc_port_metrics`
 
 Read-Only:
 
@@ -562,7 +562,7 @@ Read-Only:
 
 
 <a id="nestedatt--network_interfaces--network_device_functions--oem--dell_nic"></a>
-### Nested Schema for `network_interfaces.network_device_functions.oem.dell_nic_port_metrics`
+### Nested Schema for `network_interfaces.network_device_functions.oem.dell_nic`
 
 Read-Only:
 
@@ -610,7 +610,7 @@ Read-Only:
 
 
 <a id="nestedatt--network_interfaces--network_device_functions--oem--dell_nic_capabilities"></a>
-### Nested Schema for `network_interfaces.network_device_functions.oem.dell_nic_port_metrics`
+### Nested Schema for `network_interfaces.network_device_functions.oem.dell_nic_capabilities`
 
 Read-Only:
 

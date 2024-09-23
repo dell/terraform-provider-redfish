@@ -59,14 +59,6 @@ Source: [gofish](https://github.com/stmcginnis/gofish)
 
 * * *
   
-Package: terraform-plugin-docs  
-Version: v0.16.0  
-Copyright: Copyright (c) 2020 HashiCorp, Inc.  
-License: [MPL-2.0](https://github.com/hashicorp/terraform-plugin-docs/blob/main/LICENSE)  
-Source: [terraform-plugin-docs](https://github.com/hashicorp/terraform-plugin-docs)  
-
-* * *
-  
 Package: terraform-plugin-framework  
 Version: v1.4.1  
 Copyright: Copyright (c) 2021 HashiCorp, Inc.  
@@ -102,14 +94,6 @@ Source: [go-colorable](https://github.com/mattn/go-colorable)
 
 * * *
   
-Package: exp  
-Version: v0.0.0-20240103183307-be819d1f06fc  
-Copyright: Copyright 2009 The Go Authors.  
-License: [BSD-3-Clause](https://github.com/golang/exp/blob/master/LICENSE)  
-Source: [exp](https://github.com/golang/exp)  
-
-* * *
-  
 Package: text  
 Version: v0.14.0  
 Copyright: Copyright 2009 The Go Authors.  
@@ -123,14 +107,6 @@ Version: v1.59.0
 Copyright: Copyright (c) 2018 The Go Authors  
 License: [Apache-2.0](https://github.com/grpc/grpc-go/blob/master/LICENSE)  
 Source: [grpc](https://github.com/grpc/grpc-go)  
-
-* * *
-  
-Package: xstrings  
-Version: v1.3.2  
-Copyright: Copyright (c) 2015 Huan Du  
-License: [MIT](https://github.com/huandu/xstrings/blob/master/LICENSE)  
-Source: [xstrings](https://github.com/huandu/xstrings)  
 
 * * *
   
@@ -166,14 +142,6 @@ Source: [rpc](https://github.com/googleapis/go-genproto)
 
 * * *
   
-Package: goutils  
-Version: v1.1.1  
-Copyright: Copyright 2014 Alexander Okoli
-License: [Apache-2.0](https://github.com/Masterminds/goutils/blob/master/LICENSE.txt)  
-Source: [goutils](https://github.com/Masterminds/goutils)  
-
-* * *
-  
 Package: go-hclog  
 Version: v1.5.0  
 Copyright: Copyright (c) 2017 HashiCorp, Inc.  
@@ -200,36 +168,11 @@ Source: [go-textseg/v15](https://github.com/apparentlymart/go-textseg)
 
 * * *
   
-Package: speakeasy  
-Version: v0.1.0  
-Copyright: Copyright (c) 2017 Blake Gentry  
-License: [MIT](https://github.com/bgentry/speakeasy/blob/master/LICENSE)  
-Source: [speakeasy](https://github.com/bgentry/speakeasy)  
-
-* * *
-  
 Package: color  
 Version: v1.16.0  
 Copyright: Copyright (c) 2013 Fatih Arslan  
 License: [MIT](https://github.com/fatih/color/blob/main/LICENSE.md)  
 Source: [color](https://github.com/fatih/color)  
-
-* * *
-  
-Package: decimal  
-Version: v1.3.1  
-Copyright: Copyright (c) 2015 Spring, Inc.  
-Copyright (c) 2013 Oguz Bilgic  
-License: [MIT](https://github.com/shopspring/decimal/blob/master/LICENSE)  
-Source: [decimal](https://github.com/shopspring/decimal)  
-
-* * *
-  
-Package: go-radix  
-Version: v1.0.0  
-Copyright: Copyright (c) 2014 Armon Dadgar  
-License: [MIT](https://github.com/armon/go-radix/blob/master/LICENSE)  
-Source: [go-radix](https://github.com/armon/go-radix)  
 
 * * *
   
@@ -273,14 +216,6 @@ Source: [net](https://github.com/golang/net)
 
 * * *
   
-Package: semver/v3  
-Version: v3.1.1  
-Copyright: Copyright (C) 2014-2019, Matt Butcher and Matt Farina
-License: [MIT](https://github.com/Masterminds/semver/blob/master/LICENSE.txt)  
-Source: [semver/v3](https://github.com/Masterminds/semver)  
-
-* * *
-  
 Package: errwrap  
 Version: v1.1.0  
 Copyright: Copyright (c) 2014 HashiCorp, Inc.  
@@ -297,14 +232,6 @@ Source: [go-cleanhttp](https://github.com/hashicorp/go-cleanhttp)
 
 * * *
   
-Package: blackfriday  
-Version: v1.6.0  
-Copyright: Copyright © 2011 Russ Ross  
-License: [BSD-3-Clause](https://github.com/russross/blackfriday/blob/master/LICENSE.txt)  
-Source: [blackfriday](https://github.com/russross/blackfriday)  
-
-* * *
-  
 Package: go-cmp  
 Version: v0.6.0  
 Copyright: Copyright (c) 2017 The Go Authors. All rights reserved.  
@@ -318,14 +245,6 @@ Version: v1.6.0
 Copyright: Copyright (c) 2014 HashiCorp, Inc.  
 License: [MPL-2.0](https://github.com/hashicorp/go-version/blob/main/LICENSE)  
 Source: [go-version](https://github.com/hashicorp/go-version)  
-
-* * *
-  
-Package: complete  
-Version: v1.2.3  
-Copyright: Copyright (c) 2017 Eyal Posener  
-License: [MIT](https://github.com/posener/complete/blob/v1/LICENSE.txt)  
-Source: [complete](https://github.com/posener/complete)  
 
 * * *
   
@@ -353,15 +272,6 @@ Source: [go-uuid](https://github.com/hashicorp/go-uuid)
 
 * * *
   
-Package: mergo  
-Version: v0.3.15  
-Copyright: Copyright (c) 2013 Dario Castañé. All rights reserved.  
-Copyright (c) 2012 The Go Authors. All rights reserved.  
-License: [BSD-3-Clause](https://github.com/darccio/mergo/blob/master/LICENSE)  
-Source: [mergo](https://github.com/imdario/mergo)  
-
-* * *
-  
 Package: terraform-json  
 Version: v0.18.0  
 Copyright: Copyright (c) 2019 HashiCorp, Inc.  
@@ -383,14 +293,6 @@ Version: v1.14.1
 Copyright: Copyright (c) 2017-2018 Martin Atkins  
 License: [MIT](https://github.com/zclconf/go-cty/blob/main/LICENSE)  
 Source: [go-cty](https://github.com/zclconf/go-cty)  
-
-* * *
-  
-Package: sprig/v3  
-Version: v3.2.2  
-Copyright: Copyright (C) 2013-2020 Masterminds
-License: [MIT](https://github.com/Masterminds/sprig/blob/master/LICENSE.txt)  
-Source: [sprig/v3](https://github.com/Masterminds/sprig)  
 
 * * *
   
@@ -434,14 +336,6 @@ Source: [mapstructure](https://github.com/mitchellh/mapstructure)
 
 * * *
   
-Package: cast  
-Version: v1.5.0  
-Copyright: Copyright (c) 2014 Steve Francia  
-License: [MIT](https://github.com/spf13/cast/blob/master/LICENSE)  
-Source: [cast](https://github.com/spf13/cast)  
-
-* * *
-  
 Package: tagparser/v2  
 Version: v2.0.0  
 Copyright: Copyright (c) 2019 The github.com/vmihailenco/tagparser Authors.  
@@ -471,22 +365,6 @@ Version: v0.2.3
 Copyright: Copyright (c) 2021 HashiCorp, Inc.  
 License: [MPL-2.0](https://github.com/hashicorp/terraform-registry-address/blob/main/LICENSE)  
 Source: [terraform-registry-address](https://github.com/hashicorp/terraform-registry-address)  
-
-* * *
-  
-Package: quicktest  
-Version: v1.14.4  
-Copyright: Copyright (c) 2017 Canonical Ltd.  
-License: [MIT](https://github.com/frankban/quicktest/blob/master/LICENSE)  
-Source: [quicktest](https://github.com/frankban/quicktest)  
-
-* * *
-  
-Package: uuid  
-Version: v1.3.1  
-Copyright: Copyright (c) 2009,2014 Google Inc. All rights reserved.  
-License: [BSD-3-Clause](https://github.com/google/uuid/blob/master/LICENSE)  
-Source: [uuid](https://github.com/google/uuid)  
 
 * * *
   
@@ -560,14 +438,6 @@ Version: v0.0.20
 Copyright: Copyright (c) 2017 The Mattn Authors  
 License: [MIT](https://github.com/mattn/go-isatty/blob/master/LICENSE)  
 Source: [go-isatty](https://github.com/mattn/go-isatty)  
-
-* * *
-  
-Package: cli  
-Version: v1.1.5  
-Copyright: N/A  
-License: [MPL-2.0](https://github.com/mitchellh/cli/blob/main/LICENSE)  
-Source: [cli](https://github.com/mitchellh/cli)  
 
 * * *
   
