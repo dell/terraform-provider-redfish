@@ -5,7 +5,7 @@ go 1.22
 require (
 	github.com/hashicorp/terraform-plugin-framework v1.4.1
 	github.com/hashicorp/terraform-plugin-log v0.9.0
-	github.com/stmcginnis/gofish v0.15.1-0.20240129095132-7eb050882d70
+	github.com/stmcginnis/gofish v0.19.0
 )
 
 require github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect

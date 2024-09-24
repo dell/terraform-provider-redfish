@@ -27,7 +27,10 @@ import (
 type UpdateServiceExtended struct {
 	*redfish.UpdateService
 	// Actions will hold all UpdateService Dell OEM actions
-	Actions UpdateServiceActions
+	Actions             UpdateServiceActions
+	SimpleUpdateActions SimpleUpdateActions
+
+	FirmwareInventory *redfish.SoftwareInventory
 }
 
 // UpdateServiceActions contains Dell OEM actions
@@ -36,6 +39,17 @@ type UpdateServiceActions struct {
 	DellUpdateServiceTarget string
 	// DellUpdateServiceInstallUpon are the installing times
 	DellUpdateServiceInstallUpon []string
+}
+
+// SimpleUpdate contains SimpleUpdate
+type SimpleUpdate struct {
+	AllowableValues []string `json:"TransferProtocol@Redfish.AllowableValues"`
+	Target          string
+}
+
+// SimpleUpdateActions contains SimpleUpdate
+type SimpleUpdateActions struct {
+	SimpleUpdate SimpleUpdate `json:"#UpdateService.SimpleUpdate"`
 }
 
 // UnmarshalJSON unmarshals Dell update service object from raw JSON
@@ -62,7 +76,11 @@ func (u *UpdateServiceActions) UnmarshalJSON(data []byte) error {
 // UpdateService returns a Dell.UpdateServiceExtended pointer given a redfish.UpdateService pointer from gofish library
 // This is the wrapper that extracts and parses Dell UpdateService OEM actions
 func UpdateService(updateService *redfish.UpdateService) (*UpdateServiceExtended, error) {
-	dellUpdate := UpdateServiceExtended{UpdateService: updateService}
+	dellUpdate := UpdateServiceExtended{
+		UpdateService:       updateService,
+		SimpleUpdateActions: SimpleUpdateActions{},
+		FirmwareInventory:   &redfish.SoftwareInventory{},
+	}
 	var oemUpdateService UpdateServiceActions
 
 	err := json.Unmarshal(dellUpdate.OemActions, &oemUpdateService)
@@ -70,6 +88,24 @@ func UpdateService(updateService *redfish.UpdateService) (*UpdateServiceExtended
 		return nil, err
 	}
 	dellUpdate.Actions = oemUpdateService
+
+	rawDataBytes, err := GetRawDataBytes(updateService)
+	if err != nil {
+		return &dellUpdate, err
+	}
+	if updateActionRawData, found := GetNodeFromRawDataBytes(rawDataBytes, "Actions"); found == nil {
+		var simpleUpdateData SimpleUpdateActions
+		if err = json.Unmarshal(updateActionRawData, &simpleUpdateData); err == nil {
+			dellUpdate.SimpleUpdateActions = simpleUpdateData
+		}
+	}
+
+	if inventoryRawData, found := GetNodeFromRawDataBytes(rawDataBytes, "FirmwareInventory"); found == nil {
+		var inventoryData *redfish.SoftwareInventory
+		if err = json.Unmarshal(inventoryRawData, &inventoryData); err == nil {
+			dellUpdate.FirmwareInventory = inventoryData
+		}
+	}
 
 	return &dellUpdate, nil
 }
