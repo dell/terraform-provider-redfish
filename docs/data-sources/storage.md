@@ -219,7 +219,7 @@ Read-Only:
 - `dell_controller_battery` (Attributes) dell controller battery (see [below for nested schema](#nestedatt--storage--oem--dell--dell_controller_battery))
 
 <a id="nestedatt--storage--oem--dell--dell_controller"></a>
-### Nested Schema for `storage.oem.dell.dell_controller_battery`
+### Nested Schema for `storage.oem.dell.dell_controller`
 
 Read-Only:
 
