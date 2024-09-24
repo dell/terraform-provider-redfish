@@ -198,7 +198,7 @@ func getISCSIBootObjectValue(ctx context.Context, dellDeviceFunction *dell.Netwo
 		fieldNamePrimaryTargetName:          types.StringValue(dellDeviceFunction.ISCSIBoot.PrimaryTargetName),
 		fieldNamePrimaryTargetTCPPort:       types.Int64Value(int64(dellDeviceFunction.ISCSIBoot.PrimaryTargetTCPPort)),
 		fieldNamePrimaryVLANEnable:          types.BoolValue(dellDeviceFunction.ISCSIBoot.PrimaryVLANEnable),
-		fieldNamePrimaryVLANID:              types.Int64Value(int64(dellDeviceFunction.ISCSIBoot.PrimaryVLANId)),
+		fieldNamePrimaryVLANID:              types.Int64Value(int64(dellDeviceFunction.ISCSIBoot.PrimaryVLANID)),
 		fieldNameRouterAdvertisementEnabled: types.BoolValue(dellDeviceFunction.ISCSIBoot.RouterAdvertisementEnabled),
 		fieldNameSecondaryDNS:               types.StringValue(dellDeviceFunction.ISCSIBoot.SecondaryDNS),
 		fieldNameSecondaryLun:               types.Int64Value(int64(dellDeviceFunction.ISCSIBoot.SecondaryLUN)),
@@ -206,7 +206,7 @@ func getISCSIBootObjectValue(ctx context.Context, dellDeviceFunction *dell.Netwo
 		fieldNameSecondaryTargetName:        types.StringValue(dellDeviceFunction.ISCSIBoot.SecondaryTargetName),
 		fieldNameSecondaryTargetTCPPort:     types.Int64Value(int64(dellDeviceFunction.ISCSIBoot.SecondaryTargetTCPPort)),
 		fieldNameSecondaryVLANEnable:        types.BoolValue(dellDeviceFunction.ISCSIBoot.SecondaryVLANEnable),
-		fieldNameSecondaryVLANID:            types.Int64Value(int64(dellDeviceFunction.ISCSIBoot.SecondaryVLANId)),
+		fieldNameSecondaryVLANID:            types.Int64Value(int64(dellDeviceFunction.ISCSIBoot.SecondaryVLANID)),
 		fieldNameTargetInfoViaDHCP:          types.BoolValue(dellDeviceFunction.ISCSIBoot.TargetInfoViaDHCP),
 	}
 	for key, value := range oldDevFuncSettings.ISCSIBoot.Attributes() {
@@ -298,8 +298,8 @@ func getFibreChannelObjectValue(ctx context.Context, dellDeviceFunction *dell.Ne
 
 	fibreChannelItemMap := map[string]attr.Value{
 		fieldNameAllowFipVlanDiscovery: types.BoolValue(dellDeviceFunction.FibreChannel.AllowFIPVLANDiscovery),
-		"fcoe_active_vlan_id":          types.Int64Value(int64(dellDeviceFunction.FibreChannel.FCoEActiveVLANId)),
-		fieldNameFcoeLocalVlanID:       types.Int64Value(int64(dellDeviceFunction.FibreChannel.FCoELocalVLANId)),
+		"fcoe_active_vlan_id":          types.Int64Value(int64(dellDeviceFunction.FibreChannel.FCoEActiveVLANID)),
+		fieldNameFcoeLocalVlanID:       types.Int64Value(int64(dellDeviceFunction.FibreChannel.FCoELocalVLANID)),
 		"permanent_wwnn":               types.StringValue(dellDeviceFunction.FibreChannel.PermanentWWNN),
 		"permanent_wwpn":               types.StringValue(dellDeviceFunction.FibreChannel.PermanentWWPN),
 		fieldNameWWNN:                  types.StringValue(dellDeviceFunction.FibreChannel.WWNN),

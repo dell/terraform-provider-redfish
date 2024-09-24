@@ -295,7 +295,6 @@ Read-Only:
 - `cache_summary` (Attributes) cache summary (see [below for nested schema](#nestedatt--storage--storage_controllers--cache_summary))
 - `firmware_version` (String) firmware version
 - `manufacturer` (String) manufacturer
-- `member_id` (String) member id of storage controller
 - `model` (String) model
 - `name` (String) name of the storage controller
 - `speed_gbps` (Number) speed gbps

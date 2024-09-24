@@ -65,7 +65,7 @@ func TestDellUpdateService(t *testing.T) {
 	t.Run("Test redfish values", func(t *testing.T) {
 		dellUpdateService := getDellUpdateService(t)
 
-		assertField(t, dellUpdateService.UpdateServiceTarget, "/redfish/v1/UpdateService/Actions/UpdateService.SimpleUpdate")
+		assertField(t, dellUpdateService.SimpleUpdateActions.SimpleUpdate.Target, "/redfish/v1/UpdateService/Actions/UpdateService.SimpleUpdate")
 		assertField(t, dellUpdateService.HTTPPushURI, "/redfish/v1/UpdateService/FirmwareInventory")
 		assertArray(t, dellUpdateService.TransferProtocol, []string{"HTTP"})
 	})

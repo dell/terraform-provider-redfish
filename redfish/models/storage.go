@@ -122,7 +122,6 @@ type StorageControllers struct {
 	CacheSummary                 CacheSummary   `tfsdk:"cache_summary"`
 	FirmwareVersion              types.String   `tfsdk:"firmware_version"`
 	Manufacturer                 types.String   `tfsdk:"manufacturer"`
-	MemberID                     types.String   `tfsdk:"member_id"`
 	Model                        types.String   `tfsdk:"model"`
 	Name                         types.String   `tfsdk:"name"`
 	SpeedGbps                    types.Int64    `tfsdk:"speed_gbps"`

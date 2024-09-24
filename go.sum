@@ -145,6 +145,8 @@ github.com/skeema/knownhosts v1.2.1 h1:SHWdIUa82uGZz+F+47k8SY4QhhI291cXCpopT1lK2
 github.com/skeema/knownhosts v1.2.1/go.mod h1:xYbVRSPxqBZFrdmDyMmsOs+uX1UZC3nTN3ThzgDxUwo=
 github.com/stmcginnis/gofish v0.15.1-0.20240129095132-7eb050882d70 h1:9Fg+kVdfcZUFnn0rYXNkUlk02R6Yn42arjMsHNx/j7o=
 github.com/stmcginnis/gofish v0.15.1-0.20240129095132-7eb050882d70/go.mod h1:BLDSFTp8pDlf/xDbLZa+F7f7eW0E/CHCboggsu8CznI=
+github.com/stmcginnis/gofish v0.19.0 h1:fmxdRZ5WHfs+4ExArMYoeRfoh+SAxLELKtmoVplBkU4=
+github.com/stmcginnis/gofish v0.19.0/go.mod h1:lq2jHj2t8Krg0Gx02ABk8MbK7Dz9jvWpO/TGnVksn00=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.7.2/go.mod h1:R6va5+xMeoiuVRoj+gSkQ7d3FALtqAAGI1FQKckRals=

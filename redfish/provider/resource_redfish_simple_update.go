@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 	"strings"
 	"terraform-provider-redfish/common"
+	"terraform-provider-redfish/gofish/dell"
 	"terraform-provider-redfish/redfish/models"
 	"time"
 
@@ -416,7 +417,13 @@ func (u *simpleUpdater) updateRedfishSimpleUpdate(d models.SimpleUpdateRes) (dia
 func (u *simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.SoftwareInventory, error) {
 	// Get ETag from FW inventory
 	service, updateService := u.service, u.updateService
-	response, err := service.GetClient().Get(updateService.FirmwareInventory)
+
+	dellUpdateService, err := dell.UpdateService(updateService)
+	if err != nil {
+		return nil, fmt.Errorf("error while retrieving FirmwareInventory URI: %w", err)
+	}
+
+	response, err := service.GetClient().Get(dellUpdateService.FirmwareInventory.ODataID)
 	if err != nil {
 		return nil, fmt.Errorf("error while retrieving Etag from FirmwareInventory: %w", err)
 	}
@@ -461,7 +468,7 @@ func (u *simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.
 		ImageURI: packageLocation,
 	}
 	// Do the POST call against Simple.Update service
-	response, err = service.GetClient().Post(updateService.UpdateServiceTarget, triggerUpdatePayload)
+	response, err = service.GetClient().Post(dellUpdateService.SimpleUpdateActions.SimpleUpdate.Target, triggerUpdatePayload)
 	if err != nil {
 		// Delete uploaded package - TBD
 		return nil, fmt.Errorf("there was an issue when scheduling the update job - %w", err)
@@ -538,9 +545,14 @@ func (u *simpleUpdater) pullUpdate(d models.SimpleUpdateRes) (models.SimpleUpdat
 	updateService := u.updateService
 	service := u.service
 
+	dellUpdateService, err := dell.UpdateService(updateService)
+	if err != nil {
+		return d, fmt.Errorf("error while retrieving dellUpdate service: %w", err)
+	}
+
 	protocol := d.Protocol.ValueString()
 	imagePath := d.Image.ValueString()
-	httpURI := updateService.UpdateServiceTarget
+	httpURI := dellUpdateService.SimpleUpdateActions.SimpleUpdate.Target
 
 	payload := make(map[string]interface{})
 	payload["ImageURI"] = imagePath

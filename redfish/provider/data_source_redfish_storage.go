@@ -243,7 +243,6 @@ func newStorageControllers(input redfish.StorageController) models.StorageContro
 		CacheSummary:                 newCacheSummary(input.CacheSummary),
 		FirmwareVersion:              types.StringValue(input.FirmwareVersion),
 		Manufacturer:                 types.StringValue(input.Manufacturer),
-		MemberID:                     types.StringValue(input.MemberID),
 		Model:                        types.StringValue(input.Model),
 		Name:                         types.StringValue(input.Name),
 		SpeedGbps:                    types.Int64Value(int64(input.SpeedGbps)),
@@ -713,11 +712,6 @@ func StorageControllersSchema() map[string]schema.Attribute {
 		"manufacturer": schema.StringAttribute{
 			MarkdownDescription: "manufacturer",
 			Description:         "manufacturer",
-			Computed:            true,
-		},
-		"member_id": schema.StringAttribute{
-			MarkdownDescription: "member id of storage controller",
-			Description:         "member id of storage controller",
 			Computed:            true,
 		},
 		"model": schema.StringAttribute{

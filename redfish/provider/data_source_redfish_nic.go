@@ -824,8 +824,8 @@ func newFibreChannel(input redfish.FibreChannel) *models.FibreChannel {
 		FibreChannelId:        types.StringValue(input.FibreChannelID),
 		AllowFIPVLANDiscovery: types.BoolValue(input.AllowFIPVLANDiscovery),
 		BootTargets:           newBootTargets(input.BootTargets),
-		FCoEActiveVLANId:      types.Int64Value(int64(input.FCoEActiveVLANId)),
-		FCoELocalVLANId:       types.Int64Value(int64(input.FCoELocalVLANId)),
+		FCoEActiveVLANId:      types.Int64Value(int64(input.FCoEActiveVLANID)),
+		FCoELocalVLANId:       types.Int64Value(int64(input.FCoELocalVLANID)),
 		PermanentWWNN:         types.StringValue(input.PermanentWWNN),
 		PermanentWWPN:         types.StringValue(input.PermanentWWPN),
 		WWNN:                  types.StringValue(input.WWNN),
@@ -868,7 +868,7 @@ func newISCSIBoot(input redfish.ISCSIBoot) *models.ISCSIBoot {
 		PrimaryTargetName:          types.StringValue(input.PrimaryTargetName),
 		PrimaryTargetTCPPort:       types.Int64Value(int64(input.PrimaryTargetTCPPort)),
 		PrimaryVLANEnable:          types.BoolValue(input.PrimaryVLANEnable),
-		PrimaryVLANId:              types.Int64Value(int64(input.PrimaryVLANId)),
+		PrimaryVLANId:              types.Int64Value(int64(input.PrimaryVLANID)),
 		RouterAdvertisementEnabled: types.BoolValue(input.RouterAdvertisementEnabled),
 		SecondaryDNS:               types.StringValue(input.SecondaryDNS),
 		SecondaryLUN:               types.Int64Value(int64(input.SecondaryLUN)),
@@ -876,7 +876,7 @@ func newISCSIBoot(input redfish.ISCSIBoot) *models.ISCSIBoot {
 		SecondaryTargetName:        types.StringValue(input.SecondaryTargetName),
 		SecondaryTargetTCPPort:     types.Int64Value(int64(input.SecondaryTargetTCPPort)),
 		SecondaryVLANEnable:        types.BoolValue(input.SecondaryVLANEnable),
-		SecondaryVLANId:            types.Int64Value(int64(input.SecondaryVLANId)),
+		SecondaryVLANId:            types.Int64Value(int64(input.SecondaryVLANID)),
 		TargetInfoViaDHCP:          types.BoolValue(input.TargetInfoViaDHCP),
 	}
 }
