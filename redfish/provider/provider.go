@@ -18,9 +18,6 @@ limitations under the License.
 package provider
 
 import (
-
-	// "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
 	"context"
 	"terraform-provider-redfish/mutexkv"
 	"terraform-provider-redfish/redfish/models"

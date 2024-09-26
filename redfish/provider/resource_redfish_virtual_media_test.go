@@ -22,8 +22,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 const testAccVMedResName = "redfish_virtual_media.virtual_media"
@@ -65,6 +65,7 @@ func TestAccRedfishVirtualMedia_basic(t *testing.T) {
 				ImportStateIdFunc: func(d *terraform.State) (string, error) {
 					return getVMedImportConf(d, creds)
 				},
+				ImportStateVerifyIgnore: []string{"redfish_server.0.redfish_alias"},
 			},
 			// check that wrong import ID gives error
 			{
@@ -277,6 +278,7 @@ func TestAccRedfishVirtualMediaUpdate_basic(t *testing.T) {
 				ImportStateIdFunc: func(d *terraform.State) (string, error) {
 					return getVMedImportConf(d, creds)
 				},
+				ImportStateVerifyIgnore: []string{"redfish_server.0.redfish_alias"},
 			},
 			{
 				Config: testAccRedfishResourceVirtualMediaConfig(
@@ -296,6 +298,7 @@ func TestAccRedfishVirtualMediaUpdate_basic(t *testing.T) {
 				ImportStateIdFunc: func(d *terraform.State) (string, error) {
 					return getVMedImportConf(d, creds)
 				},
+				ImportStateVerifyIgnore: []string{"redfish_server.0.redfish_alias"},
 			},
 		},
 	})

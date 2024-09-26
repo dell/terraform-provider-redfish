@@ -23,7 +23,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 // redfish.Power represents a concrete Go type that represents an API resource
@@ -121,11 +121,6 @@ func testAccRedfishResourcePowerConfig(testingInfo TestingServerCredentials,
 		  maximum_wait_time = %d
 		  check_interval = %d
 		}
-		
-		output "current_power_state" {
-		  value = redfish_power.system_power
-          sensitive = true
-		}
 		`,
 		testingInfo.Username,
 		testingInfo.Password,
@@ -151,11 +146,6 @@ func testAccRedfishResourcePowerConfig1(testingInfo TestingServerCredentials,
 			  }
 
 		  desired_power_action = "%s"
-		}
-
-		output "current_power_state" {
-		  value = redfish_power.system_power
-          sensitive = true
 		}
 		`,
 		testingInfo.Username,
