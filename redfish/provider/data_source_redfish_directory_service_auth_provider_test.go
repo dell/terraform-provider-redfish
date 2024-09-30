@@ -27,7 +27,7 @@ import (
 
 // redfish.Power represents a concrete Go type that represents an API resource
 func TestAccRedfishDirectoryServiceAuthProviderDatasource_basic(t *testing.T) {
-	daAuthProviderDatasourceName := "data.redfish_directory_service_auth_provider.ds_auth"
+	dsAuthProviderDatasourceName := "data.redfish_directory_service_auth_provider.ds_auth"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -38,8 +38,8 @@ func TestAccRedfishDirectoryServiceAuthProviderDatasource_basic(t *testing.T) {
 			{
 				Config: testAccRedfishDatasourceDirectoryServiceAuthProviderConfig(creds),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(daAuthProviderDatasourceName, "directory_service_auth_provider.id", "RemoteAccountService"),
-					resource.TestMatchResourceAttr(daAuthProviderDatasourceName, "directory_service_auth_provider.odata_id", regexp.MustCompile(`.*AccountService`)),
+					resource.TestCheckResourceAttr(dsAuthProviderDatasourceName, "directory_service_auth_provider.id", "RemoteAccountService"),
+					resource.TestMatchResourceAttr(dsAuthProviderDatasourceName, "directory_service_auth_provider.odata_id", regexp.MustCompile(`.*AccountService`)),
 				),
 			},
 		},

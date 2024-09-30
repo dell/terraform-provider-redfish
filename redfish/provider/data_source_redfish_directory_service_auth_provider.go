@@ -168,9 +168,20 @@ func loadActiveDirectoryAttributesState(service *gofish.Service, d *models.Direc
 		return diags
 	}
 
+	activeDirectoryAttrinutes := []string{".SSOEnable", ".AuthTimeout", ".DCLookupEnable", ".Schema", ".GCLookupEnable", ".GlobalCatalog1", ".GlobalCatalog2", ".GlobalCatalog3", ".RacName", ".RacDomain"}
+
 	attributesToReturn := make(map[string]attr.Value)
 	for k, v := range idracAttributesState.Attributes.Elements() {
-		if strings.HasPrefix(k, "ActiveDirectory.") || strings.HasPrefix(k, "UserDomain.") {
+		if strings.HasPrefix(k, "ActiveDirectory.") {
+			for _, input := range activeDirectoryAttrinutes {
+				if strings.HasSuffix(k, input) {
+					attributesToReturn[k] = v
+				}
+			}
+
+		}
+
+		if (strings.HasPrefix(k, "UserDomain.") && strings.HasSuffix(k, ".Name")) || (strings.HasPrefix(k, "ADGroup.") && strings.HasSuffix(k, ".Name")) {
 			attributesToReturn[k] = v
 		}
 	}
@@ -184,11 +195,16 @@ func loadLDAPAttributesState(service *gofish.Service, d *models.DirectoryService
 	if diags := readDatasourceRedfishDellIdracAttributes(service, &idracAttributesState); diags.HasError() {
 		return diags
 	}
+	ldapAttrinutes := []string{".GroupAttributeIsDN", ".Port", ".BindDN", ".BindPassword", ".SearchFilter"}
 
 	attributesToReturn := make(map[string]attr.Value)
 	for k, v := range idracAttributesState.Attributes.Elements() {
 		if strings.HasPrefix(k, "LDAP.") {
-			attributesToReturn[k] = v
+			for _, input := range ldapAttrinutes {
+				if strings.HasSuffix(k, input) {
+					attributesToReturn[k] = v
+				}
+			}
 		}
 	}
 
