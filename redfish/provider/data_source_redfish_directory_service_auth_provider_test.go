@@ -19,6 +19,7 @@ package provider
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"testing"
 
@@ -27,6 +28,7 @@ import (
 
 // redfish.Power represents a concrete Go type that represents an API resource
 func TestAccRedfishDirectoryServiceAuthProviderDatasource_basic(t *testing.T) {
+	os.Setenv("TF_ACC", "1")
 	dsAuthProviderDatasourceName := "data.redfish_directory_service_auth_provider.ds_auth"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
