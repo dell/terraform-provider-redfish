@@ -180,7 +180,7 @@ func loadActiveDirectoryAttributesState(service *gofish.Service, d *models.Direc
 				}
 			}
 		}
-		// revive
+		// nolint: revive
 		if (strings.HasPrefix(k, "UserDomain.") && strings.HasSuffix(k, ".Name")) || (strings.HasPrefix(k, "ADGroup.") && strings.HasSuffix(k, ".Name")) {
 			attributesToReturn[k] = v
 		}
