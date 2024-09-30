@@ -187,11 +187,8 @@ func (*redfishProvider) DataSources(_ context.Context) []func() datasource.DataS
 		NewSystemBootDatasource,
 		NewFirmwareInventoryDatasource,
 		NewNICDatasource,
-<<<<<<< HEAD
 		NewDirectoryServiceAuthProviderDatasource,
-=======
 		NewStorageControllerDatasource,
->>>>>>> ac8827b (Implement storage controller datasource (#244))
 	}
 }
 
