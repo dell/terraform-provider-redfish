@@ -188,6 +188,7 @@ func (*redfishProvider) DataSources(_ context.Context) []func() datasource.DataS
 		NewFirmwareInventoryDatasource,
 		NewNICDatasource,
 		NewStorageControllerDatasource,
+		NewDirectoryServiceAuthProviderDatasource,
 	}
 }
 
