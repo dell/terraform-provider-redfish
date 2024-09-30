@@ -168,6 +168,7 @@ func loadActiveDirectoryAttributesState(service *gofish.Service, d *models.Direc
 		return diags
 	}
 
+	// nolint: gocyclo, gocognit,revive
 	activeDirectoryAttrinutes := []string{".SSOEnable", ".AuthTimeout", ".DCLookupEnable", ".Schema", ".GCLookupEnable", ".GlobalCatalog1", ".GlobalCatalog2", ".GlobalCatalog3", ".RacName", ".RacDomain"}
 
 	attributesToReturn := make(map[string]attr.Value)
@@ -178,9 +179,8 @@ func loadActiveDirectoryAttributesState(service *gofish.Service, d *models.Direc
 					attributesToReturn[k] = v
 				}
 			}
-
 		}
-
+		// revive
 		if (strings.HasPrefix(k, "UserDomain.") && strings.HasSuffix(k, ".Name")) || (strings.HasPrefix(k, "ADGroup.") && strings.HasSuffix(k, ".Name")) {
 			attributesToReturn[k] = v
 		}
@@ -196,6 +196,7 @@ func loadLDAPAttributesState(service *gofish.Service, d *models.DirectoryService
 		return diags
 	}
 
+	// nolint: gocyclo, gocognit,revive
 	ldapAttrinutes := []string{".GroupAttributeIsDN", ".Port", ".BindDN", ".BindPassword", ".SearchFilter"}
 	attributesToReturn := make(map[string]attr.Value)
 	for k, v := range idracAttributesState.Attributes.Elements() {
