@@ -198,7 +198,6 @@ func loadLDAPAttributesState(service *gofish.Service, d *models.DirectoryService
 
 	// nolint: gocyclo, gocognit,revive
 	ldapAttrinutes := []string{".GroupAttributeIsDN", ".Port", ".BindDN", ".BindPassword", ".SearchFilter"}
-
 	attributesToReturn := make(map[string]attr.Value)
 	for k, v := range idracAttributesState.Attributes.Elements() {
 		if strings.HasPrefix(k, "LDAP.") {
