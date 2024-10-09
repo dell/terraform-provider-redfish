@@ -169,8 +169,7 @@ func loadActiveDirectoryAttributesState(service *gofish.Service, d *models.Direc
 	}
 
 	// nolint: gocyclo, gocognit,revive
-	activeDirectoryAttributes := []string{".SSOEnable", ".AuthTimeout", ".DCLookupEnable", ".Schema", ".GCLookupEnable", ".GlobalCatalog1", ".GlobalCatalog2", ".GlobalCatalog3", ".RacName", ".RacDomain"}
-
+	activeDirectoryAttributes := []string{".CertValidationEnable", ".SSOEnable", ".AuthTimeout", ".DCLookupEnable", ".DCLookupByUserDomain", ".DCLookupDomainName", ".Schema", ".GCLookupEnable", ".GCRootDomain", ".GlobalCatalog1", ".GlobalCatalog2", ".GlobalCatalog3", ".RacName", ".RacDomain", ".RSASecurID2FAAD"}
 	attributesToReturn := make(map[string]attr.Value)
 	for k, v := range idracAttributesState.Attributes.Elements() {
 		if strings.HasPrefix(k, "ActiveDirectory.") {
@@ -181,7 +180,7 @@ func loadActiveDirectoryAttributesState(service *gofish.Service, d *models.Direc
 			}
 		}
 		// nolint: revive
-		if (strings.HasPrefix(k, "UserDomain.") && strings.HasSuffix(k, ".Name")) || (strings.HasPrefix(k, "ADGroup.") && strings.HasSuffix(k, ".Name")) {
+		if (strings.HasPrefix(k, "UserDomain.") && strings.HasSuffix(k, ".Name")) || (strings.HasPrefix(k, "ADGroup.") && strings.HasSuffix(k, ".Name")) || (strings.HasPrefix(k, "RSASecurID2FA.") && strings.HasSuffix(k, ".RSASecurIDAuthenticationServer")) {
 			attributesToReturn[k] = v
 		}
 	}
@@ -197,7 +196,7 @@ func loadLDAPAttributesState(service *gofish.Service, d *models.DirectoryService
 	}
 
 	// nolint: gocyclo, gocognit,revive
-	ldapAttributes := []string{".GroupAttributeIsDN", ".Port", ".BindDN", ".BindPassword", ".SearchFilter"}
+	ldapAttributes := []string{".CertValidationEnable", ".GroupAttributeIsDN", ".Port", ".BindDN", ".BindPassword", ".SearchFilter", ".RSASecurID2FALDAP"}
 	attributesToReturn := make(map[string]attr.Value)
 	for k, v := range idracAttributesState.Attributes.Elements() {
 		if strings.HasPrefix(k, "LDAP.") {
@@ -206,6 +205,10 @@ func loadLDAPAttributesState(service *gofish.Service, d *models.DirectoryService
 					attributesToReturn[k] = v
 				}
 			}
+		}
+
+		if strings.HasPrefix(k, "RSASecurID2FA.") && strings.HasSuffix(k, ".RSASecurIDAuthenticationServer") {
+			attributesToReturn[k] = v
 		}
 	}
 
@@ -304,10 +307,8 @@ func newDirectoryState(input *redfish.AccountService, directoryType string) *mod
 }
 
 func newActiveDirectoryState(input *redfish.AccountService) *models.ActiveDirectory {
-	inData := input.ActiveDirectory
 	return &models.ActiveDirectory{
-		Directory:      newDirectoryState(input, ActiveDirectory),
-		KerberosKeytab: types.StringValue(inData.Authentication.KerberosKeytab),
+		Directory: newDirectoryState(input, ActiveDirectory),
 	}
 }
 
@@ -586,11 +587,6 @@ func ActiveDirectorySchema() map[string]schema.Attribute {
 			MarkdownDescription: "Directory for Active Directory .",
 			Description:         "Directory for Active Directory",
 			Attributes:          DirectorySchema(),
-			Computed:            true,
-		},
-		"kerberos_key_tab_file": schema.StringAttribute{
-			MarkdownDescription: "KerberosKeytab is a Base64-encoded version of the Kerberos keytab for this Service",
-			Description:         "KerberosKeytab is a Base64-encoded version of the Kerberos keytab for this Service",
 			Computed:            true,
 		},
 	}
