@@ -15,4 +15,4 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-terraform import redfish_bios.bios "{\"username\":\"<username>\",\"password\":\"<password>\",\"endpoint\":\"<endpoint>\",\"ssl_insecure\":<true/false>}"
+terraform import redfish_directory_service_auth_provider.ds_auth '{"username":"<username>","password":"<password>","endpoint":"<endpoint>","ssl_insecure":<true/false>}'

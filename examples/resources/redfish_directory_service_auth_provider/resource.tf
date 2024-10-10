@@ -31,77 +31,104 @@ resource "redfish_directory_service_auth_provider" "ds_auth" {
     ssl_insecure = each.value.ssl_insecure
   }
 
-  active_directory = {
-    directory = {
-       # remote_role_mapping = [
-       #     {
-       #         local_role = "None",
-       #         remote_group = "idracgroup"
-       #     }
-       # ],
-       # service_addresses = [
-       #     "yulanadhost11.yulan.pie.lab.emc.com"
-       #  ],
-       # service_enabled = true
-    },
-        authentication = {
-            #kerberos_key_tab_file = data.local_file.kerberos.content
-        }
-}
+  #Note: `active_directory` is mutually inclusive with `active_directory_attributes`.
+	#Note: `ldap` is mutually inclusive with `ldap_attributes`.
+	#Note: `active_directory` is mutually exclusive with `ldap`.
+	#Note: `active_directory_attributes` is mutually exclusive with `ldap_attributes`. 
+      active_directory = {
+      	directory = {
+            # remote_role_mapping = [
+            #     {
+            #         local_role = "None",
+            #         remote_group = "idracgroup"
+            #     }
+            # ],
+            # service_addresses = [
+            #     "yulanadhost11.yulan.pie.lab.emc.com"
+            #  ],
+      		service_enabled = true,
+      		authentication = {
+      			kerberos_key_tab_file = data.local_file.kerberos.content
+      		}
+      	}
+      }
+      		
+      active_directory_attributes = {
+      	"ActiveDirectory.1.AuthTimeout"= "120",
+      	"ActiveDirectory.1.CertValidationEnable"= "Enabled",
+      	"ActiveDirectory.1.DCLookupEnable"= "Enabled",
+      
+      # RacName and RacDomain can be configured when Schema is Extended Schema
+      	"ActiveDirectory.1.RacDomain"= "test",
+      	"ActiveDirectory.1.RacName"= "test",
+      
+      # if SSOEnable is Enabled make sure ActiveDirectory Service is enabled and valid kerberos_key_tab_file is provided
+      	"ActiveDirectory.1.SSOEnable"= "Disabled",
+      
+      # Schema can be Extended Schema or Standard Schema
+      	"ActiveDirectory.1.Schema"= "Extended Schema",
+      	"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
+      
+      # DCLookupByUserDomain must be configured when DCLookupEnable is enabled 
+      	"ActiveDirectory.1.DCLookupByUserDomain":"Enabled", 
+      
+      # DCLookupDomainName must be configured when DCLookupByUserDomain is Disabled and DCLookupEnable is Enabled
+         #"ActiveDirectory.1.DCLookupDomainName"="test", 
+      
+      #"ActiveDirectory.1.GCLookupEnable" = "Disabled"
+      
+      # at least any one from GlobalCatalog1,GlobalCatalog2,GlobalCatalog3 must be configured when Schema is Standard and GCLookupEnable is Disabled
+           # "ActiveDirectory.1.GlobalCatalog1" = "yulanadhost11.yulan.pie.lab.emc.com",
+           # "ActiveDirectory.1.GlobalCatalog2" = "yulanadhost11.yulan.pie.lab.emc.com",
+           # "ActiveDirectory.1.GlobalCatalog3" = "yulanadhost11.yulan.pie.lab.emc.com", 
+      
+      # GCRootDomain can be configured when GCLookupEnable is Enabled  
+           #"ActiveDirectory.1.GCRootDomain" = "test"  
+      
+      # RSA Secure configuration required Datacenter license 
+           #"LDAP.1.RSASecurID2FALDAP":"Enabled",
+           #"RSASecurID2FA.1.RSASecurIDAccessKey": "&#9679;&#9679;1", 
+           #"RSASecurID2FA.1.RSASecurIDClientID": "&#9679;&#9679;1", 
+           #"RSASecurID2FA.1.RSASecurIDAuthenticationServer": "",    
+       }
 
-active_directory_attributes = {
-  "ActiveDirectory.1.SSOEnable" = "Disabled",
-  #"UserDomain.1.Name" = "yulan.pie.lab.emc.com",
-  "ActiveDirectory.1.AuthTimeout" = "120",
-  "ActiveDirectory.1.DCLookupEnable" = "Disabled",
-  "ActiveDirectory.1.Schema" = "Extended Schema",
-  "ActiveDirectory.1.GCLookupEnable" = "Disabled",
-  "ActiveDirectory.1.GlobalCatalog1" = "yulanadhost11.yulan.pie.lab.emc.com",
-  "ActiveDirectory.1.GlobalCatalog2" = "",
-  "ActiveDirectory.1.GlobalCatalog3" = "",
-  "ADGroup.1.Domain" = "yulan.pie.lab.emc.com",
-  "ActiveDirectory.1.RacName" = "test",
-  "ActiveDirectory.1.RacDomain" = "test"             
-}
 
-ldap = {
-    directory = {
-        remote_role_mapping = [
-            {
-                local_role = "Administrator",
-                remote_group = "cn = idracgroup,cn = users,dc = yulan,dc = pie,dc = lab,dc = emc,dc = com"
-            },
-            {
-                local_role = "Administrator",
-                remote_group = "cn = Admins,ou = Groups,dc = example,dc = org"
-            },
-            {
-                local_role = "Operator",
-                remote_group = "cn = PowerUsers,ou = Groups,dc = example,dc = org"
-            }        
-        ],
-        service_addresses = [
-            "yulanadhost12.yulan.pie.lab.emc.com"
-        ],
-        service_enabled = false
-    },
-    ldap_service = {
-        search_settings = {
-            base_distinguished_names = [
-                  "dc = yulan,dc = pie,dc = lab,dc = emc,dc = com"
-            ],
-            group_name_attribute = "name",
-            user_name_attribute = "member"
-        }
-    }
-}
 
- ldap_attributes = {
-  "LDAP.1.GroupAttributeIsDN" = "Enabled"
-  "LDAP.1.Port" = "636",
-  "LDAP.1.BindDN" = "cn = adtester,cn = users,dc = yulan,dc = pie,dc = lab,dc = emc,dc = com",
-  "LDAP.1.BindPassword" = "",
-  "LDAP.1.SearchFilter" = "(objectclass = *)"
-  }
+#    ldap = {
+#		directory = {
+#			remote_role_mapping = [
+#				{
+#					local_role = "Administrator",
+#					remote_group = "cn = idracgroup,cn = users,dc = yulan,dc = pie,dc = lab,dc = emc,dc = com"
+#				}        
+#			],
+#			service_addresses = [
+#				"yulanadhost12.yulan.pie.lab.emc.com"
+#			],
+#			service_enabled = false
+#		},
+#		ldap_service = {
+#			search_settings = {
+#			    base_distinguished_names = [
+#				  "dc = yulan,dc = pie,dc = lab,dc = emc,dc = com"
+#				],
+#				group_name_attribute = "name",
+#				user_name_attribute = "member"
+#			}
+#		}
+#	}
+#		
+#	ldap_attributes = {
+#	  "LDAP.1.GroupAttributeIsDN" = "Enabled"
+#	  "LDAP.1.Port" = "636",
+#	  "LDAP.1.BindDN" = "cn = adtester,cn = users,dc = yulan,dc = pie,dc = lab,dc = emc,dc = com",
+#	  "LDAP.1.BindPassword" = "",
+#	  "LDAP.1.SearchFilter" = "(objectclass = *)",
+#	  
+#    #"LDAP.1.RSASecurID2FALDAP":"Enabled",
+#    #"RSASecurID2FA.1.RSASecurIDAccessKey": "&#9679;&#9679;1", 
+#    #"RSASecurID2FA.1.RSASecurIDClientID": "&#9679;&#9679;1", 
+#    #"RSASecurID2FA.1.RSASecurIDAuthenticationServer": "",
+#		  }
 
 }

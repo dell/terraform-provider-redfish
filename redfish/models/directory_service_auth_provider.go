@@ -33,15 +33,16 @@ type DirectoryServiceAuthProviderResource struct {
 
 // DirectoryResource is the tfsdk model of DirectoryResource
 type DirectoryResource struct {
-	RemoteRoleMapping types.List `tfsdk:"remote_role_mapping"`
-	ServiceAddresses  types.List `tfsdk:"service_addresses"`
-	ServiceEnabled    types.Bool `tfsdk:"service_enabled"`
+	RemoteRoleMapping types.List     `tfsdk:"remote_role_mapping"`
+	ServiceAddresses  []types.String `tfsdk:"service_addresses"`
+	ServiceEnabled    types.Bool     `tfsdk:"service_enabled"`
 }
 
 // ActiveDirectoryResource is the tfsdk model of ActiveDirectoryResource
 type ActiveDirectoryResource struct {
 	Directory      types.Object `tfsdk:"directory"`
 	Authentication types.Object `tfsdk:"authentication"`
+	//ActiveDirectoryAttributes types.Map    `tfsdk:"active_directory_attributes"`
 }
 
 // AuthenticationResource is the tfsdk model of AuthenticationResource
@@ -53,6 +54,7 @@ type AuthenticationResource struct {
 type LDAPResource struct {
 	Directory   types.Object `tfsdk:"directory"`
 	LDAPService types.Object `tfsdk:"ldap_service"`
+	//LDAPAttributes types.Map    `tfsdk:"ldap_attributes"`
 }
 
 type LDAPServiceResource struct {
@@ -60,9 +62,9 @@ type LDAPServiceResource struct {
 }
 
 type SearchSettingsResource struct {
-	BaseDistinguishedNames types.List   `tfsdk:"base_distinguished_names"`
-	UsernameAttribute      types.String `tfsdk:"user_name_attribute"`
-	GroupNameAttribute     types.String `tfsdk:"group_name_attribute"`
+	BaseDistinguishedNames []types.String `tfsdk:"base_distinguished_names"`
+	UsernameAttribute      types.String   `tfsdk:"user_name_attribute"`
+	GroupNameAttribute     types.String   `tfsdk:"group_name_attribute"`
 }
 
 // DirectoryServiceAuthProviderDatasource to construct terraform schema for the auth provider resource.
