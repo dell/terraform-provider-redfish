@@ -74,6 +74,7 @@ jobs:
     name: Generate
     runs-on: ubuntu-latest
     steps:
+      - uses: hashicorp/setup-terraform@v3
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
         with:
