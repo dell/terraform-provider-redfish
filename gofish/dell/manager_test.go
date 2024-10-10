@@ -113,7 +113,7 @@ var oemDataBody = `
 
 var oemActions = `
 {
-	"#OemManager.v1_2_0.OemManager#OemManager.ExportSystemConfiguration": {
+	"#OemManager.ExportSystemConfiguration": {
 		"ExportFormat@Redfish.AllowableValues": [
 			"XML",
 			"JSON"
@@ -160,7 +160,7 @@ var oemActions = `
 		},
 		"target": "/redfish/v1/Managers/iDRAC.Embedded.1/Actions/Oem/EID_674_Manager.ExportSystemConfiguration"
 	},
-	"#OemManager.v1_2_0.OemManager#OemManager.ImportSystemConfiguration": {
+	"#OemManager.ImportSystemConfiguration": {
 		"HostPowerState@Redfish.AllowableValues": [
 			"On",
 			"Off"
