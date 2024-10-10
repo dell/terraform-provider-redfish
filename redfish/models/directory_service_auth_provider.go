@@ -21,6 +21,53 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+// DirectoryServiceAuthProviderResource is the tfsdk model of DirectoryServiceAuthProviderResource
+type DirectoryServiceAuthProviderResource struct {
+	RedfishServer []RedfishServer `tfsdk:"redfish_server"`
+	ID            types.String    `tfsdk:"id"`
+	// Optional Param
+	ActiveDirectoryResource   types.Object `tfsdk:"active_directory"`
+	LDAPResource              types.Object `tfsdk:"ldap"`
+	ActiveDirectoryAttributes types.Map    `tfsdk:"active_directory_attributes"`
+	LDAPAttributes            types.Map    `tfsdk:"ldap_attributes"`
+}
+
+// DirectoryResource is the tfsdk model of DirectoryResource
+type DirectoryResource struct {
+	RemoteRoleMapping types.List     `tfsdk:"remote_role_mapping"`
+	ServiceAddresses  []types.String `tfsdk:"service_addresses"`
+	ServiceEnabled    types.Bool     `tfsdk:"service_enabled"`
+}
+
+// ActiveDirectoryResource is the tfsdk model of ActiveDirectoryResource
+type ActiveDirectoryResource struct {
+	Directory      types.Object `tfsdk:"directory"`
+	Authentication types.Object `tfsdk:"authentication"`
+}
+
+// AuthenticationResource is the tfsdk model of AuthenticationResource
+type AuthenticationResource struct {
+	KerberosKeytab types.String `tfsdk:"kerberos_key_tab_file"`
+}
+
+// LDAPResource is the tfsdk model of LDAPResource
+type LDAPResource struct {
+	Directory   types.Object `tfsdk:"directory"`
+	LDAPService types.Object `tfsdk:"ldap_service"`
+}
+
+// LDAPServiceResource is the tfsdk model of LDAPServiceResource
+type LDAPServiceResource struct {
+	SearchSettings types.Object `tfsdk:"search_settings"`
+}
+
+// SearchSettingsResource is the tfsdk model of SearchSettingsResource
+type SearchSettingsResource struct {
+	BaseDistinguishedNames []types.String `tfsdk:"base_distinguished_names"`
+	UsernameAttribute      types.String   `tfsdk:"user_name_attribute"`
+	GroupNameAttribute     types.String   `tfsdk:"group_name_attribute"`
+}
+
 // DirectoryServiceAuthProviderDatasource to construct terraform schema for the auth provider resource.
 type DirectoryServiceAuthProviderDatasource struct {
 	ID                           types.String                  `tfsdk:"id"`
