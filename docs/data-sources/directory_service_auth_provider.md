@@ -107,7 +107,6 @@ Read-Only:
 Read-Only:
 
 - `directory` (Attributes) Directory for Active Directory . (see [below for nested schema](#nestedatt--directory_service_auth_provider--active_directory--directory))
-- `kerberos_key_tab_file` (String) KerberosKeytab is a Base64-encoded version of the Kerberos keytab for this Service
 
 <a id="nestedatt--directory_service_auth_provider--active_directory--directory"></a>
 ### Nested Schema for `directory_service_auth_provider.active_directory.directory`
