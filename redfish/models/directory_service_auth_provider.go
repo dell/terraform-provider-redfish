@@ -68,8 +68,7 @@ type Directory struct {
 
 // ActiveDirectory is the tfsdk model of ActiveDirectory
 type ActiveDirectory struct {
-	Directory      *Directory   `tfsdk:"directory"`
-	KerberosKeytab types.String `tfsdk:"kerberos_key_tab_file"`
+	Directory *Directory `tfsdk:"directory"`
 }
 
 // LDAP is the tfsdk model of LDAP
