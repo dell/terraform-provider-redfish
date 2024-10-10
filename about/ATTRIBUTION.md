@@ -34,20 +34,12 @@ License: [MPL-2.0](https://github.com/hashicorp/terraform-plugin-log/blob/main/L
 Source: [terraform-plugin-log](https://github.com/hashicorp/terraform-plugin-log)  
 
 * * *
-  
-Package: terraform-plugin-sdk/v2  
-Version: v2.30.0  
-Copyright: Copyright (c) 2019 HashiCorp, Inc.  
-License: [MPL-2.0](https://github.com/hashicorp/terraform-plugin-sdk/blob/main/LICENSE)  
-Source: [terraform-plugin-sdk/v2](https://github.com/hashicorp/terraform-plugin-sdk)  
 
-* * *
-  
-Package: godotenv  
-Version: v1.5.1  
-Copyright: Copyright (c) 2013 John Barton  
-License: [MIT](https://github.com/joho/godotenv/blob/main/LICENCE)  
-Source: [godotenv](https://github.com/joho/godotenv)  
+Package: github.com/hashicorp/terraform-plugin-testing  
+Version: v1.9.0  
+Copyright: Copyright (c) 2014 HashiCorp, Inc.  
+License: [MPL-2.0](https://github.com/hashicorp/terraform-plugin-testing/blob/v1.3.0/LICENSE)       
+Source: [terraform-plugin-testing](https://github.com/hashicorp/terraform-plugin-testing)
 
 * * *
   
@@ -241,7 +233,7 @@ Source: [go-cmp](https://github.com/google/go-cmp)
 * * *
   
 Package: go-version  
-Version: v1.6.0  
+Version: v1.7.0  
 Copyright: Copyright (c) 2014 HashiCorp, Inc.  
 License: [MPL-2.0](https://github.com/hashicorp/go-version/blob/main/LICENSE)  
 Source: [go-version](https://github.com/hashicorp/go-version)  
@@ -280,6 +272,14 @@ Source: [terraform-json](https://github.com/hashicorp/terraform-json)
 
 * * *
   
+Package: terraform-plugin-sdk/v2  
+Version: v2.34.0  
+Copyright: Copyright (c) 2019 HashiCorp, Inc.  
+License: [MPL-2.0](https://github.com/hashicorp/terraform-plugin-sdk/blob/main/LICENSE)  
+Source: [terraform-plugin-sdk/v2](https://github.com/hashicorp/terraform-plugin-sdk)  
+
+* * *
+  
 Package: copystructure  
 Version: v1.2.0  
 Copyright: Copyright (c) 2014 Mitchell Hashimoto  
@@ -305,7 +305,7 @@ Source: [go-plugin](https://github.com/hashicorp/go-plugin)
 * * *
   
 Package: hcl/v2  
-Version: v2.19.1  
+Version: v2.21.0  
 Copyright: Copyright (c) 2014 HashiCorp, Inc.  
 License: [MPL-2.0](https://github.com/hashicorp/hcl/blob/main/LICENSE)  
 Source: [hcl/v2](https://github.com/hashicorp/hcl)  
@@ -490,7 +490,7 @@ Source: [go-cty](https://github.com/hashicorp/go-cty)
 * * *
   
 Package: hc-install  
-Version: v0.6.1  
+Version: v0.7.0  
 Copyright: Copyright (c) 2020 HashiCorp, Inc.  
 License: [MPL-2.0](https://github.com/hashicorp/hc-install/blob/main/LICENSE)  
 Source: [hc-install](https://github.com/hashicorp/hc-install)  

@@ -23,8 +23,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 // getVolumeImportConf returns the import configuration for the storage volume
@@ -252,6 +252,9 @@ func TestAccRedfishStorageVolume_OnReset(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
+				PreConfig: func() {
+					time.Sleep(120 * time.Second)
+				},
 				Config: testAccRedfishResourceStorageVolumeConfig(
 					creds,
 					"RAID.Integrated.1-1",
@@ -389,7 +392,7 @@ func testAccRedfishResourceStorageVolumeEncryptedConfig(testingInfo TestingServe
 		  endpoint     = "https://%s"
 		  ssl_insecure = true
 		}
-	  
+
 		storage_controller_id = "%s"
 		volume_name           = "%s"
 		raid_type           = "%s"

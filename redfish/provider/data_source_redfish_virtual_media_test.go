@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccRedfishVirtualMedia_fetch(t *testing.T) {
@@ -46,11 +46,6 @@ func testAccRedfishDatasourceVirtualMediaConfig(testingInfo TestingServerCredent
 		  endpoint     = "https://%s"
 		  ssl_insecure = true
 		}
-	  }
-	  
-	  output "virtual_media" {
-		 value = data.redfish_virtual_media.vm
-		 sensitive = true
 	  }
 	`,
 		testingInfo.Username,

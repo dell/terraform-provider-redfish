@@ -565,10 +565,10 @@ func GetInstallFirmwareUpdatePayload(plan models.IdracFirmwareUpdate) (map[strin
 	// Add proxy details if proxy support is enabled
 	if plan.ProxySupport.ValueString() != "Off" {
 		if plan.ShareType.ValueString() != httpString && plan.ShareType.ValueString() != "HTTPS" && plan.ShareType.ValueString() != "FTP" {
-			return nil, fmt.Errorf("Proxy is only supported when ShareType is HTTP, HTTPS or FTP")
+			return nil, fmt.Errorf("proxy is only supported when ShareType is HTTP, HTTPS or FTP")
 		}
 		if plan.ProxyServer.ValueString() == "" {
-			return nil, fmt.Errorf("ProxyServer is required when ProxySupport is Enabled")
+			return nil, fmt.Errorf("proxy_server is required when ProxySupport is Enabled")
 		}
 		payload["ProxySupport"] = plan.ProxySupport.ValueString()
 		payload["ProxyServer"] = plan.ProxyServer.ValueString()
