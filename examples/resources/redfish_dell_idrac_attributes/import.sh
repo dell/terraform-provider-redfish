@@ -20,3 +20,7 @@ terraform import redfish_dell_idrac_attributes.idrac '{"username":"<user>","pass
 
 # import list of idrac attributes
 terraform import redfish_dell_idrac_attributes.idrac '{"username":"<user>","password":"<password>","endpoint":"<endpoint>","ssl_insecure":<true/false>, "attributes":["Users.2.UserName"]}'
+
+# terraform import with redfish_alias. When using redfish_alias, provider's `redfish_servers` is required.
+# redfish_alias is used to align with enhancements to password management.
+terraform import redfish_dell_idrac_attributes.idrac '{"redfish_alias":"<redfish_alias>"}'

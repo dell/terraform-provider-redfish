@@ -19,3 +19,7 @@ limitations under the License.
 # terraform import redfish_boot_order.boot "{\"username\":\"<username>\",\"password\":\"<password>\",\"endpoint\":\"<endpoint>\",\"ssl_insecure\":<true/false>}"
 
 terraform import redfish_boot_order.boot '{"username":"admin","password":"passw0rd","endpoint":"https://my-server-1.myawesomecompany.org","ssl_insecure":true}'
+
+# terraform import with redfish_alias. When using redfish_alias, provider's `redfish_servers` is required.
+# redfish_alias is used to align with enhancements to password management.
+terraform import redfish_boot_order.boot '{"redfish_alias":"<redfish_alias>"}'

@@ -19,4 +19,4 @@ terraform import redfish_user_account.rr "{\"id\":\"<id>\",\"username\":\"<usern
 
 # terraform import with redfish_alias. When using redfish_alias, provider's `redfish_servers` is required.
 # redfish_alias is used to align with enhancements to password management.
-terraform import redfish_user_account.rr "{\"id\":\"<id>\",\"redfish_alias\":\"<redfish_alias>\",\"endpoint\":\"<endpoint>\"}"
+terraform import redfish_user_account.rr "{\"id\":\"<id>\",\"redfish_alias\":\"<redfish_alias>\"}"

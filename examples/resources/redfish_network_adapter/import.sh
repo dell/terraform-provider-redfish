@@ -20,3 +20,7 @@ terraform import redfish_network_adapter.nic '{"network_adapter_id":"<network_ad
 
 # terraform import with system_id.
 terraform import redfish_network_adapter.nic '{"system_id":"<system_id>","network_adapter_id":"<network_adapter_id>","network_device_function_id":"<network_device_function_id>","username":"<user>","password":"<password>","endpoint":"<endpoint>","ssl_insecure":<true/false>}'
+
+# terraform import with redfish_alias. When using redfish_alias, provider's `redfish_servers` is required.
+# redfish_alias is used to align with enhancements to password management.
+terraform import redfish_network_adapter.nic '{"network_adapter_id":"<network_adapter_id>","network_device_function_id":"<network_device_function_id>","redfish_alias":"<redfish_alias>"}'

@@ -23,6 +23,11 @@ resource "redfish_idrac_server_configuration_profile_import" "share_type_local" 
   for_each = var.rack1
 
   redfish_server {
+    # Alias name for server BMCs. The key in provider's `redfish_servers` map
+    # `redfish_alias` is used to align with enhancements to password management.
+    # When using redfish_alias, provider's `redfish_servers` is required.
+    redfish_alias = each.key
+
     user         = each.value.user
     password     = each.value.password
     endpoint     = each.value.endpoint
@@ -44,6 +49,11 @@ resource "redfish_idrac_server_configuration_profile_import" "share_type_nfs" {
   for_each = var.rack1
 
   redfish_server {
+    # Alias name for server BMCs. The key in provider's `redfish_servers` map
+    # `redfish_alias` is used to align with enhancements to password management.
+    # When using redfish_alias, provider's `redfish_servers` is required.
+    redfish_alias = each.key
+
     user         = each.value.user
     password     = each.value.password
     endpoint     = each.value.endpoint
@@ -67,6 +77,11 @@ resource "redfish_idrac_server_configuration_profile_import" "share_type_cifs" {
   for_each = var.rack1
 
   redfish_server {
+    # Alias name for server BMCs. The key in provider's `redfish_servers` map
+    # `redfish_alias` is used to align with enhancements to password management.
+    # When using redfish_alias, provider's `redfish_servers` is required.
+    redfish_alias = each.key
+
     user         = each.value.user
     password     = each.value.password
     endpoint     = each.value.endpoint
@@ -92,6 +107,11 @@ resource "redfish_idrac_server_configuration_profile_import" "share_type_https" 
   for_each = var.rack1
 
   redfish_server {
+    # Alias name for server BMCs. The key in provider's `redfish_servers` map
+    # `redfish_alias` is used to align with enhancements to password management.
+    # When using redfish_alias, provider's `redfish_servers` is required.
+    redfish_alias = each.key
+
     user         = each.value.user
     password     = each.value.password
     endpoint     = each.value.endpoint
@@ -115,6 +135,11 @@ resource "redfish_idrac_server_configuration_profile_import" "share_type_http" {
   for_each = var.rack1
 
   redfish_server {
+    # Alias name for server BMCs. The key in provider's `redfish_servers` map
+    # `redfish_alias` is used to align with enhancements to password management.
+    # When using redfish_alias, provider's `redfish_servers` is required.
+    redfish_alias = each.key
+
     user         = each.value.user
     password     = each.value.password
     endpoint     = each.value.endpoint

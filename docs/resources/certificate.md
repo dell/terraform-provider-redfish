@@ -129,6 +129,10 @@ terraform {
 }
 
 provider "redfish" {
+  # `redfish_servers` is used to align with enhancements to password management.
+  # Map of server BMCs with their alias keys and respective user credentials.
+  # This is required when resource/datasource's `redfish_alias` is not null
+  redfish_servers = var.rack1
 }
 ```
 
@@ -160,6 +164,11 @@ resource "redfish_certificate" "cert" {
   for_each = var.rack1
 
   redfish_server {
+    # Alias name for server BMCs. The key in provider's `redfish_servers` map
+    # `redfish_alias` is used to align with enhancements to password management.
+    # When using redfish_alias, provider's `redfish_servers` is required.
+    redfish_alias = each.key
+
     user         = each.value.user
     password     = each.value.password
     endpoint     = each.value.endpoint

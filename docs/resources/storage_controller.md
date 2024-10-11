@@ -35,6 +35,11 @@ resource "redfish_storage_controller" "storage_controller_example" {
   for_each = var.rack1
 
   redfish_server {
+    # Alias name for server BMCs. The key in provider's `redfish_servers` map
+    # `redfish_alias` is used to align with enhancements to password management.
+    # When using redfish_alias, provider's `redfish_servers` is required.
+    redfish_alias = each.key
+
     user         = each.value.user
     password     = each.value.password
     endpoint     = each.value.endpoint
@@ -299,4 +304,8 @@ terraform import redfish_storage_controller.storage_controller_example '{"storag
 
 # terraform import with system_id
 terraform import redfish_storage_controller.storage_controller_example '{"system_id":"<system_id>","storage_id":"<storage_id>","controller_id":"<controller_id>","username":"<username>","password":"<password>","endpoint":"<endpoint>","ssl_insecure":<true/false>}'
+
+# terraform import with redfish_alias. When using redfish_alias, provider's `redfish_servers` is required.
+# redfish_alias is used to align with enhancements to password management.
+terraform import redfish_storage_controller.storage_controller_example '{"storage_id":"<storage_id>","controller_id":"<controller_id>","redfish_alias":"<redfish_alias>"}'
 ```

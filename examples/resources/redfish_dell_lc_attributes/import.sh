@@ -20,3 +20,7 @@ terraform import redfish_dell_lc_attributes.lc '{"username":"<user>","password":
 
 # import list of LC attributes
 terraform import redfish_dell_lc_attributes.lc '{"username":"<user>","password":"<password>","endpoint":"<endpoint>","ssl_insecure":<true/false>, "attributes":["LCAttributes.1.IgnoreCertWarning"]}'
+
+# terraform import with redfish_alias. When using redfish_alias, provider's `redfish_servers` is required.
+# redfish_alias is used to align with enhancements to password management.
+terraform import redfish_dell_lc_attributes.lc '{"redfish_alias":"<redfish_alias>"}'
