@@ -21,6 +21,62 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+// StorageControllerResource is struct for StorageController resource.
+type StorageControllerResource struct {
+	RedfishServer []RedfishServer `tfsdk:"redfish_server"`
+	ID            types.String    `tfsdk:"id"`
+	// Required params
+	StorageID    types.String `tfsdk:"storage_id"`
+	ControllerID types.String `tfsdk:"controller_id"`
+	ApplyTime    types.String `tfsdk:"apply_time"`
+	// Optional params
+	JobTimeout        types.Int64        `tfsdk:"job_timeout"`
+	ResetType         types.String       `tfsdk:"reset_type"`
+	ResetTimeout      types.Int64        `tfsdk:"reset_timeout"`
+	MaintenanceWindow *MaintenanceWindow `tfsdk:"maintenance_window"`
+	SystemID          types.String       `tfsdk:"system_id"`
+	StorageController types.Object       `tfsdk:"storage_controller"`
+	Security          types.Object       `tfsdk:"security"`
+}
+
+// SecurityAttributes is the struct for security.
+type SecurityAttributes struct {
+	Action types.String `tfsdk:"action"`
+	KeyID  types.String `tfsdk:"key_id"`
+	Key    types.String `tfsdk:"key"`
+	OldKey types.String `tfsdk:"old_key"`
+	Mode   types.String `tfsdk:"mode"`
+}
+
+// StorageControllerAttributes is the struct for storage controller attributes.
+type StorageControllerAttributes struct {
+	ControllerRates types.Object `tfsdk:"controller_rates"`
+	Oem             types.Object `tfsdk:"oem"`
+}
+
+// OEMAttributes is the struct for OEM Attributes.
+type OEMAttributes struct {
+	Dell types.Object `tfsdk:"dell"`
+}
+
+// DellAttributes is the struct for Dell Attributes.
+type DellAttributes struct {
+	DellStorageController types.Object `tfsdk:"dell_storage_controller"`
+}
+
+// DellStorageControllerAttributes is the struct for Dell Storage Controller Attributes.
+type DellStorageControllerAttributes struct {
+	ControllerMode                             types.String `tfsdk:"controller_mode"`
+	CheckConsistencyMode                       types.String `tfsdk:"check_consistency_mode"`
+	CopybackMode                               types.String `tfsdk:"copyback_mode"`
+	LoadBalanceMode                            types.String `tfsdk:"load_balance_mode"`
+	EnhancedAutoImportForeignConfigurationMode types.String `tfsdk:"enhanced_auto_import_foreign_configuration_mode"`
+	PatrolReadUnconfiguredAreaMode             types.String `tfsdk:"patrol_read_unconfigured_area_mode"`
+	PatrolReadMode                             types.String `tfsdk:"patrol_read_mode"`
+	BackgroundInitializationRatePercent        types.Int64  `tfsdk:"background_initialization_rate_percent"`
+	ReconstructRatePercent                     types.Int64  `tfsdk:"reconstruct_rate_percent"`
+}
+
 // StorageControllerDatasource is struct for StorageController data-source.
 type StorageControllerDatasource struct {
 	ID                      types.String             `tfsdk:"id"`

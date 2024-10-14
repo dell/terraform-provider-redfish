@@ -171,6 +171,7 @@ func (*redfishProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewScpImportResource,
 		NewScpExportResource,
 		NewRedfishNICResource,
+		NewRedfishStorageControllerResource,
 		NewRedfishDirectoryServiceAuthProviderResource,
 	}
 }
