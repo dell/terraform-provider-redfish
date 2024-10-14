@@ -246,6 +246,10 @@ func certutils(params CertUtilsParam) (ok bool, summary string, details string) 
 	if err != nil {
 		return false, ServiceErrorMsg, err.Error()
 	}
+	activeServer := (*params.rserver)[0]
+	if err := getActiveAliasRedfishServer(params.pconfig, &activeServer); err != nil {
+		return false, "Error while getting active server", err.Error()
+	}
 	service := api.Service
 	defer api.Logout()
 	managers, err := service.Managers()
@@ -269,7 +273,7 @@ func certutils(params CertUtilsParam) (ok bool, summary string, details string) 
 	// Check iDRAC status
 	checker := ServerStatusChecker{
 		Service:  service,
-		Endpoint: (*params.rserver)[0].Endpoint.ValueString(),
+		Endpoint: activeServer.Endpoint.ValueString(),
 		Interval: defaultCheckInterval,
 		Timeout:  defaultCheckTimeout,
 	}
