@@ -20,3 +20,7 @@ terraform import redfish_storage_controller.storage_controller_example '{"storag
 
 # terraform import with system_id
 terraform import redfish_storage_controller.storage_controller_example '{"system_id":"<system_id>","storage_id":"<storage_id>","controller_id":"<controller_id>","username":"<username>","password":"<password>","endpoint":"<endpoint>","ssl_insecure":<true/false>}'
+
+# terraform import with redfish_alias. When using redfish_alias, provider's `redfish_servers` is required.
+# redfish_alias is used to align with enhancements to password management.
+terraform import redfish_storage_controller.storage_controller_example '{"storage_id":"<storage_id>","controller_id":"<controller_id>","redfish_alias":"<redfish_alias>"}'

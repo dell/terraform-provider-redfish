@@ -44,6 +44,11 @@ resource "redfish_directory_service_auth_provider" "ds_auth" {
   for_each = var.rack1
 
   redfish_server {
+    # Alias name for server BMCs. The key in provider's `redfish_servers` map
+    # `redfish_alias` is used to align with enhancements to password management.
+    # When using redfish_alias, provider's `redfish_servers` is required.
+    redfish_alias = each.key
+
     user         = each.value.user
     password     = each.value.password
     endpoint     = each.value.endpoint
@@ -284,4 +289,8 @@ limitations under the License.
 */
 
 terraform import redfish_directory_service_auth_provider.ds_auth '{"username":"<username>","password":"<password>","endpoint":"<endpoint>","ssl_insecure":<true/false>}'
+
+# terraform import with redfish_alias. When using redfish_alias, provider's `redfish_servers` is required.
+# redfish_alias is used to align with enhancements to password management.
+terraform import redfish_directory_service_auth_provider.ds_auth '{"redfish_alias":"<redfish_alias>"}'
 ```

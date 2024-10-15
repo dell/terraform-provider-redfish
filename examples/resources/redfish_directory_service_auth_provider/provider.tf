@@ -23,3 +23,10 @@ terraform {
     }
   }
 }
+
+provider "redfish" {
+  # `redfish_servers` is used to align with enhancements to password management.
+  # Map of server BMCs with their alias keys and respective user credentials.
+  # This is required when resource/datasource's `redfish_alias` is not null
+  redfish_servers = var.rack1
+}

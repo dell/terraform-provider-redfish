@@ -34,6 +34,11 @@ data "redfish_storage_controller" "storage_controller_example" {
   for_each = var.rack1
 
   redfish_server {
+    # Alias name for server BMCs. The key in provider's `redfish_servers` map
+    # `redfish_alias` is used to align with enhancements to password management.
+    # When using redfish_alias, provider's `redfish_servers` is required.
+    redfish_alias = each.key
+
     user         = each.value.user
     password     = each.value.password
     endpoint     = each.value.endpoint
