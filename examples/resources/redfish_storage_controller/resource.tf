@@ -40,6 +40,8 @@ resource "redfish_storage_controller" "storage_controller_example" {
 
   # Apply Time. Required for creating and updating.
   # Accepted values: `Immediate`, `OnReset`, `AtMaintenanceWindowStart`, `InMaintenanceWindowOnReset`
+  # When updating `controller_mode`, ensure that the `apply_time` is `OnReset`.
+  # When updating `security`, ensure that the `apply_time` is `Immediate` or `OnReset`.
   apply_time = "Immediate"
 
   # System ID. Optional for creating.
@@ -67,7 +69,7 @@ resource "redfish_storage_controller" "storage_controller_example" {
   # maintenance_window = {
   #   # The start time for the maintenance window to be scheduled. Format is YYYY-MM-DDThh:mm:ss<offset>.
   #   # <offset> is the time offset from UTC that the current timezone set in iDRAC in the format: +05:30 for IST.
-  #   start_time = "2024-06-30T05:15:40-05:00"
+  #   start_time = "2024-10-15T22:45:00-05:00"
 
   #   # duration in seconds for the maintenance_window
   #   duration = 600
@@ -81,10 +83,11 @@ resource "redfish_storage_controller" "storage_controller_example" {
           # Controller Mode. 
           # Accepted values: `RAID`, `HBA`.
           # When updating `controller_mode`:
-          #   - the `apply_time` should be `OnReset` or `InMaintenanceWindowOnReset`
+          #   - the `apply_time` should be `OnReset`
           #   - no other attributes from `storage_controller` or `security` should be updated.
           # Specifically when updating to `HBA`:
           #   - the `enhanced_auto_import_foreign_configuration_mode` attribute needs to be commented.
+          #   - ensure that the security key is not present, if present first delete it using `RemoveControllerKey` action.
           # controller_mode = "RAID"
 
           # Check Consistency Mode. 
@@ -130,6 +133,8 @@ resource "redfish_storage_controller" "storage_controller_example" {
   }
 
   # Please update any one out of `security` and `storage_controller` at a time.
+  # When updating `security`, ensure that the `apply_time` is `Immediate` or `OnReset`.
+  # When updating `controller_mode` to `HBA`, ensure that the security key is not present.
   security = {
     # Action.
     # Accepted values: `SetControllerKey`, `ReKey`, `RemoveControllerKey`.

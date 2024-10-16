@@ -55,6 +55,8 @@ resource "redfish_storage_controller" "storage_controller_example" {
 
   # Apply Time. Required for creating and updating.
   # Accepted values: `Immediate`, `OnReset`, `AtMaintenanceWindowStart`, `InMaintenanceWindowOnReset`
+  # When updating `controller_mode`, ensure that the `apply_time` is `OnReset`.
+  # When updating `security`, ensure that the `apply_time` is `Immediate` or `OnReset`.
   apply_time = "Immediate"
 
   # System ID. Optional for creating.
@@ -82,7 +84,7 @@ resource "redfish_storage_controller" "storage_controller_example" {
   # maintenance_window = {
   #   # The start time for the maintenance window to be scheduled. Format is YYYY-MM-DDThh:mm:ss<offset>.
   #   # <offset> is the time offset from UTC that the current timezone set in iDRAC in the format: +05:30 for IST.
-  #   start_time = "2024-06-30T05:15:40-05:00"
+  #   start_time = "2024-10-15T22:45:00-05:00"
 
   #   # duration in seconds for the maintenance_window
   #   duration = 600
@@ -96,10 +98,11 @@ resource "redfish_storage_controller" "storage_controller_example" {
           # Controller Mode. 
           # Accepted values: `RAID`, `HBA`.
           # When updating `controller_mode`:
-          #   - the `apply_time` should be `OnReset` or `InMaintenanceWindowOnReset`
+          #   - the `apply_time` should be `OnReset`
           #   - no other attributes from `storage_controller` or `security` should be updated.
           # Specifically when updating to `HBA`:
           #   - the `enhanced_auto_import_foreign_configuration_mode` attribute needs to be commented.
+          #   - ensure that the security key is not present, if present first delete it using `RemoveControllerKey` action.
           # controller_mode = "RAID"
 
           # Check Consistency Mode. 
@@ -145,6 +148,8 @@ resource "redfish_storage_controller" "storage_controller_example" {
   }
 
   # Please update any one out of `security` and `storage_controller` at a time.
+  # When updating `security`, ensure that the `apply_time` is `Immediate` or `OnReset`.
+  # When updating `controller_mode` to `HBA`, ensure that the security key is not present.
   security = {
     # Action.
     # Accepted values: `SetControllerKey`, `ReKey`, `RemoveControllerKey`.
@@ -179,7 +184,7 @@ resource "redfish_storage_controller" "storage_controller_example" {
 
 ### Required
 
-- `apply_time` (String) Apply time of the storage controller attributes. (Update Supported)Accepted values: `Immediate`, `OnReset`, `AtMaintenanceWindowStart`, `InMaintenanceWindowOnReset`. Immediate: allows the user to immediately reboot the host and apply the changes. OnReset: allows the user to apply the changes on the next reboot of the host server.AtMaintenanceWindowStart: allows the user to apply at the start of a maintenance window as specified in `maintenance_window`.InMaintenanceWindowOnReset: allows to apply after a manual reset but within the maintenance window as specified in `maintenance_window`.
+- `apply_time` (String) Apply time of the storage controller attributes. (Update Supported)Accepted values: `Immediate`, `OnReset`, `AtMaintenanceWindowStart`, `InMaintenanceWindowOnReset`. Immediate: allows the user to immediately reboot the host and apply the changes. OnReset: allows the user to apply the changes on the next reboot of the host server.AtMaintenanceWindowStart: allows the user to apply at the start of a maintenance window as specified in `maintenance_window`.InMaintenanceWindowOnReset: allows to apply after a manual reset but within the maintenance window as specified in `maintenance_window`. When updating `controller_mode`, ensure that the `apply_time` is `OnReset`. When updating `security`, ensure that the `apply_time` is `Immediate` or `OnReset`.
 - `controller_id` (String) ID of the storage controller
 - `storage_id` (String) ID of the storage
 
@@ -190,7 +195,7 @@ resource "redfish_storage_controller" "storage_controller_example" {
 - `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
 - `reset_timeout` (Number) Reset Timeout. Default value is 120 seconds. (Update Supported)
 - `reset_type` (String) Reset Type. (Update Supported) Accepted values: `ForceRestart`, `GracefulRestart`, `PowerCycle`. Default value is `ForceRestart`.
-- `security` (Attributes) This consists of the attributes to configure the security of the storage controller. Please update any one out of `security` and `storage_controller` at a time. (see [below for nested schema](#nestedatt--security))
+- `security` (Attributes) This consists of the attributes to configure the security of the storage controller. Please update any one out of `security` and `storage_controller` at a time. When updating `security`, ensure that the `apply_time` is `Immediate` or `OnReset`. When updating `controller_mode` to `HBA`, ensure that the security key is not present. (see [below for nested schema](#nestedatt--security))
 - `storage_controller` (Attributes) This consists of the attributes to configure the storage controller. Please update any one out of `storage_controller` and `security` at a time. (see [below for nested schema](#nestedatt--storage_controller))
 - `system_id` (String) ID of the system resource. If the value for system ID is not provided, the resource picks the first system available from the iDRAC.
 
@@ -269,7 +274,7 @@ Optional:
 
 - `background_initialization_rate_percent` (Number) Background Initialization Rate Percent
 - `check_consistency_mode` (String) Check Consistency Mode. Accepted values: `Normal`, `StopOnError`.
-- `controller_mode` (String) Controller Mode. Accepted values: `RAID`, `HBA`. When updating `controller_mode`, the `apply_time` should be `OnReset` or `InMaintenanceWindowOnReset` and no other attributes from `storage_controller` or `security` should be updated. Specifically, when updating `controller_mode` to `HBA`, the `enhanced_auto_import_foreign_configuration_mode` attribute needs to be commented.
+- `controller_mode` (String) Controller Mode. Accepted values: `RAID`, `HBA`. When updating `controller_mode`, the `apply_time` should be `OnReset` and no other attributes from `storage_controller` or `security` should be updated. Specifically, when updating `controller_mode` to `HBA`, the `enhanced_auto_import_foreign_configuration_mode` attribute needs to be commented and also ensure that the security key is not present, if present first delete it using `RemoveControllerKey` action.
 - `copyback_mode` (String) Copyback Mode. Accepted values: `On`, `OnWithSMART`, `Off`.
 - `enhanced_auto_import_foreign_configuration_mode` (String) Enhanced Auto Import Foreign Configuration Mode. Accepted values: `Disabled`, `Enabled`. When updating `controller_mode` to `HBA`, this attribute needs to be commented.
 - `load_balance_mode` (String) Load Balance Mode. Accepted values: `Automatic`, `Disabled`.

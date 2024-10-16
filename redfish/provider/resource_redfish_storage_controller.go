@@ -104,7 +104,7 @@ func (r *RedfishStorageControllerResource) Create(ctx context.Context, req resou
 	}
 
 	// read
-	diags = readRedfishStorageController(ctx, service, &plan)
+	diags = readRedfishStorageController(ctx, service, &plan, true)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -136,7 +136,7 @@ func (r *RedfishStorageControllerResource) Read(ctx context.Context, req resourc
 	service := api.Service
 	defer api.Logout()
 
-	diags = readRedfishStorageController(ctx, service, &state)
+	diags = readRedfishStorageController(ctx, service, &state, false)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -197,7 +197,7 @@ func (r *RedfishStorageControllerResource) Update(ctx context.Context, req resou
 	}
 
 	// read
-	diags = readRedfishStorageController(ctx, service, &plan)
+	diags = readRedfishStorageController(ctx, service, &plan, true)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -259,7 +259,8 @@ func (*RedfishStorageControllerResource) ImportState(ctx context.Context, req re
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("controller_id"), c.ControllerID)...)
 }
 
-func readRedfishStorageController(ctx context.Context, service *gofish.Service, state *models.StorageControllerResource) diag.Diagnostics {
+// nolint: gocyclo, gocognit, revive
+func readRedfishStorageController(ctx context.Context, service *gofish.Service, state *models.StorageControllerResource, isPlan bool) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	// get storage controller by using system id, storage id, controller id
@@ -280,7 +281,7 @@ func readRedfishStorageController(ctx context.Context, service *gofish.Service, 
 		return diags
 	}
 
-	diags = parseStorageControllerExtendedIntoState(ctx, storageControllerExtended, state)
+	diags = parseStorageControllerExtendedIntoState(ctx, storageControllerExtended, state, isPlan)
 	if diags.HasError() {
 		return diags
 	}
@@ -353,9 +354,8 @@ func updateRedfishStorageController(ctx context.Context, service *gofish.Service
 			return diags
 		}
 
-		if !(applyTime == string(redfishcommon.OnResetApplyTime) || applyTime == string(redfishcommon.InMaintenanceWindowOnResetApplyTime)) {
-			diags.AddError("While updating `controller_mode`, the `apply_time` should be `OnReset` or `InMaintenanceWindowOnReset`.",
-				"The `apply_time` is not `OnReset` or `InMaintenanceWindowOnReset`.")
+		if applyTime != string(redfishcommon.OnResetApplyTime) {
+			diags.AddError("While updating `controller_mode`, the `apply_time` should be `OnReset`.", "The `apply_time` is not `OnReset`.")
 			return diags
 		}
 
@@ -371,6 +371,12 @@ func updateRedfishStorageController(ctx context.Context, service *gofish.Service
 		}
 
 		if isAnySecurityAttributeChanged {
+			if applyTime == string(redfishcommon.AtMaintenanceWindowStartApplyTime) ||
+				applyTime == string(redfishcommon.InMaintenanceWindowOnResetApplyTime) {
+				diags.AddError("While updating `security` attributes, the `apply_time` should be `Immediate` or `OnReset`.", "The `apply_time` is not `Immediate` or `OnReset`.")
+				return diags
+			}
+
 			jobURL, diags = updateSecurityAttributes(ctx, service, plan, state)
 			if diags.HasError() {
 				return diags
