@@ -60,14 +60,18 @@ func StorageControllerResourceSchema() map[string]schema.Attribute {
 				"OnReset: allows the user to apply the changes on the next reboot of the host server." +
 				"AtMaintenanceWindowStart: allows the user to apply at the start of a maintenance window as specified in `maintenance_window`." +
 				"InMaintenanceWindowOnReset: allows to apply after a manual reset " +
-				"but within the maintenance window as specified in `maintenance_window`.",
+				"but within the maintenance window as specified in `maintenance_window`. " +
+				"When updating `controller_mode`, ensure that the `apply_time` is `OnReset`. " +
+				"When updating `security`, ensure that the `apply_time` is `Immediate` or `OnReset`.",
 			Description: "Apply time of the storage controller attributes. (Update Supported)" +
 				"Accepted values: `Immediate`, `OnReset`, `AtMaintenanceWindowStart`, `InMaintenanceWindowOnReset`. " +
 				"Immediate: allows the user to immediately reboot the host and apply the changes. " +
 				"OnReset: allows the user to apply the changes on the next reboot of the host server." +
 				"AtMaintenanceWindowStart: allows the user to apply at the start of a maintenance window as specified in `maintenance_window`." +
 				"InMaintenanceWindowOnReset: allows to apply after a manual reset " +
-				"but within the maintenance window as specified in `maintenance_window`.",
+				"but within the maintenance window as specified in `maintenance_window`. " +
+				"When updating `controller_mode`, ensure that the `apply_time` is `OnReset`. " +
+				"When updating `security`, ensure that the `apply_time` is `Immediate` or `OnReset`.",
 			Required: true,
 			Validators: []validator.String{
 				stringvalidator.OneOf(
@@ -156,9 +160,13 @@ func StorageControllerResourceSchema() map[string]schema.Attribute {
 		},
 		"security": schema.SingleNestedAttribute{
 			MarkdownDescription: "This consists of the attributes to configure the security of the storage controller. " +
-				"Please update any one out of `security` and `storage_controller` at a time.",
+				"Please update any one out of `security` and `storage_controller` at a time. " +
+				"When updating `security`, ensure that the `apply_time` is `Immediate` or `OnReset`. " +
+				"When updating `controller_mode` to `HBA`, ensure that the security key is not present.",
 			Description: "This consists of the attributes to configure the security of the storage controller. " +
-				"Please update any one out of `security` and `storage_controller` at a time.",
+				"Please update any one out of `security` and `storage_controller` at a time. " +
+				"When updating `security`, ensure that the `apply_time` is `Immediate` or `OnReset`. " +
+				"When updating `controller_mode` to `HBA`, ensure that the security key is not present.",
 			Optional:   true,
 			Computed:   true,
 			Attributes: SecuritySchema(),
@@ -295,13 +303,15 @@ func DellStorageControllerResourceSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"controller_mode": schema.StringAttribute{
 			MarkdownDescription: "Controller Mode. Accepted values: `RAID`, `HBA`. " +
-				"When updating `controller_mode`, the `apply_time` should be `OnReset` or `InMaintenanceWindowOnReset` and " +
+				"When updating `controller_mode`, the `apply_time` should be `OnReset` and " +
 				"no other attributes from `storage_controller` or `security` should be updated. " +
-				"Specifically, when updating `controller_mode` to `HBA`, the `enhanced_auto_import_foreign_configuration_mode` attribute needs to be commented.",
+				"Specifically, when updating `controller_mode` to `HBA`, the `enhanced_auto_import_foreign_configuration_mode` attribute needs to be commented " +
+				"and also ensure that the security key is not present, if present first delete it using `RemoveControllerKey` action.",
 			Description: "Controller Mode. Accepted values: `RAID`, `HBA`. " +
-				"When updating `controller_mode`, the `apply_time` should be `OnReset` or `InMaintenanceWindowOnReset` and " +
+				"When updating `controller_mode`, the `apply_time` should be `OnReset` and " +
 				"no other attributes from `storage_controller` or `security` should be updated. " +
-				"Specifically, when updating `controller_mode` to `HBA`, the `enhanced_auto_import_foreign_configuration_mode` attribute needs to be commented.",
+				"Specifically, when updating `controller_mode` to `HBA`, the `enhanced_auto_import_foreign_configuration_mode` attribute needs to be commented " +
+				"and also ensure that the security key is not present, if present first delete it using `RemoveControllerKey` action.",
 			Optional: true,
 			Computed: true,
 			Validators: []validator.String{stringvalidator.OneOf(

@@ -73,7 +73,7 @@ func parseSecurityAttributesIntoState(ctx context.Context, storageControllerExte
 }
 
 // nolint: revive
-func parseStorageControllerExtendedIntoState(ctx context.Context, storageControllerExtended *dell.StorageControllerExtended, state *models.StorageControllerResource) diag.Diagnostics {
+func parseStorageControllerExtendedIntoState(ctx context.Context, storageControllerExtended *dell.StorageControllerExtended, state *models.StorageControllerResource, isPlan bool) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	objectAsOptions := basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true}
@@ -84,11 +84,11 @@ func parseStorageControllerExtendedIntoState(ctx context.Context, storageControl
 		return diags
 	}
 
-	controllerRatesObj, diags := getControllerRatesObjectValue(storageControllerExtended)
+	controllerRatesObj, diags := getControllerRatesObjectValue(storageControllerExtended, oldStorageControllerAttributes, ctx, isPlan)
 	if diags.HasError() {
 		return diags
 	}
-	oemAttributesObj, diags := getOEMAttributesObjectValue(storageControllerExtended)
+	oemAttributesObj, diags := getOEMAttributesObjectValue(storageControllerExtended, oldStorageControllerAttributes, ctx, isPlan)
 	if diags.HasError() {
 		return diags
 	}
@@ -102,18 +102,39 @@ func parseStorageControllerExtendedIntoState(ctx context.Context, storageControl
 	return diags
 }
 
-func getControllerRatesObjectValue(storageControllerExtended *dell.StorageControllerExtended) (basetypes.ObjectValue, diag.Diagnostics) {
+// nolint: revive
+func getControllerRatesObjectValue(storageControllerExtended *dell.StorageControllerExtended, oldState models.StorageControllerAttributes, ctx context.Context, isPlan bool) (basetypes.ObjectValue, diag.Diagnostics) {
 	controllerRatesItemMap := map[string]attr.Value{
 		"consistency_check_rate_percent": types.Int64Value(int64(storageControllerExtended.ControllerRates.ConsistencyCheckRatePercent)),
 		"rebuild_rate_percent":           types.Int64Value(int64(storageControllerExtended.ControllerRates.RebuildRatePercent)),
 	}
+
+	if isPlan {
+		if !oldState.ControllerRates.IsNull() && !oldState.ControllerRates.IsUnknown() {
+			objectAsOptions := basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true}
+			var oldAttributes models.ControllerRates
+			diags := oldState.ControllerRates.As(ctx, &oldAttributes, objectAsOptions)
+			if diags.HasError() {
+				return types.ObjectValue(getControllerRatesModelType(), controllerRatesItemMap)
+			}
+
+			if !oldAttributes.ConsistencyCheckRatePercent.IsNull() && !oldAttributes.ConsistencyCheckRatePercent.IsUnknown() {
+				controllerRatesItemMap["consistency_check_rate_percent"] = oldAttributes.ConsistencyCheckRatePercent
+			}
+			if !oldAttributes.RebuildRatePercent.IsNull() && !oldAttributes.RebuildRatePercent.IsUnknown() {
+				controllerRatesItemMap["rebuild_rate_percent"] = oldAttributes.RebuildRatePercent
+			}
+		}
+	}
+
 	return types.ObjectValue(getControllerRatesModelType(), controllerRatesItemMap)
 }
 
-func getOEMAttributesObjectValue(storageControllerExtended *dell.StorageControllerExtended) (basetypes.ObjectValue, diag.Diagnostics) {
+// nolint: revive
+func getOEMAttributesObjectValue(storageControllerExtended *dell.StorageControllerExtended, oldState models.StorageControllerAttributes, ctx context.Context, isPlan bool) (basetypes.ObjectValue, diag.Diagnostics) {
 	emptyObj := types.ObjectNull(getOEMAttributesModelType())
 
-	dellAttributesObj, diags := getDellAttributesObjectValue(storageControllerExtended)
+	dellAttributesObj, diags := getDellAttributesObjectValue(storageControllerExtended, oldState, ctx, isPlan)
 	if diags.HasError() {
 		return emptyObj, diags
 	}
@@ -125,10 +146,11 @@ func getOEMAttributesObjectValue(storageControllerExtended *dell.StorageControll
 	return types.ObjectValue(getOEMAttributesModelType(), oemAttributesItemMap)
 }
 
-func getDellAttributesObjectValue(storageControllerExtended *dell.StorageControllerExtended) (basetypes.ObjectValue, diag.Diagnostics) {
+// nolint: revive
+func getDellAttributesObjectValue(storageControllerExtended *dell.StorageControllerExtended, oldState models.StorageControllerAttributes, ctx context.Context, isPlan bool) (basetypes.ObjectValue, diag.Diagnostics) {
 	emptyObj := types.ObjectNull(getDellAttributesModelType())
 
-	dellStorageControllerAttributesObj, diags := getDellStorageControllerAttributesObjectValue(storageControllerExtended)
+	dellStorageControllerAttributesObj, diags := getDellStorageControllerAttributesObjectValue(storageControllerExtended, oldState, ctx, isPlan)
 	if diags.HasError() {
 		return emptyObj, diags
 	}
@@ -141,7 +163,7 @@ func getDellAttributesObjectValue(storageControllerExtended *dell.StorageControl
 }
 
 // nolint: revive
-func getDellStorageControllerAttributesObjectValue(storageControllerExtended *dell.StorageControllerExtended) (basetypes.ObjectValue, diag.Diagnostics) {
+func getDellStorageControllerAttributesObjectValue(storageControllerExtended *dell.StorageControllerExtended, oldState models.StorageControllerAttributes, ctx context.Context, isPlan bool) (basetypes.ObjectValue, diag.Diagnostics) {
 	dellStorageControllerAttributesItemMap := map[string]attr.Value{
 		"controller_mode":        types.StringValue(storageControllerExtended.Oem.Dell.DellStorageController.ControllerMode),
 		"check_consistency_mode": types.StringValue(storageControllerExtended.Oem.Dell.DellStorageController.CheckConsistencyMode),
@@ -152,6 +174,62 @@ func getDellStorageControllerAttributesObjectValue(storageControllerExtended *de
 		"patrol_read_mode":                                types.StringValue(storageControllerExtended.Oem.Dell.DellStorageController.PatrolReadMode),
 		"background_initialization_rate_percent":          types.Int64Value(storageControllerExtended.Oem.Dell.DellStorageController.BackgroundInitializationRatePercent),
 		"reconstruct_rate_percent":                        types.Int64Value(storageControllerExtended.Oem.Dell.DellStorageController.ReconstructRatePercent),
+	}
+
+	if isPlan {
+		if !oldState.Oem.IsNull() && !oldState.Oem.IsUnknown() {
+			objectAsOptions := basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true}
+
+			var oldOemAttributes models.OEMAttributes
+			diags := oldState.Oem.As(ctx, &oldOemAttributes, objectAsOptions)
+			if diags.HasError() {
+				return types.ObjectValue(getDellStorageControllerAttributesModelType(), dellStorageControllerAttributesItemMap)
+			}
+
+			if !oldOemAttributes.Dell.IsNull() && !oldOemAttributes.Dell.IsUnknown() {
+				var oldDellAttributes models.DellAttributes
+				diags := oldOemAttributes.Dell.As(ctx, &oldDellAttributes, objectAsOptions)
+				if diags.HasError() {
+					return types.ObjectValue(getDellStorageControllerAttributesModelType(), dellStorageControllerAttributesItemMap)
+				}
+
+				if !oldDellAttributes.DellStorageController.IsNull() && !oldDellAttributes.DellStorageController.IsUnknown() {
+					var oldDellStorageControllerAttributes models.DellStorageControllerAttributes
+					diags := oldDellAttributes.DellStorageController.As(ctx, &oldDellStorageControllerAttributes, objectAsOptions)
+					if diags.HasError() {
+						return types.ObjectValue(getDellStorageControllerAttributesModelType(), dellStorageControllerAttributesItemMap)
+					}
+
+					if !oldDellStorageControllerAttributes.ControllerMode.IsNull() && !oldDellStorageControllerAttributes.ControllerMode.IsUnknown() {
+						dellStorageControllerAttributesItemMap["controller_mode"] = oldDellStorageControllerAttributes.ControllerMode
+					}
+					if !oldDellStorageControllerAttributes.CheckConsistencyMode.IsNull() && !oldDellStorageControllerAttributes.CheckConsistencyMode.IsUnknown() {
+						dellStorageControllerAttributesItemMap["check_consistency_mode"] = oldDellStorageControllerAttributes.CheckConsistencyMode
+					}
+					if !oldDellStorageControllerAttributes.CopybackMode.IsNull() && !oldDellStorageControllerAttributes.CopybackMode.IsUnknown() {
+						dellStorageControllerAttributesItemMap["copyback_mode"] = oldDellStorageControllerAttributes.CopybackMode
+					}
+					if !oldDellStorageControllerAttributes.LoadBalanceMode.IsNull() && !oldDellStorageControllerAttributes.LoadBalanceMode.IsUnknown() {
+						dellStorageControllerAttributesItemMap["load_balance_mode"] = oldDellStorageControllerAttributes.LoadBalanceMode
+					}
+					if !oldDellStorageControllerAttributes.EnhancedAutoImportForeignConfigurationMode.IsNull() && !oldDellStorageControllerAttributes.EnhancedAutoImportForeignConfigurationMode.IsUnknown() {
+						dellStorageControllerAttributesItemMap["enhanced_auto_import_foreign_configuration_mode"] = oldDellStorageControllerAttributes.EnhancedAutoImportForeignConfigurationMode
+					}
+					if !oldDellStorageControllerAttributes.PatrolReadUnconfiguredAreaMode.IsNull() && !oldDellStorageControllerAttributes.PatrolReadUnconfiguredAreaMode.IsUnknown() {
+						dellStorageControllerAttributesItemMap["patrol_read_unconfigured_area_mode"] = oldDellStorageControllerAttributes.PatrolReadUnconfiguredAreaMode
+					}
+					if !oldDellStorageControllerAttributes.PatrolReadMode.IsNull() && !oldDellStorageControllerAttributes.PatrolReadMode.IsUnknown() {
+						dellStorageControllerAttributesItemMap["patrol_read_mode"] = oldDellStorageControllerAttributes.PatrolReadMode
+					}
+					if !oldDellStorageControllerAttributes.BackgroundInitializationRatePercent.IsNull() && !oldDellStorageControllerAttributes.BackgroundInitializationRatePercent.IsUnknown() {
+						dellStorageControllerAttributesItemMap["background_initialization_rate_percent"] = oldDellStorageControllerAttributes.BackgroundInitializationRatePercent
+					}
+					if !oldDellStorageControllerAttributes.ReconstructRatePercent.IsNull() && !oldDellStorageControllerAttributes.ReconstructRatePercent.IsUnknown() {
+						dellStorageControllerAttributesItemMap["reconstruct_rate_percent"] = oldDellStorageControllerAttributes.ReconstructRatePercent
+					}
+				}
+			}
+		}
 	}
 
 	return types.ObjectValue(getDellStorageControllerAttributesModelType(), dellStorageControllerAttributesItemMap)

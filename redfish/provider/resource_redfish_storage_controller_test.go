@@ -189,12 +189,17 @@ func TestAccRedfishStorageControllerAttributesError(t *testing.T) {
 			// error scenario when updating controller mode without an on reset type of apply time
 			{
 				Config:      testAccRedfishResourceStorageControllerControllerModeWithoutOnResetApplyTimeConfig(storageControllerParams),
-				ExpectError: regexp.MustCompile("While updating `controller_mode`, the `apply_time` should be `OnReset` or `InMaintenanceWindowOnReset`."),
+				ExpectError: regexp.MustCompile("While updating `controller_mode`, the `apply_time` should be `OnReset`."),
 			},
 			// error scenario when updating security and some other storage controller attribute
 			{
 				Config:      testAccRedfishResourceStorageControllerSecurityAndOtherAttributeUpdateConfig(storageControllerParams),
 				ExpectError: regexp.MustCompile("Attributes of both `security` and `storage_controller` were changed."),
+			},
+			// error scenario when updating security with maintenance type of apply time
+			{
+				Config:      testAccRedfishResourceStorageControllerSecurityWithMaintenanceTypeApplyTimeConfig(storageControllerParams),
+				ExpectError: regexp.MustCompile("While updating `security` attributes, the `apply_time` should be `Immediate` or `OnReset`."),
 			},
 			// error scenario when updating security without specifying the action
 			{
@@ -760,6 +765,40 @@ func testAccRedfishResourceStorageControllerSecurityAndOtherAttributeUpdateConfi
 				consistency_check_rate_percent = 32
 				rebuild_rate_percent = 32
 			}
+		}
+		security = {
+			action = "SetControllerKey"
+			key_id = "testkey1"
+			key = "Test123##"
+		}
+	}
+		`,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+		testingInfo.SystemID,
+		testingInfo.StorageID,
+		testingInfo.ControllerID,
+	)
+}
+
+func testAccRedfishResourceStorageControllerSecurityWithMaintenanceTypeApplyTimeConfig(testingInfo testingStorageControllerInputs) string {
+	return fmt.Sprintf(`
+	resource "redfish_storage_controller" "test" {
+		redfish_server {
+			user         = "%s"
+			password     = "%s"
+			endpoint     = "https://%s"
+			ssl_insecure = true
+		}
+		system_id = "%s"
+		storage_id = "%s"
+		controller_id = "%s"
+		apply_time = "AtMaintenanceWindowStart"
+		job_timeout = 1200
+		maintenance_window = {
+			start_time = "2024-10-15T22:45:00-05:00"
+			duration = 600
 		}
 		security = {
 			action = "SetControllerKey"
