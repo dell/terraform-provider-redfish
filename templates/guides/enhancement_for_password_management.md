@@ -13,12 +13,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-page_title: "Enhancement for password managemant"
-title: "Enhancement for password managemant"
-linkTitle: "Enhancement for password managemant"
+page_title: "Enhancement for password management"
+title: "Enhancement for password management"
+linkTitle: "Enhancement for password management"
 ---
 Enhancements to password management
-The guide provides a terraform configuration of using `redfish_alias` to enhance password managemant. 
+The guide provides a terraform configuration of using `redfish_alias` to enhance password management. 
 The purpose of this enhancement is that when the user password changes, we only need to update the password value in the locals variable, and we no longer need to manually edit the state files to change the old root password to new password.
 All we need to do is introduce `redfish_servers` to the provider, while introducing `redfish_alias` to resource/datasource's `redfish_server`.
 

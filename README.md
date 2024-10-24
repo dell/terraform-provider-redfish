@@ -50,7 +50,7 @@ The Terraform Provider for RedFish is released and licensed under the MPL-2.0 li
 
 | **Terraform Provider** | **iDRAC9 Firmware Version** | **OS** | **Terraform** | **Golang** |
 |---------------------|-----------------------|-------|--------------------|--------------------------|
-| v1.4.0 | 5.x <br> 6.x <br> 7.x | ubuntu22.04 <br> rhel9.x | 1.6.x <br> 1.7.x | 1.22
+| v1.5.0 | 5.x <br> 6.x <br> 7.x | ubuntu22.04 <br> rhel9.x | 1.8.x <br> 1.9.x | 1.22
 
 ## List of DataSources in Terraform Provider for RedFish
   * [Bios](docs/data-sources/bios.md)
@@ -60,6 +60,8 @@ The Terraform Provider for RedFish is released and licensed under the MPL-2.0 li
   * [System Boot](docs/data-sources/system_boot.md)
   * [Virtual Media](docs/data-sources/virtual_media.md)
   * [Server NIC](docs/data-sources/network.md)
+  * [Storage Controller](docs/data-sources/storage_controller.md)
+  * [Directory Service Auth Provider](docs/data-sources/directory_service_auth_provider.md)
 
 ## List of Resources in Terraform Provider for RedFish
   * [Bios](docs/resources/bios.md)
@@ -80,6 +82,8 @@ The Terraform Provider for RedFish is released and licensed under the MPL-2.0 li
   * [Server Configuration Profile Export](docs/resources/idrac_server_configuration_profile_export.md)
   * [Server Configuration Profile Import](docs/resources/idrac_server_configuration_profile_import.md)
   * [Server NIC](docs/resources/network_adapter.md)
+  * [Storage Controller](docs/resources/storage_controller.md)
+  * [Directory Service Auth Provider](docs/resources/directory_service_auth_provider.md)
 
 ## Installation and execution of Terraform Provider for RedFish
 The installation and execution steps of Terraform Provider for Dell RedFish can be found [here](about/INSTALLATION.md).
