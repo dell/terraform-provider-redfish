@@ -1,5 +1,5 @@
 PKG_NAME=redfish
-VERSION?=1.4.0
+VERSION?=1.5.0
 TEST?=$$(go list ./... | grep -v 'vendor')
 INSTALL_ROOT?=~/.terraform.d/plugins
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)

@@ -18,6 +18,28 @@ limitations under the License.
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
+# v1.5.0 (October, 2024)
+## Release Summary
+The release supports resources and data sources mentioned in the Features section for RedFish.
+## Features
+
+### Resources
+* Storage Controller Resource
+* Directory Service Auth Provider Resource
+
+### DataSources
+* Storage Controller DataSource
+* Directory Service Auth Provider DataSource
+
+### Others
+N/A
+
+## Enhancements
+* When the user password changes, update the password value in the locals variable, no longer needing to manually edit the state file.
+
+## Bug Fixes
+N/A
+
 # v1.4.0 (July, 2024)
 ## Release Summary
 The release supports resources and data sources mentioned in the Features section for RedFish.
