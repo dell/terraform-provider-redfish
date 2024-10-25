@@ -156,10 +156,15 @@ func (r *managerResetResource) Create(ctx context.Context, req resource.CreateRe
 	service = api.Service
 	defer api.Logout()
 
+	activeServer := (plan.RedfishServer)[0]
+	if err := getActiveAliasRedfishServer(r.p, &activeServer); err != nil {
+		resp.Diagnostics.AddError("Error while getting active server", err.Error())
+		return
+	}
 	// Check iDRAC status
 	checker := ServerStatusChecker{
 		Service:  service,
-		Endpoint: (plan.RedfishServer)[0].Endpoint.ValueString(),
+		Endpoint: activeServer.Endpoint.ValueString(),
 		Interval: defaultCheckInterval,
 		Timeout:  defaultCheckTimeout,
 	}
