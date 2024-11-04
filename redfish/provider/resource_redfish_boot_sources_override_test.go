@@ -73,7 +73,7 @@ func testAccRedfishResourceBootSourceLegacyconfig(testingInfo TestingServerCrede
 		redfish_server {
 			user = "%s"
 			password = "%s"
-			endpoint = "https://%s"
+			endpoint = "%s"
 			ssl_insecure = true
 		}
 	    system_id = "System.Embedded.1"
@@ -97,7 +97,7 @@ func testAccRedfishResourceBootSourceUEFIconfig(testingInfo TestingServerCredent
 		redfish_server {
 			user = "%s"
 			password = "%s"
-			endpoint = "https://%s"
+			endpoint = "%s"
 			ssl_insecure = true
 		}
 	   
@@ -121,7 +121,7 @@ func testAccRedfishResourceBootSourceResetType(testingInfo TestingServerCredenti
 		redfish_server {
 			user = "%s"
 			password = "%s"
-			endpoint = "https://%s"
+			endpoint = "%s"
 			ssl_insecure = true
 		}
 	   

@@ -53,7 +53,7 @@ func testAccRedfishDataSourceBiosConfig(testingInfo TestingServerCredentials) st
 		  redfish_server {
 			user = "%s"
 			password = "%s"
-			endpoint = "https://%s"
+			endpoint = "%s"
 			ssl_insecure = true
 		  }
 		  system_id = "System.Embedded.1"

@@ -30,7 +30,7 @@ func TestMain(m *testing.M) {
 }
 
 func getSweeperClient(region string) (*gofish.Service, error) {
-	endpoint := "https://" + creds.Endpoint
+	endpoint := creds.Endpoint
 	clientConfig := gofish.ClientConfig{
 		Endpoint:  endpoint,
 		Username:  creds.Username,

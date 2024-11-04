@@ -212,7 +212,7 @@ func TestAccRedfishDirectoryServiceAuthProviderImport(t *testing.T) {
 					}`,
 				ResourceName:  "redfish_directory_service_auth_provider.ds_auth",
 				ImportState:   true,
-				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true}",
 				ExpectError:   nil,
 			},
 		},
@@ -225,7 +225,7 @@ func testAccRedfishDirectoryServiceAuthProviderErrorConfig(testingInfo TestingSe
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -300,7 +300,7 @@ func testAccRedfishDirectoryServiceAuthProviderADConfig(testingInfo TestingServe
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 		active_directory = {
@@ -335,7 +335,7 @@ func testAccRedfishDirectoryServiceAuthProviderLDAPConfig(testingInfo TestingSer
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 		ldap = {
@@ -383,7 +383,7 @@ func testAccRedfishDirectoryServiceAuthProviderAD_UpdateConfig(testingInfo Testi
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -421,7 +421,7 @@ func testAccRedfishDirectoryServiceAuthProviderEmptyAuth(testingInfo TestingServ
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -458,7 +458,7 @@ func testAccRedfishDirectoryServiceAuthProviderInvalidAuth(testingInfo TestingSe
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -497,7 +497,7 @@ func testAccRedfishDirectoryServiceAuthProviderADDisableSSOEnable(testingInfo Te
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -536,7 +536,7 @@ func testAccRedfishDirectoryServiceAuthProviderADEnSSOEnNoKb(testingInfo Testing
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -574,7 +574,7 @@ func testAccRedfishDirectoryServiceAuthProviderDClookUpEnServiceAddEmpty(testing
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -608,7 +608,7 @@ func testAccRedfishDirectoryServiceAuthProviderDCLookupByUserDomainConfig(testin
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -649,7 +649,7 @@ func testAccRedfishDirectoryServiceAuthProviderDCLookupDomainNameConfig(testingI
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -691,7 +691,7 @@ func testAccRedfishDirectoryServiceAuthProviderDDCLookupEnableNoServiceAddConfig
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -733,7 +733,7 @@ func testAccRedfishDirectoryServiceAuthProviderDCLookupByUserDomainEmptyConfig(t
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -771,7 +771,7 @@ func testAccRedfishDirectoryServiceAuthProviderDCLookupDomainNameEmptyConfig(tes
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -810,7 +810,7 @@ func testAccRedfishDirectoryServiceAuthProviderDCLookupEnableDCLookupDomainNameC
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -849,7 +849,7 @@ func testAccRedfishDirectoryServiceAuthProviderExtendedNoRacConfig(testingInfo T
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -885,7 +885,7 @@ func testAccRedfishDirectoryServiceAuthProviderExtendedEmptyRacConfig(testingInf
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -923,7 +923,7 @@ func testAccRedfishDirectoryServiceAuthProviderExtendedGCLookUpConfig(testingInf
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -962,7 +962,7 @@ func testAccRedfishDirectoryServiceAuthProviderExtendedRemoteRoleConfig(testingI
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -1007,7 +1007,7 @@ func testAccRedfishDirectoryServiceAuthProviderExtendedADGroupDomainConfig(testi
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -1047,7 +1047,7 @@ func testAccRedfishDirectoryServiceAuthProviderStandardSchemaAndRacConfig(testin
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -1085,7 +1085,7 @@ func testAccRedfishDirectoryServiceAuthProviderStandardSchemaNoGCLookUpConfig(te
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -1121,7 +1121,7 @@ func testAccRedfishDirectoryServiceAuthProviderStandardSchemaNoGCRootConfig(test
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -1158,7 +1158,7 @@ func testAccRedfishDirectoryServiceAuthProviderStandardSchemaGlobalCatalogConfig
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -1197,7 +1197,7 @@ func testAccRedfishDirectoryServiceAuthProviderStandardSchemaNoGlobalCatalogConf
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -1235,7 +1235,7 @@ func testAccRedfishDirectoryServiceAuthProviderStandardSchemaGCRootConfig(testin
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  

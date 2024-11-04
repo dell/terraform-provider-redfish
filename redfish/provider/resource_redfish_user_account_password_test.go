@@ -75,7 +75,7 @@ func testAccRedfishResourceUserPasswordConfig(
 		
 		resource "redfish_user_account_password" "user" {
 			username     = "%s"
-			endpoint     = "https://%s"
+			endpoint     = "%s"
 			ssl_insecure = true
 			old_password     = "%s"
 			new_password     = "%s"

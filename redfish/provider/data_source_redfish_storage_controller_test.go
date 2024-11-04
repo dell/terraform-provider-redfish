@@ -100,7 +100,7 @@ func testAccRedfishDataSourceStorageControllerConfig(testingInfo TestingServerCr
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	}`,
@@ -116,7 +116,7 @@ func testAccStorageControllerDatasourceWithEmptySystemFilter(testingInfo Testing
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 		storage_controller_filter {
@@ -135,7 +135,7 @@ func testAccStorageControllerDatasourceWithSystemID(testingInfo TestingServerCre
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 		storage_controller_filter {
@@ -158,7 +158,7 @@ func testAccStorageControllerDatasourceWithStorageID(testingInfo TestingServerCr
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 		storage_controller_filter {
@@ -186,7 +186,7 @@ func testAccStorageControllerDatasourceWithControllerID(testingInfo TestingServe
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 		storage_controller_filter {
@@ -215,7 +215,7 @@ func testAccStorageControllerDatasourceWithMultipleStorageIDs(testingInfo Testin
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 		storage_controller_filter {
@@ -248,7 +248,7 @@ func testAccStorageControllerDatasourceWithInvalidSystemID(testingInfo TestingSe
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 		storage_controller_filter {
@@ -277,7 +277,7 @@ func testAccStorageControllerDatasourceWithInvalidStorageID(testingInfo TestingS
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 		storage_controller_filter {
@@ -306,7 +306,7 @@ func testAccStorageControllerDatasourceWithInvalidControllerID(testingInfo Testi
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 		storage_controller_filter {

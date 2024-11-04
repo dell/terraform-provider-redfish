@@ -35,7 +35,7 @@ var redfishServer = fmt.Sprintf(`
 redfish_server {
 	user = "%s"
 	password = "%s"
-	endpoint = "https://%s"
+	endpoint = "%s"
 	ssl_insecure = true
   }
 `, os.Getenv("TF_TESTING_USERNAME"), os.Getenv("TF_TESTING_PASSWORD"), os.Getenv("TF_TESTING_ENDPOINT"))

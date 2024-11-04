@@ -70,10 +70,16 @@ func init() {
 		PasswordNIC: os.Getenv("TF_TESTING_PASSWORD_NIC"),
 		Insecure:    false,
 	}
+	if creds.Endpoint2 == "" {
+		os.Setenv("TF_TESTING_ENDPOINT2", creds.Endpoint)
+		creds.Endpoint2 = creds.Endpoint
+	}
 	if creds.EndpointNIC == "" {
+		os.Setenv("TF_TESTING_ENDPOINT_NIC", creds.Endpoint)
 		creds.EndpointNIC = creds.Endpoint
 	}
 	if creds.PasswordNIC == "" {
+		os.Setenv("TF_TESTING_PASSWORD_NIC", creds.Password)
 		creds.PasswordNIC = creds.Password
 	}
 	// virtual media environment variable
@@ -97,8 +103,16 @@ func testAccPreCheck(t *testing.T) {
 		t.Fatal("TF_TESTING_ENDPOINT must be set for acceptance tests")
 	}
 
-	if v := os.Getenv("TF_TESTING_ENDPOINT2"); v == "" {
-		t.Fatal("TF_TESTING_ENDPOINT2 must be set for acceptance tests")
+	if v := os.Getenv("TF_TESTING_ENDPOINT"); !strings.HasPrefix(v, "https://") && !strings.HasPrefix(v, "http://") {
+		t.Fatal("TF_TESTING_ENDPOINT must start with `https://` for acceptance tests or `http://` for unit tests")
+	}
+
+	if v := os.Getenv("TF_TESTING_ENDPOINT2"); !strings.HasPrefix(v, "https://") && !strings.HasPrefix(v, "http://") {
+		t.Fatal("TF_TESTING_ENDPOINT2 must start with `https://` for acceptance tests or `http://` for unit tests")
+	}
+
+	if v := os.Getenv("TF_TESTING_ENDPOINT_NIC"); !strings.HasPrefix(v, "https://") && !strings.HasPrefix(v, "http://") {
+		t.Fatal("TF_TESTING_ENDPOINT_NIC must start with `https://` for acceptance tests or `http://` for unit tests")
 	}
 }
 

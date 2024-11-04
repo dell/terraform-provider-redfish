@@ -169,7 +169,7 @@ func TestAccRedfishNICAttributesISCSI(t *testing.T) {
 }
 
 func TestAccRedfishNICAttributesImport(t *testing.T) {
-	importReqID := fmt.Sprintf("{\"system_id\":\"%s\",\"network_adapter_id\":\"%s\",\"network_device_function_id\":\"%s\",\"username\":\"%s\",\"password\":\"%s\",\"endpoint\":\"https://%s\",\"ssl_insecure\":true}",
+	importReqID := fmt.Sprintf("{\"system_id\":\"%s\",\"network_adapter_id\":\"%s\",\"network_device_function_id\":\"%s\",\"username\":\"%s\",\"password\":\"%s\",\"endpoint\":\"%s\",\"ssl_insecure\":true}",
 		nicParams.SystemID, nicParams.NetworkAdapterID, nicParams.NetworkDeviceFunctionID, nicParams.Username, nicParams.Password, nicParams.Endpoint)
 
 	resource.Test(t, resource.TestCase{
@@ -194,7 +194,7 @@ func testAccRedfishResourceNICAttributesConfigNetworkAttrs(testingInfo testingNI
 	  redfish_server {
 		user         = "%s"
 		password     = "%s"
-		endpoint     = "https://%s"
+		endpoint     = "%s"
 		ssl_insecure = true
 	  }
 	  system_id = "%s"
@@ -230,7 +230,7 @@ func testAccRedfishResourceNICAttributesConfig(testingInfo testingNICInputs) str
 	  redfish_server {
 		user         = "%s"
 		password     = "%s"
-		endpoint     = "https://%s"
+		endpoint     = "%s"
 		ssl_insecure = true
 	  }
 	  system_id = "%s"
@@ -273,7 +273,7 @@ func testAccRedfishResourceNICAttributesConfigUpdateNetAttrs(testingInfo testing
 	  redfish_server {
 		user         = "%s"
 		password     = "%s"
-		endpoint     = "https://%s"
+		endpoint     = "%s"
 		ssl_insecure = true
 	  }
 	  system_id = "%s"
@@ -316,7 +316,7 @@ func testAccRedfishResourceFCConfigWithoutMW(testingInfo testingNICInputs) strin
 	  redfish_server {
 		user         = "%s"
 		password     = "%s"
-		endpoint     = "https://%s"
+		endpoint     = "%s"
 		ssl_insecure = true
 	  }
 	  system_id = "%s"
@@ -352,7 +352,7 @@ func testAccRedfishResourceFCConfigOutDatedMW(testingInfo testingNICInputs) stri
 	  redfish_server {
 		user         = "%s"
 		password     = "%s"
-		endpoint     = "https://%s"
+		endpoint     = "%s"
 		ssl_insecure = true
 	  }
 	  system_id = "%s"
@@ -392,7 +392,7 @@ func testAccRedfishResourceFCConfigNetworkAttrs(testingInfo testingNICInputs) st
 	  redfish_server {
 		user         = "%s"
 		password     = "%s"
-		endpoint     = "https://%s"
+		endpoint     = "%s"
 		ssl_insecure = true
 	  }
 	  system_id = "%s"
@@ -428,7 +428,7 @@ func testAccRedfishResourceFCConfigUpdateOutDatedMW(testingInfo testingNICInputs
 	  redfish_server {
 		user         = "%s"
 		password     = "%s"
-		endpoint     = "https://%s"
+		endpoint     = "%s"
 		ssl_insecure = true
 	  }
 	  system_id = "%s"
@@ -475,7 +475,7 @@ func testAccRedfishResourceFCConfig(testingInfo testingNICInputs) string {
 	  redfish_server {
 		user         = "%s"
 		password     = "%s"
-		endpoint     = "https://%s"
+		endpoint     = "%s"
 		ssl_insecure = true
 	  }
 	  system_id = "%s"
@@ -518,7 +518,7 @@ func testAccRedfishResourceFCConfigUpdateNetAttrs(testingInfo testingNICInputs) 
 	  redfish_server {
 		user         = "%s"
 		password     = "%s"
-		endpoint     = "https://%s"
+		endpoint     = "%s"
 		ssl_insecure = true
 	  }
 	  system_id = "%s"
@@ -561,7 +561,7 @@ func testAccRedfishResourceNICAttributesIscsiConfig(testingInfo testingNICInputs
 	  redfish_server {
 		user         = "%s"
 		password     = "%s"
-		endpoint     = "https://%s"
+		endpoint     = "%s"
 		ssl_insecure = true
 	  }
 	  system_id = "%s"
@@ -592,7 +592,7 @@ func testAccRedfishResourceNICAttributesIscsiConfigUpdate(testingInfo testingNIC
 	  redfish_server {
 		user         = "%s"
 		password     = "%s"
-		endpoint     = "https://%s"
+		endpoint     = "%s"
 		ssl_insecure = true
 	  }
 	  system_id = "%s"

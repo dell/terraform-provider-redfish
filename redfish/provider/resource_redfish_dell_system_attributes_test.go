@@ -88,7 +88,7 @@ func TestAccRedfishSystemAttributesImport(t *testing.T) {
 				}`,
 				ResourceName:  "redfish_dell_system_attributes.system",
 				ImportState:   true,
-				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true}",
 				ExpectError:   nil,
 			},
 		},
@@ -101,7 +101,7 @@ func testAccRedfishResourceSystemAttributesConfig(testingInfo TestingServerCrede
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -123,7 +123,7 @@ func testAccRedfishResourceSystemAttributesUpdateConfig(testingInfo TestingServe
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 
@@ -145,7 +145,7 @@ func testAccRedfishResourceSystemConfigInvalid(testingInfo TestingServerCredenti
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  

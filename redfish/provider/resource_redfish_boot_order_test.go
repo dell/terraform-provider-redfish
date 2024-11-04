@@ -37,7 +37,7 @@ func TestAccRedfishBootOrder_basic(t *testing.T) {
 			{
 				ResourceName:  "redfish_boot_order.boot",
 				ImportState:   true,
-				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true}",
 				ExpectError:   nil,
 				// ImportStateVerify: true, // state is not verified since there are multiple boot options and import fetches all while using CRUD you can change specific boot options or none
 			},
@@ -56,13 +56,13 @@ func TestAccRedfishBootOrderOptions_basic(t *testing.T) {
 			{
 				ResourceName:  "redfish_boot_order.boot",
 				ImportState:   true,
-				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true}",
 				ExpectError:   nil,
 			},
 			{
 				ResourceName:  "redfish_boot_order.boot",
 				ImportState:   true,
-				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true, \"system_id\":\"System.Embedded.1\"}",
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true, \"system_id\":\"System.Embedded.1\"}",
 				ExpectError:   nil,
 			},
 			{
@@ -79,7 +79,7 @@ func testAccRedfishResourceBootOrder(testingInfo TestingServerCredentials, bootO
 		redfish_server {
 			user = "%s"
 			password = "%s"
-			endpoint = "https://%s"
+			endpoint = "%s"
 			ssl_insecure = true
 		}
 	   	system_id = "System.Embedded.1"
@@ -101,7 +101,7 @@ func testAccRedfishResourceBootOptions(testingInfo TestingServerCredentials, boo
 		redfish_server {
 			user = "%s"
 			password = "%s"
-			endpoint = "https://%s"
+			endpoint = "%s"
 			ssl_insecure = true
 		}
 	    reset_timeout=400

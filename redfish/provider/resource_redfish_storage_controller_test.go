@@ -270,7 +270,7 @@ func TestAccRedfishStorageControllerAttributesError(t *testing.T) {
 
 func TestAccRedfishStorageControllerAttributesImport(t *testing.T) {
 	storageControllerResourceName := "redfish_storage_controller.test"
-	importReqID := fmt.Sprintf("{\"system_id\":\"%s\",\"storage_id\":\"%s\",\"controller_id\":\"%s\",\"username\":\"%s\",\"password\":\"%s\",\"endpoint\":\"https://%s\",\"ssl_insecure\":true}",
+	importReqID := fmt.Sprintf("{\"system_id\":\"%s\",\"storage_id\":\"%s\",\"controller_id\":\"%s\",\"username\":\"%s\",\"password\":\"%s\",\"endpoint\":\"%s\",\"ssl_insecure\":true}",
 		storageControllerParams.SystemID, storageControllerParams.StorageID, storageControllerParams.ControllerID, storageControllerParams.Username, storageControllerParams.Password, storageControllerParams.Endpoint)
 
 	resource.Test(t, resource.TestCase{
@@ -295,7 +295,7 @@ func testAccRedfishResourceStorageControllerBasicConfig(testingInfo testingStora
 		redfish_server {
 			user         = "%s"
 			password     = "%s"
-			endpoint     = "https://%s"
+			endpoint     = "%s"
 			ssl_insecure = true
 		}
 		system_id = "%s"
@@ -320,7 +320,7 @@ func testAccRedfishResourceStorageControllerFirstAvailableChoiceSelectedConfig(t
 		redfish_server {
 			user         = "%s"
 			password     = "%s"
-			endpoint     = "https://%s"
+			endpoint     = "%s"
 			ssl_insecure = true
 		}
 		system_id = "%s"
@@ -366,7 +366,7 @@ func testAccRedfishResourceStorageControllerSecondAvailableChoiceSelectedConfig(
 		redfish_server {
 			user         = "%s"
 			password     = "%s"
-			endpoint     = "https://%s"
+			endpoint     = "%s"
 			ssl_insecure = true
 		}
 		system_id = "%s"
@@ -412,7 +412,7 @@ func testAccRedfishResourceStorageControllerSecuritySetControllerKeyConfig(testi
 		redfish_server {
 			user         = "%s"
 			password     = "%s"
-			endpoint     = "https://%s"
+			endpoint     = "%s"
 			ssl_insecure = true
 		}
 		system_id = "%s"
@@ -442,7 +442,7 @@ func testAccRedfishResourceStorageControllerSecurityReKeyConfig(testingInfo test
 		redfish_server {
 			user         = "%s"
 			password     = "%s"
-			endpoint     = "https://%s"
+			endpoint     = "%s"
 			ssl_insecure = true
 		}
 		system_id = "%s"
@@ -474,7 +474,7 @@ func testAccRedfishResourceStorageControllerSecurityRemoveControllerKeyConfig(te
 		redfish_server {
 			user         = "%s"
 			password     = "%s"
-			endpoint     = "https://%s"
+			endpoint     = "%s"
 			ssl_insecure = true
 		}
 		system_id = "%s"
@@ -502,7 +502,7 @@ func testAccRedfishResourceStorageControllerDifferentSystemIDConfig(testingInfo 
 		redfish_server {
 			user         = "%s"
 			password     = "%s"
-			endpoint     = "https://%s"
+			endpoint     = "%s"
 			ssl_insecure = true
 		}
 		system_id = "%s"
@@ -527,7 +527,7 @@ func testAccRedfishResourceStorageControllerDifferentStorageIDConfig(testingInfo
 		redfish_server {
 			user         = "%s"
 			password     = "%s"
-			endpoint     = "https://%s"
+			endpoint     = "%s"
 			ssl_insecure = true
 		}
 		system_id = "%s"
@@ -552,7 +552,7 @@ func testAccRedfishResourceStorageControllerDifferentControllerIDConfig(testingI
 		redfish_server {
 			user         = "%s"
 			password     = "%s"
-			endpoint     = "https://%s"
+			endpoint     = "%s"
 			ssl_insecure = true
 		}
 		system_id = "%s"
@@ -577,7 +577,7 @@ func testAccRedfishResourceStorageControllerControllerModeAndOtherAttributeUpdat
 		redfish_server {
 			user         = "%s"
 			password     = "%s"
-			endpoint     = "https://%s"
+			endpoint     = "%s"
 			ssl_insecure = true
 		}
 		system_id = "%s"
@@ -626,7 +626,7 @@ func testAccRedfishResourceStorageControllerControllerModeAndSecurityUpdateConfi
 		redfish_server {
 			user         = "%s"
 			password     = "%s"
-			endpoint     = "https://%s"
+			endpoint     = "%s"
 			ssl_insecure = true
 		}
 		system_id = "%s"
@@ -667,7 +667,7 @@ func testAccRedfishResourceStorageControllerControllerModeAndEnhancedAutoImportF
 		redfish_server {
 			user         = "%s"
 			password     = "%s"
-			endpoint     = "https://%s"
+			endpoint     = "%s"
 			ssl_insecure = true
 		}
 		system_id = "%s"
@@ -704,7 +704,7 @@ func testAccRedfishResourceStorageControllerControllerModeWithoutOnResetApplyTim
 		redfish_server {
 			user         = "%s"
 			password     = "%s"
-			endpoint     = "https://%s"
+			endpoint     = "%s"
 			ssl_insecure = true
 		}
 		system_id = "%s"
@@ -738,7 +738,7 @@ func testAccRedfishResourceStorageControllerSecurityAndOtherAttributeUpdateConfi
 		redfish_server {
 			user         = "%s"
 			password     = "%s"
-			endpoint     = "https://%s"
+			endpoint     = "%s"
 			ssl_insecure = true
 		}
 		system_id = "%s"
@@ -788,7 +788,7 @@ func testAccRedfishResourceStorageControllerSecurityWithMaintenanceTypeApplyTime
 		redfish_server {
 			user         = "%s"
 			password     = "%s"
-			endpoint     = "https://%s"
+			endpoint     = "%s"
 			ssl_insecure = true
 		}
 		system_id = "%s"
@@ -822,7 +822,7 @@ func testAccRedfishResourceStorageControllerSecurityWithoutActionConfig(testingI
 		redfish_server {
 			user         = "%s"
 			password     = "%s"
-			endpoint     = "https://%s"
+			endpoint     = "%s"
 			ssl_insecure = true
 		}
 		system_id = "%s"
@@ -851,7 +851,7 @@ func testAccRedfishResourceStorageControllerSecuritySetControllerKeyIncorrectCon
 		redfish_server {
 			user         = "%s"
 			password     = "%s"
-			endpoint     = "https://%s"
+			endpoint     = "%s"
 			ssl_insecure = true
 		}
 		system_id = "%s"
@@ -880,7 +880,7 @@ func testAccRedfishResourceStorageControllerSecurityReKeyIncorrectConfig(testing
 		redfish_server {
 			user         = "%s"
 			password     = "%s"
-			endpoint     = "https://%s"
+			endpoint     = "%s"
 			ssl_insecure = true
 		}
 		system_id = "%s"
@@ -911,7 +911,7 @@ func testAccRedfishResourceStorageControllerSecurityRemoveControllerKeyIncorrect
 		redfish_server {
 			user         = "%s"
 			password     = "%s"
-			endpoint     = "https://%s"
+			endpoint     = "%s"
 			ssl_insecure = true
 		}
 		system_id = "%s"
