@@ -503,7 +503,7 @@ func (r *BootOrderResource) updateBootOptions(service *gofish.Service, d *models
 	}
 	for _, ele := range serverBootOptions {
 		payload.BootOptionEnabled = ele.BootOptionEnabled.ValueBool()
-		finalURL := fmt.Sprintf(url + "/" + ele.BootOptionReference.ValueString())
+		finalURL := fmt.Sprintf("%s/%s", url, ele.BootOptionReference.ValueString())
 		resp, err = service.GetClient().Patch(finalURL, payload)
 		if err != nil {
 			diags.AddError("Unable to update boot option data", err.Error())

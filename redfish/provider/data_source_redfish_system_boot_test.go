@@ -60,7 +60,7 @@ func testAccRedfishDatasourceSystemBootConfig(testingInfo TestingServerCredentia
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  }	  
@@ -78,7 +78,7 @@ func testAccRedfishDatasourceSystemBootConfigBasic(testingInfo TestingServerCred
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  }

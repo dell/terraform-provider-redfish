@@ -479,7 +479,7 @@ func checkManagerAttributes(attrRegistry *dell.ManagerAttributeRegistry, attribu
 		}
 	}
 	if len(errors) > 0 {
-		return fmt.Errorf(errors)
+		return fmt.Errorf("%s", errors)
 	}
 
 	return nil

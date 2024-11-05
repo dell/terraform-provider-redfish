@@ -78,7 +78,7 @@ func testAccRedfishIdracFirmwareUpdateCreate(testingInfo TestingServerCredential
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  	system_id = "System.Embedded.1"
@@ -104,7 +104,7 @@ func testAccRedfishIdracFirmwareUpdateCreateError(testingInfo TestingServerCrede
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -125,7 +125,7 @@ func testAccRedfishIdracFirmwareUpdateCreateError2(testingInfo TestingServerCred
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 		ip_address = "downloads.dell.com"
@@ -145,7 +145,7 @@ func testAccRedfishIdracFirmwareUpdateReapply(testingInfo TestingServerCredentia
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  

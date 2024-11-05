@@ -54,7 +54,7 @@ func testAccRedfishDataSourceStorageConfig(testingInfo TestingServerCredentials)
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  }
@@ -71,7 +71,7 @@ func testAccStorageDatasourceWithControllerID(testingInfo TestingServerCredentia
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 		controller_ids = ["AHCI.Embedded.2-1"]
@@ -89,7 +89,7 @@ func testAccStorageDatasourceWithControllerName(testingInfo TestingServerCredent
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 		controller_names = ["PERC H730P Mini"]
@@ -107,7 +107,7 @@ func testAccStorageDatasourceWithBothConfig(testingInfo TestingServerCredentials
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 		system_id = "System.Embedded.1"

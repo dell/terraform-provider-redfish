@@ -88,7 +88,7 @@ func TestAccRedfishBios_Import(t *testing.T) {
 					creds),
 				ResourceName:  "redfish_bios.bios",
 				ImportState:   true,
-				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true}",
 				ExpectError:   nil,
 			},
 		},
@@ -105,7 +105,7 @@ func TestAccRedfishBios_ImportSystemID(t *testing.T) {
 					creds),
 				ResourceName:  "redfish_bios.bios",
 				ImportState:   true,
-				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true,\"system_id\":\"System.Embedded.1\"}",
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true,\"system_id\":\"System.Embedded.1\"}",
 				ExpectError:   nil,
 			},
 		},
@@ -120,7 +120,7 @@ func testAccRedfishResourceBiosConfigOn(testingInfo TestingServerCredentials) st
 		  redfish_server {
 			user = "%s"
 			password = "%s"
-			endpoint = "https://%s"
+			endpoint = "%s"
 			ssl_insecure = true
 		  }
 
@@ -145,7 +145,7 @@ func testAccRedfishResourceBiosConfigOff(testingInfo TestingServerCredentials) s
 		  redfish_server {
 			user = "%s"
 			password = "%s"
-			endpoint = "https://%s"
+			endpoint = "%s"
 			ssl_insecure = true
 		  }
 
@@ -172,7 +172,7 @@ func testAccRedfishResourceBiosConfigInvalidSettingsApplyTime(testingInfo Testin
 		  redfish_server {
 			user = "%s"
 			password = "%s"
-			endpoint = "https://%s"
+			endpoint = "%s"
 			ssl_insecure = true
 		  }
 
@@ -195,7 +195,7 @@ func testAccRedfishResourceBiosConfigInvalidAttributes(testingInfo TestingServer
 		  redfish_server {
 			user = "%s"
 			password = "%s"
-			endpoint = "https://%s"
+			endpoint = "%s"
 			ssl_insecure = true
 		  }
 

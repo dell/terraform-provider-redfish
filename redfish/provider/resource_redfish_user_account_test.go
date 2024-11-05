@@ -266,7 +266,7 @@ func TestAccRedfishUserImportUser_basic(t *testing.T) {
 					userID),
 				ResourceName:  "redfish_user_account.user_config",
 				ImportState:   true,
-				ImportStateId: "{\"id\":\"3\",\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ImportStateId: "{\"id\":\"3\",\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true}",
 				ExpectError:   nil,
 			},
 		},
@@ -289,7 +289,7 @@ func TestAccRedfishUserImportUser_invalid(t *testing.T) {
 					userID),
 				ResourceName:  "redfish_user_account.user_config",
 				ImportState:   true,
-				ImportStateId: "{\"id\":\"invalid\",\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ImportStateId: "{\"id\":\"invalid\",\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true}",
 				ExpectError:   regexp.MustCompile("Error when retrieving accounts"),
 			},
 		},
@@ -425,7 +425,7 @@ func testAccRedfishResourceUserConfig(testingInfo TestingServerCredentials,
 		  redfish_server {
 			user = "%s"
 			password = "%s"
-			endpoint = "https://%s"
+			endpoint = "%s"
 			ssl_insecure = true
 		  }
 
@@ -454,7 +454,7 @@ func testAccRedfishProviderWithServersConfig(serverAlias, username, password, en
 				"%s" = {
 					user         = "%s"
 					password     = "%s"
-					endpoint = "https://%s"
+					endpoint = "%s"
 					ssl_insecure = true
 				},
 			}

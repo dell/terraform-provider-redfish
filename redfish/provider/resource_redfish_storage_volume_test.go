@@ -33,7 +33,7 @@ func getVolumeImportConf(d *terraform.State, creds TestingServerCredentials) (st
 	if err != nil {
 		return id, err
 	}
-	return fmt.Sprintf("{\"id\":\"%s\",\"username\":\"%s\",\"password\":\"%s\",\"endpoint\":\"https://%s\",\"ssl_insecure\":true}",
+	return fmt.Sprintf("{\"id\":\"%s\",\"username\":\"%s\",\"password\":\"%s\",\"endpoint\":\"%s\",\"ssl_insecure\":true}",
 		id, creds.Username, creds.Password, creds.Endpoint), nil
 }
 
@@ -207,7 +207,7 @@ func TestAccRedfishStorageVolumeCreate_basic(t *testing.T) {
 			{
 				ResourceName:  "redfish_storage_volume.volume",
 				ImportState:   true,
-				ImportStateId: "{\"id\":\"invalid\",\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ImportStateId: "{\"id\":\"invalid\",\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true}",
 				ExpectError:   regexp.MustCompile("There was an error with the API"),
 			},
 		},
@@ -335,7 +335,7 @@ func testAccRedfishResourceStorageVolumeConfig(testingInfo TestingServerCredenti
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 
@@ -389,7 +389,7 @@ func testAccRedfishResourceStorageVolumeEncryptedConfig(testingInfo TestingServe
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 
@@ -434,7 +434,7 @@ func testAccRedfishResourceStorageVolumeMinConfig(testingInfo TestingServerCrede
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	    system_id = "System.Embedded.1"

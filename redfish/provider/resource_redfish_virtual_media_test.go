@@ -34,7 +34,7 @@ func getVMedImportConf(d *terraform.State, creds TestingServerCredentials) (stri
 	if err != nil {
 		return id, err
 	}
-	return fmt.Sprintf("{\"id\":\"%s\",\"username\":\"%s\",\"password\":\"%s\",\"endpoint\":\"https://%s\",\"ssl_insecure\":true}",
+	return fmt.Sprintf("{\"id\":\"%s\",\"username\":\"%s\",\"password\":\"%s\",\"endpoint\":\"%s\",\"ssl_insecure\":true}",
 		id, creds.Username, creds.Password, creds.Endpoint), nil
 }
 
@@ -71,7 +71,7 @@ func TestAccRedfishVirtualMedia_basic(t *testing.T) {
 			{
 				ResourceName: testAccVMedResName,
 				ImportState:  true,
-				ImportStateId: fmt.Sprintf("{\"id\":\"invalid\",\"username\":\"%s\",\"password\":\"%s\",\"endpoint\":\"https://%s\",\"ssl_insecure\":true}",
+				ImportStateId: fmt.Sprintf("{\"id\":\"invalid\",\"username\":\"%s\",\"password\":\"%s\",\"endpoint\":\"%s\",\"ssl_insecure\":true}",
 					creds.Username, creds.Password, creds.Endpoint),
 				ExpectError: regexp.MustCompile("Virtual Media with ID invalid doesn't exist"),
 			},
@@ -384,7 +384,7 @@ func testAccRedfishResourceVirtualMediaConfig(testingInfo TestingServerCredentia
 		  redfish_server {
 			user = "%s"
 			password = "%s"
-			endpoint = "https://%s"
+			endpoint = "%s"
 			ssl_insecure = true
 		  }
 		  image = "%s"
@@ -418,7 +418,7 @@ func testAccRedfishResourceVirtualMediaConfigServer5x(testingInfo TestingServerC
 		  redfish_server {
 			user = "%s"
 			password = "%s"
-			endpoint = "https://%s"
+			endpoint = "%s"
 			ssl_insecure = true
 		  }
 		  image = "%s"
@@ -452,7 +452,7 @@ func testAccRedfishResourceVirtualMediaConfigDependency(testingInfo TestingServe
 		  redfish_server {
 			user = "%s"
 			password = "%s"
-			endpoint = "https://%s"
+			endpoint = "%s"
 			ssl_insecure = true
 		  }
 		  image = "%s"

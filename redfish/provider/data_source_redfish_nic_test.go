@@ -87,7 +87,7 @@ func testAccRedfishDataSourceNICConfig(testingInfo TestingServerCredentials) str
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	}`,
@@ -103,7 +103,7 @@ func testAccNICDatasourceWithSystemID(testingInfo TestingServerCredentials) stri
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 		nic_filter {
@@ -126,7 +126,7 @@ func testAccNICDatasourceWithInvalidSystemID(testingInfo TestingServerCredential
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 		nic_filter {
@@ -149,7 +149,7 @@ func testAccNICDatasourceWithAdapterID(testingInfo TestingServerCredentials) str
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 		nic_filter {
@@ -177,7 +177,7 @@ func testAccNICDatasourceWithInvalidAdapterID(testingInfo TestingServerCredentia
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 		nic_filter {
@@ -205,7 +205,7 @@ func testAccNICDatasourceWithConfiguredFilter(testingInfo TestingServerCredentia
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 
@@ -236,7 +236,7 @@ func testAccNICDatasourceWithInvalidPortID(testingInfo TestingServerCredentials)
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 
@@ -266,7 +266,7 @@ func testAccNICDatasourceWithTwoAdapterIDs(testingInfo TestingServerCredentials)
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 

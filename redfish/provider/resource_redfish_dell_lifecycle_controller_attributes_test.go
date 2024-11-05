@@ -42,7 +42,7 @@ func TestAccRedfishLCAttributesBasic(t *testing.T) {
 				}`,
 				ResourceName:  "redfish_dell_lc_attributes.lc",
 				ImportState:   true,
-				ImportStateId: "{\"attributes\":[\"LCAttributes.1.CollectSystemInventoryOnRestart\"],\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ImportStateId: "{\"attributes\":[\"LCAttributes.1.CollectSystemInventoryOnRestart\"],\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true}",
 				ExpectError:   nil,
 			},
 		},
@@ -96,7 +96,7 @@ func TestAccRedfishLCAttributeImport(t *testing.T) {
 				}`,
 				ResourceName:  "redfish_dell_lc_attributes.lc",
 				ImportState:   true,
-				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true}",
 				ExpectError:   nil,
 			},
 		},
@@ -109,7 +109,7 @@ func testAccRedfishResourceLCAttributesConfig(testingInfo TestingServerCredentia
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -131,7 +131,7 @@ func testAccRedfishResourceLCAttributesUpdateConfig(testingInfo TestingServerCre
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 
@@ -153,7 +153,7 @@ func testAccRedfishResourceLCConfigInvalid(testingInfo TestingServerCredentials)
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  

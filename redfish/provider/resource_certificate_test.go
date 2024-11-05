@@ -64,7 +64,7 @@ func testAccRedfishResourceCustomCertificate(testingInfo TestingServerCredential
 		  redfish_server {
 			user = "%s"
 			password = "%s"
-			endpoint = "https://%s"
+			endpoint = "%s"
 			ssl_insecure = true
 		  }
 

@@ -42,7 +42,7 @@ func testAccRedfishDataSourceiDRACConfig(testingInfo TestingServerCredentials) s
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  }

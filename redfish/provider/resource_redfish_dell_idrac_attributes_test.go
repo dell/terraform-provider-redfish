@@ -74,7 +74,7 @@ func TestAccRedfishIDRACAttributeImport(t *testing.T) {
 				}`,
 				ResourceName:  "redfish_dell_idrac_attributes.idrac",
 				ImportState:   true,
-				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true}",
 				ExpectError:   nil,
 			},
 		},
@@ -91,7 +91,7 @@ func TestAccRedfishIDRACAttributeImportByFilter(t *testing.T) {
 				}`,
 				ResourceName:  "redfish_dell_idrac_attributes.idrac",
 				ImportState:   true,
-				ImportStateId: "{\"attributes\":[\"Users.2.UserName\"],\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"https://" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ImportStateId: "{\"attributes\":[\"Users.2.UserName\"],\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true}",
 				ExpectError:   nil,
 			},
 		},
@@ -104,7 +104,7 @@ func testAccRedfishResourceIDracAttributesConfig(testingInfo TestingServerCreden
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
@@ -131,7 +131,7 @@ func testAccRedfishResourceIDracAttributesConfigInvalid(testingInfo TestingServe
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
-		  endpoint     = "https://%s"
+		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
 	  
