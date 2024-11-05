@@ -89,7 +89,7 @@ func TestAccRedfishDirectoryServiceAuthProviderInvalidCase(t *testing.T) {
 			{
 				// error ActiveDirectoryService Enabled and SSOEnable Enabled and no Kerberos key tab
 				Config:      testAccRedfishDirectoryServiceAuthProviderADEnSSOEnNoKb(creds),
-				ExpectError: regexp.MustCompile("Please provide valid kerberos key tab file when SSO is enabled "),
+				ExpectError: regexp.MustCompile("Please provide valid kerberos key tab file when SSO is enabled"),
 			},
 
 			{

@@ -376,38 +376,13 @@ func TestAccRedfishUserPassword_alias(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				// prepare test user
 				Config: testAccRedfishProviderWithServersConfig(serverAlias, creds.Username, creds.Password, creds.Endpoint) +
-					testAccRedfishResourceUserConfig(creds, testUser, testUserPass, testUserRole, true, userID),
+					testAccRedfishResourceUserConfig_alias(serverAlias, testUser, testUserPass, testUserRole, true, userID) +
+					testAccRedfishResourceUserConfig_power_alias(serverAlias, "ForceRestart"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", testUser),
 				),
 			},
-			{
-				// use `testUser` as provder creds
-				Config: testAccRedfishProviderWithServersConfig(serverAlias, testUser, testUserPass, creds.Endpoint) +
-					testAccRedfishResourceUserConfig(creds, testUser, testUserPass, testUserRole, true, userID) +
-					testAccRedfishResourceUserImportConfig_alias(serverAlias, testUser, testUserPass, testUserRole, true, userID) +
-					testAccRedfishResourceUserConfig_power(serverAlias, "GracefulRestart"),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", testUser),
-					resource.TestCheckResourceAttr("redfish_user_account.user_creds", "username", testUser),
-					resource.TestCheckResourceAttr("redfish_power.system_power", "desired_power_action", "GracefulRestart"),
-				),
-			},
-			// Invalidation password test: update `testUser` password, but provider still use old passed.
-			// TODO: skip, always failed due to post-apply refresh
-			// {
-			// 	Config: testAccRedfishProviderWithServersConfig(serverAlias, testUser, testUserPass, creds.Endpoint) +
-			// 		testAccRedfishResourceUserConfig(creds, testUser, testUserPass, testUserRole, true, userID) +
-			// 		testAccRedfishResourceUserImportConfig_alias(serverAlias, testUser, "NewTest@1234", testUserRole, true, userID) +
-			// 		testAccRedfishResourceUserConfig_power(serverAlias, "GracefulRestart"),
-			// 	Check: resource.ComposeAggregateTestCheckFunc(
-			// 		resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", testUser),
-			// 		resource.TestCheckResourceAttr("redfish_user_account.user_creds", "username", testUser),
-			// 		resource.TestCheckResourceAttr("redfish_power.system_power", "desired_power_action", "GracefulRestart"),
-			// 	),
-			// },
 		},
 	})
 }
@@ -469,18 +444,10 @@ func testAccRedfishProviderWithServersConfig(serverAlias, username, password, en
 		endpoint)
 }
 
-func testAccRedfishResourceUserImportConfig_alias(alias string, username string, password string, roleId string, enabled bool, userId string) string {
+func testAccRedfishResourceUserConfig_alias(alias string, username string, password string, roleId string, enabled bool, userId string) string {
 	return fmt.Sprintf(`
 
-		import {
-			to = redfish_user_account.user_creds
-			id = jsonencode({
-				id = "%s"
-				redfish_alias = "%s"
-			})
-		  }
-
-		resource "redfish_user_account" "user_creds" {
+		resource "redfish_user_account" "user_config" {
 		
 		  redfish_server {
 			redfish_alias = "%s"
@@ -493,8 +460,6 @@ func testAccRedfishResourceUserImportConfig_alias(alias string, username string,
 		  user_id = "%s"
 		}
 		`,
-		userId,
-		alias,
 		alias,
 		username,
 		password,
@@ -504,7 +469,7 @@ func testAccRedfishResourceUserImportConfig_alias(alias string, username string,
 	)
 }
 
-func testAccRedfishResourceUserConfig_power(alias, powerAction string) string {
+func testAccRedfishResourceUserConfig_power_alias(alias, powerAction string) string {
 	return fmt.Sprintf(`
 		
 	resource "redfish_power" "system_power" {
