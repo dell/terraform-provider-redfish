@@ -761,6 +761,9 @@ func deleteRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 		resetType := d.ResetType.ValueString()
 		resetTimeout := d.ResetTimeout.ValueInt64()
 
+		// sleep here to aviod the reboot action has impact on the volume delete job
+		time.Sleep(30 * time.Second)
+
 		// Reboot the server
 		pOp := powerOperator{ctx, service, d.SystemID.ValueString()}
 		_, err := pOp.PowerOperation(resetType, resetTimeout, intervalStorageVolumeJobCheckTime)

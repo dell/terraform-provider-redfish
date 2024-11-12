@@ -363,7 +363,7 @@ func (p powerOperator) PowerOperation(resetType string, maximumWaitTime int64, c
 		system, err := getSystemResource(p.service, p.sysid)
 		if err != nil {
 			tflog.Error(p.ctx, fmt.Sprintf("Failed to identify system: %s", err))
-			return targetPowerState, err
+			continue
 		}
 		if system.PowerState == targetPowerState {
 			tflog.Debug(p.ctx, "system.Reset successful")
