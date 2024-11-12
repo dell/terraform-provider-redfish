@@ -89,7 +89,7 @@ func TestAccRedfishVirtualMedia_InvalidImage_Negative(t *testing.T) {
 				Config: testAccRedfishResourceVirtualMediaConfig(
 					creds,
 					"virtual_media",
-					"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.9/latest/BaseOS/x86_64/iso/RHEL-8.9.0-20231023.21-x86_64-boot.is",
+					image64BootInvalid,
 					true,
 					"HTTP",
 					"Stream"),
@@ -156,7 +156,7 @@ func TestAccRedfishVirtualMediaNoMediaNegative_basic(t *testing.T) {
 					testAccRedfishResourceVirtualMediaConfigDependency(
 						creds,
 						"virtual_media2",
-						"http://linuxlib.us.dell.com/pub/Distros/RedHat/RHEL8/8.9/RHEL-8.9.0-20231030.60-x86_64-dvd1.iso",
+						image64Dvd1,
 						true,
 						"HTTP",
 						"Stream",
@@ -164,7 +164,7 @@ func TestAccRedfishVirtualMediaNoMediaNegative_basic(t *testing.T) {
 					testAccRedfishResourceVirtualMediaConfigDependency(
 						creds,
 						"virtual_media3",
-						"http://linuxlib.us.dell.com/pub/Distros/RedHat/RHEL8/8.9/RHEL-8.9.0-20231030.60-x86_64-dvd1.iso",
+						image64Dvd1,
 						true,
 						"HTTP",
 						"Stream",
@@ -327,7 +327,7 @@ func TestAccRedfishVirtualMediaUpdate_InvalidImage_Negative(t *testing.T) {
 				Config: testAccRedfishResourceVirtualMediaConfig(
 					creds,
 					"virtual_media",
-					"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/iso/RHEL-8.8.0-20230411.3-x86_64-boot.is",
+					image64BootInvalid,
 					true,
 					"HTTP",
 					"Stream"),
@@ -360,7 +360,7 @@ func TestAccRedfishVirtualMediaUpdate_InvalidTransferMethod_Negative(t *testing.
 				Config: testAccRedfishResourceVirtualMediaConfig(
 					creds,
 					"virtual_media",
-					"http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/iso/RHEL-8.8.0-20230411.3-x86_64-boot.iso",
+					image64Dvd1,
 					true,
 					"HTTP",
 					"Upload"),

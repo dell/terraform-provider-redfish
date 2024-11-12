@@ -33,6 +33,8 @@ var (
 	testAccProtoV6ProviderFactories map[string]func() (tfprotov6.ProviderServer, error)
 	creds                           TestingServerCredentials
 	image64Boot                     string
+	image64BootInvalid              string
+	image64Dvd1                     string
 	imageEfiBoot                    string
 	drive                           string
 	firmwareUpdateIP                string
@@ -83,8 +85,10 @@ func init() {
 		creds.PasswordNIC = creds.Password
 	}
 	// virtual media environment variable
-	image64Boot = os.Getenv("TF_TESTING_VIRTUAL_MEDIA_IMAGE_PATH_64Boot")
-	imageEfiBoot = os.Getenv("TF_TESTING_VIRTUAL_MEDIA_IMAGE_PATH_EfiBoot")
+	image64Boot = os.Getenv("TF_TESTING_VIRTUAL_MEDIA_IMAGE_PATH_64BOOT")
+	image64BootInvalid = os.Getenv("TF_TESTING_VIRTUAL_MEDIA_IMAGE_PATH_64BOOT_INVALID")
+	image64Dvd1 = os.Getenv("TF_TESTING_VIRTUAL_MEDIA_IMAGE_PATH_64DVD1")
+	imageEfiBoot = os.Getenv("TF_TESTING_VIRTUAL_MEDIA_IMAGE_PATH_EFI_BOOT")
 	// storage volume environment varibale
 	drive = os.Getenv("TF_TESTING_STORAGE_VOLUME_DRIVE")
 	firmwareUpdateIP = os.Getenv("TF_TESTING_FIRMWARE_UPDATE_IP")
