@@ -31,15 +31,6 @@ const importBuffer = `
 import_buffer = base64decode(redfish_idrac_server_configuration_profile_export.config_1.file_content)
 `
 
-var redfishServer = fmt.Sprintf(`
-redfish_server {
-	user = "%s"
-	password = "%s"
-	endpoint = "%s"
-	ssl_insecure = true
-  }
-`, os.Getenv("TF_TESTING_USERNAME"), os.Getenv("TF_TESTING_PASSWORD"), os.Getenv("TF_TESTING_ENDPOINT"))
-
 func getSP(shareType string, addOn map[string]string) string {
 	parameters := make([]string, 0, len(addOn))
 	for key, value := range addOn {
@@ -58,13 +49,20 @@ func getSP(shareType string, addOn map[string]string) string {
 func createSCPConfig(configType, configName, shareParameter, addOnConfig string) string {
 	return fmt.Sprintf(`
 		resource "redfish_idrac_server_configuration_profile_%s" "%s"  {
-		  %s
+			redfish_server {
+				user = "%s"
+				password = "%s"
+				endpoint = "%s"
+				ssl_insecure = true
+			  }
 		  %s
 		  %s
 		}`,
 		configType,
 		configName,
-		redfishServer,
+		os.Getenv("TF_TESTING_USERNAME"),
+		os.Getenv("TF_TESTING_PASSWORD"),
+		os.Getenv("TF_TESTING_ENDPOINT"),
 		shareParameter,
 		addOnConfig,
 	)
