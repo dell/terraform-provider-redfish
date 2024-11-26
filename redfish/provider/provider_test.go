@@ -53,7 +53,7 @@ type TestingServerCredentials struct {
 }
 
 func init() {
-	_, err := loadEnvFile("redfish_test.env")
+	_, err := loadEnvFile("redfish.env")
 	if err != nil {
 		fmt.Println(err.Error())
 	}
