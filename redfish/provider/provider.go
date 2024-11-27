@@ -173,6 +173,7 @@ func (*redfishProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewRedfishNICResource,
 		NewRedfishStorageControllerResource,
 		NewRedfishDirectoryServiceAuthProviderResource,
+		NewRedfishDirectoryServiceAuthProviderCertificateResource,
 	}
 }
 
@@ -188,6 +189,7 @@ func (*redfishProvider) DataSources(_ context.Context) []func() datasource.DataS
 		NewNICDatasource,
 		NewStorageControllerDatasource,
 		NewDirectoryServiceAuthProviderDatasource,
+		NewDirectoryServiceAuthProviderCertificateDatasource,
 	}
 }
 
