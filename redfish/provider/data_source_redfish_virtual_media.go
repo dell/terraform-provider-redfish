@@ -19,7 +19,6 @@ package provider
 
 import (
 	"context"
-	"log"
 	"strconv"
 	"terraform-provider-redfish/redfish/models"
 	"time"
@@ -135,7 +134,6 @@ func readRedfishDellVirtualMediaCollection(service *gofish.Service, d *models.Vi
 	vms := make([]models.VirtualMediaData, 0)
 	for _, v := range dellvirtualMedia {
 		var vmToAdd models.VirtualMediaData
-		log.Printf("Adding %s - %s", v.ODataID, v.ID)
 		vmToAdd.OdataId = types.StringValue(v.ODataID)
 		vmToAdd.Id = types.StringValue(v.ID)
 		vms = append(vms, vmToAdd)

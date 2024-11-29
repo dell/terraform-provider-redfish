@@ -21,7 +21,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"terraform-provider-redfish/redfish/models"
 
@@ -486,7 +485,6 @@ func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRe
 
 	// Save into State
 	result := r.updateVirtualMediaState(virtualMedia, state)
-	log.Printf("result: %v\n", result)
 	diags = resp.State.Set(ctx, &result)
 	resp.Diagnostics.Append(diags...)
 	tflog.Trace(ctx, "resource_virtual_media update: finished")

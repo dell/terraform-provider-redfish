@@ -36,8 +36,8 @@ import (
 )
 
 const (
-	fieldNameUser     = "user"
-	fieldNamePassword = "password"
+	fieldNameUser = "user"
+	fieldNamePass = "password"
 )
 
 // This is a global MutexKV for use within this plugin
@@ -70,7 +70,7 @@ func (*redfishProvider) Schema(ctx context.Context, _ provider.SchemaRequest, re
 				Description:         "This field is the user to login against the redfish API",
 				Optional:            true,
 			},
-			fieldNamePassword: schema.StringAttribute{
+			fieldNamePass: schema.StringAttribute{
 				MarkdownDescription: "This field is the password related to the user given",
 				Description:         "This field is the password related to the user given",
 				Optional:            true,
@@ -88,7 +88,7 @@ func (*redfishProvider) Schema(ctx context.Context, _ provider.SchemaRequest, re
 							Optional:    true,
 							Description: "User name for login",
 						},
-						fieldNamePassword: schema.StringAttribute{
+						fieldNamePass: schema.StringAttribute{
 							Optional:    true,
 							Description: "User password for login",
 							Sensitive:   true,
@@ -195,10 +195,10 @@ func (*redfishProvider) DataSources(_ context.Context) []func() datasource.DataS
 
 func (*redfishProvider) getProviderServersModelType() map[string]attr.Type {
 	return map[string]attr.Type{
-		fieldNameUser:     types.StringType,
-		fieldNamePassword: types.StringType,
-		"endpoint":        types.StringType,
-		"ssl_insecure":    types.BoolType,
+		fieldNameUser:  types.StringType,
+		fieldNamePass:  types.StringType,
+		"endpoint":     types.StringType,
+		"ssl_insecure": types.BoolType,
 	}
 }
 
@@ -215,14 +215,14 @@ func (p *redfishProvider) updateProviderServersByAlias(ctx context.Context, alia
 	}
 	for key, value := range serversMap {
 		serverItemMap := map[string]attr.Value{
-			fieldNameUser:     types.StringValue(value.User.ValueString()),
-			fieldNamePassword: types.StringValue(value.Password.ValueString()),
-			"endpoint":        types.StringValue(value.Endpoint.ValueString()),
-			"ssl_insecure":    types.BoolValue(value.SslInsecure.ValueBool()),
+			fieldNameUser:  types.StringValue(value.User.ValueString()),
+			fieldNamePass:  types.StringValue(value.Password.ValueString()),
+			"endpoint":     types.StringValue(value.Endpoint.ValueString()),
+			"ssl_insecure": types.BoolValue(value.SslInsecure.ValueBool()),
 		}
 		if alias == key {
 			if newPassword != "" {
-				serverItemMap[fieldNamePassword] = types.StringValue(newPassword)
+				serverItemMap[fieldNamePass] = types.StringValue(newPassword)
 			}
 			if newUser != "" {
 				serverItemMap[fieldNameUser] = types.StringValue(newUser)

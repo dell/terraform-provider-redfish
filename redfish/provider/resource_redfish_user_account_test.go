@@ -35,11 +35,14 @@ func init() {
 			log.Println("Sweepers for user")
 			service, err := getSweeperClient(region)
 			if err != nil {
-				log.Println("Error getting sweeper client ", err.Error())
+				log.Println("Error getting sweeper client")
 				return nil
 			}
-			_, account, _ := GetUserAccountFromID(service, userID)
-
+			_, account, err := GetUserAccountFromID(service, userID)
+			if err != nil {
+				log.Println("Error getting user by ID.")
+				return nil
+			}
 			if account != nil { // user exists so we need to remove it
 				// PATCH call to remove username.
 				payload := make(map[string]interface{})
