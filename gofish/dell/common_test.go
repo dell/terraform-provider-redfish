@@ -18,7 +18,6 @@ limitations under the License.
 package dell
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/stmcginnis/gofish/common"
@@ -49,19 +48,29 @@ func assertInt(t testing.TB, got, want int) {
 
 func assertArray(t testing.TB, got, want []string) {
 	t.Helper()
-	if !reflect.DeepEqual(got, want) {
+	if len(got) != len(want) {
 		t.Errorf("got %v, want %v", got, want)
+		return
+	}
+	for i, v := range want {
+		if got[i] != v {
+			t.Errorf("got %v, want %v", got, want)
+			return
+		}
 	}
 }
 
 func assertLinkArray(t testing.TB, got common.Links, want []string) {
 	t.Helper()
-	var linksToAssert common.Links
-	for _, v := range want {
-		linksToAssert = append(linksToAssert, common.Link(v))
-	}
-	if !reflect.DeepEqual(got, linksToAssert) {
+	if len(got) != len(want) {
 		t.Errorf("got %v, want %v", got, want)
+		return
+	}
+	for i, v := range want {
+		if string(got[i]) != v {
+			t.Errorf("got %v, want %v", got, want)
+			return
+		}
 	}
 }
 

@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"net/url"
 	"terraform-provider-redfish/redfish/models"
@@ -260,7 +259,6 @@ func NewConfig(pconfig *redfishProvider, rserver *[]models.RedfishServer) (*gofi
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to redfish API: %w", err)
 	}
-	log.Printf("Connection with the redfish endpoint %v was sucessful\n", rserver1.Endpoint.ValueString())
 	return api, nil
 }
 
