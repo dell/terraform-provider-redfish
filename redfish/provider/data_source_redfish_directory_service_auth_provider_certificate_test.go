@@ -19,6 +19,7 @@ package provider
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"testing"
 
@@ -45,7 +46,7 @@ func TestAccRedfishDirectoryServiceAuthProviderCertificate_fetch(t *testing.T) {
 				ExpectError: regexp.MustCompile(`Invalid CertificateProviderType`),
 			},
 			{
-				Config: testAccDirectoryServiceAuthProviderCertificateWithFilter(creds),
+				Config: testAccDirectoryServiceAuthProviderCertificateWithFilter(creds, os.Getenv("TF_TESTING_DS_AP_CERTIFICATE_ID")),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(dSAPCertificateDatasourceName, "directory_service_auth_provider_certificate.directory_service_certificate.certificate_usage_types.0", "User"),
 				),
@@ -122,7 +123,7 @@ func testAccDirectoryServiceAuthProviderCertificateWithInvalidCertificateProvide
 	)
 }
 
-func testAccDirectoryServiceAuthProviderCertificateWithFilter(testingInfo TestingServerCredentials) string {
+func testAccDirectoryServiceAuthProviderCertificateWithFilter(testingInfo TestingServerCredentials, certificateId string) string {
 	return fmt.Sprintf(`
 	data "redfish_directory_service_auth_provider_certificate" "test" {	  
 		redfish_server {
@@ -133,12 +134,13 @@ func testAccDirectoryServiceAuthProviderCertificateWithFilter(testingInfo Testin
 		}
 		certificate_filter {
 			certificate_provider_type = "LDAP"
-			certificate_id ="SecurityCertificate.5"
+			certificate_id ="%s"
 		}
 	}`,
 		testingInfo.Username,
 		testingInfo.Password,
 		testingInfo.Endpoint,
+		certificateId,
 	)
 }
 
@@ -153,7 +155,6 @@ func testAccDirectoryServiceAuthProviderCertificateWithoutCertificateId(testingI
 		}
 		certificate_filter {
 			certificate_provider_type = "LDAP"
-			#certificate_id ="SecurityCertificate.5"
 		}
 	}`,
 		testingInfo.Username,
