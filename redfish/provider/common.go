@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"strconv"
+	"terraform-provider-redfish/gofish/dell"
 	"terraform-provider-redfish/redfish/models"
 	"time"
 
@@ -403,4 +405,47 @@ func (s *ServerStatusChecker) Check(ctx context.Context) error {
 	}
 
 	return err
+}
+
+// Checks whether the server generation is 17G and above
+func isServerGenerationSeventeenAndAbove(service *gofish.Service) (bool, error) {
+	managers, err := service.Managers()
+	if err != nil {
+		return false, err
+	}
+
+	dellManager, err := dell.Manager(managers[0])
+	if err != nil {
+		return false, err
+	}
+
+	dellAttributes, err := dellManager.DellAttributes()
+	if err != nil {
+		return false, err
+	}
+
+	idracAttributes, err := getIdracAttributes(dellAttributes)
+	if err != nil {
+		return false, err
+	}
+
+	serverGen := ""
+	for k, v := range idracAttributes.Attributes {
+		if k == "Info.1.ServerGen" && v != nil {
+			serverGen = v.(string)
+			break
+		}
+	}
+
+	if serverGen == "" {
+		return false, errors.New("server generation not found")
+	}
+
+	gen := serverGen[:len(serverGen)-1]
+	genVal, err := strconv.Atoi(gen)
+	if err != nil {
+		return false, err
+	}
+
+	return genVal >= Seventeen, nil
 }
