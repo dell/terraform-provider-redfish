@@ -22,6 +22,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/bytedance/mockey"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -59,8 +60,56 @@ func TestAccRedfishLCAttributesInvalidAttribute(t *testing.T) {
 					creds),
 				ExpectError: regexp.MustCompile("there was an issue when creating/updating LC attributes"),
 			},
+			{
+				Config: testAccRedfishResourceLCConfigInvalidData(
+					creds),
+				ExpectError: regexp.MustCompile("there was an issue when creating/updating LC attributes"),
+			},
+			{
+				Config: testAccRedfishResourceLCEmptyConfig(
+					creds),
+				ExpectError: regexp.MustCompile("there was an issue when creating/updating LC attributes"),
+			},
 		},
 	})
+}
+
+func TestAccRedfishLCAttributesInvalidAttribute_mocky(t *testing.T) {
+	var funcMocker1 *mockey.Mocker
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceLCAttributesConfig(
+					creds),
+			},
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(assertLCAttributes).Return(fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceLCConfigInvalid(creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+						funcMocker1 = mockey.Mock(assertLCAttributes).Return(nil).Build()
+						FunctionMocker = mockey.Mock(setManagerAttributesRightType).Return(nil, fmt.Errorf("mock error")).Build()
+					}
+				},
+				Config:      testAccRedfishResourceLCAttributesTypeInvalid(creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+		},
+	})
+	if funcMocker1 != nil {
+		funcMocker1.Release()
+	}
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
 }
 
 func TestAccRedfishLCAttributesUpdate(t *testing.T) {
@@ -86,6 +135,47 @@ func TestAccRedfishLCAttributesUpdate(t *testing.T) {
 	})
 }
 
+func TestAccRedfishLCAttributesCreateConfigErr(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceLCAttributesConfig(creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+func TestAccRedfishLCAttributesReadConfigErr(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceLCAttributesConfig(creds),
+			},
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceLCAttributesConfig(creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
 func TestAccRedfishLCAttributeImport(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -103,6 +193,29 @@ func TestAccRedfishLCAttributeImport(t *testing.T) {
 	})
 }
 
+func TestAccRedfishLCAttributeImportCheck(t *testing.T) {
+	var lcAttributeResourceName = "redfish_dell_lc_attributes.lc"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceLCAttributesConfig(creds),
+			},
+			{
+				Config:        testAccRedfishResourceLCAttributesConfig(creds),
+				ResourceName:  lcAttributeResourceName,
+				ImportState:   true,
+				ExpectError:   nil,
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"attributes\":[\"LCAttributes.1.CollectSystemInventoryOnRestart\",\"LCAttributes.1.IgnoreCertWarning\"],\"ssl_insecure\":true}",
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_dell_lc_attributes.lc", "attributes.LCAttributes.1.IgnoreCertWarning", "On"),
+					resource.TestCheckResourceAttr("redfish_dell_lc_attributes.lc", "attributes.LCAttributes.1.CollectSystemInventoryOnRestart", "Disabled"),
+				),
+			},
+		},
+	})
+}
 func testAccRedfishResourceLCAttributesConfig(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
 	resource "redfish_dell_lc_attributes" "lc" {
@@ -162,6 +275,69 @@ func testAccRedfishResourceLCConfigInvalid(testingInfo TestingServerCredentials)
 			"LCAttributes.1.IgnoreCertWarning" = "On",
 		  	"SysLog.1.PowerLogInterval" = 5,
 		  	"InvalidAttribute" 		  = "invalid",
+		}
+	  }
+	  `,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+	)
+}
+
+func testAccRedfishResourceLCConfigInvalidData(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+	resource "redfish_dell_lc_attributes" "lc" {
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "%s"
+		  ssl_insecure = true
+		}
+	  
+		attributes = {
+			"LCAttributes.1.CollectSystemInventoryOnRestart" = "Disabled",
+			"LCAttributes.1.IgnoreCertWarning" = 1,
+		}
+	  }
+	  `,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+	)
+}
+
+func testAccRedfishResourceLCEmptyConfig(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+	resource "redfish_dell_lc_attributes" "lc" {
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "%s"
+		  ssl_insecure = true
+		}
+	  
+		attributes = {
+		}
+	  }
+	  `,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+	)
+}
+
+func testAccRedfishResourceLCAttributesTypeInvalid(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+	resource "redfish_dell_lc_attributes" "lc" {
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "%s"
+		  ssl_insecure = true
+		}
+
+		attributes = {
+			"invalid" = 9,
 		}
 	  }
 	  `,

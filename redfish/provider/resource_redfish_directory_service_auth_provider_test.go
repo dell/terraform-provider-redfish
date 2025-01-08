@@ -53,11 +53,23 @@ func TestAccRedfishDirectoryServiceAuthProviderBasic(t *testing.T) {
 				),
 			},
 			{
+				// error update with both `ActiveDirectory` and `LDAP`
+				Config:      testAccRedfishDirectoryServiceAuthProviderErrorConfig(creds),
+				ExpectError: regexp.MustCompile("Error when updating both of `ActiveDirectory` and `LDAP`"),
+			},
+			{
 				// update with `ActiveDirectory`
 				Config: testAccRedfishDirectoryServiceAuthProviderAD_UpdateConfig(creds),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(terraformDSAuthProviderResourceName, "active_directory.directory.service_enabled", "false"),
 					resource.TestCheckResourceAttr(terraformDSAuthProviderResourceName, "active_directory_attributes.ActiveDirectory.1.AuthTimeout", "130"),
+				),
+			},
+			{
+				// update with `ActiveDirectory` and standard Schema
+				Config: testAccRedfishDirectoryServiceAuthProviderADWithStandardSchema_UpdateConfig(creds),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(terraformDSAuthProviderResourceName, "active_directory.directory.service_enabled", "true"),
 				),
 			},
 		},
@@ -70,13 +82,28 @@ func TestAccRedfishDirectoryServiceAuthProviderInvalidCase(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
+				// error for Active Directory Service
+				Config:      testAccRedfishDirectoryServiceAuthProviderADWithStandardSchema_ServiceErrorConfig(creds),
+				ExpectError: regexp.MustCompile("Error updating AccountService Details"),
+			},
+			{
+				// error for LDAP Service
+				Config:      testAccRedfishDirectoryServiceAuthProviderLDAP_ServiceErrorConfig(creds),
+				ExpectError: regexp.MustCompile("Error updating AccountService Details"),
+			},
+			{
 				// error for empty AuthTimeout in ActiveDirectory
 				Config:      testAccRedfishDirectoryServiceAuthProviderEmptyAuth(creds),
 				ExpectError: regexp.MustCompile("Invalid AuthTimeout, Please provide all the required configuration"),
 			},
-
 			{
 				// error for Invalid AuthTimeout in ActiveDirectory
+				Config:      testAccRedfishDirectoryServiceAuthProviderInvalidAuthTimeoutString(creds),
+				ExpectError: regexp.MustCompile("Invalid AuthTimeout"),
+			},
+
+			{
+				// error for Invalid AuthTimeout not in (15,300) in ActiveDirectory
 				Config:      testAccRedfishDirectoryServiceAuthProviderInvalidAuth(creds),
 				ExpectError: regexp.MustCompile("Invalid AuthTimeout, AuthTimeout must be between 15 and 300"),
 			},
@@ -123,6 +150,11 @@ func TestAccRedfishDirectoryServiceAuthProviderInvalidCase(t *testing.T) {
 			},
 
 			{
+				// error DCLookupEnable Enabled, DCLookupByUserDomain Disabled and without DCLookupDomainName
+				Config:      testAccRedfishDirectoryServiceAuthProviderWithoutDCLookupDomainNameConfig(creds),
+				ExpectError: regexp.MustCompile("DCLookupDomainName must be configured for Disabled DCLookupByUserDomain"),
+			},
+			{
 				// error DCLookupEnable Enabled, DCLookupByUserDomain Disabled and DCLookupDomainName Empty
 				Config:      testAccRedfishDirectoryServiceAuthProviderDCLookupDomainNameEmptyConfig(creds),
 				ExpectError: regexp.MustCompile("DCLookupDomainName must be configured for Disabled DCLookupByUserDomain"),
@@ -132,6 +164,11 @@ func TestAccRedfishDirectoryServiceAuthProviderInvalidCase(t *testing.T) {
 				// error DCLookupEnable Enabled DCLookupByUserDomain Enabled and DCLookupDomainName non Empty
 				Config:      testAccRedfishDirectoryServiceAuthProviderDCLookupEnableDCLookupDomainNameConfig(creds),
 				ExpectError: regexp.MustCompile("DCLookupDomainName can not be configured for Enabled DCLookupByUserDomain"),
+			},
+			{
+				// error DCLookupEnable Invalid
+				Config:      testAccRedfishDirectoryServiceAuthProviderDCLookupEnableInvalidConfig(creds),
+				ExpectError: regexp.MustCompile("Invalid configuration for DCLookUp"),
 			},
 		},
 	})
@@ -198,6 +235,11 @@ func TestAccRedfishDirectoryServiceAuthProviderInvalidSchema_Config(t *testing.T
 				Config:      testAccRedfishDirectoryServiceAuthProviderStandardSchemaGCRootConfig(creds),
 				ExpectError: regexp.MustCompile("GCRootDomain can not be configured for Disabled GCLookupEnable"),
 			},
+			{
+				// error Standard Schema and Invalid GCLookup config
+				Config:      testAccRedfishDirectoryServiceAuthProviderStandardSchemaInvalidGCLookUpConfig(creds),
+				ExpectError: regexp.MustCompile("Invalid configuration for Standard Schema"),
+			},
 		},
 	})
 }
@@ -231,28 +273,21 @@ func testAccRedfishDirectoryServiceAuthProviderErrorConfig(testingInfo TestingSe
 	  
 		active_directory = {
 			directory = {
-				remote_role_mapping = [
-					{
-						local_role = "Administrator",
-						remote_group = "xxxx"
-					}
-				],
-				service_addresses = [
-					"yulanadhost11.yulan.pie.lab.emc.com"
-				 ],
-				service_enabled = true
+				service_enabled = false
+				
 			}
 		}
 		
 		active_directory_attributes = {
-			"ActiveDirectory.1.AuthTimeout"= "120",
+			"ActiveDirectory.1.AuthTimeout"= "110",
 			"ActiveDirectory.1.CertValidationEnable"= "Enabled",
-			"ActiveDirectory.1.DCLookupEnable"= "Disabled",
+			"ActiveDirectory.1.DCLookupEnable"= "Enabled",
 			"ActiveDirectory.1.RacDomain"= "test",
 			"ActiveDirectory.1.RacName"= "test",
-			"ActiveDirectory.1.SSOEnable"= "Enabled",
+			"ActiveDirectory.1.SSOEnable"= "Disabled",
 			"ActiveDirectory.1.Schema"= "Extended Schema",
-			"UserDomain.1.Name"= "yulan.pie.lab.emc.com"           
+			"UserDomain.1.Name"= "yulan1.pie.lab.emc.com",
+			"ActiveDirectory.1.DCLookupByUserDomain"="Enabled",          
 		}
 		
 		ldap = {
@@ -266,12 +301,12 @@ func testAccRedfishDirectoryServiceAuthProviderErrorConfig(testingInfo TestingSe
 				service_addresses = [
 					"yulanadhost12.yulan.pie.lab.emc.com"
 				],
-				service_enabled = false
+				service_enabled = true
 			},
 			ldap_service = {
 				search_settings = {
 					base_distinguished_names = [
-						  "dc = yulan,dc = pie,dc = lab,dc = emc,dc = com"
+						  "dc = yulan11,dc = pie,dc = lab,dc = emc,dc = com"
 					],
 					group_name_attribute = "name",
 					user_name_attribute = "member"
@@ -319,7 +354,7 @@ func testAccRedfishDirectoryServiceAuthProviderADConfig(testingInfo TestingServe
 			"ActiveDirectory.1.SSOEnable"= "Disabled",
 			"ActiveDirectory.1.Schema"= "Extended Schema",
 			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
-			"ActiveDirectory.1.DCLookupByUserDomain":"Enabled",          
+			"ActiveDirectory.1.DCLookupByUserDomain"="Enabled",          
 		}
 	}
 	  `,
@@ -347,6 +382,55 @@ func testAccRedfishDirectoryServiceAuthProviderLDAPConfig(testingInfo TestingSer
 					}        
 				],
 				service_addresses = [
+					"yulanadhost12.yulan.pie.lab.emc.com"
+				],
+				service_enabled = false
+			},
+			ldap_service = {
+				search_settings = {
+					base_distinguished_names = [
+						  "dc = yulan,dc = pie,dc = lab,dc = emc,dc = com"
+					],
+					group_name_attribute = "name",
+					user_name_attribute = "member"
+				}
+			}
+		}
+		
+		 ldap_attributes = {
+		  "LDAP.1.GroupAttributeIsDN" = "Enabled"
+		  "LDAP.1.Port" = "636",
+		  "LDAP.1.BindDN" = "cn = adtester,cn = users,dc = yulan,dc = pie,dc = lab,dc = emc,dc = com",
+		  "LDAP.1.BindPassword" = "",
+		  "LDAP.1.SearchFilter" = "(objectclass = *)"
+		  }
+		}
+	  `,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+	)
+}
+
+func testAccRedfishDirectoryServiceAuthProviderLDAP_ServiceErrorConfig(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+	resource "redfish_directory_service_auth_provider" "ds_auth" {
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "%s"
+		  ssl_insecure = true
+		}
+		ldap = {
+			directory = {
+				remote_role_mapping = [
+					{
+						local_role = "Administrator",
+						remote_group = "cn = idracgroup,cn = users,dc = yulan,dc = pie,dc = lab,dc = emc,dc = com"
+					}        
+				],
+				service_addresses = [
+					"yulanadhost12.yulan.pie.lab.emc.com",
 					"yulanadhost12.yulan.pie.lab.emc.com"
 				],
 				service_enabled = false
@@ -405,7 +489,111 @@ func testAccRedfishDirectoryServiceAuthProviderAD_UpdateConfig(testingInfo Testi
 			"ActiveDirectory.1.SSOEnable"= "Disabled",
 			"ActiveDirectory.1.Schema"= "Extended Schema",
 			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
-			"ActiveDirectory.1.DCLookupByUserDomain":"Enabled",          
+			"ActiveDirectory.1.DCLookupByUserDomain"="Enabled",          
+		}
+	}
+	  `,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+	)
+}
+
+func testAccRedfishDirectoryServiceAuthProviderADWithStandardSchema_UpdateConfig(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+	resource "redfish_directory_service_auth_provider" "ds_auth" {
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "%s"
+		  ssl_insecure = true
+		}
+	  
+		active_directory = {
+			directory = {
+				remote_role_mapping = [
+					{
+						local_role = "Administrator",
+						remote_group = "xxxx"
+					},
+					{
+						local_role = "Operator",
+						remote_group = "abcd"
+					}
+				],
+				service_addresses = [
+					"yulanadhost1.yulan.pie.lab.emc.com",
+					"yulanadhost.yulan.pie.lab.emc.com",
+					"yulanadhost2.yulan.pie.lab.emc.com"
+				 ],
+				service_enabled = true
+			}
+		}
+		
+		active_directory_attributes = {
+			"ActiveDirectory.1.AuthTimeout"= "130",
+			"ActiveDirectory.1.CertValidationEnable"= "Enabled",
+			"ActiveDirectory.1.DCLookupEnable"= "Disabled",
+			"ActiveDirectory.1.SSOEnable"= "Disabled",
+			"ActiveDirectory.1.Schema"= "Standard Schema",
+			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
+			"UserDomain.2.Name"= "yulan2.pie.lab.emc.com",
+			"UserDomain.3.Name"= "yulan3.pie.lab.emc.com",
+			#"ActiveDirectory.1.DCLookupByUserDomain"="Enabled", 
+			"ActiveDirectory.1.GCLookupEnable" = "Disabled",
+			"ActiveDirectory.1.GlobalCatalog1" = "yulanadhost21.yulan.pie.lab.emc.com",         
+		}
+	}
+	  `,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+	)
+}
+func testAccRedfishDirectoryServiceAuthProviderADWithStandardSchema_ServiceErrorConfig(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+	resource "redfish_directory_service_auth_provider" "ds_auth" {
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "%s"
+		  ssl_insecure = true
+		}
+	  
+		active_directory = {
+			directory = {
+				remote_role_mapping = [
+					{
+						local_role = "Administrator",
+						remote_group = "xxxx"
+					},
+					{
+						local_role = "Operator",
+						remote_group = "abcd"
+					}
+				],
+				service_addresses = [
+					"yulanadhost1.yulan.pie.lab.emc.com",
+					"yulanadhost.yulan.pie.lab.emc.com",
+					"yulanadhost2.yulan.pie.lab.emc.com",
+					"yulanadhost2.yulan.pie.lab.emc.com"
+				 ],
+				service_enabled = true
+			}
+		}
+		
+		active_directory_attributes = {
+			"ActiveDirectory.1.AuthTimeout"= "130",
+			"ActiveDirectory.1.CertValidationEnable"= "Enabled",
+			"ActiveDirectory.1.DCLookupEnable"= "Disabled",
+			"ActiveDirectory.1.SSOEnable"= "Disabled",
+			"ActiveDirectory.1.Schema"= "Standard Schema",
+			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
+			"UserDomain.2.Name"= "yulan2.pie.lab.emc.com",
+			"UserDomain.3.Name"= "yulan3.pie.lab.emc.com",
+			#"ActiveDirectory.1.DCLookupByUserDomain"="Enabled", 
+			"ActiveDirectory.1.GCLookupEnable" = "Disabled",
+			"ActiveDirectory.1.GlobalCatalog1" = "yulanadhost21.yulan.pie.lab.emc.com",         
 		}
 	}
 	  `,
@@ -442,6 +630,45 @@ func testAccRedfishDirectoryServiceAuthProviderEmptyAuth(testingInfo TestingServ
 			"ActiveDirectory.1.RacName"= "test",
 			"ActiveDirectory.1.SSOEnable"= "Disabled",
 			"ActiveDirectory.1.Schema"= "Extended Schema",
+			"UserDomain.1.Name"= "yulan.pie.lab.emc.com"           
+		}
+	}
+	  `,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+	)
+}
+
+func testAccRedfishDirectoryServiceAuthProviderInvalidAuthTimeoutString(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+	resource "redfish_directory_service_auth_provider" "ds_auth" {
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "%s"
+		  ssl_insecure = true
+		}
+	  
+		active_directory = {
+			directory = {
+				
+				service_addresses = [
+					"yulanadhost11.yulan.pie.lab.emc.com"
+				 ],
+				service_enabled = true
+			}
+		}
+		
+		active_directory_attributes = {
+			"ActiveDirectory.1.AuthTimeout"= "Invalid",
+			"ActiveDirectory.1.CertValidationEnable"= "Enabled",
+			"ActiveDirectory.1.DCLookupEnable"= "Disabled",
+			"ActiveDirectory.1.RacDomain"= "test",
+			"ActiveDirectory.1.RacName"= "test",
+			"ActiveDirectory.1.SSOEnable"= "Disabled",
+			"ActiveDirectory.1.Schema"= "Extended Schema",
+			#"ADGroup.1.Domain" = "yulan.pie.lab.emc.com",
 			"UserDomain.1.Name"= "yulan.pie.lab.emc.com"           
 		}
 	}
@@ -633,7 +860,7 @@ func testAccRedfishDirectoryServiceAuthProviderDCLookupByUserDomainConfig(testin
 			"ActiveDirectory.1.SSOEnable"= "Disabled",
 			"ActiveDirectory.1.Schema"= "Extended Schema",
 			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
-			"ActiveDirectory.1.DCLookupByUserDomain":"Disabled",           
+			"ActiveDirectory.1.DCLookupByUserDomain"="Disabled",           
 		}
 	}
 	  `,
@@ -674,7 +901,7 @@ func testAccRedfishDirectoryServiceAuthProviderDCLookupDomainNameConfig(testingI
 			"ActiveDirectory.1.SSOEnable"= "Disabled",
 			"ActiveDirectory.1.Schema"= "Extended Schema",
 			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
-			#"ActiveDirectory.1.DCLookupByUserDomain":"Disabled", 
+			#"ActiveDirectory.1.DCLookupByUserDomain"="Disabled", 
 			"ActiveDirectory.1.DCLookupDomainName"="test",          
 		}
 	}
@@ -716,7 +943,7 @@ func testAccRedfishDirectoryServiceAuthProviderDDCLookupEnableNoServiceAddConfig
 			"ActiveDirectory.1.SSOEnable"= "Disabled",
 			"ActiveDirectory.1.Schema"= "Extended Schema",
 			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
-			"ActiveDirectory.1.DCLookupByUserDomain":"Disabled", 
+			"ActiveDirectory.1.DCLookupByUserDomain"="Disabled", 
 			"ActiveDirectory.1.DCLookupDomainName"="test",          
 		}
 	}
@@ -765,6 +992,45 @@ func testAccRedfishDirectoryServiceAuthProviderDCLookupByUserDomainEmptyConfig(t
 	)
 }
 
+func testAccRedfishDirectoryServiceAuthProviderWithoutDCLookupDomainNameConfig(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+	resource "redfish_directory_service_auth_provider" "ds_auth" {
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "%s"
+		  ssl_insecure = true
+		}
+	  
+		active_directory = {
+			directory = {
+				service_enabled = true,
+				authentication = {
+					kerberos_key_tab_file = ""
+				}
+			}
+		}
+		
+		active_directory_attributes = {
+			"ActiveDirectory.1.AuthTimeout"= "120",
+			"ActiveDirectory.1.CertValidationEnable"= "Enabled",
+			"ActiveDirectory.1.DCLookupEnable"= "Enabled",
+			"ActiveDirectory.1.RacDomain"= "test",
+			"ActiveDirectory.1.RacName"= "test",
+			"ActiveDirectory.1.SSOEnable"= "Disabled",
+			"ActiveDirectory.1.Schema"= "Extended Schema",
+			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
+			"ActiveDirectory.1.DCLookupByUserDomain"="Disabled", 
+			        
+		}
+	}
+	  `,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+	)
+}
+
 func testAccRedfishDirectoryServiceAuthProviderDCLookupDomainNameEmptyConfig(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
 	resource "redfish_directory_service_auth_provider" "ds_auth" {
@@ -793,8 +1059,8 @@ func testAccRedfishDirectoryServiceAuthProviderDCLookupDomainNameEmptyConfig(tes
 			"ActiveDirectory.1.SSOEnable"= "Disabled",
 			"ActiveDirectory.1.Schema"= "Extended Schema",
 			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
-			"ActiveDirectory.1.DCLookupByUserDomain":"Disabled", 
-			        
+			"ActiveDirectory.1.DCLookupByUserDomain"="Disabled", 
+			"ActiveDirectory.1.DCLookupDomainName"="",        
 		}
 	}
 	  `,
@@ -832,7 +1098,46 @@ func testAccRedfishDirectoryServiceAuthProviderDCLookupEnableDCLookupDomainNameC
 			"ActiveDirectory.1.SSOEnable"= "Disabled",
 			"ActiveDirectory.1.Schema"= "Extended Schema",
 			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
-			"ActiveDirectory.1.DCLookupByUserDomain":"Enabled", 
+			"ActiveDirectory.1.DCLookupByUserDomain"="Enabled", 
+			"ActiveDirectory.1.DCLookupDomainName"="test",          
+		}
+	}
+	  `,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+	)
+}
+
+func testAccRedfishDirectoryServiceAuthProviderDCLookupEnableInvalidConfig(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+	resource "redfish_directory_service_auth_provider" "ds_auth" {
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "%s"
+		  ssl_insecure = true
+		}
+	  
+		active_directory = {
+			directory = {
+				service_enabled = true,
+				authentication = {
+					kerberos_key_tab_file = ""
+				}
+			}
+		}
+		
+		active_directory_attributes = {
+			"ActiveDirectory.1.AuthTimeout"= "120",
+			"ActiveDirectory.1.CertValidationEnable"= "Enabled",
+			"ActiveDirectory.1.DCLookupEnable"= "Invalid",
+			"ActiveDirectory.1.RacDomain"= "test",
+			"ActiveDirectory.1.RacName"= "test",
+			"ActiveDirectory.1.SSOEnable"= "Disabled",
+			"ActiveDirectory.1.Schema"= "Extended Schema",
+			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
+			"ActiveDirectory.1.DCLookupByUserDomain"="Enabled", 
 			"ActiveDirectory.1.DCLookupDomainName"="test",          
 		}
 	}
@@ -869,7 +1174,7 @@ func testAccRedfishDirectoryServiceAuthProviderExtendedNoRacConfig(testingInfo T
 			"ActiveDirectory.1.SSOEnable"= "Disabled",
 			"ActiveDirectory.1.Schema"= "Extended Schema",
 			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
-			"ActiveDirectory.1.DCLookupByUserDomain":"Enabled",          
+			"ActiveDirectory.1.DCLookupByUserDomain"="Enabled",          
 		}
 	}
 	  `,
@@ -907,7 +1212,7 @@ func testAccRedfishDirectoryServiceAuthProviderExtendedEmptyRacConfig(testingInf
 			"ActiveDirectory.1.RacDomain"= "",
 			"ActiveDirectory.1.RacName"= "",
 			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
-			"ActiveDirectory.1.DCLookupByUserDomain":"Enabled",          
+			"ActiveDirectory.1.DCLookupByUserDomain"="Enabled",          
 		}
 	}
 	  `,
@@ -945,7 +1250,7 @@ func testAccRedfishDirectoryServiceAuthProviderExtendedGCLookUpConfig(testingInf
 			"ActiveDirectory.1.RacDomain"= "test",
 			"ActiveDirectory.1.RacName"= "test",
 			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
-			"ActiveDirectory.1.DCLookupByUserDomain":"Enabled", 
+			"ActiveDirectory.1.DCLookupByUserDomain"="Enabled", 
 			"ActiveDirectory.1.GCLookupEnable" = "Disabled",         
 		}
 	}
@@ -990,7 +1295,7 @@ func testAccRedfishDirectoryServiceAuthProviderExtendedRemoteRoleConfig(testingI
 			"ActiveDirectory.1.RacDomain"= "test",
 			"ActiveDirectory.1.RacName"= "test",
 			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
-			"ActiveDirectory.1.DCLookupByUserDomain":"Enabled", 
+			"ActiveDirectory.1.DCLookupByUserDomain"="Enabled", 
 			       
 		}
 	}
@@ -1029,7 +1334,7 @@ func testAccRedfishDirectoryServiceAuthProviderExtendedADGroupDomainConfig(testi
 			"ActiveDirectory.1.RacDomain"= "test",
 			"ActiveDirectory.1.RacName"= "test",
 			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
-			"ActiveDirectory.1.DCLookupByUserDomain":"Enabled", 
+			"ActiveDirectory.1.DCLookupByUserDomain"="Enabled", 
 			"ADGroup.1.Domain" = "yulan.pie.lab.emc.com",
 			       
 		}
@@ -1069,7 +1374,7 @@ func testAccRedfishDirectoryServiceAuthProviderStandardSchemaAndRacConfig(testin
 			"ActiveDirectory.1.RacDomain"= "test",
 			"ActiveDirectory.1.RacName"= "test",
 			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
-			"ActiveDirectory.1.DCLookupByUserDomain":"Enabled",          
+			"ActiveDirectory.1.DCLookupByUserDomain"="Enabled",          
 		}
 	}
 	  `,
@@ -1105,7 +1410,7 @@ func testAccRedfishDirectoryServiceAuthProviderStandardSchemaNoGCLookUpConfig(te
 			"ActiveDirectory.1.SSOEnable"= "Disabled",
 			"ActiveDirectory.1.Schema"= "Standard Schema",
 			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
-			"ActiveDirectory.1.DCLookupByUserDomain":"Enabled",          
+			"ActiveDirectory.1.DCLookupByUserDomain"="Enabled",          
 		}
 	}
 	  `,
@@ -1141,7 +1446,7 @@ func testAccRedfishDirectoryServiceAuthProviderStandardSchemaNoGCRootConfig(test
 			"ActiveDirectory.1.SSOEnable"= "Disabled",
 			"ActiveDirectory.1.Schema"= "Standard Schema",
 			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
-			"ActiveDirectory.1.DCLookupByUserDomain":"Enabled", 
+			"ActiveDirectory.1.DCLookupByUserDomain"="Enabled", 
 			"ActiveDirectory.1.GCLookupEnable" = "Enabled",         
 		}
 	}
@@ -1178,7 +1483,7 @@ func testAccRedfishDirectoryServiceAuthProviderStandardSchemaGlobalCatalogConfig
 			"ActiveDirectory.1.SSOEnable"= "Disabled",
 			"ActiveDirectory.1.Schema"= "Standard Schema",
 			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
-			"ActiveDirectory.1.DCLookupByUserDomain":"Enabled", 
+			"ActiveDirectory.1.DCLookupByUserDomain"="Enabled", 
 			"ActiveDirectory.1.GCLookupEnable" = "Enabled",
 			"ActiveDirectory.1.GCRootDomain" = "test",
 			"ActiveDirectory.1.GlobalCatalog1" = "yulanadhost11.yulan.pie.lab.emc.com",         
@@ -1217,7 +1522,7 @@ func testAccRedfishDirectoryServiceAuthProviderStandardSchemaNoGlobalCatalogConf
 			"ActiveDirectory.1.SSOEnable"= "Disabled",
 			"ActiveDirectory.1.Schema"= "Standard Schema",
 			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
-			"ActiveDirectory.1.DCLookupByUserDomain":"Enabled", 
+			"ActiveDirectory.1.DCLookupByUserDomain"="Enabled", 
 			"ActiveDirectory.1.GCLookupEnable" = "Disabled",
 			"ActiveDirectory.1.GlobalCatalog1" = "",         
 		}
@@ -1255,8 +1560,47 @@ func testAccRedfishDirectoryServiceAuthProviderStandardSchemaGCRootConfig(testin
 			"ActiveDirectory.1.SSOEnable"= "Disabled",
 			"ActiveDirectory.1.Schema"= "Standard Schema",
 			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
-			"ActiveDirectory.1.DCLookupByUserDomain":"Enabled", 
+			"ActiveDirectory.1.DCLookupByUserDomain"="Enabled", 
 			"ActiveDirectory.1.GCLookupEnable" = "Disabled",
+			"ActiveDirectory.1.GCRootDomain" = "test",
+			"ActiveDirectory.1.GlobalCatalog1" = "yulanadhost11.yulan.pie.lab.emc.com",         
+		}
+	}
+	  `,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+	)
+}
+
+func testAccRedfishDirectoryServiceAuthProviderStandardSchemaInvalidGCLookUpConfig(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+	resource "redfish_directory_service_auth_provider" "ds_auth" {
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "%s"
+		  ssl_insecure = true
+		}
+	  
+		active_directory = {
+			directory = {
+				service_enabled = true,
+				authentication = {
+					kerberos_key_tab_file = ""
+				}
+			}
+		}
+		
+		active_directory_attributes = {
+			"ActiveDirectory.1.AuthTimeout"= "120",
+			"ActiveDirectory.1.CertValidationEnable"= "Enabled",
+			"ActiveDirectory.1.DCLookupEnable"= "Enabled",
+			"ActiveDirectory.1.SSOEnable"= "Disabled",
+			"ActiveDirectory.1.Schema"= "Standard Schema",
+			"UserDomain.1.Name"= "yulan.pie.lab.emc.com",
+			"ActiveDirectory.1.DCLookupByUserDomain"="Enabled", 
+			"ActiveDirectory.1.GCLookupEnable" = "Invalid",
 			"ActiveDirectory.1.GCRootDomain" = "test",
 			"ActiveDirectory.1.GlobalCatalog1" = "yulanadhost11.yulan.pie.lab.emc.com",         
 		}

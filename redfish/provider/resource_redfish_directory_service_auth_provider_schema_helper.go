@@ -375,7 +375,7 @@ func parseActiveDirectoryIntoState(ctx context.Context, acctService *redfish.Acc
 
 	if state.ActiveDirectoryAttributes.IsNull() || state.ActiveDirectoryAttributes.IsUnknown() {
 		// nolint: gocyclo, gocognit,revive
-		activeDirectoryAttributes := []string{".CertValidationEnable", ".SSOEnable", ".AuthTimeout", ".DCLookupEnable", ".DCLookupByUserDomain", ".DCLookupDomainName", ".Schema", ".GCLookupEnable", ".GCRootDomain", ".GlobalCatalog1", ".GlobalCatalog2", ".GlobalCatalog3", ".RacName", ".RacDomain", ".RSASecurID2FAAD"}
+		activeDirectoryAttributes := []string{".CertValidationEnable", ".SSOEnable", ".AuthTimeout", ".DCLookupEnable", ".DCLookupByUserDomain", ".DCLookupDomainName", ".Schema", ".GCLookupEnable", ".GCRootDomain", ".GlobalCatalog1", ".GlobalCatalog2", ".GlobalCatalog3", ".RacName", ".RacDomain" /* , ".RSASecurID2FAAD" */}
 
 		attributesToReturn := make(map[string]attr.Value)
 		for k, v := range idracAttributesPlan.Attributes.Elements() {
@@ -391,9 +391,9 @@ func parseActiveDirectoryIntoState(ctx context.Context, acctService *redfish.Acc
 				attributesToReturn[k] = v
 			}
 
-			if strings.HasPrefix(k, "RSASecurID2FA.") && (strings.HasSuffix(k, ".RSASecurIDAuthenticationServer") || strings.HasSuffix(k, ".RSASecurIDAccessKey") || strings.HasSuffix(k, ".RSASecurIDClientID")) {
+			/* if strings.HasPrefix(k, "RSASecurID2FA.") && (strings.HasSuffix(k, ".RSASecurIDAuthenticationServer") || strings.HasSuffix(k, ".RSASecurIDAccessKey") || strings.HasSuffix(k, ".RSASecurIDClientID")) {
 				attributesToReturn[k] = v
-			}
+			}*/
 		}
 
 		activeDirAttributes = types.MapValueMust(types.StringType, attributesToReturn)
@@ -444,7 +444,7 @@ func parseLDAPIntoState(ctx context.Context, acctService *redfish.AccountService
 
 	if state.LDAPAttributes.IsNull() || state.LDAPAttributes.IsUnknown() {
 		// nolint: gocyclo, gocognit,revive
-		ldapAttributes := []string{".CertValidationEnable", ".GroupAttributeIsDN", ".Port", ".BindDN", ".BindPassword", ".SearchFilter", ".RSASecurID2FALDAP"}
+		ldapAttributes := []string{".CertValidationEnable", ".GroupAttributeIsDN", ".Port", ".BindDN", ".BindPassword", ".SearchFilter" /* , ".RSASecurID2FALDAP" */}
 		attributesToReturn := make(map[string]attr.Value)
 		for k, v := range idracAttributesPlan.Attributes.Elements() {
 			if strings.HasPrefix(k, "LDAP.") {
@@ -455,10 +455,10 @@ func parseLDAPIntoState(ctx context.Context, acctService *redfish.AccountService
 				}
 			}
 
-			if strings.HasPrefix(k, "RSASecurID2FA.") && (strings.HasSuffix(k, ".RSASecurIDAuthenticationServer") ||
+			/*	if strings.HasPrefix(k, "RSASecurID2FA.") && (strings.HasSuffix(k, ".RSASecurIDAuthenticationServer") ||
 				strings.HasSuffix(k, ".RSASecurIDAccessKey") || strings.HasSuffix(k, ".RSASecurIDClientID")) {
 				attributesToReturn[k] = v
-			}
+			}*/
 		}
 		ldapDirAttributes = types.MapValueMust(types.StringType, attributesToReturn)
 	}
@@ -517,7 +517,7 @@ func getActiveDirectoryPatchBody(ctx context.Context, attrsState *models.Directo
 			if !value.IsUnknown() && !value.IsNull() {
 				goValue, err := convertTerraformValueToGoBasicValue(ctx, value)
 				if err != nil {
-					tflog.Trace(ctx, fmt.Sprintf("Failed to convert Ethernet value to go value: %s", err.Error()))
+					tflog.Trace(ctx, fmt.Sprintf("Failed to convert AD directory value to go value: %s", err.Error()))
 					continue
 				}
 				if fieldName, ok := supportedActiveDirectory[key]; ok {
@@ -568,7 +568,7 @@ func getActiveDirectoryPatchBody(ctx context.Context, attrsState *models.Directo
 			if !value.IsUnknown() && !value.IsNull() {
 				goValue, err := convertTerraformValueToGoBasicValue(ctx, value)
 				if err != nil {
-					tflog.Trace(ctx, fmt.Sprintf("Failed to convert VLAN value to go value: %s", err.Error()))
+					tflog.Trace(ctx, fmt.Sprintf("Failed to convert AD authentication value to go value: %s", err.Error()))
 					continue
 				}
 				if fieldName, ok := supportedAuthentication[key]; ok {
@@ -640,7 +640,7 @@ func getLDAPPatchBody(ctx context.Context, attrsState *models.DirectoryServiceAu
 			if !value.IsUnknown() && !value.IsNull() {
 				goValue, err := convertTerraformValueToGoBasicValue(ctx, value)
 				if err != nil {
-					tflog.Trace(ctx, fmt.Sprintf("Failed to convert Ethernet value to go value: %s", err.Error()))
+					tflog.Trace(ctx, fmt.Sprintf("Failed to convert LDAP Directory value to go value: %s", err.Error()))
 					continue
 				}
 				if fieldName, ok := supportedLDAP[key]; ok {
@@ -660,7 +660,7 @@ func getLDAPPatchBody(ctx context.Context, attrsState *models.DirectoryServiceAu
 						if !value.IsUnknown() && !value.IsNull() {
 							goValue, err := convertTerraformValueToGoBasicValue(ctx, value)
 							if err != nil {
-								tflog.Trace(ctx, fmt.Sprintf("Failed to convert Ethernet value to go value: %s", err.Error()))
+								tflog.Trace(ctx, fmt.Sprintf("Failed to convert LDAP SearchSettings value to go value: %s", err.Error()))
 								continue
 							}
 							if fieldName, ok := supportedSearchSetting[key]; ok {

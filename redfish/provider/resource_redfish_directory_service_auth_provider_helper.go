@@ -238,7 +238,7 @@ func getkAttributeskeyValue(attributes types.Map, prefix string, suffix string) 
 	return ""
 }
 
-func isValid2FactorAuth(attributes types.Map) (bool, diag.Diagnostics) {
+/* func isValid2FactorAuth(attributes types.Map) (bool, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	// attributes := attrsState.ActiveDirectoryAttributes
 	checkey2FA := checkAttributeskeyPresent(attributes, RSASecurID2FA, "RSASecurIDAccessKey")
@@ -257,7 +257,7 @@ func isValid2FactorAuth(attributes types.Map) (bool, diag.Diagnostics) {
 	}
 
 	return true, diags
-}
+} */
 
 func isValidAuthTime(prefix string, suffix string, attrsState *models.DirectoryServiceAuthProviderResource) (bool, diag.Diagnostics) {
 	var diags diag.Diagnostics
