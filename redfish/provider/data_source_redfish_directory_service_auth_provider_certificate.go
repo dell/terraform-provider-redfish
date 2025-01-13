@@ -24,6 +24,7 @@ import (
 	"io"
 	"strings"
 	"terraform-provider-redfish/gofish/dell"
+	"terraform-provider-redfish/redfish/helper"
 	"terraform-provider-redfish/redfish/models"
 	"time"
 
@@ -387,7 +388,7 @@ func (g *DirectoryServiceAuthProviderCertificateDatasource) readDatasourceRedfis
 func newDSAuthProviderSecurityCertificate(service *gofish.Service, d *models.DirectoryServiceAuthProviderCertificate) diag.Diagnostics {
 	var idracAttributesState models.DellIdracAttributes
 	var diags diag.Diagnostics
-	if diags := readDatasourceRedfishDellIdracAttributes(service, &idracAttributesState); diags.HasError() {
+	if diags := helper.ReadDatasourceRedfishDellIdracAttributes(service, &idracAttributesState); diags.HasError() {
 		return diags
 	}
 
