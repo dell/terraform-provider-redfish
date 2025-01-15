@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bytedance/mockey"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -148,7 +149,6 @@ func TestAccRedfishStorageVolumeUpdate_basic(t *testing.T) {
 				),
 				ExpectNonEmptyPlan: true,
 			},
-
 			{
 				Config: testAccRedfishResourceStorageVolumeConfig(
 					creds,
@@ -168,6 +168,28 @@ func TestAccRedfishStorageVolumeUpdate_basic(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "read_cache_policy", "ReadAhead"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+			{
+				Config: testAccRedfishResourceStorageVolumeConfig(
+					creds,
+					"RAID.Integrated.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"OnReset",
+					"AdaptiveReadAhead",
+					"UnprotectedWriteBack",
+					"PowerCycle",
+					500,
+					2000,
+					1073323222,
+					131072,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "read_cache_policy", "AdaptiveReadAhead"),
 				),
 				ExpectNonEmptyPlan: true,
 			},
@@ -273,6 +295,103 @@ func TestAccRedfishStorageVolume_OnReset(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.Integrated.1-1"),
 					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "write_cache_policy", "UnprotectedWriteBack"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestAccRedfishStorageVolumeMockNewConfigErr(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config: testAccRedfishResourceStorageVolumeConfig(
+					creds,
+					"RAID.Integrated.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"AdaptiveReadAhead",
+					"UnprotectedWriteBack",
+					"PowerCycle",
+					100,
+					1200,
+					1073323222,
+					131072,
+				),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+				},
+				Config: testAccRedfishResourceStorageVolumeConfig(
+					creds,
+					"RAID.Integrated.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"AdaptiveReadAhead",
+					"UnprotectedWriteBack",
+					"PowerCycle",
+					100,
+					1200,
+					1073323222,
+					131072,
+				),
+				ExpectNonEmptyPlan: true,
+			},
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config: testAccRedfishResourceStorageVolumeConfig(
+					creds,
+					"RAID.Integrated.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"ReadAhead",
+					"UnprotectedWriteBack",
+					"PowerCycle",
+					100,
+					1200,
+					1073323222,
+					131072,
+				),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+				},
+				Config: testAccRedfishResourceStorageVolumeConfig(
+					creds,
+					"RAID.Integrated.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"ReadAhead",
+					"UnprotectedWriteBack",
+					"PowerCycle",
+					100,
+					1200,
+					1073323222,
+					131072,
 				),
 				ExpectNonEmptyPlan: true,
 			},
