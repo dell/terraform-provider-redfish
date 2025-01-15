@@ -22,6 +22,8 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/bytedance/mockey"
+
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -55,6 +57,44 @@ func TestAccRedfishSystemAttributesInvalidAttribute(t *testing.T) {
 	})
 }
 
+func TestAccRedfishSystemManagerInvalidAttribute(t *testing.T) {
+	var funcMocker1 *mockey.Mocker
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceSystemAttributesConfig(
+					creds),
+			},
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(assertSystemAttributes).Return(fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceSystemManagerConfigInvalid(creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					funcMocker1 = mockey.Mock(assertSystemAttributes).Return(nil).Build()
+					FunctionMocker = mockey.Mock(setManagerAttributesRightType).Return(nil, fmt.Errorf("mock error")).Build()
+					}
+				},
+				Config:      testAccRedfishResourceSystemManagerAttributesTypeInvalid(creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+		},
+	})
+	if funcMocker1 != nil {
+		funcMocker1.Release()
+	}
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
 func TestAccRedfishSystemAttributesUpdate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -78,6 +118,47 @@ func TestAccRedfishSystemAttributesUpdate(t *testing.T) {
 	})
 }
 
+func TestAccRedfishSystemAttributesCreateConfigErr(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceSystemAttributesConfig(creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+func TestAccRedfishSystemAttributesReadConfigErr(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceSystemAttributesConfig(creds),
+			},
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceSystemAttributesConfig(creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
 func TestAccRedfishSystemAttributesImport(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -90,6 +171,30 @@ func TestAccRedfishSystemAttributesImport(t *testing.T) {
 				ImportState:   true,
 				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true}",
 				ExpectError:   nil,
+			},
+		},
+	})
+}
+
+func TestAccRedfishSystemAttributesImportCheck(t *testing.T) {
+	var systemAttributeResourceName = "redfish_dell_system_attributes.system"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceSystemAttributesConfig(creds),
+			},
+			{
+				Config:        testAccRedfishResourceSystemAttributesConfig(creds),
+				ResourceName:  systemAttributeResourceName,
+				ImportState:   true,
+				ExpectError:   nil,
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"attributes\":[\"ServerPwr.1.PSPFCEnabled\",\"SupportInfo.1.Outsourced\"],\"ssl_insecure\":true}",
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_dell_system_attributes.system", "attributes.SupportInfo.1.Outsourced", "Yes"),
+					resource.TestCheckResourceAttr("redfish_dell_system_attributes.system", "attributes.ServerPwr.1.PSPFCEnabled", "Disabled"),
+				),
 			},
 		},
 	})
@@ -154,6 +259,49 @@ func testAccRedfishResourceSystemConfigInvalid(testingInfo TestingServerCredenti
 			"SupportInfo.1.Outsourced" = "Yes",
 		  	"SysLog.1.PowerLogInterval" = 5,
 		  	"InvalidAttribute" 		  = "invalid",
+		}
+	  }
+	  `,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+	)
+}
+
+func testAccRedfishResourceSystemManagerConfigInvalid(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+	resource "redfish_dell_system_attributes" "system" {
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "%s"
+		  ssl_insecure = true
+		}
+
+		attributes = {
+			"SysLog.1.PowerLogInterval" = 5,
+			"InvalidAttribute" 		  = "invalid",
+		}
+	  }
+	  `,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+	)
+}
+
+func testAccRedfishResourceSystemManagerAttributesTypeInvalid(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+	resource "redfish_dell_system_attributes" "system" {
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "%s"
+		  ssl_insecure = true
+		}
+
+		attributes = {
+			"invalid" = 9,
 		}
 	  }
 	  `,

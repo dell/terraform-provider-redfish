@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/bytedance/mockey"
 )
 
 var (
@@ -39,6 +40,9 @@ var (
 	drive                           string
 	firmwareUpdateIP                string
 )
+
+// FunctionMocker is used to mock functions in the provider
+var FunctionMocker *mockey.Mocker
 
 // // TestingServerCredentials Struct used to store the credentials we pass for testing. This allows us to pass testing
 // // credentials via environment variables instead of having them hard coded
@@ -117,6 +121,10 @@ func testAccPreCheck(t *testing.T) {
 
 	if v := os.Getenv("TF_TESTING_ENDPOINT_NIC"); !strings.HasPrefix(v, "https://") && !strings.HasPrefix(v, "http://") {
 		t.Fatal("TF_TESTING_ENDPOINT_NIC must start with `https://` for acceptance tests or `http://` for unit tests")
+	}
+	// Before each test clear out the mocker
+	if FunctionMocker != nil {
+		FunctionMocker.UnPatch()
 	}
 }
 
