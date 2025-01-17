@@ -29,8 +29,6 @@ import (
 )
 
 const (
-	// RSASecurID2FA is rsa Secure Id 2 factor authentication
-	RSASecurID2FA = "RSASecurID2FA"
 	// Disabled disable the service
 	Disabled = "Disabled"
 	// Enabled enable the service
@@ -236,27 +234,6 @@ func getkAttributeskeyValue(attributes types.Map, prefix string, suffix string) 
 		}
 	}
 	return ""
-}
-
-func isValid2FactorAuth(attributes types.Map) (bool, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	// attributes := attrsState.ActiveDirectoryAttributes
-	checkey2FA := checkAttributeskeyPresent(attributes, RSASecurID2FA, "RSASecurIDAccessKey")
-	checkID2FA := checkAttributeskeyPresent(attributes, RSASecurID2FA, "RSASecurIDClientID")
-	checkServer2FA := checkAttributeskeyPresent(attributes, RSASecurID2FA, "RSASecurIDAuthenticationServer")
-
-	if checkey2FA || checkID2FA || checkServer2FA {
-		checkey2FAValue := getkAttributeskeyValue(attributes, RSASecurID2FA, "RSASecurIDAccessKey")
-		checID2FAValue := getkAttributeskeyValue(attributes, RSASecurID2FA, "RSASecurIDClientID")
-		checkServer2FAValue := getkAttributeskeyValue(attributes, RSASecurID2FA, "RSASecurIDAuthenticationServer")
-
-		if checkey2FAValue == "" || checID2FAValue == "" || checkServer2FAValue == "" {
-			diags.AddError("Missing RSASecurID2FA required params", "Please provide all the required configuration for 2 factor autentication")
-			return false, diags
-		}
-	}
-
-	return true, diags
 }
 
 func isValidAuthTime(prefix string, suffix string, attrsState *models.DirectoryServiceAuthProviderResource) (bool, diag.Diagnostics) {

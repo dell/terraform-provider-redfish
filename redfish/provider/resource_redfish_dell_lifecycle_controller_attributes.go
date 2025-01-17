@@ -20,6 +20,7 @@ package provider
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"slices"
@@ -305,6 +306,12 @@ func updateRedfishDellLCAttributes(ctx context.Context, service *gofish.Service,
 		diags.AddError(idracError, err.Error())
 		return diags
 	}
+	err = assertLCAttributes(attributesTf, managerAttributeRegistry)
+	if err != nil {
+		diags.AddError(fmt.Sprintf("%s: LCAttributes registry from iDRAC does not match input", idracError), err.Error())
+		return diags
+	}
+
 	// Set right attributes to patch (values from map are all string. It needs int and string)
 	attributesToPatch, err := setManagerAttributesRightType(attributesTf, managerAttributeRegistry)
 	if err != nil {
@@ -453,4 +460,28 @@ func getLCAttributes(attributes []*dell.Attributes) (*dell.Attributes, error) {
 		}
 	}
 	return nil, fmt.Errorf("couldn't find LCAttributes")
+}
+
+func assertLCAttributes(rawAttributes map[string]string, managerAttributeRegistry *dell.ManagerAttributeRegistry) error {
+	var err error
+	// make map of name to ID of attributes
+	attributes := make(map[string]string)
+	for _, dellAttr := range managerAttributeRegistry.Attributes {
+		attributes[dellAttr.AttributeName] = dellAttr.ID
+	}
+
+	// check if all input attributes are present in registry
+	// if present, make sure that its ID starts with LifecycleController, ie. it is a LC attribute
+	for k := range rawAttributes {
+		attrID, ok := attributes[k]
+		if !ok {
+			err = errors.Join(err, fmt.Errorf("couldn't find manager attribute %s", k))
+			continue
+		}
+		// check if attribute is a system attribute
+		if !strings.HasPrefix(attrID, "LifecycleController.Embedded.1") {
+			err = errors.Join(err, fmt.Errorf("attribute %s is not a LCAttributes, its ID is %s", k, attrID))
+		}
+	}
+	return err
 }

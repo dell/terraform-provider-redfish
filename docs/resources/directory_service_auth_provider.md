@@ -224,13 +224,7 @@ resource "redfish_directory_service_auth_provider" "ds_auth" {
     # "ActiveDirectory.1.GlobalCatalog3" = "yulanadhost11.yulan.pie.lab.emc.com", 
 
     # GCRootDomain can be configured when GCLookupEnable is Enabled  
-    #"ActiveDirectory.1.GCRootDomain" = "test"  
-
-    # RSA Secure configuration required Datacenter license 
-    #"LDAP.1.RSASecurID2FALDAP":"Enabled",
-    #"RSASecurID2FA.1.RSASecurIDAccessKey": "&#9679;&#9679;1", 
-    #"RSASecurID2FA.1.RSASecurIDClientID": "&#9679;&#9679;1", 
-    #"RSASecurID2FA.1.RSASecurIDAuthenticationServer": "",    
+    #"ActiveDirectory.1.GCRootDomain" = "test"     
   }
 
 
@@ -266,10 +260,6 @@ resource "redfish_directory_service_auth_provider" "ds_auth" {
   #	  "LDAP.1.BindPassword" = "",
   #	  "LDAP.1.SearchFilter" = "(objectclass = *)",
   #	  
-  #    #"LDAP.1.RSASecurID2FALDAP":"Enabled",
-  #    #"RSASecurID2FA.1.RSASecurIDAccessKey": "&#9679;&#9679;1", 
-  #    #"RSASecurID2FA.1.RSASecurIDClientID": "&#9679;&#9679;1", 
-  #    #"RSASecurID2FA.1.RSASecurIDAuthenticationServer": "",
   #		  }
 
 }
