@@ -343,10 +343,6 @@ func updateActiveDirectory(ctx context.Context, serviceURI string, service *gofi
 		return diags
 	}
 
-	/* if authFactorCheck, diags := isValid2FactorAuth(plan.ActiveDirectoryAttributes); diags.HasError() || !authFactorCheck {
-		return diags
-	} */
-
 	patchBody := make(map[string]interface{})
 	if patchBody[ActiveDirectory], diags = getActiveDirectoryPatchBody(ctx, plan); diags.HasError() {
 		return diags
@@ -395,10 +391,6 @@ func updateActiveDirectory(ctx context.Context, serviceURI string, service *gofi
 
 // nolint: revive
 func updateLDAP(ctx context.Context, serviceURI string, service *gofish.Service, plan *models.DirectoryServiceAuthProviderResource) (diags diag.Diagnostics) {
-	/* if authFactorCheck, diags := isValid2FactorAuth(plan.LDAPAttributes); diags.HasError() || !authFactorCheck {
-		return diags
-	} */
-
 	patchBody := make(map[string]interface{})
 	if patchBody["LDAP"], diags = getLDAPPatchBody(ctx, plan); diags.HasError() {
 		return diags

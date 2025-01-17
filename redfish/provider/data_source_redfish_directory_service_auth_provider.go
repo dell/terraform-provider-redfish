@@ -169,7 +169,7 @@ func loadActiveDirectoryAttributesState(service *gofish.Service, d *models.Direc
 	}
 
 	// nolint: gocyclo, gocognit,revive
-	activeDirectoryAttributes := []string{".CertValidationEnable", ".SSOEnable", ".AuthTimeout", ".DCLookupEnable", ".DCLookupByUserDomain", ".DCLookupDomainName", ".Schema", ".GCLookupEnable", ".GCRootDomain", ".GlobalCatalog1", ".GlobalCatalog2", ".GlobalCatalog3", ".RacName", ".RacDomain" /* , ".RSASecurID2FAAD" */}
+	activeDirectoryAttributes := []string{".CertValidationEnable", ".SSOEnable", ".AuthTimeout", ".DCLookupEnable", ".DCLookupByUserDomain", ".DCLookupDomainName", ".Schema", ".GCLookupEnable", ".GCRootDomain", ".GlobalCatalog1", ".GlobalCatalog2", ".GlobalCatalog3", ".RacName", ".RacDomain"}
 	attributesToReturn := make(map[string]attr.Value)
 	for k, v := range idracAttributesState.Attributes.Elements() {
 		if strings.HasPrefix(k, "ActiveDirectory.") {
@@ -180,7 +180,7 @@ func loadActiveDirectoryAttributesState(service *gofish.Service, d *models.Direc
 			}
 		}
 		// nolint: revive
-		if (strings.HasPrefix(k, "UserDomain.") && strings.HasSuffix(k, ".Name")) || (strings.HasPrefix(k, "ADGroup.") && strings.HasSuffix(k, ".Name")) /* || (strings.HasPrefix(k, "RSASecurID2FA.") && strings.HasSuffix(k, ".RSASecurIDAuthenticationServer")) */ {
+		if (strings.HasPrefix(k, "UserDomain.") && strings.HasSuffix(k, ".Name")) || (strings.HasPrefix(k, "ADGroup.") && strings.HasSuffix(k, ".Name")) {
 			attributesToReturn[k] = v
 		}
 	}
@@ -196,7 +196,7 @@ func loadLDAPAttributesState(service *gofish.Service, d *models.DirectoryService
 	}
 
 	// nolint: gocyclo, gocognit,revive
-	ldapAttributes := []string{".CertValidationEnable", ".GroupAttributeIsDN", ".Port", ".BindDN", ".BindPassword", ".SearchFilter" /* , ".RSASecurID2FALDAP" */}
+	ldapAttributes := []string{".CertValidationEnable", ".GroupAttributeIsDN", ".Port", ".BindDN", ".BindPassword", ".SearchFilter"}
 	attributesToReturn := make(map[string]attr.Value)
 	for k, v := range idracAttributesState.Attributes.Elements() {
 		if strings.HasPrefix(k, "LDAP.") {
@@ -206,9 +206,6 @@ func loadLDAPAttributesState(service *gofish.Service, d *models.DirectoryService
 				}
 			}
 		}
-		/* if strings.HasPrefix(k, "RSASecurID2FA.") && strings.HasSuffix(k, ".RSASecurIDAuthenticationServer") {
-			attributesToReturn[k] = v
-		} */
 	}
 
 	d.LDAPAttributes = types.MapValueMust(types.StringType, attributesToReturn)
