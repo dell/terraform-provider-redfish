@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"strings"
 	"terraform-provider-redfish/gofish/dell"
+	"terraform-provider-redfish/redfish/helper"
 	"terraform-provider-redfish/redfish/models"
 	"time"
 
@@ -164,7 +165,7 @@ func (g *DirectoryServiceAuthProviderDatasource) readDatasourceRedfishDSAuthProv
 
 func loadActiveDirectoryAttributesState(service *gofish.Service, d *models.DirectoryServiceAuthProviderDatasource) diag.Diagnostics {
 	var idracAttributesState models.DellIdracAttributes
-	if diags := readDatasourceRedfishDellIdracAttributes(service, &idracAttributesState); diags.HasError() {
+	if diags := helper.ReadDatasourceRedfishDellIdracAttributes(service, &idracAttributesState); diags.HasError() {
 		return diags
 	}
 
@@ -191,7 +192,7 @@ func loadActiveDirectoryAttributesState(service *gofish.Service, d *models.Direc
 
 func loadLDAPAttributesState(service *gofish.Service, d *models.DirectoryServiceAuthProviderDatasource) diag.Diagnostics {
 	var idracAttributesState models.DellIdracAttributes
-	if diags := readDatasourceRedfishDellIdracAttributes(service, &idracAttributesState); diags.HasError() {
+	if diags := helper.ReadDatasourceRedfishDellIdracAttributes(service, &idracAttributesState); diags.HasError() {
 		return diags
 	}
 

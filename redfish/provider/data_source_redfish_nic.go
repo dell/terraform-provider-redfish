@@ -23,6 +23,7 @@ import (
 	"math/big"
 	"strings"
 	"terraform-provider-redfish/gofish/dell"
+	"terraform-provider-redfish/redfish/helper"
 	"terraform-provider-redfish/redfish/models"
 	"time"
 
@@ -891,7 +892,7 @@ func newNetDevFuncCapabilities(inputs []redfish.NetworkDeviceTechnology) []types
 
 func loadNICAttributesState(service *gofish.Service, d *models.NICDatasource) diag.Diagnostics {
 	var idracAttributesState models.DellIdracAttributes
-	if diags := readDatasourceRedfishDellIdracAttributes(service, &idracAttributesState); diags.HasError() {
+	if diags := helper.ReadDatasourceRedfishDellIdracAttributes(service, &idracAttributesState); diags.HasError() {
 		return diags
 	}
 

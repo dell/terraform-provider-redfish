@@ -19,16 +19,12 @@ package provider
 
 import (
 	"context"
-	"fmt"
-	"terraform-provider-redfish/gofish/dell"
+	"terraform-provider-redfish/redfish/helper"
 	"terraform-provider-redfish/redfish/models"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/stmcginnis/gofish"
 )
 
 var (
@@ -111,57 +107,13 @@ func (g *DellIdracAttributesDatasource) Read(ctx context.Context, req datasource
 	}
 	service := api.Service
 	defer api.Logout()
-	diags = readDatasourceRedfishDellIdracAttributes(service, &state)
+	diags = helper.ReadDatasourceRedfishDellIdracAttributes(service, &state)
+	resp.Diagnostics.Append(diags...)
+	if diags.HasError() {
+		return
+	}
+
 	resp.Diagnostics.Append(diags...)
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
-}
-
-func readDatasourceRedfishDellIdracAttributes(service *gofish.Service, d *models.DellIdracAttributes) diag.Diagnostics {
-	var diags diag.Diagnostics
-	idracError := "there was an issue when reading idrac attributes"
-	// get managers (Dell servers have only the iDRAC)
-	managers, err := service.Managers()
-	if err != nil {
-		diags.AddError(idracError, err.Error())
-		return diags
-	}
-
-	// Get OEM
-	dellManager, err := dell.Manager(managers[0])
-	if err != nil {
-		diags.AddError(idracError, err.Error())
-		return diags
-	}
-
-	// Get Dell attributes
-	dellAttributes, err := dellManager.DellAttributes()
-	if err != nil {
-		diags.AddError(idracError, err.Error())
-		return diags
-	}
-	idracAttributes, err := getIdracAttributes(dellAttributes)
-	if err != nil {
-		diags.AddError(idracError, err.Error())
-		return diags
-	}
-
-	attributesToReturn := make(map[string]attr.Value)
-
-	for k, v := range idracAttributes.Attributes {
-		if v != nil {
-			attributesToReturn[k] = types.StringValue(fmt.Sprint(v))
-		} else {
-			attributesToReturn[k] = types.StringValue("")
-		}
-	}
-
-	d.Attributes = types.MapValueMust(types.StringType, attributesToReturn)
-	if err != nil {
-		diags.AddError(idracError, err.Error())
-		return diags
-	}
-
-	d.ID = types.StringValue(idracAttributes.ODataID)
-	return diags
 }
