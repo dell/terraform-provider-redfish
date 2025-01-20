@@ -404,11 +404,3 @@ func (s *ServerStatusChecker) Check(ctx context.Context) error {
 
 	return err
 }
-
-// ServerConf represents the common credentials in import config
-type ServerConf struct {
-	Username    string `json:"username"`
-	Password    string `json:"password"`
-	Endpoint    string `json:"endpoint"`
-	SslInsecure bool   `json:"ssl_insecure"`
-}

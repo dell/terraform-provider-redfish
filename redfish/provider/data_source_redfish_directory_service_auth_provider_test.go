@@ -22,6 +22,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/bytedance/mockey"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -38,6 +39,23 @@ func TestAccRedfishDirectoryServiceAuthProviderDatasource_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(dsAuthProviderDatasourceName, "directory_service_auth_provider.id", "RemoteAccountService"),
 					resource.TestMatchResourceAttr(dsAuthProviderDatasourceName, "directory_service_auth_provider.odata_id", regexp.MustCompile(`.*AccountService`)),
 				),
+			},
+		},
+	})
+}
+
+// mock error for DSAP certificate
+func TestAccRedfishDirectoryServiceAuthProviderDatasource_mockErr(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishDatasourceDirectoryServiceAuthProviderConfig(creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
 			},
 		},
 	})

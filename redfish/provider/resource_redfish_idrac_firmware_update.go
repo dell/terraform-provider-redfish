@@ -20,17 +20,15 @@ package provider
 import (
 	"context"
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"terraform-provider-redfish/common"
+	"terraform-provider-redfish/redfish/helper"
 	"terraform-provider-redfish/redfish/models"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -41,7 +39,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
 )
 
@@ -315,7 +312,7 @@ func (r *idracFirmwareUpdateResource) Create(ctx context.Context, req resource.C
 	plan.SystemID = types.StringValue(system.ID)
 	systemId := system.ODataID
 	plan.Id = types.StringValue("idrac_firmware_update")
-	payload, payloadError := GetInstallFirmwareUpdatePayload(plan)
+	payload, payloadError := helper.GetInstallFirmwareUpdatePayload(plan)
 	if payloadError != nil {
 		resp.Diagnostics.AddError("Payload error", payloadError.Error())
 		return
@@ -327,7 +324,7 @@ func (r *idracFirmwareUpdateResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
-	repoUpdateJobId := ExtractJobID(res.Header.Get("Location"))
+	repoUpdateJobId := helper.ExtractJobID(res.Header.Get("Location"))
 	if repoUpdateJobId == "" {
 		resp.Diagnostics.AddError("Check repository Updates job error", "job id not found")
 		return
@@ -365,7 +362,7 @@ func (r *idracFirmwareUpdateResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
-	result, err := ParseXML(response.PackageList)
+	result, err := helper.ParseXML(response.PackageList)
 	if err != nil {
 		resp.Diagnostics.AddError("Error parsing PackageList XML:", err.Error())
 		return
@@ -374,7 +371,7 @@ func (r *idracFirmwareUpdateResource) Create(ctx context.Context, req resource.C
 	var jobErrors []string
 	var jobs []redfish.Job
 	if plan.ApplyUpdate.ValueBool() {
-		jobErrors, jobs = TrackJobs(ctx, result, service)
+		jobErrors, jobs = helper.TrackJobs(ctx, result, service)
 		if len(jobErrors) > 0 {
 			combinedErrorMessage := strings.Join(jobErrors, ", ")
 			resp.Diagnostics.AddError("One or more jobs failed:", combinedErrorMessage)
@@ -384,7 +381,7 @@ func (r *idracFirmwareUpdateResource) Create(ctx context.Context, req resource.C
 	// Use input values from plan
 	var state models.IdracFirmwareUpdate = plan
 	// Update the list of updates available using the parsed response
-	state.UpdateList, _ = GetUpdatedList(result, jobs)
+	state.UpdateList, _ = helper.GetUpdatedList(result, jobs)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -422,6 +419,7 @@ func (*idracFirmwareUpdateResource) Delete(ctx context.Context, req resource.Del
 	resp.State.RemoveResource(ctx)
 }
 
+/*
 // TrackJobs reads the parsed XML data object and returns the list of job errors if any and job details
 func TrackJobs(ctx context.Context, result []map[string]interface{}, service *gofish.Service) ([]string, []redfish.Job) {
 	var jobErrors []string
@@ -629,4 +627,4 @@ func ParseXML(xmlData string) ([]map[string]interface{}, error) {
 	}
 
 	return updateList, nil
-}
+}*/

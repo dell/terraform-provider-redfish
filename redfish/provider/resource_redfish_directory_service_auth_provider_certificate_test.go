@@ -23,6 +23,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/bytedance/mockey"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -88,4 +89,26 @@ func testAccRedfishDirectoryServiceAuthProviderCertificateConfig(testingInfo Tes
 		testingInfo.Endpoint,
 		certificateType,
 	)
+}
+
+func TestAccRedfishDirectoryServiceAuthProviderCertificate_MockErr(t *testing.T) {
+	valid_ds_cert := os.Getenv("VALID_DS_CERT")
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		ExternalProviders: map[string]resource.ExternalProvider{
+			"local": {
+				Source: "hashicorp/local",
+			},
+		},
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishDirectoryServiceAuthProviderCertificateConfig(creds, valid_ds_cert, "PEM"),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+		},
+	})
 }

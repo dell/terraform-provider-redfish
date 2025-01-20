@@ -19,17 +19,12 @@ package provider
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"io"
-	"terraform-provider-redfish/gofish/dell"
+	"terraform-provider-redfish/redfish/helper"
 	"terraform-provider-redfish/redfish/models"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stmcginnis/gofish"
@@ -252,156 +247,10 @@ func (g *DirectoryServiceAuthProviderCertificateDatasource) Read(ctx context.Con
 	defer api.Logout()
 	g.ctx = ctx
 	g.service = api.Service
-	state, diags := g.readDatasourceRedfishDSAuthProviderCertificate(plan)
+	state, diags := helper.ReadDatasourceRedfishDSAuthProviderCertificate(g.service, plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-}
-
-// nolint: revive
-func (g *DirectoryServiceAuthProviderCertificateDatasource) readDatasourceRedfishDSAuthProviderCertificate(d models.DirectoryServiceAuthProviderCertificateDatasource) (
-	models.DirectoryServiceAuthProviderCertificateDatasource, diag.Diagnostics,
-) {
-	var diags diag.Diagnostics
-
-	accountService, err := g.service.AccountService()
-	if err != nil {
-		diags.AddError("Error fetching Account Service", err.Error())
-		return d, diags
-	}
-
-	// write the current time as ID
-	d.ID = types.StringValue(fmt.Sprintf("%d", time.Now().Unix()))
-
-	dellCertificate, certErr := dell.DirectoryServiceAuthProvider(accountService)
-
-	if certErr != nil {
-		diags.AddError("Unable to fetch Certificate URI", "Unable to fetch Certificate URI")
-	}
-
-	var certificateURI string
-
-	if d.CertificateFilter.CertificateProviderType.IsNull() || d.CertificateFilter.CertificateProviderType.IsUnknown() {
-		diags.AddError("Invalid CertificateProviderType", "Please provide valid value for CertificateProviderType")
-		return d, diags
-	}
-
-	if d.CertificateFilter.CertificateProviderType.ValueString() != ActiveDirectory && d.CertificateFilter.CertificateProviderType.ValueString() != LDAP {
-		diags.AddError("Invalid CertificateProviderType", "Please provide valid value for CertificateProviderType")
-		return d, diags
-	}
-
-	if d.CertificateFilter.CertificateProviderType.ValueString() == ActiveDirectory {
-		certificateURI = dellCertificate.ActiveDirectoryCertificate.ODataID
-	}
-	if d.CertificateFilter.CertificateProviderType.ValueString() == LDAP {
-		certificateURI = dellCertificate.LDAPCertificate.ODataID
-	}
-	var certificateDetailsURI string
-	if d.CertificateFilter.CertificateId.IsNull() || d.CertificateFilter.CertificateId.IsUnknown() {
-		response, err := g.service.GetClient().Get(certificateURI)
-		if err != nil {
-			diags.AddError("Error fetching Certificate collections", err.Error())
-			return d, diags
-		}
-
-		if response.StatusCode != StatusCodeSuccess {
-			return d, diags
-		}
-		body, err := io.ReadAll(response.Body)
-		var certificateCollections models.CertificateCollection
-		if err != nil {
-			return d, diags
-		}
-
-		err = json.Unmarshal(body, &certificateCollections)
-		if err != nil {
-			diags.AddError("Error parsing Certificate Collection", err.Error())
-			return d, diags
-		}
-
-		if certificateCollections.MembersCount != 0 {
-			certificateDetailsURI = certificateCollections.Members[len(certificateCollections.Members)-1].OdataID
-		} else {
-			diags.AddError("Certificate Details are not Available", "Certificate Details are not Available")
-			return d, diags
-		}
-
-	}
-
-	if !d.CertificateFilter.CertificateId.IsNull() && !d.CertificateFilter.CertificateId.IsUnknown() && d.CertificateFilter.CertificateId.ValueString() == "" {
-		diags.AddError("CertificateId can't be empty value", "CertificateId can't be empty value")
-		return d, diags
-	}
-
-	if !d.CertificateFilter.CertificateId.IsNull() && !d.CertificateFilter.CertificateId.IsUnknown() {
-		certificateDetailsURI = certificateURI + "/" + d.CertificateFilter.CertificateId.ValueString()
-	}
-
-	certResponse, err := g.service.GetClient().Get(certificateDetailsURI)
-	// nolint: gofumpt
-	if err != nil {
-		diags.AddError("Error fetching Certificate", err.Error())
-		return d, diags
-	}
-
-	if certResponse.StatusCode != StatusCodeSuccess {
-		return d, diags
-	}
-	certBody, err := io.ReadAll(certResponse.Body)
-	var certificate models.Certificate
-	if err != nil {
-		return d, diags
-	}
-
-	err = json.Unmarshal(certBody, &certificate)
-	if err != nil {
-		diags.AddError("Error parsing Certificate", err.Error())
-		return d, diags
-	}
-	directoryServiceCertificate := newDSAuthProviderCertificateState(certificate)
-	var directoryServiceAuthProviderCertificate models.DirectoryServiceAuthProviderCertificate
-	directoryServiceAuthProviderCertificate.DirectoryServiceCertificate = directoryServiceCertificate
-	d.DirectoryServiceAuthProviderCertificate = &directoryServiceAuthProviderCertificate
-	if d.DirectoryServiceAuthProviderCertificate == nil {
-		diags.AddError("DirectoryServiceAuthProviderCertificate null ", "DirectoryServiceAuthProviderCertificate null")
-		return d, diags
-	}
-	return d, diags
-}
-
-func newDSAuthProviderCertificateState(certificateData models.Certificate) *models.DirectoryServiceCertificate {
-	return &models.DirectoryServiceCertificate{
-		ODataId:               types.StringValue(certificateData.ODataID),
-		Name:                  types.StringValue(certificateData.Name),
-		Description:           types.StringValue(certificateData.Description),
-		ValidNotAfter:         types.StringValue(certificateData.ValidNotAfter),
-		Subject:               newSubjectAndIssuerState(&certificateData.Subject),
-		Issuer:                newSubjectAndIssuerState(&certificateData.Issuer),
-		ValidNotBefore:        types.StringValue(certificateData.ValidNotBefore),
-		SerialNumber:          types.StringValue(certificateData.SerialNumber),
-		CertificateUsageTypes: newCertificateUsageTypeState(certificateData.CertificateUsageTypes),
-	}
-}
-
-func newCertificateUsageTypeState(input []string) []types.String {
-	out := make([]types.String, 0)
-	for _, input := range input {
-		out = append(out, types.StringValue(string(input)))
-	}
-	return out
-}
-
-func newSubjectAndIssuerState(input *models.CertificateSubject) models.Subject {
-	return models.Subject{
-		CommonName:         types.StringValue(input.CommonName),
-		Organization:       types.StringValue(input.Organization),
-		City:               types.StringValue(input.City),
-		Country:            types.StringValue(input.Country),
-		Email:              types.StringValue(input.Email),
-		OrganizationalUnit: types.StringValue(input.OrganizationalUnit),
-		State:              types.StringValue(input.State),
-	}
 }
