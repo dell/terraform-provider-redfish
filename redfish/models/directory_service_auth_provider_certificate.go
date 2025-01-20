@@ -53,7 +53,6 @@ type DirectoryServiceAuthProviderCertificateDatasource struct {
 // DirectoryServiceAuthProviderCertificate is the tfsdk model of DirectoryServiceAuthProviderCertificate
 type DirectoryServiceAuthProviderCertificate struct {
 	DirectoryServiceCertificate *DirectoryServiceCertificate `tfsdk:"directory_service_certificate"`
-	SecurityCertificate         types.Map                    `tfsdk:"security_certificate"`
 }
 
 // DirectoryServiceCertificate is the tfsdk model of DirectoryServiceCertificate

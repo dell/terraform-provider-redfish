@@ -21,7 +21,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"strings"
 	"terraform-provider-redfish/gofish/dell"
 	"terraform-provider-redfish/redfish/models"
 
@@ -38,8 +37,6 @@ import (
 const (
 	createCertAPI     = "/redfish/v1/AccountService/ActiveDirectory/Certificates"
 	replaceCertAPI    = "/redfish/v1/CertificateService/Actions/CertificateService.ReplaceCertificate"
-	rsaCertificate    = "Oem/Dell/DelliDRACCardService/Actions/DelliDRACCardService.ImportCertificate"
-	rsaCACert         = "RSA_CA_CERT"
 	pem               = "PEM"
 	certificateType   = "CertificateType"
 	certificateString = "CertificateString"
@@ -76,8 +73,8 @@ func (*RedfishDirectoryServiceAuthProviderCertificateResource) Metadata(_ contex
 // Schema defines the schema for the resource.
 func (*RedfishDirectoryServiceAuthProviderCertificateResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "This Terraform resource is used to configure Directory Service Auth Provider certificate and RSA certificate",
-		Description:         "This Terraform resource is used to configure Directory Service Auth Provider certificate and RSA certificate",
+		MarkdownDescription: "This Terraform resource is used to configure Directory Service Auth Provider certificate",
+		Description:         "This Terraform resource is used to configure Directory Service Auth Provider certificate",
 
 		Attributes: DirectoryServiceAuthProviderCertificateResourceSchema(),
 		Blocks:     RedfishServerResourceBlockMap(),
@@ -100,7 +97,6 @@ func DirectoryServiceAuthProviderCertificateResourceSchema() map[string]schema.A
 				stringvalidator.LengthAtLeast(1),
 				stringvalidator.OneOf([]string{
 					string(pem),
-					string(rsaCACert),
 				}...),
 			},
 		},
@@ -247,11 +243,6 @@ func updateRedfishDirectoryServiceAuthCertificate(service *gofish.Service, certU
 			return diags
 		}
 	}
-	if plan.CertificateType.ValueString() == rsaCACert {
-		if diags = updateRSASecurity(service, plan); diags.HasError() {
-			return diags
-		}
-	}
 	return diags
 }
 
@@ -342,10 +333,6 @@ func createCertificate(service *gofish.Service, plan *models.DirectoryServiceAut
 func postCall(uri string, patchBody map[string]interface{}, service *gofish.Service) (diags diag.Diagnostics) {
 	response, err := service.GetClient().Post(uri, patchBody)
 	if err != nil {
-		if strings.Contains(err.Error(), "RSA_CA_CERT entered for the property CertificateType is not in the list") {
-			diags.AddError("Server do not have required license for RSA CA certificate", "Server do not have required license for RSA CA certificate")
-			return diags
-		}
 		diags.AddError("There was an error while creating/updating Certificate resource",
 			err.Error())
 		return diags
@@ -368,22 +355,6 @@ func postCall(uri string, patchBody map[string]interface{}, service *gofish.Serv
 			diags.AddError("Error creating/updating Certificate resource ", string(errorMsg))
 			return diags
 		}
-	}
-	return diags
-}
-
-func updateRSASecurity(service *gofish.Service, plan *models.DirectoryServiceAuthProviderCertificateResource) (diags diag.Diagnostics) {
-	managers, err := service.Managers()
-	if err != nil {
-		diags.AddError("Couldn't retrieve managers from redfish API: ", err.Error())
-		return diags
-	}
-	uri := managers[0].ODataID + "/" + rsaCertificate
-	patchBody := make(map[string]interface{})
-	patchBody[certificateType] = plan.CertificateType.ValueString()
-	patchBody["CertificateFile"] = plan.CertificateString.ValueString()
-	if diags = postCall(uri, patchBody, service); diags.HasError() {
-		return diags
 	}
 	return diags
 }

@@ -22,14 +22,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"strings"
 	"terraform-provider-redfish/gofish/dell"
-	"terraform-provider-redfish/redfish/helper"
 	"terraform-provider-redfish/redfish/models"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -128,12 +125,6 @@ func DirectoryServiceAuthProviderCertificateSchema() map[string]schema.Attribute
 			MarkdownDescription: "Directory Service Certificate Details.",
 			Description:         "Directory Service Certificate Details.",
 			Attributes:          DirectoryServiceCertificateSchema(),
-			Computed:            true,
-		},
-		"security_certificate": schema.MapAttribute{
-			MarkdownDescription: "SecurityCertificate attributes in Dell iDRAC attributes. ",
-			Description:         "SecurityCertificate attributes in Dell iDRAC attributes.",
-			ElementType:         types.StringType,
 			Computed:            true,
 		},
 	}
@@ -378,46 +369,7 @@ func (g *DirectoryServiceAuthProviderCertificateDatasource) readDatasourceRedfis
 		diags.AddError("DirectoryServiceAuthProviderCertificate null ", "DirectoryServiceAuthProviderCertificate null")
 		return d, diags
 	}
-
-	if diags = newDSAuthProviderSecurityCertificate(g.service, d.DirectoryServiceAuthProviderCertificate); diags.HasError() {
-		return d, diags
-	}
 	return d, diags
-}
-
-func newDSAuthProviderSecurityCertificate(service *gofish.Service, d *models.DirectoryServiceAuthProviderCertificate) diag.Diagnostics {
-	var idracAttributesState models.DellIdracAttributes
-	var diags diag.Diagnostics
-	if diags := helper.ReadDatasourceRedfishDellIdracAttributes(service, &idracAttributesState); diags.HasError() {
-		return diags
-	}
-
-	attributesToReturn := make(map[string]attr.Value)
-	middleindex, diags := getnumberForIdrac(&idracAttributesState)
-	if middleindex != "" && !diags.HasError() {
-		prefixValue := "SecurityCertificate." + middleindex
-		for k, v := range idracAttributesState.Attributes.Elements() {
-			if strings.HasPrefix(k, prefixValue) {
-				attributesToReturn[k] = v
-			}
-		}
-	}
-	securityValue := types.MapValueMust(types.StringType, attributesToReturn)
-	d.SecurityCertificate = securityValue
-	return nil
-}
-
-func getnumberForIdrac(idracAttributesState *models.DellIdracAttributes) (string, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	for k, v := range idracAttributesState.Attributes.Elements() {
-		if strings.HasPrefix(k, "SecurityCertificate.") && strings.HasSuffix(k, ".CertificateType") {
-			if v.String() == "\"RSA_CA\"" {
-				arr := strings.Split(k, ".")
-				return arr[1], nil
-			}
-		}
-	}
-	return "", diags
 }
 
 func newDSAuthProviderCertificateState(certificateData models.Certificate) *models.DirectoryServiceCertificate {

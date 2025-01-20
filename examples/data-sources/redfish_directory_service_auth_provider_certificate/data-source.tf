@@ -34,8 +34,6 @@ data "redfish_directory_service_auth_provider_certificate" "ds_auth_certificate"
     certificate_provider_type = "LDAP"
     # certificate_id            = "SecurityCertificate.5"
   }
-
-  # security_certificate can be viewed if server has datacenter license
 }
 
 output "directory_service_auth_provider_certificate" {

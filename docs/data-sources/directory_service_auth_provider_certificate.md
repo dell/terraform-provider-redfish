@@ -166,8 +166,6 @@ data "redfish_directory_service_auth_provider_certificate" "ds_auth_certificate"
     certificate_provider_type = "LDAP"
     # certificate_id            = "SecurityCertificate.5"
   }
-
-  # security_certificate can be viewed if server has datacenter license
 }
 
 output "directory_service_auth_provider_certificate" {
@@ -221,7 +219,6 @@ Optional:
 Read-Only:
 
 - `directory_service_certificate` (Attributes) Directory Service Certificate Details. (see [below for nested schema](#nestedatt--directory_service_auth_provider_certificate--directory_service_certificate))
-- `security_certificate` (Map of String) SecurityCertificate attributes in Dell iDRAC attributes.
 
 <a id="nestedatt--directory_service_auth_provider_certificate--directory_service_certificate"></a>
 ### Nested Schema for `directory_service_auth_provider_certificate.directory_service_certificate`

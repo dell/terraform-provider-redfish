@@ -19,12 +19,12 @@ linkTitle: "redfish_directory_service_auth_provider_certificate"
 page_title: "redfish_directory_service_auth_provider_certificate Resource - terraform-provider-redfish"
 subcategory: ""
 description: |-
-  This Terraform resource is used to configure Directory Service Auth Provider certificate and RSA certificate
+  This Terraform resource is used to configure Directory Service Auth Provider certificate
 ---
 
 # redfish_directory_service_auth_provider_certificate (Resource)
 
-This Terraform resource is used to configure Directory Service Auth Provider certificate and RSA certificate
+This Terraform resource is used to configure Directory Service Auth Provider certificate
 
 ## Example Usage
 
@@ -167,9 +167,8 @@ resource "redfish_directory_service_auth_provider_certificate" "ds_auth_certific
     ssl_insecure = each.value.ssl_insecure
   }
 
-  # RSA_CA_CERT certificate resource can be created/modified only if server have datacenter license
-  # certificate type can be PEM or RSA_CA_CERT
-  certificate_type   = "RSA_CA_CERT1"
+  # certificate type can be PEM
+  certificate_type   = "PEM"
   certificate_string = data.local_file.ds_certificate.content
 }
 ```
