@@ -83,7 +83,6 @@ func TestAccRedfishVirtualMedia_basic(t *testing.T) {
 	})
 }
 
-/*
 // Test to read redfish virtual media on iDRAC 5.x - Positive with mocky
 func TestAccRedfishVirtualMediaServer2_ReadMockErr(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -103,21 +102,35 @@ func TestAccRedfishVirtualMediaServer2_ReadMockErr(t *testing.T) {
 				PreConfig: func() {
 					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
 				},
-				ResourceName:      testAccVMedResName,
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateIdFunc: func(d *terraform.State) (string, error) {
-					return getVMedImportConf(d, creds)
+				Config: testAccRedfishResourceVirtualMediaConfig(
+					creds,
+					"virtual_media",
+					image64Boot,
+					true,
+					"HTTP",
+					"Stream",
+				),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					FunctionMocker.Release()
 				},
-				ImportStateVerifyIgnore: []string{"redfish_server.0.redfish_alias"},
-				ExpectError:             regexp.MustCompile(`.*mock error*.`),
+				Config: testAccRedfishResourceVirtualMediaConfig(
+					creds,
+					"virtual_media",
+					image64Boot,
+					true,
+					"HTTP",
+					"Stream",
+				),
 			},
 		},
 	})
 	if FunctionMocker != nil {
 		FunctionMocker.Release()
 	}
-} */
+}
 
 // Test to create redfish virtual media with invalid image extension - Negative
 func TestAccRedfishVirtualMedia_InvalidImage_Negative(t *testing.T) {
@@ -438,7 +451,7 @@ func TestAccRedfishVirtualMediaUpdate_MockErr(t *testing.T) {
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			/*{
+			{
 				Config: testAccRedfishResourceVirtualMediaConfig(
 					creds,
 					"virtual_media",
@@ -446,7 +459,7 @@ func TestAccRedfishVirtualMediaUpdate_MockErr(t *testing.T) {
 					true,
 					"HTTP",
 					"Stream"),
-			},*/
+			},
 			{
 				PreConfig: func() {
 					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
@@ -460,6 +473,46 @@ func TestAccRedfishVirtualMediaUpdate_MockErr(t *testing.T) {
 					"Stream",
 				),
 				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					FunctionMocker.Release()
+				},
+				Config: testAccRedfishResourceVirtualMediaConfig(
+					creds,
+					"virtual_media",
+					image64Boot,
+					true,
+					"HTTP",
+					"Stream",
+				),
+			},
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(helper.GetNejectVirtualMedia).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config: testAccRedfishResourceVirtualMediaConfig(
+					creds,
+					"virtual_media",
+					image64Boot,
+					false,
+					"HTTP",
+					"Stream",
+				),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					FunctionMocker.Release()
+				},
+				Config: testAccRedfishResourceVirtualMediaConfig(
+					creds,
+					"virtual_media",
+					image64Boot,
+					true,
+					"HTTP",
+					"Stream",
+				),
 			},
 		},
 	})

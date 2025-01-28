@@ -417,18 +417,11 @@ func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRe
 	}
 
 	// Hot update is not possible. Unmount and mount needs to be done to update
-	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), state.VirtualMediaID.ValueString())
+	virtualMedia, err := helper.GetNejectVirtualMedia(service, state.VirtualMediaID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Virtual Media doesn't exist: %s", err.Error()) // This error won't be triggered ever
+		resp.Diagnostics.AddError(err.Error(), err.Error()) // This error won't be triggered ever
 		return
 	}
-
-	err = virtualMedia.EjectMedia()
-	if err != nil {
-		resp.Diagnostics.AddError("There was an error when ejecting media: ", err.Error())
-		return
-	}
-
 	err = virtualMedia.InsertMediaConfig(virtualMediaConfig)
 	if err != nil {
 		resp.Diagnostics.AddError("Couldn't mount Virtual Media ", err.Error())
@@ -475,17 +468,10 @@ func (r *virtualMediaResource) Delete(ctx context.Context, req resource.DeleteRe
 	service := api.Service
 	defer api.Logout()
 
-	// Get virtual media details
-	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), state.VirtualMediaID.ValueString())
+	// Get virtual media details and Eject Media
+	virtualMedia, err := helper.GetNejectVirtualMedia(service, state.VirtualMediaID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Virtual Media doesn't exist: ", err.Error()) // This error won't be triggered ever
-		return
-	}
-
-	// Eject virtual media
-	err = virtualMedia.EjectMedia()
-	if err != nil {
-		resp.Diagnostics.AddError("There was an error when ejecting media: ", err.Error())
+		resp.Diagnostics.AddError(err.Error(), err.Error()) // This error won't be triggered ever
 		return
 	}
 
