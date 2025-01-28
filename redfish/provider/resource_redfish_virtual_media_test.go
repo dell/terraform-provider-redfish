@@ -20,10 +20,14 @@ package provider
 import (
 	"fmt"
 	"regexp"
+	"terraform-provider-redfish/redfish/helper"
 	"testing"
 
+	"github.com/bytedance/mockey"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/stmcginnis/gofish"
+	"github.com/stmcginnis/gofish/redfish"
 )
 
 const testAccVMedResName = "redfish_virtual_media.virtual_media"
@@ -78,6 +82,42 @@ func TestAccRedfishVirtualMedia_basic(t *testing.T) {
 		},
 	})
 }
+
+/*
+// Test to read redfish virtual media on iDRAC 5.x - Positive with mocky
+func TestAccRedfishVirtualMediaServer2_ReadMockErr(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceVirtualMediaConfig(
+					creds,
+					"virtual_media",
+					image64Boot,
+					true,
+					"HTTP",
+					"Stream"),
+			},
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				ResourceName:      testAccVMedResName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(d *terraform.State) (string, error) {
+					return getVMedImportConf(d, creds)
+				},
+				ImportStateVerifyIgnore: []string{"redfish_server.0.redfish_alias"},
+				ExpectError:             regexp.MustCompile(`.*mock error*.`),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+} */
 
 // Test to create redfish virtual media with invalid image extension - Negative
 func TestAccRedfishVirtualMedia_InvalidImage_Negative(t *testing.T) {
@@ -198,6 +238,94 @@ func TestAccRedfishVirtualMediaServer2_basic(t *testing.T) {
 	})
 }
 
+// Test to create redfish virtual media on iDRAC 5.x - Negative with mocky
+func TestAccRedfishVirtualMediaServer2_CreateMockErr(t *testing.T) {
+	var funcMocker1, funcMocker2, funcMocker3 *mockey.Mocker
+	service := &gofish.Service{}
+	api := &gofish.APIClient{
+		Service: service,
+	}
+	system := &redfish.ComputerSystem{}
+	redfishCollection := make([]*redfish.VirtualMedia, 0)
+	env := helper.VirtualMediaEnvironment{
+		Manager:    true,
+		Collection: redfishCollection,
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config: testAccRedfishResourceVirtualMediaConfigServer5x(
+					creds,
+					"virtual_media",
+					imageEfiBoot,
+					true,
+					"HTTP",
+					"Stream",
+				),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					funcMocker1 = mockey.Mock(NewConfig).Return(api, nil).Build()
+					FunctionMocker = mockey.Mock(getSystemResource).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config: testAccRedfishResourceVirtualMediaConfigServer5x(
+					creds,
+					"virtual_media",
+					imageEfiBoot,
+					true,
+					"HTTP",
+					"Stream",
+				),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					if funcMocker1 != nil {
+						funcMocker1.Release()
+					}
+					funcMocker1 = mockey.Mock(NewConfig).Return(api, nil).Build()
+					funcMocker2 = mockey.Mock(getSystemResource).Return(system, nil).Build()
+					funcMocker3 = mockey.Mock(helper.GetVMEnv).Return(env, nil).Build()
+					FunctionMocker = mockey.Mock(helper.InsertMedia).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config: testAccRedfishResourceVirtualMediaConfigServer5x(
+					creds,
+					"virtual_media",
+					imageEfiBoot,
+					true,
+					"HTTP",
+					"Stream",
+				),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+		},
+	})
+	if funcMocker1 != nil {
+		funcMocker1.Release()
+	}
+	if funcMocker2 != nil {
+		funcMocker2.Release()
+	}
+	if funcMocker3 != nil {
+		funcMocker3.Release()
+	}
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
 // Test to create redfish virtual media with invalid transfer protocol type on iDRAC 5.x - Negative
 func TestAccRedfishVirtualMediaServer2_InvalidTransferProtocol_Negative(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -302,6 +430,43 @@ func TestAccRedfishVirtualMediaUpdate_basic(t *testing.T) {
 			},
 		},
 	})
+}
+
+// Test to update redfish virtual media - MockErr
+func TestAccRedfishVirtualMediaUpdate_MockErr(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			/*{
+				Config: testAccRedfishResourceVirtualMediaConfig(
+					creds,
+					"virtual_media",
+					image64Boot,
+					true,
+					"HTTP",
+					"Stream"),
+			},*/
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config: testAccRedfishResourceVirtualMediaConfig(
+					creds,
+					"virtual_media",
+					image64Boot,
+					false,
+					"HTTP",
+					"Stream",
+				),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+		},
+	})
+
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
 }
 
 // Test to update redfish virtual media with invalid image - Negative
@@ -476,3 +641,16 @@ func testAccRedfishResourceVirtualMediaConfigDependency(testingInfo TestingServe
 		depends_on,
 	)
 }
+
+/*func testAccRedfishResourceVirtualMediaMockData() string {
+	return fmt.Sprintf(`
+   "@odata.context": "/redfish/v1/$metadata#VirtualMediaCollection.VirtualMediaCollection",
+   "@odata.id": "/redfish/v1/Systems/System.Embedded.1/VirtualMedia",
+   "@odata.type": "#VirtualMediaCollection.VirtualMediaCollection",
+   "Description": "Collection of Virtual Media",
+   "Members":[],
+   "Members@odata.count": ,
+   "Name": "VirtualMedia Collection"
+		`,
+	)
+}*/

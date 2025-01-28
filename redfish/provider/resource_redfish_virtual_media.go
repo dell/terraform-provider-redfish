@@ -20,12 +20,11 @@ package provider
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
+	"terraform-provider-redfish/redfish/helper"
 	"terraform-provider-redfish/redfish/models"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -34,7 +33,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
 )
 
@@ -175,26 +173,38 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		TransferProtocolType: redfish.TransferProtocolType(plan.TransferProtocolType.ValueString()),
 		WriteProtected:       plan.WriteProtected.ValueBool(),
 	}
-	api, env, d := r.getVMEnv(&plan.RedfishServer, plan.SystemID.ValueString())
+	api, err := NewConfig(r.p, &plan.RedfishServer)
+	if err != nil {
+		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
+		return
+	}
+	service := api.Service
+	// Get Systems details
+	system, err := getSystemResource(service, plan.SystemID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Error when retrieving systems", err.Error())
+		return
+	}
+	env, d := helper.GetVMEnv(service, system)
 
 	resp.Diagnostics = append(resp.Diagnostics, d...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 	defer api.Logout()
-	service, virtualMediaCollection := env.service, env.collection
-	if !env.isManager {
+	service, virtualMediaCollection := service, env.Collection
+	if !env.Manager {
 		// This implementation is added to support iDRAC firmware version 6.x/7.x.
-		plan.SystemID = types.StringValue(env.system.ID)
+		plan.SystemID = types.StringValue(env.System.ID)
 		for index := range virtualMediaCollection {
-			virtualMedia, err := insertMedia(virtualMediaCollection[index].ID, virtualMediaCollection, virtualMediaConfig, service)
+			virtualMedia, err := helper.InsertMedia(virtualMediaCollection[index].ID, virtualMediaCollection, virtualMediaConfig, service)
 			if err != nil {
 				resp.Diagnostics.AddError("Error while inserting virtual media", err.Error())
 				return
 			}
 			if virtualMedia != nil {
 				// Save into State
-				result := r.updateVirtualMediaState(virtualMedia, plan)
+				result := helper.UpdateVirtualMediaState(virtualMedia, plan)
 				diags = resp.State.Set(ctx, &result)
 				resp.Diagnostics.Append(diags...)
 				tflog.Trace(ctx, "resource_virtual_media create: finished")
@@ -212,14 +222,14 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 			virtualMediaID = "RemovableDisk"
 		}
 
-		virtualMedia, err := insertMedia(virtualMediaID, virtualMediaCollection, virtualMediaConfig, service)
+		virtualMedia, err := helper.InsertMedia(virtualMediaID, virtualMediaCollection, virtualMediaConfig, service)
 		if err != nil {
 			resp.Diagnostics.AddError("Error while inserting virtual media", err.Error())
 			return
 		}
 		if virtualMedia != nil {
 			// Save into State
-			result := r.updateVirtualMediaState(virtualMedia, plan)
+			result := helper.UpdateVirtualMediaState(virtualMedia, plan)
 			diags = resp.State.Set(ctx, &result)
 			resp.Diagnostics.Append(diags...)
 			tflog.Trace(ctx, "resource_virtual_media create: finished")
@@ -230,63 +240,6 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 	resp.Diagnostics.AddError("Error: There are no Virtual Medias to mount", "Please detach media and try again")
 	resp.Diagnostics.Append(diags...)
 	tflog.Trace(ctx, "resource_virtual_media create: finished")
-}
-
-type virtualMediaEnvironment struct {
-	isManager  bool
-	collection []*redfish.VirtualMedia
-	service    *gofish.Service
-	system     *redfish.ComputerSystem
-}
-
-func (r *virtualMediaResource) getVMEnv(rserver *[]models.RedfishServer, sysID string) (
-	*gofish.APIClient, virtualMediaEnvironment, diag.Diagnostics,
-) {
-	var d diag.Diagnostics
-	var env virtualMediaEnvironment
-	// Get service
-	api, err := NewConfig(r.p, rserver)
-	if err != nil {
-		d.AddError(ServiceErrorMsg, err.Error())
-		return api, env, d
-	}
-	service := api.Service
-	env.service = service
-	// Get Systems details
-	system, err := getSystemResource(service, sysID)
-	if err != nil {
-		d.AddError("Error when retrieving systems", err.Error())
-		return api, env, d
-	}
-	env.system = system
-	// Get virtual media collection from system
-	virtualMediaCollection, err := system.VirtualMedia()
-	if err != nil {
-		d.AddError("Couldn't retrieve virtual media collection from redfish API", err.Error())
-		return api, env, d
-	}
-	if len(virtualMediaCollection) != 0 {
-		// This happens in iDRAC 6.x and later
-		env.collection = virtualMediaCollection
-		env.isManager = false
-		return api, env, d
-	}
-	// This implementation is added to support iDRAC firmware version 5.x. As virtual media can only be accessed through Managers card on 5.x.
-	// Get OOB Manager card - managers[0] will be our oob card
-	env.isManager = true
-	managers, err := service.Managers()
-	if err != nil {
-		d.AddError("Couldn't retrieve managers from redfish API: ", err.Error())
-		return api, env, d
-	}
-	// Get virtual media collection from manager
-	virtualMediaCollection, err = managers[0].VirtualMedia()
-	if err != nil {
-		d.AddError("Couldn't retrieve virtual media collection from redfish API: ", err.Error())
-		return api, env, d
-	}
-	env.collection = virtualMediaCollection
-	return api, env, d
 }
 
 // Read refreshes the Terraform state with the latest data.
@@ -321,7 +274,7 @@ func (r *virtualMediaResource) Read(ctx context.Context, req resource.ReadReques
 	}
 
 	// Save into State
-	result := r.updateVirtualMediaState(virtualMedia, state)
+	result := helper.UpdateVirtualMediaState(virtualMedia, state)
 	diags = resp.State.Set(ctx, &result)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -332,7 +285,7 @@ func (r *virtualMediaResource) Read(ctx context.Context, req resource.ReadReques
 
 // VMediaImportConfig is the JSON configuration for importing a virtual media
 type VMediaImportConfig struct {
-	ServerConf
+	helper.ServerConf
 	SystemID     string `json:"system_id"`
 	ID           string `json:"id"`
 	RedfishAlias string `json:"redfish_alias"`
@@ -357,7 +310,19 @@ func (r *virtualMediaResource) ImportState(ctx context.Context, req resource.Imp
 
 	creds := []models.RedfishServer{server}
 
-	api, env, d := r.getVMEnv(&creds, c.SystemID)
+	api, err := NewConfig(r.p, &creds)
+	if err != nil {
+		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
+		return
+	}
+	service := api.Service
+	// Get Systems details
+	system, err := getSystemResource(service, c.SystemID)
+	if err != nil {
+		resp.Diagnostics.AddError("Error when retrieving systems", err.Error())
+		return
+	}
+	env, d := helper.GetVMEnv(service, system)
 	resp.Diagnostics = append(resp.Diagnostics, d...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -366,7 +331,7 @@ func (r *virtualMediaResource) ImportState(ctx context.Context, req resource.Imp
 
 	// get virtual media with given ID
 	var media *redfish.VirtualMedia
-	for _, vm := range env.collection {
+	for _, vm := range env.Collection {
 		if vm.ODataID == c.ID {
 			media = vm
 			break
@@ -384,7 +349,7 @@ func (r *virtualMediaResource) ImportState(ctx context.Context, req resource.Imp
 	}
 
 	// Save into State
-	result := r.updateVirtualMediaState(media, models.VirtualMedia{
+	result := helper.UpdateVirtualMediaState(media, models.VirtualMedia{
 		RedfishServer: creds,
 	})
 	diags := resp.State.Set(ctx, &result)
@@ -484,7 +449,7 @@ func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRe
 	}
 
 	// Save into State
-	result := r.updateVirtualMediaState(virtualMedia, state)
+	result := helper.UpdateVirtualMediaState(virtualMedia, state)
 	diags = resp.State.Set(ctx, &result)
 	resp.Diagnostics.Append(diags...)
 	tflog.Trace(ctx, "resource_virtual_media update: finished")
@@ -525,49 +490,8 @@ func (r *virtualMediaResource) Delete(ctx context.Context, req resource.DeleteRe
 	}
 
 	// Save into State
-	result := r.updateVirtualMediaState(virtualMedia, state)
+	result := helper.UpdateVirtualMediaState(virtualMedia, state)
 	diags = resp.State.Set(ctx, &result)
 	resp.Diagnostics.Append(diags...)
 	tflog.Trace(ctx, "resource_virtual_media delete: finished")
-}
-
-func getVirtualMedia(virtualMediaID string, vms []*redfish.VirtualMedia) (*redfish.VirtualMedia, error) {
-	for _, v := range vms {
-		if v.ID == virtualMediaID {
-			return v, nil
-		}
-	}
-	return nil, fmt.Errorf("virtual media with ID %s doesn't exist", virtualMediaID)
-}
-
-func insertMedia(id string, collection []*redfish.VirtualMedia, config redfish.VirtualMediaConfig, s *gofish.Service) (*redfish.VirtualMedia, error) {
-	virtualMedia, err := getVirtualMedia(id, collection)
-	if err != nil {
-		return nil, fmt.Errorf("virtual media selected doesn't exist: %w", err)
-	}
-	if !virtualMedia.Inserted {
-		err = virtualMedia.InsertMediaConfig(config)
-		if err != nil {
-			return nil, fmt.Errorf("couldn't mount Virtual Media: %w", err)
-		}
-		virtualMedia, err := redfish.GetVirtualMedia(s.GetClient(), virtualMedia.ODataID)
-		if err != nil {
-			return nil, fmt.Errorf("virtual media selected doesn't exist: %w", err)
-		}
-		return virtualMedia, nil
-	}
-	return nil, err
-}
-
-// updateVirtualMediaState - Copy virtual media details from response to state object
-func (*virtualMediaResource) updateVirtualMediaState(response *redfish.VirtualMedia, plan models.VirtualMedia) models.VirtualMedia {
-	return models.VirtualMedia{
-		VirtualMediaID:       types.StringValue(response.ODataID),
-		Image:                types.StringValue(response.Image),
-		Inserted:             types.BoolValue(response.Inserted),
-		TransferMethod:       types.StringValue(string(response.TransferMethod)),
-		TransferProtocolType: types.StringValue(string(response.TransferProtocolType)),
-		WriteProtected:       types.BoolValue(response.WriteProtected),
-		RedfishServer:        plan.RedfishServer,
-	}
 }

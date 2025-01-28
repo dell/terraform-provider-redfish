@@ -19,13 +19,17 @@ package provider
 
 import (
 	"fmt"
+	"io"
 	"regexp"
+	"terraform-provider-redfish/common"
+	"terraform-provider-redfish/redfish/helper"
 	"testing"
 
+	"github.com/bytedance/mockey"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-// test redfish bios settings
+// test redfish idrac firmware update
 func TestAccRedfishIdracFirmwareUpdateResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -68,6 +72,94 @@ func TestAccRedfishIdracFirmwareUpdateResourceFail(t *testing.T) {
 			},
 		},
 	})
+}
+
+// test redfish idrac firmware update with create mock error
+func TestAccRedfishIdracFirmwareUpdateResource_createMockerr(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config: testAccRedfishIdracFirmwareUpdateCreate(
+					creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(getSystemResource).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config: testAccRedfishIdracFirmwareUpdateReapply(
+					creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(helper.GetInstallFirmwareUpdatePayload).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config: testAccRedfishIdracFirmwareUpdateReapply(
+					creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(helper.ExtractJobID).Return("").Build()
+				},
+				Config: testAccRedfishIdracFirmwareUpdateReapply(
+					creds),
+				ExpectError: regexp.MustCompile(`.*Check repository Updates job error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(common.GetJobDetailsOnFinish).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config: testAccRedfishIdracFirmwareUpdateReapply(
+					creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(io.ReadAll).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config: testAccRedfishIdracFirmwareUpdateReapply(
+					creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(helper.ParseXML).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config: testAccRedfishIdracFirmwareUpdateReapply(
+					creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
 }
 
 func testAccRedfishIdracFirmwareUpdateCreate(testingInfo TestingServerCredentials) string {
