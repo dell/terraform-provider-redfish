@@ -22,6 +22,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/bytedance/mockey"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -284,6 +285,82 @@ func TestAccRedfishStorageControllerAttributesImport(t *testing.T) {
 				ImportState:   true,
 				ImportStateId: importReqID,
 				ExpectError:   nil,
+			},
+		},
+	})
+}
+
+func TestAccRedfishStorageControllerAttributesMock(t *testing.T) {
+	storageControllerResourceName := "redfish_storage_controller.test"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// mock NewConfig error when creating
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceStorageControllerBasicConfig(storageControllerParams),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			// creating
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+				},
+				Config: testAccRedfishResourceStorageControllerBasicConfig(storageControllerParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(storageControllerResourceName, "system_id", "System.Embedded.1"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_id", "RAID.Integrated.1-1"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "controller_id", "RAID.Integrated.1-1")),
+			},
+			// mock NewConfig error when updating
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceStorageControllerFirstAvailableChoiceSelectedConfig(storageControllerParams),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			// updating
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+				},
+				Config: testAccRedfishResourceStorageControllerFirstAvailableChoiceSelectedConfig(storageControllerParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.check_consistency_mode", "Normal"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.copyback_mode", "On"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.load_balance_mode", "Automatic"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.enhanced_auto_import_foreign_configuration_mode", "Disabled"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.patrol_read_unconfigured_area_mode", "Disabled"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.patrol_read_mode", "Disabled"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.background_initialization_rate_percent", "32"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.reconstruct_rate_percent", "32"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.controller_rates.consistency_check_rate_percent", "32"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.controller_rates.rebuild_rate_percent", "32"),
+				),
+			},
+			// updating
+			{
+				Config: testAccRedfishResourceStorageControllerSecondAvailableChoiceSelectedConfig(storageControllerParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.check_consistency_mode", "StopOnError"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.copyback_mode", "Off"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.load_balance_mode", "Disabled"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.enhanced_auto_import_foreign_configuration_mode", "Enabled"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.patrol_read_unconfigured_area_mode", "Enabled"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.patrol_read_mode", "Automatic"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.background_initialization_rate_percent", "30"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.reconstruct_rate_percent", "30"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.controller_rates.consistency_check_rate_percent", "30"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.controller_rates.rebuild_rate_percent", "30"),
+				),
 			},
 		},
 	})

@@ -22,7 +22,9 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/bytedance/mockey"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/stmcginnis/gofish/redfish"
 )
 
 func dependsOnUser() string {
@@ -62,6 +64,48 @@ func TestAccRedfishUserPassword_basic(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccRedfishUserPassword_Mock(t *testing.T) {
+	accountList := make([]*redfish.ManagerAccount, 0)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(getAccounts).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config: fmt.Sprintf(`
+				%s
+				%s
+				`,
+					testAccRedfishResourceUserConfig(creds, "test", "Test@123", "Administrator", true, "15"), testAccRedfishResourceUserPasswordConfig(creds, "test", "Test@123", "Test@1234", dependsOnUser())),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(getAccounts).Return(accountList, nil).Build()
+				},
+				Config: fmt.Sprintf(`
+				%s
+				%s
+				`,
+					testAccRedfishResourceUserConfig(creds, "test", "Test@123", "Administrator", true, "15"), testAccRedfishResourceUserPasswordConfig(creds, "test", "Test@123", "Test@1234", dependsOnUser())),
+				ExpectError: regexp.MustCompile(`account not found`),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
 }
 
 func testAccRedfishResourceUserPasswordConfig(
