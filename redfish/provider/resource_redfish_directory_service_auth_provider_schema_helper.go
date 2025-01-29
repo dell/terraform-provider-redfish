@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"terraform-provider-redfish/redfish/helper"
 	"terraform-provider-redfish/redfish/models"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -506,7 +507,7 @@ func getActiveDirectoryPatchBody(ctx context.Context, attrsState *models.Directo
 	if !activeDirectoryPlan.Directory.IsNull() && !activeDirectoryPlan.Directory.IsUnknown() {
 		for key, value := range activeDirectoryPlan.Directory.Attributes() {
 			if !value.IsUnknown() && !value.IsNull() {
-				goValue, err := convertTerraformValueToGoBasicValue(ctx, value)
+				goValue, err := helper.ConvertTerraformValueToGoBasicValue(ctx, value)
 				if err != nil {
 					tflog.Trace(ctx, fmt.Sprintf("Failed to convert AD directory value to go value: %s", err.Error()))
 					continue
@@ -557,7 +558,7 @@ func getActiveDirectoryPatchBody(ctx context.Context, attrsState *models.Directo
 		authenticationPatchBody := make(map[string]interface{})
 		for key, value := range activeDirectoryPlan.Authentication.Attributes() {
 			if !value.IsUnknown() && !value.IsNull() {
-				goValue, err := convertTerraformValueToGoBasicValue(ctx, value)
+				goValue, err := helper.ConvertTerraformValueToGoBasicValue(ctx, value)
 				if err != nil {
 					tflog.Trace(ctx, fmt.Sprintf("Failed to convert AD authentication value to go value: %s", err.Error()))
 					continue
@@ -629,7 +630,7 @@ func getLDAPPatchBody(ctx context.Context, attrsState *models.DirectoryServiceAu
 	if !ldapPlan.Directory.IsNull() && !ldapPlan.Directory.IsUnknown() {
 		for key, value := range ldapPlan.Directory.Attributes() {
 			if !value.IsUnknown() && !value.IsNull() {
-				goValue, err := convertTerraformValueToGoBasicValue(ctx, value)
+				goValue, err := helper.ConvertTerraformValueToGoBasicValue(ctx, value)
 				if err != nil {
 					tflog.Trace(ctx, fmt.Sprintf("Failed to convert LDAP Directory value to go value: %s", err.Error()))
 					continue
@@ -649,7 +650,7 @@ func getLDAPPatchBody(ctx context.Context, attrsState *models.DirectoryServiceAu
 					ldapSearchSettingPatchBody := make(map[string]interface{})
 					for key, value := range ldapServicePlan.SearchSettings.Attributes() {
 						if !value.IsUnknown() && !value.IsNull() {
-							goValue, err := convertTerraformValueToGoBasicValue(ctx, value)
+							goValue, err := helper.ConvertTerraformValueToGoBasicValue(ctx, value)
 							if err != nil {
 								tflog.Trace(ctx, fmt.Sprintf("Failed to convert LDAP SearchSettings value to go value: %s", err.Error()))
 								continue

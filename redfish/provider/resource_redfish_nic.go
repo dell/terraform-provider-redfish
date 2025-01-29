@@ -20,11 +20,9 @@ package provider
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"strings"
 	"terraform-provider-redfish/common"
-	"terraform-provider-redfish/gofish/dell"
+	"terraform-provider-redfish/redfish/helper"
 	"terraform-provider-redfish/redfish/models"
 	"time"
 
@@ -33,10 +31,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/stmcginnis/gofish"
 	redfishcommon "github.com/stmcginnis/gofish/common"
+	"github.com/stmcginnis/gofish/redfish"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -97,18 +95,24 @@ func (r *RedfishNICResource) Create(ctx context.Context, req resource.CreateRequ
 	service := api.Service
 	defer api.Logout()
 
-	if networkAttributesChanged(ctx, &plan, &emptyState) && oemNetworkAttributesChanged(ctx, &plan, &emptyState) {
+	if helper.NetworkAttributesChanged(ctx, &plan, &emptyState) && helper.OemNetworkAttributesChanged(ctx, &plan, &emptyState) {
 		resp.Diagnostics.AddError("Error when creating both of `network_attributes` and `oem_network_attributes`",
 			noteMessageUpdateOneAttrsOnly)
 		return
 	}
-	diags = updateRedfishNIC(ctx, service, &emptyState, &plan)
+	system, err := getSystemResource(service, plan.SystemID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+
+	diags = updateRedfishNIC(ctx, service, system, &emptyState, &plan)
 	if resp.Diagnostics.Append(diags...); resp.Diagnostics.HasError() {
 		return
 	}
 	tflog.Trace(ctx, "resource_RedfishNIC create: updating remote settings finished, saving ...")
 
-	diags = readRedfishNIC(ctx, service, &plan)
+	diags = helper.ReadRedfishNIC(ctx, service, system, &plan)
 	if resp.Diagnostics.Append(diags...); resp.Diagnostics.HasError() {
 		return
 	}
@@ -136,8 +140,12 @@ func (r *RedfishNICResource) Read(ctx context.Context, req resource.ReadRequest,
 	}
 	service := api.Service
 	defer api.Logout()
-
-	diags = readRedfishNIC(ctx, service, &state)
+	system, err := getSystemResource(service, state.SystemID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+	diags = helper.ReadRedfishNIC(ctx, service, system, &state)
 	if resp.Diagnostics.Append(diags...); resp.Diagnostics.HasError() {
 		return
 	}
@@ -175,7 +183,7 @@ func (r *RedfishNICResource) Update(ctx context.Context, req resource.UpdateRequ
 	service := api.Service
 	defer api.Logout()
 
-	if networkAttributesChanged(ctx, &plan, &state) && oemNetworkAttributesChanged(ctx, &plan, &state) {
+	if helper.NetworkAttributesChanged(ctx, &plan, &state) && helper.OemNetworkAttributesChanged(ctx, &plan, &state) {
 		resp.Diagnostics.AddError("Error when updating both of `network_attributes` and `oem_network_attributes`",
 			noteMessageUpdateOneAttrsOnly)
 	}
@@ -192,13 +200,18 @@ func (r *RedfishNICResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	diags = updateRedfishNIC(ctx, service, &state, &plan)
+	system, err1 := getSystemResource(service, plan.SystemID.ValueString())
+	if err1 != nil {
+		resp.Diagnostics.AddError(RedfishJobErrorMsg, err1.Error())
+		return
+	}
+	diags = updateRedfishNIC(ctx, service, system, &state, &plan)
 	if resp.Diagnostics.Append(diags...); resp.Diagnostics.HasError() {
 		return
 	}
 	tflog.Trace(ctx, "resource_RedfishNIC update: finished remote settings update")
 
-	diags = readRedfishNIC(ctx, service, &plan)
+	diags = helper.ReadRedfishNIC(ctx, service, system, &plan)
 	if resp.Diagnostics.Append(diags...); resp.Diagnostics.HasError() {
 		return
 	}
@@ -259,7 +272,7 @@ func (*RedfishNICResource) ImportState(ctx context.Context, req resource.ImportS
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("network_device_function_id"), c.NetworkDeviceFunctionID)...)
 }
 
-func updateRedfishNIC(ctx context.Context, service *gofish.Service, state, plan *models.NICResource) diag.Diagnostics {
+func updateRedfishNIC(ctx context.Context, service *gofish.Service, system *redfish.ComputerSystem, state, plan *models.NICResource) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	applyTime := plan.ApplyTime.ValueString()
@@ -292,12 +305,11 @@ func updateRedfishNIC(ctx context.Context, service *gofish.Service, state, plan 
 			return diags
 		}
 	}
-
 	var jobURL string
-	if oemNetworkAttributesChanged(ctx, plan, state) {
-		jobURL, diags = updateNicOemNetworkAttributes(ctx, service, plan)
-	} else if networkAttributesChanged(ctx, plan, state) {
-		jobURL, diags = updateNicNetworktributes(ctx, service, plan)
+	if helper.OemNetworkAttributesChanged(ctx, plan, state) {
+		jobURL, diags = helper.UpdateNicOemNetworkAttributes(ctx, service, system, plan)
+	} else if helper.NetworkAttributesChanged(ctx, plan, state) {
+		jobURL, diags = helper.UpdateNicNetworktributes(ctx, service, system, plan)
 	} else {
 		jobWait = false
 		tflog.Trace(ctx, "Both `oem_network_attributes` and `network_attributes` are not changed. Skip Update for NIC.")
@@ -325,6 +337,7 @@ func updateRedfishNIC(ctx context.Context, service *gofish.Service, state, plan 
 	return diags
 }
 
+/*
 // nolint: gocyclo,revive
 func updateNicNetworktributes(ctx context.Context, service *gofish.Service, plan *models.NICResource) (jobURL string, diags diag.Diagnostics) {
 	tflog.Info(ctx, "updateNicNetworktributes: started")
@@ -594,4 +607,4 @@ func readRedfishNIC(ctx context.Context, service *gofish.Service, state *models.
 	state.ID = types.StringValue("redfish_network_adapter_resource")
 	state.SystemID = types.StringValue(system.ID)
 	return diags
-}
+}*/
