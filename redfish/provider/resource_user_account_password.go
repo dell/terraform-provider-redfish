@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -155,7 +156,7 @@ func (r *UserAccountPasswordResource) Create(ctx context.Context, req resource.C
 	defer api.Logout()
 
 	// Fetch user account for which password needs to be updated
-	accountList, err := GetAccountList(service)
+	accountList, err := getAccounts(service)
 	if err != nil {
 		resp.Diagnostics.AddError("unable to access user data, please check access credentials", err.Error())
 		return
@@ -228,6 +229,18 @@ func (*UserAccountPasswordResource) Update(_ context.Context, _ resource.UpdateR
 // Delete deletes the resource and removes the Terraform state on success.
 func (*UserAccountPasswordResource) Delete(ctx context.Context, _ resource.DeleteRequest, resp *resource.DeleteResponse) {
 	resp.State.RemoveResource(ctx)
+}
+
+func getAccounts(c *gofish.Service) ([]*redfish.ManagerAccount, error) {
+	accountService, err := c.AccountService()
+	if err != nil {
+		return nil, err
+	}
+	accounts, err := accountService.Accounts()
+	if err != nil {
+		return nil, err
+	}
+	return accounts, nil
 }
 
 func fetchAccountFromUserName(accountList []*redfish.ManagerAccount, username string) (*redfish.ManagerAccount, error) {

@@ -22,6 +22,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/bytedance/mockey"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -72,6 +73,56 @@ func TestAccRedfishBios_InvalidAttributes(t *testing.T) {
 				Config: testAccRedfishResourceBiosConfigInvalidAttributes(
 					creds),
 				ExpectError: regexp.MustCompile("Attribute settings_apply_time value must be one of"),
+			},
+		},
+	})
+}
+
+func TestAccRedfishBios_Mock(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// mock NewConfig error when creating
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceBiosConfigOn(creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			// creating
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+				},
+				Config: testAccRedfishResourceBiosConfigOn(creds),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_bios.bios", "attributes.NumLock", "On"),
+				),
+			},
+			// mock NewConfig error when updating
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceBiosConfigOff(creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			// updating
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+				},
+				Config: testAccRedfishResourceBiosConfigOff(
+					creds),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_bios.bios", "attributes.NumLock", "Off"),
+				),
 			},
 		},
 	})
