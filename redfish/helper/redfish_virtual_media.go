@@ -109,6 +109,22 @@ func UpdateVirtualMediaState(response *redfish.VirtualMedia, plan models.Virtual
 	}
 }
 
+// GetNejectVirtualMedia - is a helper function to get virtual media and eject the media
+func GetNejectVirtualMedia(service *gofish.Service, uri string) (*redfish.VirtualMedia, error) {
+	virtualMedia, err := redfish.GetVirtualMedia(service.GetClient(), uri)
+	if err != nil {
+		return nil, fmt.Errorf("virtual Media doesn't exist:  %w", err) // This error won't be triggered ever
+	}
+
+	// Eject virtual media
+	err = virtualMedia.EjectMedia()
+	if err != nil {
+		return nil, fmt.Errorf("there was an error when ejecting media: %w", err)
+	}
+
+	return virtualMedia, nil
+}
+
 // VirtualMediaEnvironment is schema for virtual media environment
 type VirtualMediaEnvironment struct {
 	Manager    bool
