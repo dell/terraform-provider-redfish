@@ -1,0 +1,29 @@
+# nonk8s
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: dell-terraform-provider-redfish
+  description: "Terraform provider for Redfish REST APIs"
+  tags:
+    - devops
+    - automation
+    - terraform
+    - dell
+    - infrastructure-as-code
+    - terraform-provider
+    - redfish
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+    github.com/project-slug: dell/terraform-provider-redfish
+  links:   
+    - url: 'https://dell.github.io/terraform-docs/docs/storage/platforms/redfish/'
+      title: 'Dell Terraform Providers Documentation'
+      icon: 'web'
+    - url: 'https://github.com/dell/terraform-provider-redfish/issues'
+      title: 'Contact Technical Support'
+      icon: 'help'
+spec:
+  type: service
+  lifecycle: production
+  owner: user:default/varun.chinta
+  visibility: all
