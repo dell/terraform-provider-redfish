@@ -22,6 +22,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/bytedance/mockey"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -144,6 +145,86 @@ func TestAccRedfishNICAttributesFC(t *testing.T) {
 	})
 }
 
+func TestAccRedfishNICAttributes_CreateMockErr(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// create with `network_attributes` only for FC with newcofig mock error
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceFCConfigNetworkAttrs(fcParams),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			//  create with `network_attributes` only for FC with getSystemResource mock error
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(getSystemResource).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceFCConfigNetworkAttrs(fcParams),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+		},
+	})
+}
+
+func TestAccRedfishNICAttributes_UpdateMockErr(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceFCConfigNetworkAttrs(fcParams),
+			},
+			// Update with `network_attributes` only for FC with newcofig mock error
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceFCConfig(fcParams),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			//  Update with `network_attributes` only for FC with getSystemResource mock error
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(getSystemResource).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceFCConfig(fcParams),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+		},
+	})
+}
+
+func TestAccRedfishNICAttributes_ReadMockErr(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceFCConfigNetworkAttrs(fcParams),
+			},
+			// Read `network_attributes` only for FC with newcofig mock error
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceFCConfigNetworkAttrs(fcParams),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			//  Read with `network_attributes` only for FC with getSystemResource mock error
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(getSystemResource).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceFCConfigNetworkAttrs(fcParams),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+		},
+	})
+}
 func TestAccRedfishNICAttributesISCSI(t *testing.T) {
 	terraformResourceName := "redfish_network_adapter.nic"
 	resource.Test(t, resource.TestCase{
