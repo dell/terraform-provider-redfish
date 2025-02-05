@@ -272,6 +272,7 @@ func (*RedfishNICResource) ImportState(ctx context.Context, req resource.ImportS
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("network_device_function_id"), c.NetworkDeviceFunctionID)...)
 }
 
+// nolint: gocyclo,revive
 func updateRedfishNIC(ctx context.Context, service *gofish.Service, system *redfish.ComputerSystem, state, plan *models.NICResource) diag.Diagnostics {
 	var diags diag.Diagnostics
 
@@ -607,4 +608,4 @@ func readRedfishNIC(ctx context.Context, service *gofish.Service, state *models.
 	state.ID = types.StringValue("redfish_network_adapter_resource")
 	state.SystemID = types.StringValue(system.ID)
 	return diags
-}*/
+} */

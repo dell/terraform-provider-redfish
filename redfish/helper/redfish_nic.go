@@ -36,72 +36,75 @@ import (
 	"github.com/stmcginnis/gofish/redfish"
 )
 
+// nolint: gocyclo,revive
 const (
-	defaultNICJobTimeout                      int64 = 1200
-	intervalNICJobCheckTime                   int64 = 10
-	defaultNICResetTimeout                    int64 = 120
-	fieldDescriptionNetDevFuncID                    = "ID of the network device function"
-	errMessageInvalidInput                          = "input params are not valid"
-	noteMessageUpdateOneAttrsOnly                   = "Please update one of network_attributes or oem_network_attributes at a time."
-	noteMessageUpdateAttrsExclusive                 = "Note: `oem_network_attributes` is mutually exclusive with `network_attributes`. "
-	patchBodySettingsApplyTime                      = "@Redfish.SettingsApplyTime"
-	patchBodyApplyTime                              = "ApplyTime"
-	fieldNameClearPending                           = "clear_pending"
-	fieldNameAttributes                             = "attributes"
-	fieldNameWWPN                                   = "wwpn"
-	fieldNameWWNN                                   = "wwnn"
-	fieldNameWWNNSource                             = "wwn_source"
-	fieldNameBootPriority                           = "boot_priority"
-	fieldNameLunID                                  = "lun_id"
-	fieldNameFibreChannel                           = "fibre_channel"
-	fieldNameNetDevFuncType                         = "net_dev_func_type"
-	fieldNameEthernet                               = "ethernet"
-	fieldNameIscsiBoot                              = "iscsi_boot"
-	fieldNameHealth                                 = "health"
-	fieldNameMACAddress                             = "mac_address"
-	fieldNameMTUSize                                = "mtu_size"
-	fieldNameVLAN                                   = "vlan"
-	fieldNameVLANID                                 = "vlan_id"
-	fieldNameVLANEnabled                            = "vlan_enabled"
-	fieldNameAllowFipVlanDiscovery                  = "allow_fip_vlan_discovery" // nolint: gosec
-	fieldNameBootTargets                            = "boot_targets"
-	fieldNameFcoeLocalVlanID                        = "fcoe_local_vlan_id"
-	fieldNameAuthenticationMethod                   = "authentication_method"
-	fieldNameChapSec                                = "chap_secret"
-	fieldNameChapUsername                           = "chap_username"
-	fieldNameIPAddressType                          = "ip_address_type"
-	fieldNameIPMaskDNSViaDHCP                       = "ip_mask_dns_via_dhcp"
-	fieldNameInitiatorDefaultGateway                = "initiator_default_gateway"
-	fieldNameInitiatorIPAddress                     = "initiator_ip_address"
-	fieldNameInitiatorName                          = "initiator_name"
-	fieldNameInitiatorNetmask                       = "initiator_netmask"
-	fieldNameMutualChapSec                          = "mutual_chap_secret"
-	fieldNameMutualChapUsername                     = "mutual_chap_username"
-	fieldNamePrimaryDNS                             = "primary_dns"
-	fieldNamePrimaryLun                             = "primary_lun"
-	fieldNamePrimaryTargetIPAddress                 = "primary_target_ip_address"
-	fieldNamePrimaryTargetName                      = "primary_target_name"
-	fieldNamePrimaryTargetTCPPort                   = "primary_target_tcp_port"
-	fieldNamePrimaryVLANEnable                      = "primary_vlan_enable"
-	fieldNamePrimaryVLANID                          = "primary_vlan_id"
-	fieldNameRouterAdvertisementEnabled             = "router_advertisement_enabled"
-	fieldNameSecondaryDNS                           = "secondary_dns"
-	fieldNameSecondaryLun                           = "secondary_lun"
-	fieldNameSecondaryTargetIPAddress               = "secondary_target_ip_address"
-	fieldNameSecondaryTargetName                    = "secondary_target_name"
-	fieldNameSecondaryTargetTCPPort                 = "secondary_target_tcp_port"
-	fieldNameSecondaryVLANEnable                    = "secondary_vlan_enable"
-	fieldNameSecondaryVLANID                        = "secondary_vlan_id"
-	fieldNameTargetInfoViaDHCP                      = "target_info_via_dhcp"
-	NICComponmentSchemaID                           = "id"
-	NICComponmentSchemaOdataID                      = "odata_id"
-	NICComponmentSchemaName                         = "name"
-	NICComponmentSchemaDescription                  = "description"
-	NICComponmentSchemaStatus                       = "status"
-	NICComponmentSchemaPartNumber                   = "part_number"
-	NICComponmentSchemaSerialNumber                 = "serial_number"
-	NICSchemaDescriptionForSerialNumber             = "A manufacturer-allocated number used to identify the Small Form Factor pluggable(SFP) Transceiver"
-	NICSchemaDescriptionForDeprecatedNoteV440       = "Note: This property is deprecated and not supported " +
+	defaultNICJobTimeout                int64 = 1200
+	intervalNICJobCheckTime             int64 = 10
+	defaultNICResetTimeout              int64 = 120
+	fieldDescriptionNetDevFuncID              = "ID of the network device function"
+	errMessageInvalidInput                    = "input params are not valid"
+	noteMessageUpdateOneAttrsOnly             = "Please update one of network_attributes or oem_network_attributes at a time."
+	noteMessageUpdateAttrsExclusive           = "Note: `oem_network_attributes` is mutually exclusive with `network_attributes`. "
+	patchBodySettingsApplyTime                = "@Redfish.SettingsApplyTime"
+	patchBodyApplyTime                        = "ApplyTime"
+	fieldNameClearPending                     = "clear_pending"
+	fieldNameAttributes                       = "attributes"
+	fieldNameWWPN                             = "wwpn"
+	fieldNameWWNN                             = "wwnn"
+	fieldNameWWNNSource                       = "wwn_source"
+	fieldNameBootPriority                     = "boot_priority"
+	fieldNameLunID                            = "lun_id"
+	fieldNameFibreChannel                     = "fibre_channel"
+	fieldNameNetDevFuncType                   = "net_dev_func_type"
+	fieldNameEthernet                         = "ethernet"
+	fieldNameIscsiBoot                        = "iscsi_boot"
+	fieldNameHealth                           = "health"
+	fieldNameMACAddress                       = "mac_address"
+	fieldNameMTUSize                          = "mtu_size"
+	fieldNameVLAN                             = "vlan"
+	fieldNameVLANID                           = "vlan_id"
+	fieldNameVLANEnabled                      = "vlan_enabled"
+	fieldNameAllowFipVlanDiscovery            = "allow_fip_vlan_discovery" // nolint: gosec
+	fieldNameBootTargets                      = "boot_targets"
+	fieldNameFcoeLocalVlanID                  = "fcoe_local_vlan_id"
+	fieldNameAuthenticationMethod             = "authentication_method"
+	fieldNameChapSec                          = "chap_secret"
+	fieldNameChapUsername                     = "chap_username"
+	fieldNameIPAddressType                    = "ip_address_type"
+	fieldNameIPMaskDNSViaDHCP                 = "ip_mask_dns_via_dhcp"
+	fieldNameInitiatorDefaultGateway          = "initiator_default_gateway"
+	fieldNameInitiatorIPAddress               = "initiator_ip_address"
+	fieldNameInitiatorName                    = "initiator_name"
+	fieldNameInitiatorNetmask                 = "initiator_netmask"
+	fieldNameMutualChapSec                    = "mutual_chap_secret"
+	fieldNameMutualChapUsername               = "mutual_chap_username"
+	fieldNamePrimaryDNS                       = "primary_dns"
+	fieldNamePrimaryLun                       = "primary_lun"
+	fieldNamePrimaryTargetIPAddress           = "primary_target_ip_address"
+	fieldNamePrimaryTargetName                = "primary_target_name"
+	fieldNamePrimaryTargetTCPPort             = "primary_target_tcp_port"
+	fieldNamePrimaryVLANEnable                = "primary_vlan_enable"
+	fieldNamePrimaryVLANID                    = "primary_vlan_id"
+	fieldNameRouterAdvertisementEnabled       = "router_advertisement_enabled"
+	fieldNameSecondaryDNS                     = "secondary_dns"
+	fieldNameSecondaryLun                     = "secondary_lun"
+	fieldNameSecondaryTargetIPAddress         = "secondary_target_ip_address"
+	fieldNameSecondaryTargetName              = "secondary_target_name"
+	fieldNameSecondaryTargetTCPPort           = "secondary_target_tcp_port"
+	fieldNameSecondaryVLANEnable              = "secondary_vlan_enable"
+	fieldNameSecondaryVLANID                  = "secondary_vlan_id"
+	fieldNameTargetInfoViaDHCP                = "target_info_via_dhcp"
+	// NICComponmentSchema attributes
+	NICComponmentSchemaID               = "id"
+	NICComponmentSchemaOdataID          = "odata_id"
+	NICComponmentSchemaName             = "name"
+	NICComponmentSchemaDescription      = "description"
+	NICComponmentSchemaStatus           = "status"
+	NICComponmentSchemaPartNumber       = "part_number"
+	NICComponmentSchemaSerialNumber     = "serial_number"
+	NICSchemaDescriptionForSerialNumber = "A manufacturer-allocated number used to identify the Small Form Factor pluggable(SFP) " +
+		"Transceiver"
+	NICSchemaDescriptionForDeprecatedNoteV440 = "Note: This property is deprecated and not supported " +
 		"in iDRAC firmware version 4.40.00.00 or later versions"
 	NICSchemaDescriptionForDeprecatedNoteV420 = "Note: This property will be deprecated in Poweredge systems " +
 		"with model YX5X and iDRAC firmware version 4.20.20.20 or later"
@@ -109,7 +112,7 @@ const (
 	RedfishJobErrorMsg = "Error, job wasn't able to complete"
 )
 
-/*func updateRedfishNIC(ctx context.Context, service *gofish.Service, state, plan *models.NICResource) diag.Diagnostics {
+/* func updateRedfishNIC(ctx context.Context, service *gofish.Service, state, plan *models.NICResource) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	applyTime := plan.ApplyTime.ValueString()
@@ -173,8 +176,9 @@ const (
 	tflog.Trace(ctx, "Job has been completed")
 
 	return diags
-}*/
+} */
 
+// OemNetworkAttributesChanged is helper function
 func OemNetworkAttributesChanged(_ context.Context, plan, state *models.NICResource) bool {
 	if plan.OemNetworkAttributes.IsUnknown() || plan.OemNetworkAttributes.IsNull() {
 		return false
@@ -182,6 +186,7 @@ func OemNetworkAttributesChanged(_ context.Context, plan, state *models.NICResou
 	return oemClearPendingChanged(plan, state) || oemNetworkAttributesAttrsChanged(plan, state)
 }
 
+// UpdateNicNetworktributes is a helper function
 // nolint: gocyclo,revive
 func UpdateNicNetworktributes(ctx context.Context, service *gofish.Service, system *redfish.ComputerSystem, plan *models.NICResource) (jobURL string, diags diag.Diagnostics) {
 	tflog.Info(ctx, "updateNicNetworktributes: started")
@@ -310,21 +315,22 @@ func setManagerAttributesRightType(rawAttributes map[string]string, registry *de
 }
 
 func checkManagerAttributes(attrRegistry *dell.ManagerAttributeRegistry, attributes map[string]interface{}) error {
-	var errors string // Here will be collected all attribute errors to show to users
+	var errStr string // Here will be collected all attribute errors to show to users
 
 	for k, v := range attributes {
 		err := attrRegistry.CheckAttribute(k, v)
 		if err != nil {
-			errors += fmt.Sprintf("%s - %s\n", k, err.Error())
+			errStr += fmt.Sprintf("%s - %s\n", k, err.Error())
 		}
 	}
-	if len(errors) > 0 {
-		return fmt.Errorf("%s", errors)
+	if len(errStr) > 0 {
+		return fmt.Errorf("%s", errStr)
 	}
 
 	return nil
 }
 
+// UpdateNicOemNetworkAttributes is a helper function
 func UpdateNicOemNetworkAttributes(ctx context.Context, service *gofish.Service, system *redfish.ComputerSystem, plan *models.NICResource) (jobURL string, diags diag.Diagnostics) {
 	tflog.Info(ctx, "updateNicOemNetworkAttributes: started")
 	applyTime := plan.ApplyTime.ValueString()
@@ -460,6 +466,7 @@ func assertOemNetworkAttributes(rawAttributes map[string]string, managerAttribut
 	return err
 }
 
+// ReadRedfishNIC function read the redfish NIC
 func ReadRedfishNIC(ctx context.Context, service *gofish.Service, system *redfish.ComputerSystem, state *models.NICResource) diag.Diagnostics {
 	var diags diag.Diagnostics
 
@@ -494,6 +501,7 @@ func ReadRedfishNIC(ctx context.Context, service *gofish.Service, system *redfis
 	return diags
 }
 
+// ConvertTerraformValueToGoBasicValue function convert terraform to go type
 func ConvertTerraformValueToGoBasicValue(ctx context.Context, v attr.Value) (interface{}, error) {
 	vTypeStr := v.Type(ctx).String()
 	if strings.HasPrefix(vTypeStr, "basetypes.StringType") {
@@ -1165,6 +1173,7 @@ func getEthernetPatchBody(ctx context.Context, attrsState *models.NetworkDeviceF
 	return patchBody, nil
 }
 
+// NetworkAttributesChanged is a bool function to return true on changed
 func NetworkAttributesChanged(ctx context.Context, plan, state *models.NICResource) bool {
 	if plan.Networktributes.IsUnknown() || plan.Networktributes.IsNull() {
 		return false
@@ -1377,10 +1386,10 @@ func getNetworkDeviceFunction(system *redfish.ComputerSystem, networkAdapterID, 
 	*redfish.NetworkDeviceFunction, error,
 ) {
 	// get system by id, if system id is empty, use the first one.
-	/*system, err := getSystemResource(service, systemID)
+	/* system, err := getSystemResource(service, systemID)
 	if err != nil {
 		return nil, nil, err
-	}*/
+	} */
 
 	// get network adapter by id
 	adapter, err := getNetworkAdapter(system, networkAdapterID)
