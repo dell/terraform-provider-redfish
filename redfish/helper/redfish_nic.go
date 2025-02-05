@@ -330,6 +330,7 @@ func checkManagerAttributes(attrRegistry *dell.ManagerAttributeRegistry, attribu
 	return nil
 }
 
+// nolint: gocyclo,revive
 // UpdateNicOemNetworkAttributes is a helper function
 func UpdateNicOemNetworkAttributes(ctx context.Context, service *gofish.Service, system *redfish.ComputerSystem, plan *models.NICResource) (jobURL string, diags diag.Diagnostics) {
 	tflog.Info(ctx, "updateNicOemNetworkAttributes: started")
