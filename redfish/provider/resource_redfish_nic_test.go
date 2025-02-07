@@ -20,9 +20,12 @@ package provider
 import (
 	"fmt"
 	"regexp"
+	"terraform-provider-redfish/gofish/dell"
 	"testing"
 
+	"github.com/bytedance/mockey"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/stmcginnis/gofish/redfish"
 )
 
 var nicParams, fcParams testingNICInputs
@@ -186,6 +189,229 @@ func TestAccRedfishNICAttributesImport(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccRedfishNICAttributes_CreateMockErr(t *testing.T) {
+	var funcMocker1 *mockey.Mocker
+	settObj := dell.Entity{
+		ODataID: "",
+	}
+	dellRes := &dell.NetworkDeviceFunctionExtended{
+		SettingsObject: settObj,
+	}
+	settObj1 := dell.Entity{
+		ODataID: "testOdataId",
+	}
+	dellRes1 := &dell.NetworkDeviceFunctionExtended{
+		SettingsObject: settObj1,
+	}
+
+	fibreChannel := redfish.FibreChannel{
+		PermanentWWNN: "",
+		PermanentWWPN: "",
+	}
+	etherNet := redfish.Ethernet{
+		PermanentMACAddress: "",
+	}
+	boot := redfish.ISCSIBoot{
+		AuthenticationMethod: "",
+		IPAddressType:        "",
+	}
+	netDevFunc := &redfish.NetworkDeviceFunction{
+		FibreChannel: fibreChannel,
+		Ethernet:     etherNet,
+		ISCSIBoot:    boot,
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// create with `network_attributes` only for FC with newcofig mock error
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceFCConfigNetworkAttrs(fcParams),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			//  create with `network_attributes` only for FC with getSystemResource mock error
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(getSystemResource).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceFCConfigNetworkAttrs(fcParams),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(getNetworkDeviceFunction).Return(nil, nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceFCConfigNetworkAttrs(fcParams),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(dell.NetworkDeviceFunction).Return(dellRes, nil).Build()
+				},
+				Config:      testAccRedfishResourceFCConfigNetworkAttrs(fcParams),
+				ExpectError: regexp.MustCompile(`.*there was an issue when creating/updating network attributes: *.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					funcMocker1 = mockey.Mock(dell.NetworkDeviceFunction).Return(dellRes1, nil).Build()
+					FunctionMocker = mockey.Mock(getNetworkDeviceFunction).Return(nil, netDevFunc, nil).Build()
+				},
+				Config:      testAccRedfishResourceFCConfigNetworkAttrs(fcParams),
+				ExpectError: regexp.MustCompile(`.*there was an issue when creating/updating network attributes: *.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(getNetworkDeviceFunction).Return(nil, netDevFunc, nil).Build()
+				},
+				Config:      testAccRedfishResourceNICAttributesConfigNetworkAttrs(fcParams),
+				ExpectError: regexp.MustCompile(`.*there was an issue when creating/updating network attributes: *.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(getNetworkDeviceFunction).Return(nil, netDevFunc, nil).Build()
+				},
+				Config:      testAccRedfishResourceNICAttributesIscsiConfig(fcParams),
+				ExpectError: regexp.MustCompile(`.*there was an issue when creating/updating network attributes: *.`),
+			},
+		},
+	})
+	if funcMocker1 != nil {
+		funcMocker1.Release()
+	}
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+
+}
+
+func TestAccRedfishNICAttributesOME_CreateMockErr(t *testing.T) {
+	settObj := dell.Entity{
+		ODataID: "",
+	}
+	dellRes := &dell.NetworkDeviceFunctionExtended{
+		SettingsObject: settObj,
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// create with `network_attributes` only for FC with newcofig mock error
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(getNetworkDeviceFunction).Return(nil, nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceFCConfig_Mocky(fcParams),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(dell.NetworkDeviceFunction).Return(dellRes, nil).Build()
+				},
+				Config:      testAccRedfishResourceFCConfig_Mocky(fcParams),
+				ExpectError: regexp.MustCompile(`.*there was an issue when creating/updating ome network attributes*.`),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+func TestAccRedfishNICAttributes_UpdateMockErr(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceFCConfigNetworkAttrs(fcParams),
+			},
+			// Update with `network_attributes` only for FC with newcofig mock error
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceFCConfig(fcParams),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			//  Update with `network_attributes` only for FC with getSystemResource mock error
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(getSystemResource).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceFCConfig(fcParams),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+func TestAccRedfishNICAttributes_ReadMockErr(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceFCConfigNetworkAttrs(fcParams),
+			},
+			// Read `network_attributes` only for FC with newcofig mock error
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceFCConfigNetworkAttrs(fcParams),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			//  Read with `network_attributes` only for FC with getSystemResource mock error
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(getSystemResource).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceFCConfigNetworkAttrs(fcParams),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
 }
 
 func testAccRedfishResourceNICAttributesConfigNetworkAttrs(testingInfo testingNICInputs) string {
@@ -495,6 +721,37 @@ func testAccRedfishResourceFCConfig(testingInfo testingNICInputs) string {
     	}
 	  }
 
+	  oem_network_attributes = {
+	  	clear_pending = true
+	  	attributes = {
+	  		"PortLoginTimeout" = "4000"
+	  	}
+  	  }
+	}
+	  `,
+		testingInfo.Username,
+		testingInfo.PasswordNIC,
+		testingInfo.EndpointNIC,
+		testingInfo.SystemID,
+		testingInfo.NetworkAdapterID,
+		testingInfo.NetworkDeviceFunctionID,
+	)
+}
+
+func testAccRedfishResourceFCConfig_Mocky(testingInfo testingNICInputs) string {
+	return fmt.Sprintf(`
+	resource "redfish_network_adapter" "nic" {
+	  redfish_server {
+		user         = "%s"
+		password     = "%s"
+		endpoint     = "%s"
+		ssl_insecure = true
+	  }
+	  system_id = "%s"
+	  network_adapter_id         = "%s"
+	  network_device_function_id = "%s"
+	  apply_time = "OnReset"
+	  job_timeout = 1200
 	  oem_network_attributes = {
 	  	clear_pending = true
 	  	attributes = {
