@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stmcginnis/gofish"
+	"github.com/stmcginnis/gofish/redfish"
 )
 
 var (
@@ -117,18 +118,42 @@ func (g *DellVirtualMediaDatasource) Read(ctx context.Context, req datasource.Re
 func readRedfishDellVirtualMediaCollection(service *gofish.Service, d *models.VirtualMediaDataSource) diag.Diagnostics {
 	var diags diag.Diagnostics
 	const intBase = 10
-	// Get manager.Since this provider is thought to work with individual servers, should be only one.
-	manager, err := service.Managers()
+
+	isGenerationSeventeenAndAbove, err := isServerGenerationSeventeenAndAbove(service)
 	if err != nil {
-		diags.AddError("Error retrieving the managers:", err.Error())
+		diags.AddError("Error retrieving the server generation", err.Error())
 		return diags
 	}
 
-	// Get virtual media
-	dellvirtualMedia, err := manager[0].VirtualMedia()
-	if err != nil {
-		diags.AddError("Error retrieving the virtual media instances", err.Error())
-		return diags
+	var dellvirtualMedia []*redfish.VirtualMedia
+	if isGenerationSeventeenAndAbove {
+		// Get systems
+		systems, err := service.Systems()
+		if err != nil {
+			diags.AddError("Error retrieving the systems:", err.Error())
+			return diags
+		}
+
+		// Get virtual media
+		dellvirtualMedia, err = systems[0].VirtualMedia()
+		if err != nil {
+			diags.AddError("Error retrieving the virtual media instances", err.Error())
+			return diags
+		}
+	} else {
+		// Get manager.Since this provider is thought to work with individual servers, should be only one.
+		manager, err := service.Managers()
+		if err != nil {
+			diags.AddError("Error retrieving the managers:", err.Error())
+			return diags
+		}
+
+		// Get virtual media
+		dellvirtualMedia, err = manager[0].VirtualMedia()
+		if err != nil {
+			diags.AddError("Error retrieving the virtual media instances", err.Error())
+			return diags
+		}
 	}
 
 	vms := make([]models.VirtualMediaData, 0)

@@ -36,4 +36,7 @@ const (
 
 	// RedfishPasswordErrorMsg specifies if password validation fails in user resource
 	RedfishPasswordErrorMsg = "Password validation failed"
+
+	// Seventeen specifies the server generation for comparison
+	Seventeen = 17
 )
