@@ -271,6 +271,12 @@ func (*RedfishDirectoryServiceAuthProviderResource) updateRedfishDirectoryServic
 	activeServiceChanged := newActiveDirectoryChanged(ctx, plan, state)
 	ldapServiceChanged := newLDAPChanged(ctx, plan, state)
 
+	// make a call to get the device is 17G or below
+	isGenerationSeventeenAndAbove, err := isServerGenerationSeventeenAndAbove(service)
+	if err != nil {
+		diags.AddError("Error retrieving the server generation", err.Error())
+		return diags
+	}
 	// get the account service resource and ODATA_ID will be used to make a patch call
 	accountService, err := service.AccountService()
 	if err != nil {
@@ -281,11 +287,11 @@ func (*RedfishDirectoryServiceAuthProviderResource) updateRedfishDirectoryServic
 	accountServiceURI := accountService.ODataID
 
 	if activeServiceChanged {
-		if diags = updateActiveDirectory(ctx, accountServiceURI, service, plan); diags.HasError() {
+		if diags = updateActiveDirectory(ctx, accountServiceURI, service, plan, isGenerationSeventeenAndAbove); diags.HasError() {
 			return diags
 		}
 	} else if ldapServiceChanged {
-		if diags = updateLDAP(ctx, accountServiceURI, service, plan); diags.HasError() {
+		if diags = updateLDAP(ctx, accountServiceURI, service, plan, isGenerationSeventeenAndAbove); diags.HasError() {
 			return diags
 		}
 	}
@@ -304,17 +310,24 @@ func getAccountServiceDetails(service *gofish.Service) (*redfish.AccountService,
 // nolint: revive
 func (*RedfishDirectoryServiceAuthProviderResource) readRedfishDirectoryServiceAuthProvider(ctx context.Context, service *gofish.Service, state *models.DirectoryServiceAuthProviderResource) (diags diag.Diagnostics) {
 	// var diags diag.Diagnostics
+	// call function to check the generation of device
+	isGenerationSeventeenAndAbove, err := isServerGenerationSeventeenAndAbove(service)
+	if err != nil {
+		diags.AddError("Error retrieving the server generation", err.Error())
+		return diags
+	}
+
 	accountService, err := getAccountServiceDetails(service)
 	if err != nil {
 		diags.AddError("Error fetching Account Service", err.Error())
 		return diags
 	}
 
-	if diags = parseActiveDirectoryIntoState(ctx, accountService, service, state); diags.HasError() {
+	if diags = parseActiveDirectoryIntoState(ctx, accountService, service, state, isGenerationSeventeenAndAbove); diags.HasError() {
 		diags.AddError("ActiveDir state null", "ActiveDirectory state null")
 		return diags
 	}
-	if diags = parseLDAPIntoState(ctx, accountService, service, state); diags.HasError() {
+	if diags = parseLDAPIntoState(ctx, accountService, service, state, isGenerationSeventeenAndAbove); diags.HasError() {
 		diags.AddError("oldLDAPState state null", "oldLDAPState state null")
 		return diags
 	}
@@ -323,7 +336,7 @@ func (*RedfishDirectoryServiceAuthProviderResource) readRedfishDirectoryServiceA
 }
 
 // nolint: revive
-func updateActiveDirectory(ctx context.Context, serviceURI string, service *gofish.Service, plan *models.DirectoryServiceAuthProviderResource) (diags diag.Diagnostics) {
+func updateActiveDirectory(ctx context.Context, serviceURI string, service *gofish.Service, plan *models.DirectoryServiceAuthProviderResource, isSeventeenGen bool) (diags diag.Diagnostics) {
 	// var diags diag.Diagnostic
 
 	// Check for all valid scenario
@@ -331,20 +344,20 @@ func updateActiveDirectory(ctx context.Context, serviceURI string, service *gofi
 		return diags
 	}
 
-	if ssoCheck, diags := isSSOEnabledWithValidFile(ctx, ActiveDirectory, "SSOEnable", plan); diags.HasError() || !ssoCheck {
+	if ssoCheck, diags := isSSOEnabledWithValidFile(ctx, ActiveDirectory, "SSOEnable", plan, isSeventeenGen); diags.HasError() || !ssoCheck {
 		return diags
 	}
 
-	dcLookupDomainCheck, diags := isValidDCLookupDomainConfig(ctx, ActiveDirectory, "DCLookupEnable", plan)
+	dcLookupDomainCheck, diags := isValidDCLookupDomainConfig(ctx, ActiveDirectory, "DCLookupEnable", plan, isSeventeenGen)
 	if diags.HasError() || !dcLookupDomainCheck {
 		return diags
 	}
-	if schemacheck, diags := isValidSchemaSelection(ctx, ActiveDirectory, "Schema", plan); diags.HasError() || !schemacheck {
+	if schemacheck, diags := isValidSchemaSelection(ctx, ActiveDirectory, "Schema", plan, isSeventeenGen); diags.HasError() || !schemacheck {
 		return diags
 	}
 
 	patchBody := make(map[string]interface{})
-	if patchBody[ActiveDirectory], diags = getActiveDirectoryPatchBody(ctx, plan); diags.HasError() {
+	if patchBody[ActiveDirectory], diags = getActiveDirectoryPatchBody(ctx, plan, isSeventeenGen); diags.HasError() {
 		return diags
 	}
 
@@ -390,9 +403,14 @@ func updateActiveDirectory(ctx context.Context, serviceURI string, service *gofi
 }
 
 // nolint: revive
-func updateLDAP(ctx context.Context, serviceURI string, service *gofish.Service, plan *models.DirectoryServiceAuthProviderResource) (diags diag.Diagnostics) {
+func updateLDAP(ctx context.Context, serviceURI string, service *gofish.Service, plan *models.DirectoryServiceAuthProviderResource, isSeventeenGen bool) (diags diag.Diagnostics) {
 	patchBody := make(map[string]interface{})
-	if patchBody["LDAP"], diags = getLDAPPatchBody(ctx, plan); diags.HasError() {
+
+	// check Server address is configured or not
+	if isValid, diags := isValidLDAPConfig(ctx, plan, isSeventeenGen); diags.HasError() || !isValid {
+		return diags
+	}
+	if patchBody["LDAP"], diags = getLDAPPatchBody(ctx, plan, isSeventeenGen); diags.HasError() {
 		return diags
 	}
 
