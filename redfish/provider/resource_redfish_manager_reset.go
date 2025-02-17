@@ -140,7 +140,7 @@ func (r *managerResetResource) Create(ctx context.Context, req resource.CreateRe
 		resp.Diagnostics.AddError("Error while retrieving manager from redfish API", err.Error())
 		return
 	}
-
+	manager.Entity.SetETag("")
 	// Perform manager reset
 	err = manager.Reset(redfish.ResetType(resetType))
 	if err != nil {

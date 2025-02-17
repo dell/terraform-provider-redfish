@@ -164,7 +164,11 @@ func (g *StorageDatasource) readDatasourceRedfishStorage(d models.StorageDatasou
 			}
 			foundControllers = append(foundControllers, foundController)
 		}
-		dellStorage, _ := dell.Storage(s)
+		dellStorage, err := dell.Storage(s)
+		if err != nil {
+			diags.AddError(fmt.Sprintf("Error when retrieving storage: %s", s.ID), err.Error())
+			continue
+		}
 		terraformData := newStorage(*dellStorage)
 		drives, err := s.Drives()
 		if err != nil {
