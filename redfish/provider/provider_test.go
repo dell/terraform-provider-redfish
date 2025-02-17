@@ -24,21 +24,23 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/bytedance/mockey"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-	"github.com/bytedance/mockey"
 )
 
 var (
-	testAccProtoV6ProviderFactories map[string]func() (tfprotov6.ProviderServer, error)
-	creds                           TestingServerCredentials
-	image64Boot                     string
-	image64BootInvalid              string
-	image64Dvd1                     string
-	imageEfiBoot                    string
-	drive                           string
-	firmwareUpdateIP                string
+	testAccProtoV6ProviderFactories         map[string]func() (tfprotov6.ProviderServer, error)
+	creds                                   TestingServerCredentials
+	image64Boot                             string
+	image64BootInvalid                      string
+	image64Dvd1                             string
+	imageEfiBoot                            string
+	virtualMediaTransferProtocolTypeValid   string
+	virtualMediaTransferProtocolTypeInvalid string
+	drive                                   string
+	firmwareUpdateIP                        string
 )
 
 // FunctionMocker is used to mock functions in the provider
@@ -93,6 +95,8 @@ func init() {
 	image64BootInvalid = os.Getenv("TF_TESTING_VIRTUAL_MEDIA_IMAGE_PATH_64BOOT_INVALID")
 	image64Dvd1 = os.Getenv("TF_TESTING_VIRTUAL_MEDIA_IMAGE_PATH_64DVD1")
 	imageEfiBoot = os.Getenv("TF_TESTING_VIRTUAL_MEDIA_IMAGE_PATH_EFI_BOOT")
+	virtualMediaTransferProtocolTypeValid = os.Getenv("TF_TESTING_VIRTUAL_MEDIA_TRANSFER_PROTOCOL_TYPE_VALID")
+	virtualMediaTransferProtocolTypeInvalid = os.Getenv("TF_TESTING_VIRTUAL_MEDIA_TRANSFER_PROTOCOL_TYPE_INVALID")
 	// storage volume environment varibale
 	drive = os.Getenv("TF_TESTING_STORAGE_VOLUME_DRIVE")
 	firmwareUpdateIP = os.Getenv("TF_TESTING_FIRMWARE_UPDATE_IP")

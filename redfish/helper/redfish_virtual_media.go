@@ -82,6 +82,8 @@ func InsertMedia(id string, collection []*redfish.VirtualMedia, config redfish.V
 	if err != nil {
 		return nil, fmt.Errorf("virtual media selected doesn't exist: %w", err)
 	}
+	virtualMedia.Entity.SetETag("")
+
 	if !virtualMedia.Inserted {
 		err = virtualMedia.InsertMediaConfig(config)
 		if err != nil {
@@ -115,6 +117,7 @@ func GetNejectVirtualMedia(service *gofish.Service, uri string) (*redfish.Virtua
 	if err != nil {
 		return nil, fmt.Errorf("virtual Media doesn't exist:  %w", err) // This error won't be triggered ever
 	}
+	virtualMedia.Entity.SetETag("")
 
 	// Eject virtual media
 	err = virtualMedia.EjectMedia()
