@@ -311,9 +311,35 @@ func updateRedfishDellIdracAttributes(ctx context.Context, service *gofish.Servi
 	// get managerAttributeRegistry to check parameters before posting them to redfish
 	managerAttributeRegistry, err := getManagerAttributeRegistry(service)
 	if err != nil {
+		idracError = "there was an issue when creating/updating idrac attributes- Testing"
 		diags.AddError(idracError, err.Error())
 		return diags
 	}
+
+	isGenerationSeventeenAndAbove, err := isServerGenerationSeventeenAndAbove(service)
+	if err != nil {
+		diags.AddError("Error retrieving the server generation", err.Error())
+		return diags
+	}
+
+	if isGenerationSeventeenAndAbove {
+		for k := range attributesTf {
+			if strings.HasPrefix(k, "Users.") && strings.HasSuffix(k, ".Privilege") {
+				diags.AddError("Need to use Role attribute for getting and setting the privileges 'Users.x.Role'",
+					"Need to use Role attribute for getting and setting the privileges 'Users.x.Role'")
+				return diags
+			}
+		}
+	} else {
+		for k := range attributesTf {
+			if strings.HasPrefix(k, "Users.") && strings.HasSuffix(k, ".Role") {
+				diags.AddError("Need to use Privilege attribute for getting and setting the privileges 'Users.x.Privilege'",
+					"Need to use Privilege attribute for getting and setting the privileges 'Users.x.Privilege'")
+				return diags
+			}
+		}
+	}
+
 	// Set right attributes to patch (values from map are all string. It needs int and string)
 	attributesToPatch, err := setManagerAttributesRightType(attributesTf, managerAttributeRegistry)
 	if err != nil {
