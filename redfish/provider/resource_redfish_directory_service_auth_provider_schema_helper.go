@@ -205,6 +205,7 @@ func getConfigDataList(input []string, stateServiceAddress []types.String) (base
 	return types.ListValue(types.StringType, out)
 }
 
+// nolint: revive
 func getServiceAddressesConfigDataList(input []string, stateServiceAddress []types.String, isSeventeenGen bool) (basetypes.ListValue, diag.Diagnostics) {
 	out := make([]attr.Value, 0)
 	if len(stateServiceAddress) != 0 {
