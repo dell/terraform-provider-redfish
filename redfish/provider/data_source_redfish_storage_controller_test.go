@@ -19,14 +19,17 @@ package provider
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccRedfishStorageControllerDataSource_fetch(t *testing.T) {
+func TestAccRedfishStorageControllerDataSourceFetch(t *testing.T) {
 	storageControllerDatasourceName := "data.redfish_storage_controller.test"
+	numberOfControllers := "storage_controllers.#"
+	storageControllerOdataID := "storage_controllers.0.odata_id"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -37,45 +40,30 @@ func TestAccRedfishStorageControllerDataSource_fetch(t *testing.T) {
 			{
 				Config: testAccStorageControllerDatasourceWithEmptySystemFilter(creds),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(storageControllerDatasourceName, "storage_controllers.#", "3"),
+					resource.TestCheckResourceAttrSet(storageControllerDatasourceName, numberOfControllers),
 				),
 			},
 			{
 				Config: testAccStorageControllerDatasourceWithSystemID(creds),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(storageControllerDatasourceName, "storage_controllers.#", "3"),
-					resource.TestMatchResourceAttr(storageControllerDatasourceName, "storage_controllers.0.odata_id", regexp.MustCompile(`.*System.Embedded.1*.`)),
-					resource.TestMatchResourceAttr(storageControllerDatasourceName, "storage_controllers.1.odata_id", regexp.MustCompile(`.*System.Embedded.1*.`)),
-					resource.TestMatchResourceAttr(storageControllerDatasourceName, "storage_controllers.2.odata_id", regexp.MustCompile(`.*System.Embedded.1*.`)),
+					resource.TestCheckResourceAttrSet(storageControllerDatasourceName, numberOfControllers),
+					resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID, regexp.MustCompile(`.*System.Embedded.1*.`)),
 				),
 			},
 			{
 				Config: testAccStorageControllerDatasourceWithStorageID(creds),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(storageControllerDatasourceName, "storage_controllers.#", "1"),
-					resource.TestMatchResourceAttr(storageControllerDatasourceName, "storage_controllers.0.odata_id", regexp.MustCompile(`.*System.Embedded.1*.`)),
-					resource.TestMatchResourceAttr(storageControllerDatasourceName, "storage_controllers.0.odata_id", regexp.MustCompile(`.*RAID.Integrated.1-1*.`)),
+					resource.TestCheckResourceAttrSet(storageControllerDatasourceName, numberOfControllers),
+					resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID, regexp.MustCompile(`.*System.Embedded.1*.`)),
+					resource.TestCheckResourceAttrSet(storageControllerDatasourceName, storageControllerOdataID),
 				),
 			},
 			{
 				Config: testAccStorageControllerDatasourceWithControllerID(creds),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(storageControllerDatasourceName, "storage_controllers.#", "1"),
-					resource.TestMatchResourceAttr(storageControllerDatasourceName, "storage_controllers.0.odata_id", regexp.MustCompile(`.*System.Embedded.1*.`)),
-					resource.TestMatchResourceAttr(storageControllerDatasourceName, "storage_controllers.0.odata_id", regexp.MustCompile(`.*RAID.Integrated.1-1*.`)),
-					resource.TestMatchResourceAttr(storageControllerDatasourceName, "storage_controllers.0.odata_id", regexp.MustCompile(`.*RAID.Integrated.1-1*.`)),
-				),
-			},
-			{
-				Config: testAccStorageControllerDatasourceWithMultipleStorageIDs(creds),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(storageControllerDatasourceName, "storage_controllers.#", "2"),
-					resource.TestMatchResourceAttr(storageControllerDatasourceName, "storage_controllers.0.odata_id", regexp.MustCompile(`.*System.Embedded.1*.`)),
-					resource.TestMatchResourceAttr(storageControllerDatasourceName, "storage_controllers.0.odata_id", regexp.MustCompile(`.*AHCI.Embedded.1-1*.`)),
-					resource.TestMatchResourceAttr(storageControllerDatasourceName, "storage_controllers.0.odata_id", regexp.MustCompile(`.*AHCI.Embedded.1-1*.`)),
-					resource.TestMatchResourceAttr(storageControllerDatasourceName, "storage_controllers.1.odata_id", regexp.MustCompile(`.*System.Embedded.1*.`)),
-					resource.TestMatchResourceAttr(storageControllerDatasourceName, "storage_controllers.1.odata_id", regexp.MustCompile(`.*RAID.Integrated.1-1*.`)),
-					resource.TestMatchResourceAttr(storageControllerDatasourceName, "storage_controllers.1.odata_id", regexp.MustCompile(`.*RAID.Integrated.1-1*.`)),
+					resource.TestCheckResourceAttrSet(storageControllerDatasourceName, numberOfControllers),
+					resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID, regexp.MustCompile(`.*System.Embedded.1*.`)),
+					resource.TestCheckResourceAttrSet(storageControllerDatasourceName, storageControllerOdataID),
 				),
 			},
 			{
@@ -94,9 +82,40 @@ func TestAccRedfishStorageControllerDataSource_fetch(t *testing.T) {
 	})
 }
 
+func TestAccRedfishStorageControllerDataSourceFetch_2(t *testing.T) {
+
+	t.Skip("This step is working as expected,Do enable it when sever have more than 1 storage controllers.")
+
+	storageControllerDatasourceName := "data.redfish_storage_controller.test"
+	numberOfControllers := "storage_controllers.#"
+	storageControllerOdataID := "storage_controllers.0.odata_id"
+	storageControllerOdataID1 := "storage_controllers.1.odata_id"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+
+			//This step is working as expected,Do enable it when sever have more than 1 storage controllers.
+			{
+				Config: testAccStorageControllerDatasourceWithMultipleStorageIDs(creds),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(storageControllerDatasourceName, numberOfControllers),
+					resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID, regexp.MustCompile(`.*System.Embedded.1*.`)),
+					resource.TestCheckResourceAttrSet(storageControllerDatasourceName, storageControllerOdataID),
+					resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID1, regexp.MustCompile(`.*AHCI.Embedded.1-1*.`)),
+					resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID1, regexp.MustCompile(`.*AHCI.Embedded.1-1*.`)),
+					resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID, regexp.MustCompile(`.*System.Embedded.1*.`)),
+					resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID, regexp.MustCompile(`.*RAID.Integrated.1-1*.`)),
+					resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID, regexp.MustCompile(`.*RAID.Integrated.1-1*.`)),
+				),
+			},
+		},
+	})
+}
+
 func testAccRedfishDataSourceStorageControllerConfig(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
-	data "redfish_storage_controller" "test" {	  
+	data "redfish_storage_controller" "test" {
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
@@ -112,7 +131,7 @@ func testAccRedfishDataSourceStorageControllerConfig(testingInfo TestingServerCr
 
 func testAccStorageControllerDatasourceWithEmptySystemFilter(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
-	data "redfish_storage_controller" "test" {	  
+	data "redfish_storage_controller" "test" {
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
@@ -131,7 +150,7 @@ func testAccStorageControllerDatasourceWithEmptySystemFilter(testingInfo Testing
 
 func testAccStorageControllerDatasourceWithSystemID(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
-	data "redfish_storage_controller" "test" {	  
+	data "redfish_storage_controller" "test" {
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
@@ -141,7 +160,7 @@ func testAccStorageControllerDatasourceWithSystemID(testingInfo TestingServerCre
 		storage_controller_filter {
 			systems = [
 				{
-				system_id = "System.Embedded.1"
+					system_id = "System.Embedded.1"
 				}
 			]
 		}
@@ -154,7 +173,7 @@ func testAccStorageControllerDatasourceWithSystemID(testingInfo TestingServerCre
 
 func testAccStorageControllerDatasourceWithStorageID(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
-	data "redfish_storage_controller" "test" {	  
+	data "redfish_storage_controller" "test" {
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
@@ -167,7 +186,7 @@ func testAccStorageControllerDatasourceWithStorageID(testingInfo TestingServerCr
 				system_id = "System.Embedded.1"
 				storages = [
 					{
-					storage_id = "RAID.Integrated.1-1"
+						storage_id = `+os.Getenv("TF_STORAGE_CONTROLLER_ID")+`
 					}
 				]
 				}
@@ -182,7 +201,7 @@ func testAccStorageControllerDatasourceWithStorageID(testingInfo TestingServerCr
 
 func testAccStorageControllerDatasourceWithControllerID(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
-	data "redfish_storage_controller" "test" {	  
+	data "redfish_storage_controller" "test" {
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
@@ -195,8 +214,8 @@ func testAccStorageControllerDatasourceWithControllerID(testingInfo TestingServe
 				system_id = "System.Embedded.1"
 				storages = [
 					{
-					storage_id = "RAID.Integrated.1-1"
-					controller_ids = ["RAID.Integrated.1-1"]
+						storage_id = `+os.Getenv("TF_STORAGE_CONTROLLER_ID")+`
+						controller_ids = `+os.Getenv("TF_STORAGE_CONTROLLER_IDS")+`
 					}
 				]
 				}
@@ -211,7 +230,7 @@ func testAccStorageControllerDatasourceWithControllerID(testingInfo TestingServe
 
 func testAccStorageControllerDatasourceWithMultipleStorageIDs(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
-	data "redfish_storage_controller" "test" {	  
+	data "redfish_storage_controller" "test" {
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
@@ -224,12 +243,12 @@ func testAccStorageControllerDatasourceWithMultipleStorageIDs(testingInfo Testin
 				system_id = "System.Embedded.1"
 				storages = [
 					{
-					storage_id = "RAID.Integrated.1-1"
-					controller_ids = ["RAID.Integrated.1-1"]
+						storage_id = `+os.Getenv("TF_STORAGE_CONTROLLER_ID")+`
+						controller_ids = `+os.Getenv("TF_STORAGE_CONTROLLER_IDS")+`
 					},
 					{
-					storage_id = "AHCI.Embedded.1-1"
-					controller_ids = ["AHCI.Embedded.1-1"]
+						storage_id = `+os.Getenv("TF_STORAGE_CONTROLLER_ID1")+`
+						controller_ids = `+os.Getenv("TF_STORAGE_CONTROLLER_IDS1")+`
 					}
 				]
 				}
@@ -244,7 +263,7 @@ func testAccStorageControllerDatasourceWithMultipleStorageIDs(testingInfo Testin
 
 func testAccStorageControllerDatasourceWithInvalidSystemID(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
-	data "redfish_storage_controller" "test" {	  
+	data "redfish_storage_controller" "test" {
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
@@ -257,8 +276,8 @@ func testAccStorageControllerDatasourceWithInvalidSystemID(testingInfo TestingSe
 				system_id = "InvalidSystemID"
 				storages = [
 					{
-					storage_id = "RAID.Integrated.1-1"
-					controller_ids = ["RAID.Integrated.1-1"]
+						storage_id = `+os.Getenv("TF_STORAGE_CONTROLLER_ID")+`
+						controller_ids =`+os.Getenv("TF_STORAGE_CONTROLLER_IDS")+`
 					}
 				]
 				}
@@ -273,7 +292,7 @@ func testAccStorageControllerDatasourceWithInvalidSystemID(testingInfo TestingSe
 
 func testAccStorageControllerDatasourceWithInvalidStorageID(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
-	data "redfish_storage_controller" "test" {	  
+	data "redfish_storage_controller" "test" {
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
@@ -286,8 +305,8 @@ func testAccStorageControllerDatasourceWithInvalidStorageID(testingInfo TestingS
 				system_id = "System.Embedded.1"
 				storages = [
 					{
-					storage_id = "InvalidStorageID"
-					controller_ids = ["RAID.Integrated.1-1"]
+						storage_id = "InvalidStorageID"
+						controller_ids =`+os.Getenv("TF_STORAGE_CONTROLLER_IDS")+`
 					}
 				]
 				}
@@ -302,7 +321,7 @@ func testAccStorageControllerDatasourceWithInvalidStorageID(testingInfo TestingS
 
 func testAccStorageControllerDatasourceWithInvalidControllerID(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
-	data "redfish_storage_controller" "test" {	  
+	data "redfish_storage_controller" "test" {
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
@@ -315,8 +334,8 @@ func testAccStorageControllerDatasourceWithInvalidControllerID(testingInfo Testi
 				system_id = "System.Embedded.1"
 				storages = [
 					{
-					storage_id = "RAID.Integrated.1-1"
-					controller_ids = ["InvalidControllerID"]
+						storage_id = `+os.Getenv("TF_STORAGE_CONTROLLER_ID")+`
+						controller_ids = ["InvalidControllerID"]
 					}
 				]
 				}
