@@ -19,6 +19,7 @@ package provider
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"testing"
 
@@ -31,14 +32,6 @@ func TestAccRedfishIDRACAttributesBasic(t *testing.T) {
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			{
-				Config: testAccRedfishResourceIDracAttributesConfig(
-					creds, "avengers"),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("redfish_dell_idrac_attributes.idrac", "attributes.Users.3.Enable", "Disabled"),
-					resource.TestCheckResourceAttr("redfish_dell_idrac_attributes.idrac", "attributes.Time.1.Timezone", "CST6CDT"),
-				),
-			},
 			{
 				Config: testAccRedfishResourceIDracAttributesConfig(
 					creds, "ironman"),
@@ -57,6 +50,23 @@ func TestAccRedfishIDRACAttributesInvalidAttribute(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
+				Config: testAccRedfishResourceIDracAttributesConfigInvalid(
+					creds),
+				ExpectError: regexp.MustCompile("there was an issue when creating/updating idrac attributes"),
+			},
+		},
+	})
+}
+
+func TestAccRedfishIDRACAttributesInvalidAttribute17G(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+				},
 				Config: testAccRedfishResourceIDracAttributesConfigInvalid(
 					creds),
 				ExpectError: regexp.MustCompile("there was an issue when creating/updating idrac attributes"),
@@ -140,14 +150,15 @@ func TestAccRedfishIDRACAttributesGetManagerAttributeRegistryErr(t *testing.T) {
 }
 
 func TestAccRedfishIDRACAttributesSetManagerAttributesRightTypeErr(t *testing.T) {
-
+	var funcMocker1 *mockey.Mocker
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				PreConfig: func() {
-					FunctionMocker = mockey.Mock(setManagerAttributesRightType).Return(nil, fmt.Errorf("mock error")).Build()
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+					funcMocker1 = mockey.Mock(setManagerAttributesRightType).Return(nil, fmt.Errorf("mock error")).Build()
 				},
 				Config:      testAccRedfishResourceIDracAttributesConfig(creds, "avengers"),
 				ExpectError: regexp.MustCompile(`.*mock error*.`),
@@ -156,6 +167,9 @@ func TestAccRedfishIDRACAttributesSetManagerAttributesRightTypeErr(t *testing.T)
 	})
 	if FunctionMocker != nil {
 		FunctionMocker.Release()
+	}
+	if funcMocker1 != nil {
+		funcMocker1.Release()
 	}
 }
 
@@ -178,6 +192,114 @@ func TestAccRedfishIDRACAttributesGetIdracAttributesErr(t *testing.T) {
 	}
 }
 
+func TestAccRedfishIDRACAttributes17Error(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+				},
+				Config:      testAccRedfishResourceIDrac17GAttributesError(creds, "avengers"),
+				ExpectError: regexp.MustCompile("Need to use Role attribute for getting and setting the privileges 'Users.x.Role'"),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+func TestAccRedfishIDRACAttributesBelow17GConfig(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(false, nil).Build()
+				},
+				Config:      testAccRedfishResourceIDracBelow17GConfigError(creds, "avengers"),
+				ExpectError: regexp.MustCompile("Need to use Privilege attribute for getting and setting the privileges 'Users.x.Privilege'"),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+func TestAccRedfishIDRACAttributes17GServerError(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceIDracBelow17GConfigError(creds, "avengers"),
+				ExpectError: regexp.MustCompile("Error retrieving the server generation"),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+func TestAccRedfishIDRACAttributes17GParam(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			if version != "17" {
+				t.Skip("Skipping 17G test")
+			}
+			testAccPreCheck(t)
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+				},
+				Config: testAccRedfishResourceIDracBelow17GConfigError(creds, "avengers"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_dell_idrac_attributes.idrac", "attributes.Users.3.Role", "ReadOnly"),
+				),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+func TestAccRedfishIDRACAttributesBelow17GParam(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			if version == "17" {
+				t.Skip("Skipping 17G test")
+			}
+			testAccPreCheck(t)
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceIDrac17GAttributesError(creds, "avengers"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_dell_idrac_attributes.idrac", "attributes.Users.3.Privilege", "511"),
+				),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
 func testAccRedfishResourceIDracAttributesConfig(testingInfo TestingServerCredentials, username string) string {
 	return fmt.Sprintf(`
 	resource "redfish_dell_idrac_attributes" "idrac" {
@@ -192,9 +314,8 @@ func testAccRedfishResourceIDracAttributesConfig(testingInfo TestingServerCreden
 		  "Users.3.Enable"    		  = "Disabled"
 		  "Users.3.UserName"  		  = "%s"
 		  "Users.3.Password"  		  = "test1234"
-		  "Users.3.Privilege" 		  = 511
-		  "Time.1.Timezone"   		  = "CST6CDT",
-		  "SysLog.1.PowerLogInterval" = 5,
+		  "Time.1.Timezone"   		  = "CST6CDT"
+		  "SysLog.1.PowerLogInterval" = 5
 		}
 	  }
 	  `,
@@ -219,7 +340,6 @@ func testAccRedfishResourceIDracAttributesConfigInvalid(testingInfo TestingServe
 		  "Users.3.Enable"            = "Disabled"
 		  "Users.3.UserName"          = "mike"
 		  "Users.3.Password"          = "test1234"
-		  "Users.3.Privilege"         = 511
 		  "Time.1.Timezone"			  = "CST6CDT",
 		  "SysLog.1.PowerLogInterval" = 5,
 		  "InvalidAttribute" 		  = "invalid",
@@ -229,5 +349,59 @@ func testAccRedfishResourceIDracAttributesConfigInvalid(testingInfo TestingServe
 		testingInfo.Username,
 		testingInfo.Password,
 		testingInfo.Endpoint,
+	)
+}
+
+func testAccRedfishResourceIDrac17GAttributesError(testingInfo TestingServerCredentials, username string) string {
+	return fmt.Sprintf(`
+	resource "redfish_dell_idrac_attributes" "idrac" {
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "%s"
+		  ssl_insecure = true
+		}
+	  
+		attributes = {
+		  "Users.3.Enable"    		  = "Disabled"
+		  "Users.3.UserName"  		  = "%s"
+		  "Users.3.Password"  		  = "test1234"
+		  "Users.3.Privilege" 		  	= 511
+		  "Time.1.Timezone"   		  = "CST6CDT"
+		  "SysLog.1.PowerLogInterval" = 5
+		}
+	  }
+	  `,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+		username,
+	)
+}
+
+func testAccRedfishResourceIDracBelow17GConfigError(testingInfo TestingServerCredentials, username string) string {
+	return fmt.Sprintf(`
+	resource "redfish_dell_idrac_attributes" "idrac" {
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "%s"
+		  ssl_insecure = true
+		}
+	  
+		attributes = {
+		  "Users.3.Enable"    		  = "Disabled"
+		  "Users.3.UserName"  		  = "%s"
+		  "Users.3.Password"  		  = "test1234"
+		  "Users.3.Role" 		  	= "ReadOnly"
+		  "Time.1.Timezone"   		  = "CST6CDT"
+		  "SysLog.1.PowerLogInterval" = 5
+		}
+	  }
+	  `,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+		username,
 	)
 }
