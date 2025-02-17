@@ -116,9 +116,11 @@ type StorageExtended struct {
 func Storage(storage *redfish.Storage) (*StorageExtended, error) {
 	dellStorage := &StorageExtended{Storage: *storage, OemData: StorageOEM{}}
 	var oemData StorageOEM
-	err := json.Unmarshal(dellStorage.Storage.OEM, &oemData)
-	if err != nil {
-		return nil, err
+	if len(dellStorage.Storage.OEM) > 0 {
+		err := json.Unmarshal(dellStorage.Storage.OEM, &oemData)
+		if err != nil {
+			return nil, err
+		}
 	}
 	dellStorage.OemData = oemData
 
