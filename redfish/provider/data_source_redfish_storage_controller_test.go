@@ -30,7 +30,6 @@ func TestAccRedfishStorageControllerDataSourceFetch(t *testing.T) {
 	storageControllerDatasourceName := "data.redfish_storage_controller.test"
 	numberOfControllers := "storage_controllers.#"
 	storageControllerOdataID := "storage_controllers.0.odata_id"
-	// storageControllerOdataID1 := "storage_controllers.1.odata_id"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -67,20 +66,6 @@ func TestAccRedfishStorageControllerDataSourceFetch(t *testing.T) {
 					resource.TestCheckResourceAttrSet(storageControllerDatasourceName, storageControllerOdataID),
 				),
 			},
-			// This step is working as expected,Do uncomment it when sever have more than 1 storage controllers.
-			// {
-			// 	Config: testAccStorageControllerDatasourceWithMultipleStorageIDs(creds),
-			// 	Check: resource.ComposeAggregateTestCheckFunc(
-			// 		resource.TestCheckResourceAttrSet(storageControllerDatasourceName, numberOfControllers),
-			// 		resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID, regexp.MustCompile(`.*System.Embedded.1*.`)),
-			// 		resource.TestCheckResourceAttrSet(storageControllerDatasourceName, storageControllerOdataID),
-			// 		resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID1, regexp.MustCompile(`.*AHCI.Embedded.1-1*.`)),
-			// 		resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID1, regexp.MustCompile(`.*AHCI.Embedded.1-1*.`)),
-			// 		resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID, regexp.MustCompile(`.*System.Embedded.1*.`)),
-			// 		resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID, regexp.MustCompile(`.*RAID.Integrated.1-1*.`)),
-			// 		resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID, regexp.MustCompile(`.*RAID.Integrated.1-1*.`)),
-			// 	),
-			// },
 			{
 				Config:      testAccStorageControllerDatasourceWithInvalidSystemID(creds),
 				ExpectError: regexp.MustCompile(`.*Error one or more of the filtered system ids are not valid*.`),
@@ -92,6 +77,37 @@ func TestAccRedfishStorageControllerDataSourceFetch(t *testing.T) {
 			{
 				Config:      testAccStorageControllerDatasourceWithInvalidControllerID(creds),
 				ExpectError: regexp.MustCompile(`.*Error one or more of the filtered storage controller ids are not valid*.`),
+			},
+		},
+	})
+}
+
+func TestAccRedfishStorageControllerDataSourceFetch_2(t *testing.T) {
+
+	t.Skip("This step is working as expected,Do enable it when sever have more than 1 storage controllers.")
+
+	storageControllerDatasourceName := "data.redfish_storage_controller.test"
+	numberOfControllers := "storage_controllers.#"
+	storageControllerOdataID := "storage_controllers.0.odata_id"
+	storageControllerOdataID1 := "storage_controllers.1.odata_id"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+
+			//This step is working as expected,Do enable it when sever have more than 1 storage controllers.
+			{
+				Config: testAccStorageControllerDatasourceWithMultipleStorageIDs(creds),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(storageControllerDatasourceName, numberOfControllers),
+					resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID, regexp.MustCompile(`.*System.Embedded.1*.`)),
+					resource.TestCheckResourceAttrSet(storageControllerDatasourceName, storageControllerOdataID),
+					resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID1, regexp.MustCompile(`.*AHCI.Embedded.1-1*.`)),
+					resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID1, regexp.MustCompile(`.*AHCI.Embedded.1-1*.`)),
+					resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID, regexp.MustCompile(`.*System.Embedded.1*.`)),
+					resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID, regexp.MustCompile(`.*RAID.Integrated.1-1*.`)),
+					resource.TestMatchResourceAttr(storageControllerDatasourceName, storageControllerOdataID, regexp.MustCompile(`.*RAID.Integrated.1-1*.`)),
+				),
 			},
 		},
 	})
@@ -212,39 +228,38 @@ func testAccStorageControllerDatasourceWithControllerID(testingInfo TestingServe
 	)
 }
 
-// This step is working as expected,Do uncomment it when sever have more than 1 storage controllers.
-// func testAccStorageControllerDatasourceWithMultipleStorageIDs(testingInfo TestingServerCredentials) string {
-// 	return fmt.Sprintf(`
-// 	data "redfish_storage_controller" "test" {
-// 		redfish_server {
-// 		  user         = "%s"
-// 		  password     = "%s"
-// 		  endpoint     = "%s"
-// 		  ssl_insecure = true
-// 		}
-// 		storage_controller_filter {
-// 			systems = [
-// 				{
-// 				system_id = "System.Embedded.1"
-// 				storages = [
-// 					{
-// 						storage_id = `+os.Getenv("TF_STORAGE_CONTROLLER_ID")+`
-// 						controller_ids = `+os.Getenv("TF_STORAGE_CONTROLLER_IDS")+`
-// 					},
-// 					{
-// 						storage_id = `+os.Getenv("TF_STORAGE_CONTROLLER_ID1")+`
-// 						controller_ids = `+os.Getenv("TF_STORAGE_CONTROLLER_IDS1")+`
-// 					}
-// 				]
-// 				}
-// 			]
-// 		}
-// 	}`,
-// 		testingInfo.Username,
-// 		testingInfo.Password,
-// 		testingInfo.Endpoint,
-// 	)
-// }
+func testAccStorageControllerDatasourceWithMultipleStorageIDs(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+	data "redfish_storage_controller" "test" {
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "%s"
+		  ssl_insecure = true
+		}
+		storage_controller_filter {
+			systems = [
+				{
+				system_id = "System.Embedded.1"
+				storages = [
+					{
+						storage_id = `+os.Getenv("TF_STORAGE_CONTROLLER_ID")+`
+						controller_ids = `+os.Getenv("TF_STORAGE_CONTROLLER_IDS")+`
+					},
+					{
+						storage_id = `+os.Getenv("TF_STORAGE_CONTROLLER_ID1")+`
+						controller_ids = `+os.Getenv("TF_STORAGE_CONTROLLER_IDS1")+`
+					}
+				]
+				}
+			]
+		}
+	}`,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+	)
+}
 
 func testAccStorageControllerDatasourceWithInvalidSystemID(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
