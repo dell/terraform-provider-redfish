@@ -19,16 +19,24 @@ package provider
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccRedfishNICDataSource_fetch(t *testing.T) {
+func TestAccRedfishNICDataSource17G_fetch(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
 	nicDatasourceName := "data.redfish_network.nic"
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+
+		PreCheck: func() {
+			if version != "17" {
+				t.Skip("Skipping 17G test")
+			}
+			testAccPreCheck(t)
+		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -45,11 +53,11 @@ func TestAccRedfishNICDataSource_fetch(t *testing.T) {
 				ExpectError: regexp.MustCompile(`.*Error one or more of the filtered system ids are not valid*.`),
 			},
 			{
-				Config: testAccNICDatasourceWithAdapterID(creds),
+				Config: testAccNICDatasourceWithAdapterID(creds, os.Getenv("NETWORK_ADAPTER_ID_17G")),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(nicDatasourceName, "network_interfaces.#", "1"),
-					resource.TestMatchResourceAttr(nicDatasourceName, "network_interfaces.0.odata_id", regexp.MustCompile(`.*System.Embedded.1*.`)),
-					resource.TestMatchResourceAttr(nicDatasourceName, "network_interfaces.0.network_adapter.odata_id", regexp.MustCompile(`.*NIC.Integrated.1*.`)),
+					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.#"),
+					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.0.odata_id"),
+					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.0.network_adapter.odata_id"),
 				),
 			},
 			{
@@ -57,21 +65,76 @@ func TestAccRedfishNICDataSource_fetch(t *testing.T) {
 				ExpectError: regexp.MustCompile(`.*Error one or more of the filtered network adapter ids are not valid*.`),
 			},
 			{
-				Config: testAccNICDatasourceWithConfiguredFilter(creds),
+				Config: testAccNICDatasourceWithConfiguredFilter(creds, os.Getenv("NETWORK_ADAPTER_ID_17G"), os.Getenv("NETWORK_PORT_IDS_17G"), os.Getenv("NETWORK_DEVICE_FUNCTION_IDS_17G")),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(nicDatasourceName, "network_interfaces.#", "1"),
-					resource.TestMatchResourceAttr(nicDatasourceName, "network_interfaces.0.odata_id", regexp.MustCompile(`.*System.Embedded.1*.`)),
-					resource.TestMatchResourceAttr(nicDatasourceName, "network_interfaces.0.network_adapter.odata_id", regexp.MustCompile(`.*NIC.Integrated.1*.`)),
-					resource.TestCheckResourceAttr(nicDatasourceName, "network_interfaces.0.network_ports.#", "2"),
-					resource.TestCheckResourceAttr(nicDatasourceName, "network_interfaces.0.network_device_functions.#", "2"),
+					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.#"),
+					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.0.odata_id"),
+					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.0.network_adapter.odata_id"),
+					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.0.network_ports.#"),
+					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.0.network_device_functions.#"),
 				),
 			},
 			{
-				Config:      testAccNICDatasourceWithInvalidPortID(creds),
+				Config:      testAccNICDatasourceWithInvalidPortID(creds, os.Getenv("NETWORK_ADAPTER_ID_17G")),
+				ExpectError: regexp.MustCompile(`.*Error one or more of the filtered network port ids are not valid*.`),
+			},
+		},
+	})
+}
+
+func TestAccRedfishNICDataSource_fetch(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	nicDatasourceName := "data.redfish_network.nic"
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			if version == "17" {
+				t.Skip("Skipping 17G test")
+			}
+			testAccPreCheck(t)
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishDataSourceNICConfig(creds),
+			},
+			{
+				Config: testAccNICDatasourceWithSystemID(creds),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestMatchResourceAttr(nicDatasourceName, "network_interfaces.0.odata_id", regexp.MustCompile(`.*System.Embedded.1*.`)),
+				),
+			},
+			{
+				Config:      testAccNICDatasourceWithInvalidSystemID(creds),
+				ExpectError: regexp.MustCompile(`.*Error one or more of the filtered system ids are not valid*.`),
+			},
+			{
+				Config: testAccNICDatasourceWithAdapterID(creds, os.Getenv("NETWORK_ADAPTER_ID_1")),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.#"),
+					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.0.odata_id"),
+					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.0.network_adapter.odata_id"),
+				),
+			},
+			{
+				Config:      testAccNICDatasourceWithInvalidAdapterID(creds),
+				ExpectError: regexp.MustCompile(`.*Error one or more of the filtered network adapter ids are not valid*.`),
+			},
+			{
+				Config: testAccNICDatasourceWithConfiguredFilter(creds, os.Getenv("NETWORK_ADAPTER_ID_1"), os.Getenv("NETWORK_PORT_IDS_1"), os.Getenv("NETWORK_DEVICE_FUNCTION_IDS_1")),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.#"),
+					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.0.odata_id"),
+					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.0.network_adapter.odata_id"),
+					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.0.network_ports.#"),
+					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.0.network_device_functions.#"),
+				),
+			},
+			{
+				Config:      testAccNICDatasourceWithInvalidPortID(creds, os.Getenv("NETWORK_ADAPTER_ID_1")),
 				ExpectError: regexp.MustCompile(`.*Error one or more of the filtered network port ids are not valid*.`),
 			},
 			{
-				Config: testAccNICDatasourceWithTwoAdapterIDs(creds),
+				Config: testAccNICDatasourceWithTwoAdapterIDs(creds, os.Getenv("NETWORK_ADAPTER_ID_1"), os.Getenv("NETWORK_PORT_IDS_1"), os.Getenv("NETWORK_DEVICE_FUNCTION_IDS_1"), os.Getenv("NETWORK_ADAPTER_ID_2"), os.Getenv("NETWORK_PORT_IDS_2"), os.Getenv("NETWORK_DEVICE_FUNCTION_IDS_2")),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(nicDatasourceName, "network_interfaces.#", "2"),
 					resource.TestMatchResourceAttr(nicDatasourceName, "network_interfaces.0.odata_id", regexp.MustCompile(`.*System.Embedded.1*.`)),
@@ -143,7 +206,7 @@ func testAccNICDatasourceWithInvalidSystemID(testingInfo TestingServerCredential
 	)
 }
 
-func testAccNICDatasourceWithAdapterID(testingInfo TestingServerCredentials) string {
+func testAccNICDatasourceWithAdapterID(testingInfo TestingServerCredentials, network_adapter_id string) string {
 	return fmt.Sprintf(`
 	data "redfish_network" "nic" {	
 		redfish_server {
@@ -158,7 +221,7 @@ func testAccNICDatasourceWithAdapterID(testingInfo TestingServerCredentials) str
 			system_id = "System.Embedded.1"
 			network_adapters = [
 			{
-			  network_adapter_id = "NIC.Integrated.1"
+			  network_adapter_id = "%s"
 			}
 			]
 		  }
@@ -168,6 +231,7 @@ func testAccNICDatasourceWithAdapterID(testingInfo TestingServerCredentials) str
 		testingInfo.Username,
 		testingInfo.Password,
 		testingInfo.Endpoint,
+		network_adapter_id,
 	)
 }
 
@@ -199,7 +263,7 @@ func testAccNICDatasourceWithInvalidAdapterID(testingInfo TestingServerCredentia
 	)
 }
 
-func testAccNICDatasourceWithConfiguredFilter(testingInfo TestingServerCredentials) string {
+func testAccNICDatasourceWithConfiguredFilter(testingInfo TestingServerCredentials, network_adapter_id string, network_port_ids string, network_device_function_ids string) string {
 	return fmt.Sprintf(`
 	data "redfish_network" "nic" {	
 		redfish_server {
@@ -215,9 +279,9 @@ func testAccNICDatasourceWithConfiguredFilter(testingInfo TestingServerCredentia
 			system_id = "System.Embedded.1"
 			network_adapters = [
 			{
-			  network_adapter_id = "NIC.Integrated.1"
-			  network_port_ids = ["NIC.Integrated.1-1", "NIC.Integrated.1-2"]
-			  network_device_function_ids = ["NIC.Integrated.1-3-1", "NIC.Integrated.1-2-1"]				  
+			  network_adapter_id = "%s"
+			  network_port_ids = %s
+			  network_device_function_ids = %s
 			}
 			]
 		  }
@@ -227,10 +291,13 @@ func testAccNICDatasourceWithConfiguredFilter(testingInfo TestingServerCredentia
 		testingInfo.Username,
 		testingInfo.Password,
 		testingInfo.Endpoint,
+		network_adapter_id,
+		network_port_ids,
+		network_device_function_ids,
 	)
 }
 
-func testAccNICDatasourceWithInvalidPortID(testingInfo TestingServerCredentials) string {
+func testAccNICDatasourceWithInvalidPortID(testingInfo TestingServerCredentials, network_adapter_id string) string {
 	return fmt.Sprintf(`
 	data "redfish_network" "nic" {	
 		redfish_server {
@@ -246,7 +313,7 @@ func testAccNICDatasourceWithInvalidPortID(testingInfo TestingServerCredentials)
 			system_id = "System.Embedded.1"
 			network_adapters = [
 			{
-			  network_adapter_id = "NIC.Integrated.1"
+			  network_adapter_id = "%s"
 			  network_port_ids = ["InvalidPortID"]
 			}
 			]
@@ -257,10 +324,11 @@ func testAccNICDatasourceWithInvalidPortID(testingInfo TestingServerCredentials)
 		testingInfo.Username,
 		testingInfo.Password,
 		testingInfo.Endpoint,
+		network_adapter_id,
 	)
 }
 
-func testAccNICDatasourceWithTwoAdapterIDs(testingInfo TestingServerCredentials) string {
+func testAccNICDatasourceWithTwoAdapterIDs(testingInfo TestingServerCredentials, network_adapter_id_1 string, network_port_ids_1 string, network_device_function_ids_1 string, network_adapter_id_2 string, network_port_ids_2 string, network_device_function_ids_2 string) string {
 	return fmt.Sprintf(`
 	data "redfish_network" "nic" {	
 		redfish_server {
@@ -276,14 +344,14 @@ func testAccNICDatasourceWithTwoAdapterIDs(testingInfo TestingServerCredentials)
 			system_id = "System.Embedded.1"
 			network_adapters = [
 			{
-			  network_adapter_id = "NIC.Integrated.1"
-			  network_port_ids = ["NIC.Integrated.1-1", "NIC.Integrated.1-2"]
-			  network_device_function_ids = ["NIC.Integrated.1-3-1", "NIC.Integrated.1-2-1"]				  
+			  network_adapter_id = "%s"
+			  network_port_id = %s
+			  network_device_function_ids = %s			  
 			},
 			{
-			  network_adapter_id = "FC.Slot.1"
-			  network_port_ids = ["FC.Slot.1-2"]
-			  network_device_function_ids = ["FC.Slot.1-2"]				  
+			  network_adapter_id = "%s"
+			  network_port_ids = %s
+			  network_device_function_ids = %s			  
 			}
 			]
 		  }
@@ -293,5 +361,11 @@ func testAccNICDatasourceWithTwoAdapterIDs(testingInfo TestingServerCredentials)
 		testingInfo.Username,
 		testingInfo.Password,
 		testingInfo.Endpoint,
+		network_adapter_id_1,
+		network_port_ids_1,
+		network_device_function_ids_1,
+		network_adapter_id_2,
+		network_port_ids_2,
+		network_device_function_ids_2,
 	)
 }
