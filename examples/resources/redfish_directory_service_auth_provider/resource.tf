@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+# kerberod file is not supported by 17G and this configuration works only for below 17G
 data "local_file" "kerberos" {
   # this is the path to the kerberos keytab file that we want to upload.
   # this file must be base64 encoded format
@@ -48,14 +49,17 @@ resource "redfish_directory_service_auth_provider" "ds_auth" {
     directory = {
       # remote_role_mapping = [
       #     {
-      #         local_role = "None",
+      #         local_role = "Administrator",
       #         remote_group = "idracgroup"
       #     }
       # ],
+      # To Update service addresses for 17G please provide configuration in active_directory_attributes
+      # This configuration will be working once the issue for 17G get resolved 
       # service_addresses = [
       #     "yulanadhost11.yulan.pie.lab.emc.com"
       #  ],
       service_enabled = true,
+      # authentication configuration works for below 17G server, 17G server do not support kerberos
       authentication = {
         kerberos_key_tab_file = data.local_file.kerberos.content
       }
@@ -67,14 +71,22 @@ resource "redfish_directory_service_auth_provider" "ds_auth" {
     "ActiveDirectory.1.CertValidationEnable" = "Enabled",
     "ActiveDirectory.1.DCLookupEnable"       = "Enabled",
 
-    # RacName and RacDomain can be configured when Schema is Extended Schema
+    # DomainController can be configured when DCLookupEnable is Disabled
+    # To update service addresses for 17G please provide below configuration
+    #"ActiveDirectory.1.DomainController1"= "yulanadhost1.yulan.pie.lab.emc.com",
+    #"ActiveDirectory.1.DomainController2"= "yulanadhost2.yulan.pie.lab.emc.com",
+    #"ActiveDirectory.1.DomainController3"= "yulanadhost3.yulan.pie.lab.emc.com",
+
+    # RacName and RacDomain can be configured when Schema is Extended Schema which is supported by below 17G server
     "ActiveDirectory.1.RacDomain" = "test",
     "ActiveDirectory.1.RacName"   = "test",
 
+    # SSOEnable configuration can be done for below 17G server and it's not supported by 17G server
     # if SSOEnable is Enabled make sure ActiveDirectory Service is enabled and valid kerberos_key_tab_file is provided
     "ActiveDirectory.1.SSOEnable" = "Disabled",
 
     # Schema can be Extended Schema or Standard Schema
+    # Schema configuration can be done for below 17G, and this configuration is not supported by 17G 
     "ActiveDirectory.1.Schema" = "Extended Schema",
     "UserDomain.1.Name"        = "yulan.pie.lab.emc.com",
 
@@ -86,6 +98,7 @@ resource "redfish_directory_service_auth_provider" "ds_auth" {
 
     #"ActiveDirectory.1.GCLookupEnable" = "Disabled"
 
+    # for 17G below configuration can be performed without schema configuration
     # at least any one from GlobalCatalog1,GlobalCatalog2,GlobalCatalog3 must be configured when Schema is Standard and GCLookupEnable is Disabled
     # "ActiveDirectory.1.GlobalCatalog1" = "yulanadhost11.yulan.pie.lab.emc.com",
     # "ActiveDirectory.1.GlobalCatalog2" = "yulanadhost11.yulan.pie.lab.emc.com",
@@ -105,6 +118,7 @@ resource "redfish_directory_service_auth_provider" "ds_auth" {
   #					remote_group = "cn = idracgroup,cn = users,dc = yulan,dc = pie,dc = lab,dc = emc,dc = com"
   #				}        
   #			],
+  #   To Update LDAP service addresses for 17G please provide configuration in ldap_attributes
   #			service_addresses = [
   #				"yulanadhost12.yulan.pie.lab.emc.com"
   #			],
@@ -127,6 +141,8 @@ resource "redfish_directory_service_auth_provider" "ds_auth" {
   #	  "LDAP.1.BindDN" = "cn = adtester,cn = users,dc = yulan,dc = pie,dc = lab,dc = emc,dc = com",
   #	  "LDAP.1.BindPassword" = "",
   #	  "LDAP.1.SearchFilter" = "(objectclass = *)",
+  #   To Update LDAP service addresses for 17G please provide below configuration
+  #   "LDAP.1.Server": "yulanadhost12.yulan.pie.lab.emc.com",
   #	  
   #		  }
 

@@ -262,23 +262,45 @@ func isValidAuthTime(prefix string, suffix string, attrsState *models.DirectoryS
 }
 
 // nolint: revive
-func isSSOEnabledWithValidFile(ctx context.Context, prefix string, suffix string, attrsState *models.DirectoryServiceAuthProviderResource) (bool, diag.Diagnostics) {
+func isSSOEnabledWithValidFile(ctx context.Context, prefix string, suffix string, attrsState *models.DirectoryServiceAuthProviderResource, isGenerationSeventeenAndAbove bool) (bool, diag.Diagnostics) {
 	var diags diag.Diagnostics
-
+	var authenticationPlan models.AuthenticationResource
 	attributes := attrsState.ActiveDirectoryAttributes
 	check := checkAttributeskeyPresent(attributes, prefix, suffix)
+	objectAsOptions := basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true}
+	var activeDirectoryPlan models.ActiveDirectoryResource
+	if !attrsState.ActiveDirectoryResource.IsNull() && !attrsState.ActiveDirectoryResource.IsUnknown() {
+		if diags := attrsState.ActiveDirectoryResource.As(ctx, &activeDirectoryPlan, objectAsOptions); diags.HasError() {
+			return false, diags
+		}
+	}
+	if !activeDirectoryPlan.Authentication.IsNull() && !activeDirectoryPlan.Authentication.IsUnknown() {
+		if diags := activeDirectoryPlan.Authentication.As(ctx, &authenticationPlan, objectAsOptions); diags.HasError() {
+			return false, diags
+		}
+	}
+
+	// isGenerationSeventeenAndAbove return true for 17G and false for below
+	if isGenerationSeventeenAndAbove {
+
+		// SSO is not supported by 17G
+		if check {
+			diags.AddError("SSO configuration is not supported by 17G", "SSO configuration is not supported by 17G")
+			return false, diags
+		}
+
+		// Kerberos key tab is not supported by 17G
+		if !activeDirectoryPlan.Authentication.IsNull() && !activeDirectoryPlan.Authentication.IsUnknown() &&
+			!authenticationPlan.KerberosKeytab.IsNull() && !authenticationPlan.KerberosKeytab.IsUnknown() {
+			diags.AddError("kerberos key tab is not supported by 17G",
+				"kerberos key tab is not supported by 17G")
+			return false, diags
+		}
+	}
 
 	if check {
 		value := getkAttributeskeyValue(attributes, prefix, suffix)
 		if value == Enabled {
-			objectAsOptions := basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true}
-			var activeDirectoryPlan models.ActiveDirectoryResource
-			if !attrsState.ActiveDirectoryResource.IsNull() && !attrsState.ActiveDirectoryResource.IsUnknown() {
-				if diags := attrsState.ActiveDirectoryResource.As(ctx, &activeDirectoryPlan, objectAsOptions); diags.HasError() {
-					return false, diags
-				}
-			}
-
 			var directoryPlan models.DirectoryResource
 			if !activeDirectoryPlan.Directory.IsNull() && !activeDirectoryPlan.Directory.IsUnknown() {
 				if diags := activeDirectoryPlan.Directory.As(ctx, &directoryPlan, objectAsOptions); diags.HasError() {
@@ -289,12 +311,6 @@ func isSSOEnabledWithValidFile(ctx context.Context, prefix string, suffix string
 			if !directoryPlan.ServiceEnabled.ValueBool() {
 				diags.AddError("Please provide valid Configuration for SSO", "SSO can't be enabled when Active Directory service is Disabled")
 				return false, diags
-			}
-			var authenticationPlan models.AuthenticationResource
-			if !activeDirectoryPlan.Authentication.IsNull() && !activeDirectoryPlan.Authentication.IsUnknown() {
-				if diags := activeDirectoryPlan.Authentication.As(ctx, &authenticationPlan, objectAsOptions); diags.HasError() {
-					return false, diags
-				}
 			}
 
 			if activeDirectoryPlan.Authentication.IsNull() || activeDirectoryPlan.Authentication.IsUnknown() ||
@@ -308,7 +324,6 @@ func isSSOEnabledWithValidFile(ctx context.Context, prefix string, suffix string
 		}
 
 		if value == Disabled {
-			diags.AddWarning("Disabled ", "inside Disabled")
 			return true, diags
 		}
 	}
@@ -317,19 +332,41 @@ func isSSOEnabledWithValidFile(ctx context.Context, prefix string, suffix string
 }
 
 // nolint: gocyclo, revive
-func isValidSchemaSelection(ctx context.Context, prefix string, suffix string, attrsState *models.DirectoryServiceAuthProviderResource) (bool, diag.Diagnostics) {
+func isValidSchemaSelection(ctx context.Context, prefix string, suffix string, attrsState *models.DirectoryServiceAuthProviderResource, isGenerationSeventeenAndAbove bool) (bool, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	attributes := attrsState.ActiveDirectoryAttributes
 	check := checkAttributeskeyPresent(attributes, prefix, suffix)
+	iDRAcName := checkAttributeskeyPresent(attributes, ActiveDirectory, "RacName")
+	iDRAcDomain := checkAttributeskeyPresent(attributes, ActiveDirectory, "RacDomain")
+	groupDomain := checkAttributeskeyPresent(attributes, "ADGroup", "Domain")
+	gcLookupEnable := checkAttributeskeyPresent(attributes, ActiveDirectory, "GCLookupEnable")
+	gc1 := checkAttributeskeyPresent(attributes, ActiveDirectory, "GlobalCatalog1")
+	gc2 := checkAttributeskeyPresent(attributes, ActiveDirectory, "GlobalCatalog2")
+	gc3 := checkAttributeskeyPresent(attributes, ActiveDirectory, "GlobalCatalog3")
+
+	// isGenerationSeventeenAndAbove return true for 17G and false for below
+	if isGenerationSeventeenAndAbove {
+
+		// Schema not required for 17G as it support only standard schema
+		if check {
+			diags.AddError("Schema configuration not required for 17G as it support only standard schema", "Schema configuration not required for 17G as it support only standard schema")
+			return false, diags
+		}
+
+		if iDRAcName || iDRAcDomain {
+			diags.AddError("RacName and RacDomain can not be configured for 17G which does not support extended schema",
+				"RacName and RacDomain can not be configured for 17G which does not support extended schema")
+			return false, diags
+		}
+
+		isValid, diags := isValidStandardSchemaConfig(attrsState, gc1, gc2, gc3, gcLookupEnable, isGenerationSeventeenAndAbove)
+		if !isValid {
+			return false, diags
+		}
+	}
+
 	if check {
 		value := getkAttributeskeyValue(attributes, prefix, suffix)
-		iDRAcName := checkAttributeskeyPresent(attributes, ActiveDirectory, "RacName")
-		iDRAcDomain := checkAttributeskeyPresent(attributes, ActiveDirectory, "RacDomain")
-		groupDomain := checkAttributeskeyPresent(attributes, "ADGroup", "Domain")
-		gcLookupEnable := checkAttributeskeyPresent(attributes, ActiveDirectory, "GCLookupEnable")
-		gc1 := checkAttributeskeyPresent(attributes, ActiveDirectory, "GlobalCatalog1")
-		gc2 := checkAttributeskeyPresent(attributes, ActiveDirectory, "GlobalCatalog2")
-		gc3 := checkAttributeskeyPresent(attributes, ActiveDirectory, "GlobalCatalog3")
 		objectAsOptions := basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true}
 		var activeDirectoryPlan models.ActiveDirectoryResource
 		if !attrsState.ActiveDirectoryResource.IsNull() && !attrsState.ActiveDirectoryResource.IsUnknown() {
@@ -389,44 +426,9 @@ func isValidSchemaSelection(ctx context.Context, prefix string, suffix string, a
 					"RacName and RacDomain can not be configured for Standard Schema")
 				return false, diags
 			}
-			if !gcLookupEnable {
-				diags.AddError("GCLookupEnable must be configured for Standard Schema", "GCLookupEnable must be configured for Standard Schema")
-				return false, diags
-			}
-			gcLookupEnableValue := getkAttributeskeyValue(attributes, ActiveDirectory, "GCLookupEnable")
 
-			if gcLookupEnableValue == Enabled {
-				gcRootDomain := checkAttributeskeyPresent(attributes, ActiveDirectory, "GCRootDomain")
-				if !gcRootDomain || getkAttributeskeyValue(attributes, ActiveDirectory, "GCRootDomain") == "" {
-					diags.AddError("GCRootDomain must be configured for Enabled GCLookupEnable",
-						"GCRootDomain must be configured for Enabled GCLookupEnable")
-					return false, diags
-				}
-
-				if gc1 || gc2 || gc3 {
-					diags.AddError("GlobalCatalog can not be configured for Enabled GCLookupEnable",
-						" GlobalCatalog can not be configured for Enabled GCLookupEnable")
-					return false, diags
-				}
-			} else if gcLookupEnableValue == Disabled {
-				gc1Value := getkAttributeskeyValue(attributes, ActiveDirectory, "GlobalCatalog1")
-				gc2Value := getkAttributeskeyValue(attributes, ActiveDirectory, "GlobalCatalog2")
-				gc3Value := getkAttributeskeyValue(attributes, ActiveDirectory, "GlobalCatalog3")
-
-				if gc1Value == "" && gc2Value == "" && gc3Value == "" {
-					diags.AddError("Invalid GlobalCatalog configuration for Standard Schema",
-						"Atleast any one from GlobalCatalog1, GlobalCatalog2, GlobalCatalog3 must be configured for Disabled GCLookupEnable")
-					return false, diags
-				}
-
-				gcRootDomain := checkAttributeskeyPresent(attributes, ActiveDirectory, "GCRootDomain")
-				if gcRootDomain {
-					diags.AddError("GCRootDomain can not be configured for Disabled GCLookupEnable",
-						"GCRootDomain can not be configured for Disabled GCLookupEnable")
-					return false, diags
-				}
-			} else {
-				diags.AddError("Invalid configuration for Standard Schema", "Please provide valid configuration for Standard Schema")
+			isValid, diags := isValidStandardSchemaConfig(attrsState, gc1, gc2, gc3, gcLookupEnable, isGenerationSeventeenAndAbove)
+			if !isValid {
 				return false, diags
 			}
 		}
@@ -435,7 +437,58 @@ func isValidSchemaSelection(ctx context.Context, prefix string, suffix string, a
 }
 
 // nolint: gocyclo, revive
-func isValidDCLookupDomainConfig(ctx context.Context, prefix string, suffix string, attrsState *models.DirectoryServiceAuthProviderResource) (bool, diag.Diagnostics) {
+func isValidStandardSchemaConfig(attrsState *models.DirectoryServiceAuthProviderResource, gc1, gc2, gc3, gcLookupEnable bool, isSeventeenGen bool) (bool, diag.Diagnostics) {
+	attributes := attrsState.ActiveDirectoryAttributes
+	var diags diag.Diagnostics
+	gcLookupEnableValue := getkAttributeskeyValue(attributes, ActiveDirectory, "GCLookupEnable")
+
+	if !gcLookupEnable {
+		if isSeventeenGen {
+			diags.AddError("GCLookupEnable must be configured", "GCLookupEnable must be configured")
+		} else {
+			diags.AddError("GCLookupEnable must be configured for Standard Schema", "GCLookupEnable must be configured for Standard Schema")
+		}
+		return false, diags
+	}
+	if gcLookupEnableValue == Enabled {
+		gcRootDomain := checkAttributeskeyPresent(attributes, ActiveDirectory, "GCRootDomain")
+		if !gcRootDomain || getkAttributeskeyValue(attributes, ActiveDirectory, "GCRootDomain") == "" {
+			diags.AddError("GCRootDomain must be configured for Enabled GCLookupEnable",
+				"GCRootDomain must be configured for Enabled GCLookupEnable")
+			return false, diags
+		}
+
+		if gc1 || gc2 || gc3 {
+			diags.AddError("GlobalCatalog can not be configured for Enabled GCLookupEnable",
+				" GlobalCatalog can not be configured for Enabled GCLookupEnable")
+			return false, diags
+		}
+	} else if gcLookupEnableValue == Disabled {
+		gc1Value := getkAttributeskeyValue(attributes, ActiveDirectory, "GlobalCatalog1")
+		gc2Value := getkAttributeskeyValue(attributes, ActiveDirectory, "GlobalCatalog2")
+		gc3Value := getkAttributeskeyValue(attributes, ActiveDirectory, "GlobalCatalog3")
+
+		if gc1Value == "" && gc2Value == "" && gc3Value == "" {
+			diags.AddError("Invalid GlobalCatalog configuration for Standard Schema",
+				"Atleast any one from GlobalCatalog1, GlobalCatalog2, GlobalCatalog3 must be configured for Disabled GCLookupEnable")
+			return false, diags
+		}
+
+		gcRootDomain := checkAttributeskeyPresent(attributes, ActiveDirectory, "GCRootDomain")
+		if gcRootDomain {
+			diags.AddError("GCRootDomain can not be configured for Disabled GCLookupEnable",
+				"GCRootDomain can not be configured for Disabled GCLookupEnable")
+			return false, diags
+		}
+	} else {
+		diags.AddError("Invalid configuration for Standard Schema", "Please provide valid configuration for Standard Schema")
+		return false, diags
+	}
+	return true, diags
+}
+
+// nolint: gocyclo, revive
+func isValidDCLookupDomainConfig(ctx context.Context, prefix string, suffix string, attrsState *models.DirectoryServiceAuthProviderResource, isSeventeenGen bool) (bool, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	attributes := attrsState.ActiveDirectoryAttributes
 	check := checkAttributeskeyPresent(attributes, prefix, suffix)
@@ -463,13 +516,33 @@ func isValidDCLookupDomainConfig(ctx context.Context, prefix string, suffix stri
 		}
 		userDomain := checkAttributeskeyPresent(attributes, ActiveDirectory, "DCLookupByUserDomain")
 		specifyDomain := checkAttributeskeyPresent(attributes, ActiveDirectory, "DCLookupDomainName")
+		checkDomainController1 := checkAttributeskeyPresent(attributes, ActiveDirectory, "DomainController1")
+		checkDomainController2 := checkAttributeskeyPresent(attributes, ActiveDirectory, "DomainController2")
+		checkDomainController3 := checkAttributeskeyPresent(attributes, ActiveDirectory, "DomainController3")
+
 		if dcLookupEnableValue == Disabled {
 			// diags.AddError("Invalid configuration for DCLookUp", "Service address must be configured for DCLookUp"+strconv.Itoa(len(serviceAddressList)))
-			if len(serviceAddressList) == 0 {
+			if !isSeventeenGen && len(serviceAddressList) == 0 {
 				diags.AddError("ServiceAddresses is not Configured for Disabled DCLookUp",
 					"Atleast one Service address must be configured for Disabled DCLookUp")
 				return false, diags
 			}
+
+			if isSeventeenGen {
+				if len(serviceAddressList) > 0 {
+					diags.AddError("ServiceAddresses can not be Configured for 17 Gen",
+						"ServiceAddresses can not be Configured for 17 Gen")
+					return false, diags
+				}
+				if !checkDomainController1 && !checkDomainController2 && !checkDomainController3 {
+					diags.AddError("DomainController server address is not Configured for Disabled DCLookUp",
+						"Atleast one DomainController server address must be configured for Disabled DCLookUp")
+					return false, diags
+				}
+			}
+
+			// add validation for domaincontroller for 17G
+
 			if userDomain {
 				diags.AddError("DCLookupByUserDomain can not be Configured for Disabled DCLookUp",
 					"DCLookupByUserDomain can not be Configured for Disabled DCLookUp")
@@ -481,8 +554,12 @@ func isValidDCLookupDomainConfig(ctx context.Context, prefix string, suffix stri
 				return false, diags
 			}
 		} else if dcLookupEnableValue == Enabled {
-			if len(serviceAddressList) != 0 {
+			if !isSeventeenGen && len(serviceAddressList) != 0 {
 				diags.AddError("Service address can not be configured for Enabled DCLookUp", "Service address can not be configured for Enabled DCLookUp")
+				return false, diags
+			}
+			if isSeventeenGen && (checkDomainController1 || checkDomainController2 || checkDomainController3) {
+				diags.AddError("DomainController server address can not be configured for Enabled DCLookUp", "DomainController server address can not be configured for Enabled DCLookUp")
 				return false, diags
 			}
 			if !userDomain {
@@ -518,5 +595,51 @@ func isValidDCLookupDomainConfig(ctx context.Context, prefix string, suffix stri
 			return false, diags
 		}
 	}
+	return true, diags
+}
+
+// nolint: gocyclo, revive
+func isValidLDAPConfig(ctx context.Context, attrsState *models.DirectoryServiceAuthProviderResource, isSeventeenGen bool) (bool, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	attributes := attrsState.LDAPAttributes
+	objectAsOptions := basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true}
+	var ldapDirectoryPlan models.LDAPResource
+	if !attrsState.LDAPResource.IsNull() && !attrsState.LDAPResource.IsUnknown() {
+		if diags := attrsState.LDAPResource.As(ctx, &ldapDirectoryPlan, objectAsOptions); diags.HasError() {
+			return false, diags
+		}
+	}
+
+	var directoryPlan models.DirectoryResource
+	if !ldapDirectoryPlan.Directory.IsNull() && !ldapDirectoryPlan.Directory.IsUnknown() {
+		if diags := ldapDirectoryPlan.Directory.As(ctx, &directoryPlan, objectAsOptions); diags.HasError() {
+			return false, diags
+		}
+	}
+	serviceAddress := directoryPlan.ServiceAddresses
+
+	serviceAddressList := make([]interface{}, 0)
+	for _, target := range serviceAddress {
+		serviceAddressList = append(serviceAddressList, target.ValueString())
+	}
+	severAddress := checkAttributeskeyPresent(attributes, LDAP, "Server")
+	if isSeventeenGen {
+		if len(serviceAddressList) > 0 {
+			diags.AddError("ServiceAddresses can not be Configured for 17G LDAP",
+				"ServiceAddresses can not be Configured for 17G LDAP")
+			return false, diags
+		}
+		if !severAddress {
+			diags.AddError("server address is not Configured for 17G LDAP",
+				"server address must be configured for 17G LDAP")
+			return false, diags
+		}
+	}
+	if !isSeventeenGen && len(serviceAddressList) == 0 {
+		diags.AddError("ServiceAddresses is not be Configured for LDAP",
+			"ServiceAddresses is not Configured for LDAP")
+		return false, diags
+	}
+
 	return true, diags
 }

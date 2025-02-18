@@ -141,7 +141,7 @@ func getRemoteRoleMappingObjectValue(ctx context.Context, service []redfish.Role
 }
 
 // nolint: revive
-func getActiveDirectoryObjectValue(ctx context.Context, service *redfish.AccountService, state *models.DirectoryServiceAuthProviderResource, objectAsOptions basetypes.ObjectAsOptions) (basetypes.ObjectValue, diag.Diagnostics) {
+func getActiveDirectoryObjectValue(ctx context.Context, service *redfish.AccountService, state *models.DirectoryServiceAuthProviderResource, objectAsOptions basetypes.ObjectAsOptions, isSeventeenGen bool) (basetypes.ObjectValue, diag.Diagnostics) {
 	emptyObj := types.ObjectNull(getDirectoryModelType())
 	var oldActiveDirRes models.ActiveDirectoryResource
 	if !state.ActiveDirectoryResource.IsNull() && !state.ActiveDirectoryResource.IsUnknown() {
@@ -169,7 +169,7 @@ func getActiveDirectoryObjectValue(ctx context.Context, service *redfish.Account
 	if diags.HasError() {
 		return emptyObj, diags
 	}
-	serviceAddressList, diags := getConfigDataList(service.ActiveDirectory.ServiceAddresses, serviceAddress)
+	serviceAddressList, diags := getServiceAddressesConfigDataList(service.ActiveDirectory.ServiceAddresses, serviceAddress, isSeventeenGen)
 
 	if diags.HasError() {
 		return emptyObj, diags
@@ -206,7 +206,30 @@ func getConfigDataList(input []string, stateServiceAddress []types.String) (base
 }
 
 // nolint: revive
-func getLDAPDirectoryObjectValue(ctx context.Context, service *redfish.AccountService, state *models.DirectoryServiceAuthProviderResource, objectAsOptions basetypes.ObjectAsOptions) (basetypes.ObjectValue, diag.Diagnostics) {
+func getServiceAddressesConfigDataList(input []string, stateServiceAddress []types.String, isSeventeenGen bool) (basetypes.ListValue, diag.Diagnostics) {
+	out := make([]attr.Value, 0)
+	if len(stateServiceAddress) != 0 {
+		for _, stateInput := range stateServiceAddress {
+			for _, i := range input {
+				if stateInput.ValueString() == i {
+					out = append(out, types.StringValue(i))
+					break
+				}
+			}
+		}
+	}
+
+	if !isSeventeenGen && len(out) == 0 {
+		for _, target := range input {
+			out = append(out, types.StringValue(target))
+		}
+	}
+
+	return types.ListValue(types.StringType, out)
+}
+
+// nolint: revive
+func getLDAPDirectoryObjectValue(ctx context.Context, service *redfish.AccountService, state *models.DirectoryServiceAuthProviderResource, objectAsOptions basetypes.ObjectAsOptions, isSeventeenGen bool) (basetypes.ObjectValue, diag.Diagnostics) {
 	emptyObj := types.ObjectNull(getDirectoryModelType())
 
 	var oldLDAPRes models.LDAPResource
@@ -237,7 +260,7 @@ func getLDAPDirectoryObjectValue(ctx context.Context, service *redfish.AccountSe
 		return emptyObj, diags
 	}
 
-	serviceAddressList, diags := getConfigDataList(service.LDAP.ServiceAddresses, serviceAddress)
+	serviceAddressList, diags := getServiceAddressesConfigDataList(service.LDAP.ServiceAddresses, serviceAddress, isSeventeenGen)
 	if diags.HasError() {
 		return emptyObj, diags
 	}
@@ -342,7 +365,7 @@ func getAuthentcationObjectValue(ctx context.Context, service *redfish.AccountSe
 }
 
 // nolint: gocyclo, revive
-func parseActiveDirectoryIntoState(ctx context.Context, acctService *redfish.AccountService, service *gofish.Service, state *models.DirectoryServiceAuthProviderResource) (diags diag.Diagnostics) {
+func parseActiveDirectoryIntoState(ctx context.Context, acctService *redfish.AccountService, service *gofish.Service, state *models.DirectoryServiceAuthProviderResource, isSeventeenGen bool) (diags diag.Diagnostics) {
 	objectAsOptions := basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true}
 	var oldActiveDirectory models.ActiveDirectoryResource
 	if !state.ActiveDirectoryResource.IsNull() && !state.ActiveDirectoryResource.IsUnknown() {
@@ -352,7 +375,7 @@ func parseActiveDirectoryIntoState(ctx context.Context, acctService *redfish.Acc
 		}
 
 	}
-	directoryObj, diags := getActiveDirectoryObjectValue(ctx, acctService, state, objectAsOptions)
+	directoryObj, diags := getActiveDirectoryObjectValue(ctx, acctService, state, objectAsOptions, isSeventeenGen)
 	if diags.HasError() {
 		return diags
 	}
@@ -376,6 +399,7 @@ func parseActiveDirectoryIntoState(ctx context.Context, acctService *redfish.Acc
 	if state.ActiveDirectoryAttributes.IsNull() || state.ActiveDirectoryAttributes.IsUnknown() {
 		// nolint: gocyclo, gocognit,revive
 		activeDirectoryAttributes := []string{".CertValidationEnable", ".SSOEnable", ".AuthTimeout", ".DCLookupEnable", ".DCLookupByUserDomain", ".DCLookupDomainName", ".Schema", ".GCLookupEnable", ".GCRootDomain", ".GlobalCatalog1", ".GlobalCatalog2", ".GlobalCatalog3", ".RacName", ".RacDomain"}
+		activeDirectoryAttributesFor17Gen := []string{".DomainController1", ".DomainController2", ".DomainController3"}
 
 		attributesToReturn := make(map[string]attr.Value)
 		for k, v := range idracAttributesPlan.Attributes.Elements() {
@@ -383,6 +407,13 @@ func parseActiveDirectoryIntoState(ctx context.Context, acctService *redfish.Acc
 				for _, input := range activeDirectoryAttributes {
 					if strings.HasSuffix(k, input) {
 						attributesToReturn[k] = v
+					}
+				}
+				if isSeventeenGen {
+					for _, input := range activeDirectoryAttributesFor17Gen {
+						if strings.HasSuffix(k, input) {
+							attributesToReturn[k] = v
+						}
 					}
 				}
 			}
@@ -405,7 +436,7 @@ func parseActiveDirectoryIntoState(ctx context.Context, acctService *redfish.Acc
 }
 
 // nolint:gocyclo, revive
-func parseLDAPIntoState(ctx context.Context, acctService *redfish.AccountService, service *gofish.Service, state *models.DirectoryServiceAuthProviderResource) (diags diag.Diagnostics) {
+func parseLDAPIntoState(ctx context.Context, acctService *redfish.AccountService, service *gofish.Service, state *models.DirectoryServiceAuthProviderResource, isSeventeenGen bool) (diags diag.Diagnostics) {
 	objectAsOptions := basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true}
 	var oldLDAP models.LDAPResource
 	if !state.LDAPResource.IsNull() && !state.LDAPResource.IsUnknown() {
@@ -414,7 +445,7 @@ func parseLDAPIntoState(ctx context.Context, acctService *redfish.AccountService
 		}
 	}
 
-	directoryObj, diags := getLDAPDirectoryObjectValue(ctx, acctService, state, objectAsOptions)
+	directoryObj, diags := getLDAPDirectoryObjectValue(ctx, acctService, state, objectAsOptions, isSeventeenGen)
 	if diags.HasError() {
 		return diags
 	}
@@ -449,6 +480,9 @@ func parseLDAPIntoState(ctx context.Context, acctService *redfish.AccountService
 						attributesToReturn[k] = v
 					}
 				}
+				if isSeventeenGen && strings.HasSuffix(k, ".Server") {
+					attributesToReturn[k] = v
+				}
 			}
 		}
 		ldapDirAttributes = types.MapValueMust(types.StringType, attributesToReturn)
@@ -463,7 +497,7 @@ func parseLDAPIntoState(ctx context.Context, acctService *redfish.AccountService
 }
 
 // nolint: gocyclo, revive
-func getActiveDirectoryPatchBody(ctx context.Context, attrsState *models.DirectoryServiceAuthProviderResource) (map[string]interface{}, diag.Diagnostics) {
+func getActiveDirectoryPatchBody(ctx context.Context, attrsState *models.DirectoryServiceAuthProviderResource, isSeventeenGen bool) (map[string]interface{}, diag.Diagnostics) {
 	// var diags diag.Diagnostics
 	supportedActiveDirectory := map[string]string{
 		serviceEnabled:    "ServiceEnabled",
@@ -505,6 +539,9 @@ func getActiveDirectoryPatchBody(ctx context.Context, attrsState *models.Directo
 	patchBody := make(map[string]interface{})
 	if !activeDirectoryPlan.Directory.IsNull() && !activeDirectoryPlan.Directory.IsUnknown() {
 		for key, value := range activeDirectoryPlan.Directory.Attributes() {
+			if isSeventeenGen && key == "ServiceAddresses" {
+				continue
+			}
 			if !value.IsUnknown() && !value.IsNull() {
 				goValue, err := convertTerraformValueToGoBasicValue(ctx, value)
 				if err != nil {
@@ -548,7 +585,7 @@ func getActiveDirectoryPatchBody(ctx context.Context, attrsState *models.Directo
 	for _, target := range serviceAddress {
 		serviceAddressList = append(serviceAddressList, target.ValueString())
 	}
-	if len(serviceAddressList) != 0 {
+	if !isSeventeenGen && len(serviceAddressList) != 0 {
 		patchBody[supportedActiveDirectory[serviceAddresses]] = serviceAddressList
 	}
 
@@ -574,8 +611,8 @@ func getActiveDirectoryPatchBody(ctx context.Context, attrsState *models.Directo
 }
 
 // nolint: gocyclo, revive
-func getLDAPPatchBody(ctx context.Context, attrsState *models.DirectoryServiceAuthProviderResource) (map[string]interface{}, diag.Diagnostics) {
-	// var diags diag.Diagnostics
+func getLDAPPatchBody(ctx context.Context, attrsState *models.DirectoryServiceAuthProviderResource, isSeventeenGen bool) (map[string]interface{}, diag.Diagnostics) {
+	var diags diag.Diagnostics
 	supportedLDAP := map[string]string{
 		serviceEnabled:    "ServiceEnabled",
 		serviceAddresses:  "ServiceAddresses",
@@ -628,6 +665,9 @@ func getLDAPPatchBody(ctx context.Context, attrsState *models.DirectoryServiceAu
 	patchBody := make(map[string]interface{})
 	if !ldapPlan.Directory.IsNull() && !ldapPlan.Directory.IsUnknown() {
 		for key, value := range ldapPlan.Directory.Attributes() {
+			if isSeventeenGen && key == "ServiceAddresses" {
+				continue
+			}
 			if !value.IsUnknown() && !value.IsNull() {
 				goValue, err := convertTerraformValueToGoBasicValue(ctx, value)
 				if err != nil {
@@ -707,8 +747,13 @@ func getLDAPPatchBody(ctx context.Context, attrsState *models.DirectoryServiceAu
 	for _, target := range serviceAddress {
 		serviceAddressList = append(serviceAddressList, target.ValueString())
 	}
-	if len(serviceAddressList) != 0 {
+	if !isSeventeenGen && len(serviceAddressList) != 0 {
 		patchBody[supportedLDAP[serviceAddresses]] = serviceAddressList
+	}
+
+	if isSeventeenGen && len(serviceAddressList) != 0 {
+		diags.AddError("ServiceAddresses can not be Configured for 17 Gen", "ServiceAddresses can not be Configured for 17 Gen Instead of this use domainController server address")
+		return nil, diags
 	}
 	return patchBody, nil
 }
