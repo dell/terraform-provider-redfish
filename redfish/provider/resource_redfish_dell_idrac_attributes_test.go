@@ -28,11 +28,46 @@ import (
 )
 
 func TestAccRedfishIDRACAttributesBasic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			if version == "17" {
+				t.Skip("Skipping 17G test")
+			}
+			testAccPreCheck(t)
+		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(false, nil).Build()
+				},
+				Config: testAccRedfishResourceIDracAttributesConfig(
+					creds, "ironman"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_dell_idrac_attributes.idrac", "attributes.Users.3.Enable", "Disabled"),
+					resource.TestCheckResourceAttr("redfish_dell_idrac_attributes.idrac", "attributes.Time.1.Timezone", "CST6CDT"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccRedfishIDRACAttributesBasic17G(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			if version != "17" {
+				t.Skip("Skipping 17G test")
+			}
+			testAccPreCheck(t)
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+				},
 				Config: testAccRedfishResourceIDracAttributesConfig(
 					creds, "ironman"),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -45,11 +80,20 @@ func TestAccRedfishIDRACAttributesBasic(t *testing.T) {
 }
 
 func TestAccRedfishIDRACAttributesInvalidAttribute(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			if version == "17" {
+				t.Skip("Skipping 17G test")
+			}
+			testAccPreCheck(t)
+		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(false, nil).Build()
+				},
 				Config: testAccRedfishResourceIDracAttributesConfigInvalid(
 					creds),
 				ExpectError: regexp.MustCompile("there was an issue when creating/updating idrac attributes"),
@@ -59,8 +103,14 @@ func TestAccRedfishIDRACAttributesInvalidAttribute(t *testing.T) {
 }
 
 func TestAccRedfishIDRACAttributesInvalidAttribute17G(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			if version != "17" {
+				t.Skip("Skipping 17G test")
+			}
+			testAccPreCheck(t)
+		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -288,6 +338,9 @@ func TestAccRedfishIDRACAttributesBelow17GParam(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(false, nil).Build()
+				},
 				Config: testAccRedfishResourceIDrac17GAttributesError(creds, "avengers"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_dell_idrac_attributes.idrac", "attributes.Users.3.Privilege", "511"),
