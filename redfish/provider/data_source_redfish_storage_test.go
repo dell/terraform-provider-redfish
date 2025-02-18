@@ -19,12 +19,18 @@ package provider
 
 import (
 	"fmt"
+	"os"
+	"regexp"
+	"terraform-provider-redfish/gofish/dell"
 	"testing"
 
+	"github.com/bytedance/mockey"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccRedfishStorageDataSource_fetch(t *testing.T) {
+const mockErrorMessage = "mock error"
+
+func TestAccRedfishStorageDataSourcefetch(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -33,16 +39,82 @@ func TestAccRedfishStorageDataSource_fetch(t *testing.T) {
 				Config: testAccRedfishDataSourceStorageConfig(creds),
 			},
 			{
-				Config: testAccStorageDatasourceWithControllerID(creds),
+				Config: testAccStorageDatasourceWithControllerID(creds, os.Getenv("TF_STORAGE_CONTROLLER_IDS")),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("data.redfish_storage.storage", "storage.0.storage_controller_id"),
+				),
 			},
 			{
-				Config: testAccStorageDatasourceWithControllerName(creds),
+				Config: testAccStorageDatasourceWithControllerName(creds, os.Getenv("TF_STORAGE_CONTROLLER_NAMES")),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("data.redfish_storage.storage", "storage.0.name"),
+				),
 			},
 			{
-				Config: testAccStorageDatasourceWithBothConfig(creds),
+				Config: testAccStorageDatasourceWithBothSysIDandControllerName(creds, os.Getenv("TF_STORAGE_CONTROLLER_NAMES")),
+			},
+			{
+				Config: testAccStorageDatasourceWithBothSysIDandControllerId(creds, os.Getenv("TF_STORAGE_CONTROLLER_IDS")),
 			},
 		},
 	})
+}
+
+func TestAccRedfishStorageDataSourceReadError(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishDataSourceStorageConfig(creds),
+			},
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf(mockErrorMessage)).Build()
+				},
+				Config:      testAccRedfishDataSourceStorageConfig(creds),
+				ExpectError: regexp.MustCompile(`.*` + mockErrorMessage + `*.`),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+func TestAccRedfishStorageDataSourceGetResourceError(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishDataSourceStorageConfig(creds),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(getSystemResource).Return(nil, fmt.Errorf(mockErrorMessage)).Build()
+				},
+				Config:      testAccRedfishDataSourceStorageConfig(creds),
+				ExpectError: regexp.MustCompile(`.*` + mockErrorMessage + `*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(dell.Storage).Return(nil, fmt.Errorf(mockErrorMessage)).Build()
+				},
+				Config:      testAccRedfishDataSourceStorageConfig(creds),
+				ExpectError: regexp.MustCompile(`.*` + mockErrorMessage + `*.`),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
 }
 
 // controller_names = ["PERC H730P Mini"]
@@ -50,7 +122,7 @@ func TestAccRedfishStorageDataSource_fetch(t *testing.T) {
 
 func testAccRedfishDataSourceStorageConfig(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
-	data "redfish_storage" "storage" {	  
+	data "redfish_storage" "storage" {
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
@@ -65,45 +137,47 @@ func testAccRedfishDataSourceStorageConfig(testingInfo TestingServerCredentials)
 	)
 }
 
-func testAccStorageDatasourceWithControllerID(testingInfo TestingServerCredentials) string {
+func testAccStorageDatasourceWithControllerID(testingInfo TestingServerCredentials, controllerID string) string {
 	return fmt.Sprintf(`
-	data "redfish_storage" "storage" {	  
+	data "redfish_storage" "storage" {
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
 		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
-		controller_ids = ["AHCI.Embedded.2-1"]
+		controller_ids = %s
 	  }
 		`,
 		testingInfo.Username,
 		testingInfo.Password,
 		testingInfo.Endpoint,
+		controllerID,
 	)
 }
 
-func testAccStorageDatasourceWithControllerName(testingInfo TestingServerCredentials) string {
+func testAccStorageDatasourceWithControllerName(testingInfo TestingServerCredentials, controllerName string) string {
 	return fmt.Sprintf(`
-	data "redfish_storage" "storage" {	
+	data "redfish_storage" "storage" {
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
 		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
-		controller_names = ["PERC H730P Mini"]
+		controller_names = %s
 	  }
 		`,
 		testingInfo.Username,
 		testingInfo.Password,
 		testingInfo.Endpoint,
+		controllerName,
 	)
 }
 
-func testAccStorageDatasourceWithBothConfig(testingInfo TestingServerCredentials) string {
+func testAccStorageDatasourceWithBothSysIDandControllerName(testingInfo TestingServerCredentials, controllerName string) string {
 	return fmt.Sprintf(`
-	data "redfish_storage" "storage" {	
+	data "redfish_storage" "storage" {
 		redfish_server {
 		  user         = "%s"
 		  password     = "%s"
@@ -111,12 +185,32 @@ func testAccStorageDatasourceWithBothConfig(testingInfo TestingServerCredentials
 		  ssl_insecure = true
 		}
 		system_id = "System.Embedded.1"
-		controller_ids = ["AHCI.Embedded.2-1"]
-		controller_names = ["PERC H730P Mini"]
+		controller_names = %s
 	  }
 		`,
 		testingInfo.Username,
 		testingInfo.Password,
 		testingInfo.Endpoint,
+		controllerName,
+	)
+}
+
+func testAccStorageDatasourceWithBothSysIDandControllerId(testingInfo TestingServerCredentials, controllerID string) string {
+	return fmt.Sprintf(`
+	data "redfish_storage" "storage" {
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "%s"
+		  ssl_insecure = true
+		}
+		system_id = "System.Embedded.1"
+		controller_ids = %s
+	  }
+		`,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+		controllerID,
 	)
 }
