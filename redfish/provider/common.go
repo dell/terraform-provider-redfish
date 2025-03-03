@@ -310,6 +310,7 @@ func (p powerOperator) PowerOperation(resetType string, maximumWaitTime int64, c
 		tflog.Error(p.ctx, fmt.Sprintf("Failed to identify system: %s", err))
 		return "", fmt.Errorf("failed to identify system: %w", err)
 	}
+	system.Entity.SetETag("")
 
 	var targetPowerState redfish.PowerState
 
