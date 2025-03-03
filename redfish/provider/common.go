@@ -306,6 +306,7 @@ func (p powerOperator) PowerOperation(resetType string, maximumWaitTime int64, c
 	const powerON redfish.PowerState = "On"
 	const powerOFF redfish.PowerState = "Off"
 	system, err := getSystemResource(p.service, p.sysid)
+	system.Entity.SetETag("")
 	if err != nil {
 		tflog.Error(p.ctx, fmt.Sprintf("Failed to identify system: %s", err))
 		return "", fmt.Errorf("failed to identify system: %w", err)
