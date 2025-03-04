@@ -29,6 +29,7 @@ import (
 	"terraform-provider-redfish/redfish/models"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -48,8 +49,8 @@ const (
 )
 
 const (
-	timeBetweenAttemptsCatalogUpdate = 20
-	timeoutForCatalogUpdate          = 720
+	timeBetweenAttemptsCatalogUpdate = 10
+	timeoutForCatalogUpdate          = 1200
 	defaultPort                      = 80
 	httpString                       = "HTTP"
 )
@@ -282,6 +283,7 @@ func (*idracFirmwareUpdateResource) Schema(_ context.Context, _ resource.SchemaR
 	}
 }
 
+// nolint: revive
 // Create creates the resource and sets the initial Terraform state.
 func (r *idracFirmwareUpdateResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	tflog.Info(ctx, "redfish_idrac_firmware_update create : Started")
@@ -345,7 +347,30 @@ func (r *idracFirmwareUpdateResource) Create(ctx context.Context, req resource.C
 	getpayload := map[string]interface{}{}
 	getres, err := service.GetClient().Post(fmt.Sprintf("%v%v", systemId, getUpdatesURLLink), getpayload)
 	if err != nil {
-		resp.Diagnostics.AddError("install service error", err.Error())
+		errorStr := err.Error()
+		errorMessageId := "IDRAC.2.8.SUP029"
+
+		if !strings.Contains(errorStr, errorMessageId) {
+			resp.Diagnostics.AddError("install service error", err.Error())
+			return
+		}
+
+		var state models.IdracFirmwareUpdate = plan
+		updateKey := map[string]attr.Type{
+			"package_name":            types.StringType,
+			"current_package_version": types.StringType,
+			"target_package_version":  types.StringType,
+			"criticality":             types.StringType,
+			"reboot_type":             types.StringType,
+			"display_name":            types.StringType,
+			"job_id":                  types.StringType,
+			"job_status":              types.StringType,
+			"job_message":             types.StringType,
+		}
+		var updateObjects []attr.Value
+		state.UpdateList, _ = types.ListValue(types.ObjectType{AttrTypes: updateKey}, updateObjects)
+
+		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 		return
 	}
 	defer getres.Body.Close()
