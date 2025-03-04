@@ -563,6 +563,9 @@ func scpImportExecutor(ctx context.Context, service *gofish.Service, plan models
 
 	if location, err := response.Location(); err == nil {
 		taskURI := location.EscapedPath()
+		// Below 17G device returns location as /redfish/v1/TaskService/Tasks/JOB_ID for same GET call return status as 200 with all the job status.
+		// where as 17G device returns location as /redfish/v1/TaskService/TaskMonitors/JOB_ID for same GET call return no content hence we are replacing TaskMonitors to Tasks.
+		taskURI = strings.Replace(taskURI, "TaskMonitors", "Tasks", 1)
 		err = common.WaitForDellJobToFinish(service, taskURI, intervalJobCheckTime, defaultJobTimeout)
 		if err != nil {
 			return "error waiting for SCP Export monitor task to be completed", err
