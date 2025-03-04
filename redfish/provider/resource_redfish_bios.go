@@ -342,7 +342,13 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 		return nil, diags
 	}
 
-	attrsPayload, diagsAttr := getBiosAttrsToPatch(ctx, plan, attributes)
+	// check device is 17G or not
+	isGenerationSeventeenAndAbove, err := isServerGenerationSeventeenAndAbove(service)
+	if err != nil {
+		diags.AddError("Error retrieving the server generation", err.Error())
+		return nil, diags
+	}
+	attrsPayload, diagsAttr := getBiosAttrsToPatch(ctx, plan, attributes, isGenerationSeventeenAndAbove)
 	diags.Append(diagsAttr...)
 	if diags.HasError() {
 		return nil, diags
@@ -376,6 +382,11 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 
 		tflog.Info(ctx, "rebooting the server completed successfully")
 		tflog.Info(ctx, "Waiting for the bios config job to finish")
+
+		// Below 17G device returns location as /redfish/v1/TaskService/Taks/JOB_ID for same GET call return status as 200 with all the job status.
+		// where as 17G device returns location as /redfish/v1/TaskService/TaskMonitors/JOB_ID for same GET call return no content hence
+		// we are replacing TaskMonitors to Taks.
+		biosTaskURI = strings.Replace(biosTaskURI, "TaskMonitors", "Tasks", 1)
 		// wait for the bios config job to finish
 		err = common.WaitForTaskToFinish(service, biosTaskURI, intervalBiosConfigJobCheckTime, biosConfigJobTimeout)
 		if err != nil {
@@ -455,13 +466,18 @@ func copyBiosAttributes(bios *redfish.Bios, attributes map[string]string) error 
 	return nil
 }
 
-func getBiosAttrsToPatch(ctx context.Context, d *models.Bios, attributes map[string]string) (map[string]interface{}, diag.Diagnostics) {
+// nolint: revive
+func getBiosAttrsToPatch(ctx context.Context, d *models.Bios, attributes map[string]string, isSeventeenGen bool) (map[string]interface{}, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	attrs := make(map[string]string)
 	attrsToPatch := make(map[string]interface{})
 	diags.Append(d.Attributes.ElementsAs(ctx, &attrs, true)...)
 
 	for key, newVal := range attrs {
+		if isSeventeenGen && strings.Contains(key, "AcPwrRcvry") {
+			diags.AddError(fmt.Sprintf("%s Configuration is not supported by 17G device", key), fmt.Sprintf("BIOS attribute %s not found", key))
+			continue
+		}
 		oldVal, ok := attributes[key]
 		if !ok {
 			diags.AddError("There was an issue while creating/updating bios attriutes", fmt.Sprintf("BIOS attribute %s not found", key))
