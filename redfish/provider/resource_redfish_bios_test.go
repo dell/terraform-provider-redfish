@@ -207,6 +207,83 @@ func TestAccRedfishBios_Mock(t *testing.T) {
 	}
 }
 
+func TestAccRedfishBios_17GMock(t *testing.T) {
+	var funcMocker1 *mockey.Mocker
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Bios Tests for Below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// mock NewConfig error when creating
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+
+				},
+				Config:      testAccRedfishResourceBiosConfigOn(creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			// mock NewConfig error when creating
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					funcMocker1 = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(nil, fmt.Errorf("mock error")).Build()
+
+				},
+				Config:      testAccRedfishResourceBiosConfigOn(creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			// creating
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					if funcMocker1 != nil {
+						funcMocker1.Release()
+					}
+					funcMocker1 = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+
+				},
+				Config: testAccRedfishResourceBiosConfigOn(creds),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_bios.bios", "attributes.NumLock", "On"),
+				),
+			},
+			// mock NewConfig error when updating
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceBiosConfigOff(creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			// updating
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+				},
+				Config: testAccRedfishResourceBiosConfigOff17G(
+					creds),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_bios.bios", "attributes.NumLock", "Off"),
+				),
+			},
+		},
+	})
+
+	if funcMocker1 != nil {
+		funcMocker1.Release()
+	}
+}
+
 // Test to import bios - positive
 func TestAccRedfishBios_Import(t *testing.T) {
 	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
