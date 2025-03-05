@@ -51,6 +51,7 @@ const (
 	defaultSimpleUpdateResetTimeout  int   = 120
 	defaultSimpleUpdateJobTimeout    int   = 1200
 	intervalSimpleUpdateJobCheckTime int64 = 10
+	locationKey                            = "Location"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -392,20 +393,37 @@ func (u *simpleUpdater) updateRedfishSimpleUpdate(d models.SimpleUpdateRes) (dia
 			tflog.Debug(u.ctx, "Update Complete")
 		} else {
 			tflog.Info(u.ctx, "Local firmware detected")
-			fwPackage, err := u.uploadLocalFirmware(ret)
-			if err != nil {
-				// TBD - HOW TO HANDLE WHEN FAILS BUT FIRMWARE WAS INSTALLED?
-				diags.AddError(err.Error(), "")
-				return diags, ret
-			}
-			ret.SoftwareId = types.StringValue(fwPackage.SoftwareID)
-			ret.Version = types.StringValue(fwPackage.Version)
-			ret.Id = types.StringValue(fwPackage.ODataID)
-			tflog.Info(u.ctx, "Uploading Local Firmware Complete")
 
-			diagsRead, state := readRedfishSimpleUpdate(u.service, ret)
-			diags.Append(diagsRead...)
-			ret = state
+			// 17G check
+			service := u.service
+			isGenerationSeventeenAndAbove, err := isServerGenerationSeventeenAndAbove(service)
+			if err != nil {
+				diags.AddError("Error retrieving the server generation", err.Error())
+			}
+
+			if isGenerationSeventeenAndAbove {
+				ret, err = u.uploadLocalFirmwareSeventeenGeneration(ret)
+				if err != nil {
+					diags.AddError(err.Error(), "")
+				}
+				tflog.Debug(u.ctx, "Update Complete")
+			} else {
+				// var fwPackage *redfish.SoftwareInventory
+				fwPackage, err := u.uploadLocalFirmware(ret)
+				if err != nil {
+					// TBD - HOW TO HANDLE WHEN FAILS BUT FIRMWARE WAS INSTALLED?
+					diags.AddError(err.Error(), "")
+					return diags, ret
+				}
+				ret.SoftwareId = types.StringValue(fwPackage.SoftwareID)
+				ret.Version = types.StringValue(fwPackage.Version)
+				ret.Id = types.StringValue(fwPackage.ODataID)
+				tflog.Info(u.ctx, "Uploading Local Firmware Complete")
+
+				diagsRead, state := readRedfishSimpleUpdate(u.service, ret)
+				diags.Append(diagsRead...)
+				ret = state
+			}
 		}
 	} else {
 		diags.AddError("Transfer protocol not available in this implementation", "")
@@ -453,7 +471,7 @@ func (u *simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.
 		return nil, fmt.Errorf("there was an issue when uploading FW package to redfish - %w", err)
 	}
 	response.Body.Close() // #nosec G104
-	packageLocation := response.Header.Get("Location")
+	packageLocation := response.Header.Get(locationKey)
 
 	// Get package information ( SoftwareID - Version )
 	packageInformation, err := redfish.GetSoftwareInventory(service.GetClient(), packageLocation)
@@ -476,7 +494,7 @@ func (u *simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.
 	response.Body.Close() // #nosec G104
 
 	// Get jobid
-	jobID := response.Header.Get("Location")
+	jobID := response.Header.Get(locationKey)
 	d.Id = types.StringValue(jobID)
 	err = u.updateJobStatus(d)
 	if err != nil {
@@ -499,6 +517,68 @@ func (u *simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.
 	}
 	tflog.Debug(u.ctx, "resource_simple_update : Retrieved Status from Inventories")
 	return inv, err
+}
+
+func (u *simpleUpdater) uploadLocalFirmwareSeventeenGeneration(d models.SimpleUpdateRes) (models.SimpleUpdateRes, error) {
+	// Get update service from root
+	updateService := u.updateService
+	service := u.service
+
+	customHeaders := map[string]string{}
+
+	// Open file to upload
+	file, err := openFile(d.Image.ValueString())
+	if err != nil {
+		return d, fmt.Errorf("couldn't open FW file to upload - %w", err)
+	}
+	defer file.Close()
+
+	// Set payload
+	payload := map[string]io.Reader{
+		"UpdateFile": file,
+	}
+
+	// Upload FW Package to FW inventory
+	response, err := service.GetClient().PostMultipartWithHeaders(updateService.MultipartHTTPPushURI, payload, customHeaders)
+	if err != nil {
+		return d, fmt.Errorf("there was an issue when uploading FW package to redfish - %w", err)
+	}
+
+	// Get jobid
+	jobID := response.Header.Get(locationKey)
+	tflog.Info(u.ctx, "resource_simple_update : Job is scheduled with id "+jobID)
+
+	// changes for 17G - replacing TaskMonitors with Tasks
+	jobID = strings.Replace(jobID, "TaskMonitors", "Tasks", 1)
+
+	d.Id = types.StringValue(jobID)
+	err = u.updateJobStatus(d)
+	if err != nil {
+		return d, fmt.Errorf("there was an issue when waiting for the job to complete - %w", err)
+	}
+
+	job, err := redfish.GetTask(service.GetClient(), jobID)
+	if len(job.Messages) > 0 {
+		message := job.Messages[0].Message
+		if strings.Contains(message, "Unable to transfer") || strings.Contains(message, "Module took more time than expected.") {
+			err = errors.Join(err, fmt.Errorf("please check the image path, download failed"))
+		}
+	}
+	if err != nil {
+		return d, err
+	}
+	tflog.Info(u.ctx, "Retrieved successful task")
+
+	swInventory, err := redfish.GetSoftwareInventory(service.GetClient(), d.Id.ValueString())
+	if err != nil {
+		return d, fmt.Errorf("unable to fetch data %w", err)
+	}
+	tflog.Debug(u.ctx, "Retrieved inventory with ID "+swInventory.ODataID)
+
+	d.Id = types.StringValue(swInventory.ODataID)
+	d.Version = types.StringValue(swInventory.Version)
+	d.SoftwareId = types.StringValue(swInventory.SoftwareID)
+	return d, nil
 }
 
 // checkResetType check if the resetType passed is within the allowableValues slice
@@ -566,8 +646,11 @@ func (u *simpleUpdater) pullUpdate(d models.SimpleUpdateRes) (models.SimpleUpdat
 	}
 
 	// Get jobid
-	jobID := response.Header.Get("Location")
+	jobID := response.Header.Get(locationKey)
 	tflog.Info(u.ctx, "resource_simple_update : Job is scheduled with id "+jobID)
+
+	// changes for 17G - replacing TaskMonitors with Tasks
+	jobID = strings.Replace(jobID, "TaskMonitors", "Tasks", 1)
 
 	d.Id = types.StringValue(jobID)
 	err = u.updateJobStatus(d)
