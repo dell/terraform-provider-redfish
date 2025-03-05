@@ -20,9 +20,11 @@ package provider
 import (
 	"fmt"
 	"log"
+	"os"
 	"regexp"
 	"testing"
 
+	"github.com/bytedance/mockey"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -63,6 +65,10 @@ func init() {
 
 // Test to create and update redfish user - Positive
 func TestAccRedfishUser_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Bios Tests for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -97,6 +103,10 @@ func TestAccRedfishUser_basic(t *testing.T) {
 
 // Test to create user with invalid role-id - Negative
 func TestAccRedfishUserInvalid_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Bios Tests for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -117,6 +127,10 @@ func TestAccRedfishUserInvalid_basic(t *testing.T) {
 
 // Test to create user with existing username - Negative
 func TestAccRedfishUserExisting_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Bios Tests for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -137,6 +151,10 @@ func TestAccRedfishUserExisting_basic(t *testing.T) {
 
 // Test to update username to existing username - Negative
 func TestAccRedfishUserUpdateInvalid_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Bios Tests for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -169,6 +187,10 @@ func TestAccRedfishUserUpdateInvalid_basic(t *testing.T) {
 
 // Test to create user with Invalid ID - Negative
 func TestAccRedfishUserUpdateInvalidId_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Bios Tests for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -189,6 +211,10 @@ func TestAccRedfishUserUpdateInvalidId_basic(t *testing.T) {
 
 // Test to update user-id - Negative
 func TestAccRedfishUserUpdateId_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Bios Tests for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -221,6 +247,10 @@ func TestAccRedfishUserUpdateId_basic(t *testing.T) {
 
 // Test to update username - positive
 func TestAccRedfishUserUpdateUser_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Bios Tests for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -255,6 +285,10 @@ func TestAccRedfishUserUpdateUser_basic(t *testing.T) {
 
 // Test to import user - positive
 func TestAccRedfishUserImportUser_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Bios Tests for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -278,6 +312,10 @@ func TestAccRedfishUserImportUser_basic(t *testing.T) {
 
 // Test to import user - negative
 func TestAccRedfishUserImportUser_invalid(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Bios Tests for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -297,6 +335,346 @@ func TestAccRedfishUserImportUser_invalid(t *testing.T) {
 			},
 		},
 	})
+}
+
+// Test to create and update redfish user - Positive
+func TestAccRedfishUser17G_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Bios Tests for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+				},
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test1",
+					"Test@1234",
+					"Operator",
+					true,
+					userID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
+				),
+			},
+			{ // Create user with ReadOnly role
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test1",
+					"Test@1234",
+					"ReadOnly",
+					false,
+					userID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
+				),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+// Test to create user with invalid role-id - Negative
+func TestAccRedfishUserInvalid17G_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Bios Tests for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+				},
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test1",
+					"Test@1234",
+					"Admin",
+					false,
+					userID),
+				ExpectError: regexp.MustCompile("Invalid Attribute Value Match"),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+// Test to create user with existing username - Negative
+func TestAccRedfishUserExisting17G_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Bios Tests for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+				},
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"root",
+					"Xyz@123",
+					"Administrator",
+					true,
+					userID),
+				ExpectError: regexp.MustCompile("user root already exists against ID 2"),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+// Test to update username to existing username - Negative
+func TestAccRedfishUserUpdateInvalid17G_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Bios Tests for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{ // Create User
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+				},
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test1",
+					"Test@1234",
+					"Administrator",
+					true,
+					userID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
+				),
+			},
+			{ // Update User
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"root",
+					"Test@1234",
+					"Administrator",
+					false,
+					userID),
+				ExpectError: regexp.MustCompile("user root already exists"),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+// Test to create user with Invalid ID - Negative
+func TestAccRedfishUserUpdateInvalidId17G_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Bios Tests for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+				},
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test1",
+					"Test@1234",
+					"Administrator",
+					true,
+					"1"),
+				ExpectError: regexp.MustCompile("User_id can vary between 3 to 31 only"),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+// Test to update user-id - Negative
+func TestAccRedfishUserUpdateId17G_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Bios Tests for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{ // Create User
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+				},
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test1",
+					"Test@1234",
+					"Administrator",
+					true,
+					userID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
+				),
+			},
+			{ // Update User
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test1",
+					"Test@1234",
+					"Administrator",
+					false,
+					"1"),
+				ExpectError: regexp.MustCompile("user_id cannot be updated"),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+// Test to update username - positive
+func TestAccRedfishUserUpdateUser17G_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Bios Tests for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+				},
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test1",
+					"Test@1234",
+					"Administrator",
+					true,
+					userID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
+				),
+			},
+			{
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test2",
+					"Test@1234",
+					"Administrator",
+					false,
+					userID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test2"),
+				),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+// Test to import user - positive
+func TestAccRedfishUserImportUser17G_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Bios Tests for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+				},
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test1",
+					"Test@1234",
+					"Administrator",
+					true,
+					userID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test1"),
+				),
+			},
+			{
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test1",
+					"Test@1234",
+					"None",
+					false,
+					userID),
+				ResourceName:  "redfish_user_account.user_config",
+				ImportState:   true,
+				ImportStateId: "{\"id\":\"15\",\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ExpectError:   nil,
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+// Test to import user - negative
+func TestAccRedfishUserImportUser17G_invalid(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Bios Tests for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+				},
+				Config: testAccRedfishResourceUserConfig(
+					creds,
+					"test1",
+					"Test@1234",
+					"None",
+					false,
+					userID),
+				ResourceName:  "redfish_user_account.user_config",
+				ImportState:   true,
+				ImportStateId: "{\"id\":\"invalid\",\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ExpectError:   regexp.MustCompile("Error when retrieving accounts"),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
 }
 
 // validation tests - Negative

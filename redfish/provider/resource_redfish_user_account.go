@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -46,6 +47,7 @@ const (
 	minPasswordLength = 4
 	maxPasswordLength = 40
 	maxUserID         = 16
+	maxUserID17G      = 31
 	minUserID         = 2
 )
 
@@ -164,6 +166,12 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 	service := api.Service
 	defer api.Logout()
 
+	isGenerationSeventeenAndAbove, err := isServerGenerationSeventeenAndAbove(service)
+	if err != nil {
+		resp.Diagnostics.AddError("Error retrieving the server generation", err.Error())
+		return
+	}
+
 	tflog.Trace(ctx, "resource_user_account create: updating state finished, saving ...")
 	password := plan.Password.ValueString()
 	userName := plan.Username.ValueString()
@@ -196,44 +204,86 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	// check if user id is valid or not
-	if len(userID) > 0 {
-		userIdInt, err := strconv.Atoi(userID)
-		if !(userIdInt > minUserID && userIdInt <= maxUserID) {
-			resp.Diagnostics.AddError("User_id can vary between 3 to 16 only", "Please update user ID")
-			return
-		}
-		if err != nil {
-			resp.Diagnostics.AddError("Invalid user ID", "Cannot convert user ID to int")
-			return
-		}
-	}
-
 	payload := make(map[string]interface{})
-	for _, account := range accountList {
-		if len(account.UserName) == 0 && account.ID != "1" { // ID 1 is reserved
-			payload["UserName"] = userName
-			payload["Password"] = password
-			payload["Enabled"] = plan.Enabled.ValueBool()
-			payload["RoleId"] = plan.RoleID.ValueString()
-			if len(userID) > 0 {
-				// update the account.ODataID URL to new account ID
-				account.ID = userID
-				url, _ := filepath.Split(account.ODataID)
-				account.ODataID = url + account.ID
-			} else {
-				userID = account.ID
-			}
-			// Ideally a go routine for each server should be done
-			_, err = service.GetClient().Patch(account.ODataID, payload)
-			if err != nil {
-				resp.Diagnostics.AddError(RedfishAPIErrorMsg, err.Error()) // This error might happen when a user was created outside terraform
+	payload["UserName"] = userName
+	payload["Password"] = password
+	payload["Enabled"] = plan.Enabled.ValueBool()
+	payload["RoleId"] = plan.RoleID.ValueString()
+
+	// Create new user account for below generation 17
+	if !isGenerationSeventeenAndAbove {
+		// check if user id is valid or not
+		if len(userID) > 0 {
+			userIdInt, err := strconv.Atoi(userID)
+			if !(userIdInt > minUserID && userIdInt <= maxUserID) {
+				resp.Diagnostics.AddError("User_id can vary between 3 to 16 only", "Please update user ID")
 				return
 			}
-			break
-		} else if account.ID == "17" {
+			if err != nil {
+				resp.Diagnostics.AddError("Invalid user ID", "Cannot convert user ID to int")
+				return
+			}
+		}
+
+		for _, account := range accountList {
+			if len(account.UserName) == 0 && account.ID != "1" { // ID 1 is reserved
+				if len(userID) > 0 {
+					// update the account.ODataID URL to new account ID
+					account.ID = userID
+					url, _ := filepath.Split(account.ODataID)
+					account.ODataID = url + account.ID
+				} else {
+					userID = account.ID
+				}
+				// Ideally a go routine for each server should be done
+				_, err = service.GetClient().Patch(account.ODataID, payload)
+				if err != nil {
+					resp.Diagnostics.AddError(RedfishAPIErrorMsg, err.Error()) // This error might happen when a user was created outside terraform
+					return
+				}
+				break
+			} else if account.ID == "17" {
+				// No room for new users
+				resp.Diagnostics.AddError("There is no room for new users", "Please remove an existing user to proceed")
+				return
+			}
+		}
+	} else {
+		// Create new user account for generation 17 and above
+		// url can be retrieved from accountList[0].ODataID which is generic for all servers
+		url, _ := filepath.Split(accountList[0].ODataID)
+		if len(accountList) < 31 {
+			if len(userID) > 0 {
+				userIdInt, err := strconv.Atoi(userID)
+				if !(userIdInt > minUserID && userIdInt <= maxUserID17G) {
+					resp.Diagnostics.AddError("User_id can vary between 3 to 31 only", "Update user ID")
+					return
+				}
+				if err != nil {
+					resp.Diagnostics.AddError("Invalid user ID", "Cannot convert user ID to int")
+					return
+				}
+				payload["Id"] = userID
+			}
+			create_resp, err := service.GetClient().Post(url, payload)
+			if err != nil {
+				resp.Diagnostics.AddError(RedfishAPIErrorMsg, err.Error())
+				return
+			}
+			if len(userID) == 0 {
+				c_body, _ := io.ReadAll(create_resp.Body)
+				var decodedData map[string]interface{}
+				err = json.Unmarshal(c_body, &decodedData)
+				if err != nil {
+					resp.Diagnostics.AddError("Cannot convert response to string", err.Error())
+					return
+				}
+				usr_id, _ := decodedData["Id"].(string)
+				userID = usr_id
+			}
+		} else {
 			// No room for new users
-			resp.Diagnostics.AddError("There is no room for new users", "Please remove an existing user to proceed")
+			resp.Diagnostics.AddError("There is no room for new users", "Remove an existing user to proceed")
 			return
 		}
 	}
@@ -403,28 +453,43 @@ func (r *UserAccountResource) Delete(ctx context.Context, req resource.DeleteReq
 	service := api.Service
 	defer api.Logout()
 
+	isGenerationSeventeenAndAbove, err := isServerGenerationSeventeenAndAbove(service)
+	if err != nil {
+		resp.Diagnostics.AddError("Error retrieving the server generation", err.Error())
+		return
+	}
+
 	_, account, err := GetUserAccountFromID(service, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(RedfishFetchErrorMsg, err.Error())
 	}
 
-	// First set Role ID as "" and Enabled as false
-	payload := make(map[string]interface{})
-	payload["Enable"] = "false"
-	payload["RoleId"] = "None"
-	_, err = service.GetClient().Patch(account.ODataID, payload)
-	if err != nil {
-		resp.Diagnostics.AddError(RedfishAPIErrorMsg, err.Error())
-		return
-	}
+	if !isGenerationSeventeenAndAbove {
+		// First set Role ID as "" and Enabled as false
+		payload := make(map[string]interface{})
+		payload["Enabled"] = "false"
+		payload["RoleId"] = "None"
+		_, err = service.GetClient().Patch(account.ODataID, payload)
+		if err != nil {
+			resp.Diagnostics.AddError(RedfishAPIErrorMsg, err.Error())
+			return
+		}
 
-	// second PATCH call to remove username.
-	payload = make(map[string]interface{})
-	payload["UserName"] = ""
-	_, err = service.GetClient().Patch(account.ODataID, payload)
-	if err != nil {
-		resp.Diagnostics.AddError(RedfishAPIErrorMsg, err.Error())
-		return
+		// second PATCH call to remove username.
+		payload = make(map[string]interface{})
+		payload["UserName"] = ""
+		_, err = service.GetClient().Patch(account.ODataID, payload)
+		if err != nil {
+			resp.Diagnostics.AddError(RedfishAPIErrorMsg, err.Error())
+			return
+		}
+	} else {
+		// Delete call to remove the user account from the server
+		_, err = service.GetClient().Delete(account.ODataID)
+		if err != nil {
+			resp.Diagnostics.AddError(RedfishAPIErrorMsg, err.Error())
+			return
+		}
 	}
 
 	tflog.Trace(ctx, "resource_user_account delete: finished")
