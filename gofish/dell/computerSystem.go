@@ -24,22 +24,22 @@ import (
 	"github.com/stmcginnis/gofish/redfish"
 )
 
-// DellSettingsObject contains OdataID
-type DellSettingsObject struct {
+// SettingsObject contains OdataID
+type SettingsObject struct {
 	OdataID string `json:"@odata.id"`
 }
 
 // ComputerSystemExtended contains gofish ComputerSystems and Settings
 type ComputerSystemExtended struct {
 	*redfish.ComputerSystem
-	Settings *DellSettingsObject
+	Settings *SettingsObject
 }
 
 // ComputerSystems returns Redfish Settings Pointer
 func ComputerSystems(comSys *redfish.ComputerSystem) (*ComputerSystemExtended, error) {
 	dellSystem := &ComputerSystemExtended{
 		ComputerSystem: comSys,
-		Settings:       &DellSettingsObject{},
+		Settings:       &SettingsObject{},
 	}
 	rawDataBytes, err := GetRawDataBytes(comSys)
 	if err != nil {
@@ -47,7 +47,7 @@ func ComputerSystems(comSys *redfish.ComputerSystem) (*ComputerSystemExtended, e
 	}
 	if settingsRawData, found := GetNodeFromRawDataHavingDotBytes(rawDataBytes, "@Redfish.Settings"); found == nil {
 		if settingsObjectRawData, found := GetNodeFromRawDataBytes(settingsRawData, "SettingsObject"); found == nil {
-			var settings *DellSettingsObject
+			var settings *SettingsObject
 			if err = json.Unmarshal(settingsObjectRawData, &settings); err == nil {
 				dellSystem.Settings = settings
 			}
@@ -60,7 +60,7 @@ func ComputerSystems(comSys *redfish.ComputerSystem) (*ComputerSystemExtended, e
 // GetNodeFromRawDataHavingDotBytes extracts the node with the given name from the rawData field in a pointer to a struct.
 func GetNodeFromRawDataHavingDotBytes(rawDataBytes []byte, nodeName string) (json.RawMessage, error) {
 	var jsonNodes map[string]json.RawMessage
-	//jsonNodeSplit := "."
+	// jsonNodeSplit := "."
 	err := json.Unmarshal(rawDataBytes, &jsonNodes)
 	if err != nil {
 		return nil, err
