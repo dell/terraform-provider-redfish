@@ -271,7 +271,11 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 				return
 			}
 			if len(userID) == 0 {
-				c_body, _ := io.ReadAll(create_resp.Body)
+				c_body, err := io.ReadAll(create_resp.Body)
+				if err != nil {
+					resp.Diagnostics.AddError("Failed to read response body", err.Error())
+					return
+				}
 				var decodedData map[string]interface{}
 				err = json.Unmarshal(c_body, &decodedData)
 				if err != nil {
