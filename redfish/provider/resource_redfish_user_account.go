@@ -42,13 +42,13 @@ import (
 )
 
 const (
-	minUserNameLength = 1
-	maxUserNameLength = 16
-	minPasswordLength = 4
-	maxPasswordLength = 40
-	maxUserID         = 16
-	maxUserID17G      = 31
-	minUserID         = 2
+	minUserNameLength          = 1
+	maxUserNameLength          = 16
+	minPasswordLength          = 4
+	maxPasswordLength          = 40
+	maxUserID                  = 16
+	maxUserIDSeventeenAndAbove = 31
+	minUserID                  = 2
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -255,7 +255,7 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 		if len(accountList) < 31 {
 			if len(userID) > 0 {
 				userIdInt, err := strconv.Atoi(userID)
-				if !(userIdInt > minUserID && userIdInt <= maxUserID17G) {
+				if !(userIdInt > minUserID && userIdInt <= maxUserIDSeventeenAndAbove) {
 					resp.Diagnostics.AddError("User_id can vary between 3 to 31 only", "Update user ID")
 					return
 				}
@@ -265,25 +265,25 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 				}
 				payload["Id"] = userID
 			}
-			create_resp, err := service.GetClient().Post(url, payload)
+			createResp, err := service.GetClient().Post(url, payload)
 			if err != nil {
 				resp.Diagnostics.AddError(RedfishAPIErrorMsg, err.Error())
 				return
 			}
 			if len(userID) == 0 {
-				c_body, err := io.ReadAll(create_resp.Body)
+				createRespBody, err := io.ReadAll(createResp.Body)
 				if err != nil {
 					resp.Diagnostics.AddError("Failed to read response body", err.Error())
 					return
 				}
 				var decodedData map[string]interface{}
-				err = json.Unmarshal(c_body, &decodedData)
+				err = json.Unmarshal(createRespBody, &decodedData)
 				if err != nil {
 					resp.Diagnostics.AddError("Cannot convert response to string", err.Error())
 					return
 				}
-				usr_id, _ := decodedData["Id"].(string)
-				userID = usr_id
+				createdUsrId, _ := decodedData["Id"].(string)
+				userID = createdUsrId
 			}
 		} else {
 			// No room for new users
