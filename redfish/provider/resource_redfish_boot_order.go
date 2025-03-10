@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"strings"
 	"terraform-provider-redfish/common"
+	"terraform-provider-redfish/gofish/dell"
 	"terraform-provider-redfish/redfish/models"
 	"time"
 
@@ -515,6 +516,7 @@ func (r *BootOrderResource) updateBootOptions(service *gofish.Service, d *models
 
 func (*BootOrderResource) setBootOrder(service *gofish.Service, d *models.BootOrder) (*http.Response, error) {
 	var resp *http.Response
+	var uri string
 	system, err := getSystemResource(service, d.SystemID.ValueString())
 	if err != nil {
 		return nil, fmt.Errorf("[ERROR]: Failed to get system resource %w", err)
@@ -558,7 +560,23 @@ func (*BootOrderResource) setBootOrder(service *gofish.Service, d *models.BootOr
 			)
 		}
 	}
-	resp, err = service.GetClient().Patch(system.ODataID, payload)
+	isGenerationSeventeenAndAbove, err := isServerGenerationSeventeenAndAbove(service)
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving the server generation %w", err)
+	}
+	// for 17G use system settings api for PATCH call
+	if isGenerationSeventeenAndAbove {
+		res, err := dell.ComputerSystems(system)
+		uri = res.Settings.OdataID
+		if err != nil {
+			return nil, fmt.Errorf("Error retrieving the systems settings URI %w", err)
+		}
+	} else {
+		// Below 17G will have System API for PATCH call
+		uri = system.ODataID
+	}
+
+	resp, err = service.GetClient().Patch(uri, payload)
 	if err != nil {
 		return resp, fmt.Errorf("cannot update boot order %w", err)
 	}
@@ -595,6 +613,9 @@ func (*BootOrderResource) restartServer(ctx context.Context, service *gofish.Ser
 		diags.AddWarning("this configuration is already set ", "Update the configuration and run again")
 		return diags
 	}
+	// Below 17G device returns location as /redfish/v1/TaskService/Tasks/JOB_ID for same GET call return status as 200 with all the job status.
+	// where as 17G device returns location as /redfish/v1/TaskService/TaskMonitors/JOB_ID for same GET call return no content hence we are replacing TaskMonitors to Tasks.
+	jobID = strings.Replace(jobID, "TaskMonitors", "Tasks", 1)
 
 	// reboot the server
 	pOp := powerOperator{ctx, service, plan.SystemID.ValueString()}
@@ -603,11 +624,17 @@ func (*BootOrderResource) restartServer(ctx context.Context, service *gofish.Ser
 		diags.AddError("there was an issue restarting the server ", err.Error())
 		return diags
 	}
-	// wait for the bios config job to finish
-	err = common.WaitForJobToFinish(service, jobID, intervalBootOrderJobCheckTime, bootOrderJobTimeout)
-	if err != nil {
-		diags.AddError("error waiting for Bios config monitor task to be completed", err.Error())
-		return diags
+	if jobID != "" {
+		// wait for the bios config job to finish
+		if strings.Contains(jobID, "Job") {
+			err = common.WaitForJobToFinish(service, jobID, intervalBootOrderJobCheckTime, bootOrderJobTimeout)
+		} else {
+			err = common.WaitForTaskToFinish(service, jobID, intervalBootOrderJobCheckTime, bootOrderJobTimeout)
+		}
+		if err != nil {
+			diags.AddError("error waiting for Bios config monitor task to be completed", err.Error())
+			return diags
+		}
 	}
 	time.Sleep(180 * time.Second)
 	return nil
