@@ -467,7 +467,7 @@ func (r *UserAccountResource) Delete(ctx context.Context, req resource.DeleteReq
 	if !isGenerationSeventeenAndAbove {
 		// First set Role ID as "" and Enabled as false
 		payload := make(map[string]interface{})
-		payload["Enabled"] = "false"
+		payload["Enable"] = "false"
 		payload["RoleId"] = "None"
 		_, err = service.GetClient().Patch(account.ODataID, payload)
 		if err != nil {
