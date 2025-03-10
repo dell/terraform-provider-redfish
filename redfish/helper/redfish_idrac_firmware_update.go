@@ -132,7 +132,9 @@ func GetUpdatedList(updateListData []map[string]interface{}, jobs []redfish.Job)
 			}
 		}
 		updateObject, _ := types.ObjectValue(updateKey, updateMap)
-		updateObjects = append(updateObjects, updateObject)
+		if !updateObject.IsNull() {
+			updateObjects = append(updateObjects, updateObject)
+		}
 	}
 	return types.ListValue(types.ObjectType{AttrTypes: updateKey}, updateObjects)
 }

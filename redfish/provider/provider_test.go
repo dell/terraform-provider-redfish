@@ -41,6 +41,7 @@ var (
 	virtualMediaTransferProtocolTypeInvalid string
 	drive                                   string
 	firmwareUpdateIP                        string
+	firmwareUpdateShareName                 string
 )
 
 // FunctionMocker is used to mock functions in the provider
@@ -100,6 +101,7 @@ func init() {
 	// storage volume environment varibale
 	drive = os.Getenv("TF_TESTING_STORAGE_VOLUME_DRIVE")
 	firmwareUpdateIP = os.Getenv("TF_TESTING_FIRMWARE_UPDATE_IP")
+	firmwareUpdateShareName = os.Getenv("TF_TESTING_FIRMWARE_UPDATE_SHARE_NAME")
 }
 
 func testAccPreCheck(t *testing.T) {
