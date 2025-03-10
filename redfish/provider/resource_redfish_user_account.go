@@ -144,6 +144,7 @@ func (*UserAccountResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 }
 
 // Create creates the resource and sets the initial Terraform state.
+// nolint: revive
 func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	tflog.Trace(ctx, "resource_user_account create : Started")
 
@@ -254,6 +255,7 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 		url, _ := filepath.Split(accountList[0].ODataID)
 		if len(accountList) < 31 {
 			if len(userID) > 0 {
+				// nolint: revive
 				userIdInt, err := strconv.Atoi(userID)
 				if !(userIdInt > minUserID && userIdInt <= maxUserIDSeventeenAndAbove) {
 					resp.Diagnostics.AddError("User_id can vary between 3 to 31 only", "Update user ID")
