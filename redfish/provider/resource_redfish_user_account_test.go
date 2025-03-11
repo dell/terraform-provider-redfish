@@ -242,7 +242,7 @@ func TestAccRedfishUserUpdateInvalidId_basic(t *testing.T) {
 					"Administrator",
 					true,
 					"1"),
-				ExpectError: regexp.MustCompile("User_id can vary between 3 to 16 only"),
+				ExpectError: regexp.MustCompile("user_id can vary between 3 to 16 only"),
 			},
 		},
 	})
@@ -673,7 +673,7 @@ func TestAccRedfishUserUpdateInvalidId17G_basic(t *testing.T) {
 					"Administrator",
 					true,
 					"1"),
-				ExpectError: regexp.MustCompile("User_id can vary between 3 to 31 only"),
+				ExpectError: regexp.MustCompile("user_id can vary between 3 to 31 only"),
 			},
 		},
 	})
