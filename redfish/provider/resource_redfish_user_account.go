@@ -216,12 +216,12 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 		// check if user id is valid or not
 		if len(userID) > 0 {
 			userIdInt, err := strconv.Atoi(userID)
-			if !(userIdInt > minUserID && userIdInt <= maxUserID) {
-				resp.Diagnostics.AddError("User_id can vary between 3 to 16 only", "Please update user ID")
-				return
-			}
 			if err != nil {
 				resp.Diagnostics.AddError("Invalid user ID", "Cannot convert user ID to int")
+				return
+			}
+			if !(userIdInt > minUserID && userIdInt <= maxUserID) {
+				resp.Diagnostics.AddError("user_id can vary between 3 to 16 only", "Please update user ID")
 				return
 			}
 		}
@@ -257,12 +257,12 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 			if len(userID) > 0 {
 				// nolint: revive
 				userIdInt, err := strconv.Atoi(userID)
-				if !(userIdInt > minUserID && userIdInt <= maxUserIDSeventeenAndAbove) {
-					resp.Diagnostics.AddError("User_id can vary between 3 to 31 only", "Update user ID")
-					return
-				}
 				if err != nil {
 					resp.Diagnostics.AddError("Invalid user ID", "Cannot convert user ID to int")
+					return
+				}
+				if !(userIdInt > minUserID && userIdInt <= maxUserIDSeventeenAndAbove) {
+					resp.Diagnostics.AddError("user_id can vary between 3 to 31 only", "Update user ID")
 					return
 				}
 				payload["Id"] = userID
