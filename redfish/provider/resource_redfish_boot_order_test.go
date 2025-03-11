@@ -22,16 +22,24 @@ import (
 	"os"
 	"testing"
 
+	"github.com/bytedance/mockey"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 // test redfish Boot Order
 func TestAccRedfishBootOrder_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Boot Order Test for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(false, nil).Build()
+				},
 				Config: testAccRedfishResourceBootOrder(creds, os.Getenv("TF_TESTING_BOOT_ORDER")),
 			},
 			{
@@ -43,14 +51,24 @@ func TestAccRedfishBootOrder_basic(t *testing.T) {
 			},
 		},
 	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
 }
 
 func TestAccRedfishBootOrderOptions_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Boot Order Test for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(false, nil).Build()
+				},
 				Config: testAccRedfishResourceBootOptions(creds, os.Getenv("TF_TESTING_BOOT_OPTION_REFERENCE"), true),
 			},
 			{
@@ -70,6 +88,76 @@ func TestAccRedfishBootOrderOptions_basic(t *testing.T) {
 			},
 		},
 	})
+
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+func TestAccRedfishBootOrder_17Gbasic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Boot Order Test for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+				},
+				Config: testAccRedfishResourceBootOrder(creds, os.Getenv("TF_TESTING_BOOT_ORDER")),
+			},
+			{
+				ResourceName:  "redfish_boot_order.boot",
+				ImportState:   true,
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ExpectError:   nil,
+				// ImportStateVerify: true, // state is not verified since there are multiple boot options and import fetches all while using CRUD you can change specific boot options or none
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+func TestAccRedfishBootOrderOptions_17Gbasic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Boot Order Test for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+				},
+				Config: testAccRedfishResourceBootOptions(creds, os.Getenv("TF_TESTING_BOOT_OPTION_REFERENCE"), true),
+			},
+			{
+				ResourceName:  "redfish_boot_order.boot",
+				ImportState:   true,
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ExpectError:   nil,
+			},
+			{
+				ResourceName:  "redfish_boot_order.boot",
+				ImportState:   true,
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true, \"system_id\":\"System.Embedded.1\"}",
+				ExpectError:   nil,
+			},
+			{
+				Config: testAccRedfishResourceBootOptions(creds, os.Getenv("TF_TESTING_BOOT_OPTION_REFERENCE"), false),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
 }
 
 func testAccRedfishResourceBootOrder(testingInfo TestingServerCredentials, bootOrder string) string {
