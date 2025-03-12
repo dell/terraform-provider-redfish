@@ -195,18 +195,18 @@ func (r *UserAccountPasswordResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
-	tflog.Trace(ctx, "resource_user_account_Password create: updating state finished, saving ...")
+	tflog.Trace(ctx, "resource_user_account_password create: updating state finished, saving ...")
 	state = plan
 	state.ID = types.StringValue(userAccount.ODataID)
 	// Save into State
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
-	tflog.Trace(ctx, "resource_user_account_Password create: finish")
+	tflog.Trace(ctx, "resource_user_account_password create: finish")
 }
 
 // Read refreshes the Terraform state with the latest data.
 func (*UserAccountPasswordResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	tflog.Trace(ctx, "resource_user_accountPassword read: started")
+	tflog.Trace(ctx, "resource_user_account_password read: started")
 	// Get Plan Data
 	var state models.UserAccountPassword
 	diags := req.State.Get(ctx, &state)
@@ -215,7 +215,7 @@ func (*UserAccountPasswordResource) Read(ctx context.Context, req resource.ReadR
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-	tflog.Trace(ctx, "resource_user_account_Password Read: finish")
+	tflog.Trace(ctx, "resource_user_account_password Read: finish")
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
