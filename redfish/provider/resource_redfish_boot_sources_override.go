@@ -327,7 +327,6 @@ func (r *BootSourceOverrideResource) bootOperation(ctx context.Context, service 
 		}
 
 		type Boot struct {
-			//BootSourceOverrideMode    redfish.BootSourceOverrideMode
 			BootSourceOverrideEnabled redfish.BootSourceOverrideEnabled
 			BootSourceOverrideTarget  redfish.BootSourceOverrideTarget
 		}
