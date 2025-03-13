@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 	"terraform-provider-redfish/common"
 	"terraform-provider-redfish/redfish/models"
 	"time"
@@ -467,13 +468,34 @@ func (*RedfishStorageVolumeResource) ImportState(ctx context.Context, req resour
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, systemID, c.SystemID)...)
 }
 
+// nolint: revive
 func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d *models.RedfishStorageVolume) diag.Diagnostics {
 	var diags diag.Diagnostics
 	// Lock the mutex to avoid race conditions with other resources
 	redfishMutexKV.Lock(d.RedfishServer[0].Endpoint.ValueString())
 	defer redfishMutexKV.Unlock(d.RedfishServer[0].Endpoint.ValueString())
 
-	// Get user config
+	isGenerationSeventeenAndAbove, err := isServerGenerationSeventeenAndAbove(service)
+	if err != nil {
+		diags.AddError("Error retrieving the server generation", err.Error())
+		return diags
+	}
+
+	readCachePolicy := d.ReadCachePolicy.ValueString()
+	writeCachePolicy := d.WriteCachePolicy.ValueString()
+
+	// For 17G, check the readCachePolicy and writeCachePolicy values
+	if isGenerationSeventeenAndAbove {
+		if readCachePolicy != string(redfish.OffReadCachePolicyType) {
+			diags.AddError("Invalid ReadCachePolicy", "The ReadCachePolicy must be Off")
+			return diags
+		}
+		if writeCachePolicy != string(redfish.WriteThroughWriteCachePolicyType) {
+			diags.AddError("Invalid WriteCachePolicy", "The WriteCachePolicy must be WriteThrough")
+			return diags
+		}
+	}
+
 	storageID := d.StorageControllerID.ValueString()
 
 	// Map from the deprecated volume type to raid type
@@ -485,8 +507,6 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 	volumeName := d.VolumeName.ValueString()
 	optimumIOSizeBytes := int(d.OptimumIoSizeBytes.ValueInt64())
 	capacityBytes := int(d.CapacityBytes.ValueInt64())
-	readCachePolicy := d.ReadCachePolicy.ValueString()
-	writeCachePolicy := d.WriteCachePolicy.ValueString()
 	diskCachePolicy := d.DiskCachePolicy.ValueString()
 	applyTime := d.SettingsApplyTime.ValueString()
 	encrypted := d.Encrypted.ValueBool()
@@ -548,7 +568,13 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 		storageDrive["@odata.id"] = drive.Entity.ODataID
 		listDrives = append(listDrives, storageDrive)
 	}
-	newVolume["Drives"] = listDrives
+
+	// For 17G, have Drives as part of Links
+	if isGenerationSeventeenAndAbove {
+		newVolume["Links"] = map[string]interface{}{"Drives": listDrives}
+	} else {
+		newVolume["Drives"] = listDrives
+	}
 
 	// Create volume job
 	jobID, err := createVolume(service, storage.ODataID, newVolume)
@@ -556,6 +582,9 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 		diags.AddError("Error when creating the virtual disk on disk controller", err.Error())
 		return diags
 	}
+
+	// changes for 17G - replacing TaskMonitors with Tasks
+	jobID = strings.Replace(jobID, "TaskMonitors", "Tasks", 1)
 
 	// Immediate or OnReset scenarios
 	if applyTime == string(redfishcommon.OnResetApplyTime) { // OnReset case
@@ -645,11 +674,30 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service,
 	redfishMutexKV.Lock(d.RedfishServer[0].Endpoint.ValueString())
 	defer redfishMutexKV.Unlock(d.RedfishServer[0].Endpoint.ValueString())
 
+	isGenerationSeventeenAndAbove, err := isServerGenerationSeventeenAndAbove(service)
+	if err != nil {
+		diags.AddError("Error retrieving the server generation", err.Error())
+		return diags
+	}
+
+	readCachePolicy := d.ReadCachePolicy.ValueString()
+	writeCachePolicy := d.WriteCachePolicy.ValueString()
+
+	// For 17G, check the readCachePolicy and writeCachePolicy values
+	if isGenerationSeventeenAndAbove {
+		if readCachePolicy != string(redfish.OffReadCachePolicyType) {
+			diags.AddError("Invalid ReadCachePolicy", "The ReadCachePolicy must be Off")
+			return diags
+		}
+		if writeCachePolicy != string(redfish.WriteThroughWriteCachePolicyType) {
+			diags.AddError("Invalid WriteCachePolicy", "The WriteCachePolicy must be WriteThrough")
+			return diags
+		}
+	}
+
 	// Get user config
 	storageID := d.StorageControllerID.ValueString()
 	volumeName := d.VolumeName.ValueString()
-	readCachePolicy := d.ReadCachePolicy.ValueString()
-	writeCachePolicy := d.WriteCachePolicy.ValueString()
 	diskCachePolicy := d.DiskCachePolicy.ValueString()
 	applyTime := d.SettingsApplyTime.ValueString()
 	encrypted := d.Encrypted.ValueBool()
@@ -700,6 +748,9 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service,
 		diags.AddError("Error when updating the virtual disk on disk controller", err.Error())
 		return diags
 	}
+
+	// changes for 17G - replacing TaskMonitors with Tasks
+	jobID = strings.Replace(jobID, "TaskMonitors", "Tasks", 1)
 
 	// Immediate or OnReset scenarios
 	if applyTime == string(redfishcommon.OnResetApplyTime) { // OnReset case
@@ -755,6 +806,9 @@ func deleteRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 		diags.AddError("Error when deleting volume", err.Error())
 		return diags
 	}
+
+	// changes for 17G - replacing TaskMonitors with Tasks
+	jobID = strings.Replace(jobID, "TaskMonitors", "Tasks", 1)
 
 	if applyTime == string(redfishcommon.OnResetApplyTime) { // OnReset case
 		// Get reset_timeout and reset_type from schema

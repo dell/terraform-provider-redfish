@@ -19,6 +19,7 @@ package provider
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"testing"
 	"time"
@@ -39,6 +40,10 @@ func getVolumeImportConf(d *terraform.State, creds TestingServerCredentials) (st
 }
 
 func TestAccRedfishStorageVolume_InvalidController(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping StorageVolume Tests for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -66,6 +71,10 @@ func TestAccRedfishStorageVolume_InvalidController(t *testing.T) {
 }
 
 func TestAccRedfishStorageVolume_InvalidDrive(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping StorageVolume Tests for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -96,6 +105,10 @@ func TestAccRedfishStorageVolume_InvalidDrive(t *testing.T) {
 }
 
 func TestAccRedfishStorageVolume_InvalidVolumeType(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping StorageVolume Tests for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -123,6 +136,10 @@ func TestAccRedfishStorageVolume_InvalidVolumeType(t *testing.T) {
 }
 
 func TestAccRedfishStorageVolumeUpdate_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping StorageVolume Tests for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -198,6 +215,10 @@ func TestAccRedfishStorageVolumeUpdate_basic(t *testing.T) {
 }
 
 func TestAccRedfishStorageVolumeCreate_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping StorageVolume Tests for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -237,6 +258,10 @@ func TestAccRedfishStorageVolumeCreate_basic(t *testing.T) {
 }
 
 func TestAccRedfishStorageVolume_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping StorageVolume Tests for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -269,6 +294,10 @@ func TestAccRedfishStorageVolume_basic(t *testing.T) {
 }
 
 func TestAccRedfishStorageVolume_OnReset(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping StorageVolume Tests for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -303,6 +332,10 @@ func TestAccRedfishStorageVolume_OnReset(t *testing.T) {
 }
 
 func TestAccRedfishStorageVolumeMockNewConfigErr(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping StorageVolume Tests for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -392,6 +425,626 @@ func TestAccRedfishStorageVolumeMockNewConfigErr(t *testing.T) {
 					1200,
 					1073323222,
 					131072,
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestAccRedfishStorageVolume17GInvalidController(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping StorageVolume Tests for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"Invalid-ID",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"Off",
+					"WriteThrough",
+					"PowerCycle",
+					"Enabled",
+					100,
+					1200,
+					107374182400,
+					65536,
+				),
+				ExpectError: regexp.MustCompile("error when getting the storage"),
+			},
+		},
+	})
+}
+
+func TestAccRedfishStorageVolume17GInvalidDrive(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping StorageVolume Tests for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					time.Sleep(180 * time.Second)
+				},
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID0",
+					"Invalid-Drive",
+					"Immediate",
+					"Off",
+					"WriteThrough",
+					"PowerCycle",
+					"Enabled",
+					100,
+					1200,
+					107374182400,
+					65536,
+				),
+				ExpectError: regexp.MustCompile("Error when getting the drives"),
+			},
+		},
+	})
+}
+
+func TestAccRedfishStorageVolume17GInvalidVolumeType(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping StorageVolume Tests for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID1",
+					drive,
+					"Immediate",
+					"Off",
+					"WriteThrough",
+					"PowerCycle",
+					"Enabled",
+					100,
+					1200,
+					107374182400,
+					65536,
+				),
+				ExpectError: regexp.MustCompile("Error when creating the virtual disk on disk controller"),
+			},
+		},
+	})
+}
+
+func TestAccRedfishStorageVolume17GCreate(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping StorageVolume Tests for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"Off",
+					"WriteThrough",
+					"PowerCycle",
+					"Enabled",
+					100,
+					1200,
+					107374182400,
+					65536,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.SL.1-1"),
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "read_cache_policy", "Off"),
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "write_cache_policy", "WriteThrough"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestAccRedfishStorageVolume17GCreateError(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping StorageVolume Tests for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"ReadAhead",
+					"WriteThrough",
+					"PowerCycle",
+					"Enabled",
+					100,
+					1200,
+					107374182400,
+					65536,
+				),
+				ExpectError: regexp.MustCompile("Invalid ReadCachePolicy"),
+			},
+			{
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"AdaptiveReadAhead",
+					"WriteThrough",
+					"PowerCycle",
+					"Enabled",
+					100,
+					1200,
+					107374182400,
+					65536,
+				),
+				ExpectError: regexp.MustCompile("Invalid ReadCachePolicy"),
+			},
+			{
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"Off",
+					"ProtectedWriteBack",
+					"PowerCycle",
+					"Enabled",
+					100,
+					1200,
+					107374182400,
+					65536,
+				),
+				ExpectError: regexp.MustCompile("Invalid WriteCachePolicy"),
+			},
+			{
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"Off",
+					"UnprotectedWriteBack",
+					"PowerCycle",
+					"Enabled",
+					100,
+					1200,
+					107374182400,
+					65536,
+				),
+				ExpectError: regexp.MustCompile("Invalid WriteCachePolicy"),
+			},
+		},
+	})
+}
+
+func TestAccRedfishStorageVolume17GUpdate(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping StorageVolume Tests for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"Off",
+					"WriteThrough",
+					"PowerCycle",
+					"Enabled",
+					100,
+					1200,
+					107374182400,
+					65536,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.SL.1-1"),
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "disk_cache_policy", "Enabled"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+			{
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"Off",
+					"WriteThrough",
+					"PowerCycle",
+					"Disabled",
+					100,
+					1200,
+					107374182400,
+					65536,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.SL.1-1"),
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "disk_cache_policy", "Disabled"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestAccRedfishStorageVolume17GUpdateError(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping StorageVolume Tests for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"Off",
+					"WriteThrough",
+					"PowerCycle",
+					"Enabled",
+					100,
+					1200,
+					107374182400,
+					65536,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.SL.1-1"),
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "read_cache_policy", "Off"),
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "write_cache_policy", "WriteThrough"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+			{
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"ReadAhead",
+					"WriteThrough",
+					"PowerCycle",
+					"Enabled",
+					100,
+					1200,
+					107374182400,
+					65536,
+				),
+				ExpectError: regexp.MustCompile("Invalid ReadCachePolicy"),
+			},
+			{
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"AdaptiveReadAhead",
+					"WriteThrough",
+					"PowerCycle",
+					"Enabled",
+					100,
+					1200,
+					107374182400,
+					65536,
+				),
+				ExpectError: regexp.MustCompile("Invalid ReadCachePolicy"),
+			},
+			{
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"Off",
+					"ProtectedWriteBack",
+					"PowerCycle",
+					"Enabled",
+					100,
+					1200,
+					107374182400,
+					65536,
+				),
+				ExpectError: regexp.MustCompile("Invalid WriteCachePolicy"),
+			},
+			{
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"Off",
+					"UnprotectedWriteBack",
+					"PowerCycle",
+					"Enabled",
+					100,
+					1200,
+					107374182400,
+					65536,
+				),
+				ExpectError: regexp.MustCompile("Invalid WriteCachePolicy"),
+			},
+		},
+	})
+}
+
+func TestAccRedfishStorageVolume17GOnReset(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping StorageVolume Tests for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					time.Sleep(120 * time.Second)
+				},
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"OnReset",
+					"Off",
+					"WriteThrough",
+					"PowerCycle",
+					"Enabled",
+					500,
+					2000,
+					107374182400,
+					65536,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.SL.1-1"),
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "disk_cache_policy", "Enabled"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+			{
+				PreConfig: func() {
+					time.Sleep(120 * time.Second)
+				},
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"OnReset",
+					"Off",
+					"WriteThrough",
+					"PowerCycle",
+					"Disabled",
+					500,
+					2000,
+					107374182400,
+					65536,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.SL.1-1"),
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "disk_cache_policy", "Disabled"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestAccRedfishStorageVolume17GImport(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping StorageVolume Tests for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"Off",
+					"WriteThrough",
+					"PowerCycle",
+					"Enabled",
+					100,
+					1200,
+					107374182400,
+					65536,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "storage_controller_id", "RAID.SL.1-1"),
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "read_cache_policy", "Off"),
+					resource.TestCheckResourceAttr("redfish_storage_volume.volume", "write_cache_policy", "WriteThrough"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+			// test import
+			{
+				ResourceName: "redfish_storage_volume.volume",
+				ImportState:  true,
+				ImportStateIdFunc: func(d *terraform.State) (string, error) {
+					return getVolumeImportConf(d, creds)
+				},
+				ExpectError: nil,
+			},
+			// test import -Negative
+			{
+				ResourceName:  "redfish_storage_volume.volume",
+				ImportState:   true,
+				ImportStateId: "{\"id\":\"invalid\",\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"ssl_insecure\":true}",
+				ExpectError:   regexp.MustCompile("There was an error with the API"),
+			},
+		},
+	})
+}
+
+func TestAccRedfishStorageVolume17GMockNewConfigErr(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping StorageVolume Tests for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"Off",
+					"WriteThrough",
+					"PowerCycle",
+					"Enabled",
+					100,
+					1200,
+					107374182400,
+					65536,
+				),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+				},
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"Off",
+					"WriteThrough",
+					"PowerCycle",
+					"Enabled",
+					100,
+					1200,
+					107374182400,
+					65536,
+				),
+				ExpectNonEmptyPlan: true,
+			},
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"Off",
+					"WriteThrough",
+					"PowerCycle",
+					"Disabled",
+					100,
+					1200,
+					107374182400,
+					65536,
+				),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+				},
+				Config: testAccRedfishResourceStorageVolume17GConfig(
+					creds,
+					"RAID.SL.1-1",
+					"TerraformVol1",
+					"RAID0",
+					drive,
+					"Immediate",
+					"Off",
+					"WriteThrough",
+					"PowerCycle",
+					"Disabled",
+					100,
+					1200,
+					107374182400,
+					65536,
 				),
 				ExpectNonEmptyPlan: true,
 			},
@@ -490,6 +1143,64 @@ func testAccRedfishResourceStorageVolumeConfig(testingInfo TestingServerCredenti
 	)
 }
 
+func testAccRedfishResourceStorageVolume17GConfig(testingInfo TestingServerCredentials,
+	storage_controller_id string,
+	volume_name string,
+	raid_type string,
+	drives string,
+	settings_apply_time string,
+	read_cache_policy string,
+	write_cache_policy string,
+	reset_type string,
+	disk_cache_policy string,
+	reset_timeout int,
+	volume_job_timeout int,
+	capacity_bytes int,
+	optimum_io_size_bytes int,
+) string {
+	return fmt.Sprintf(`
+	resource "redfish_storage_volume" "volume" {
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "%s"
+		  ssl_insecure = true
+		}
+
+		storage_controller_id = "%s"
+		volume_name           = "%s"
+		raid_type           = "%s"
+		drives                = ["%s"]
+		settings_apply_time   = "%s"
+		read_cache_policy 	  = "%s"
+		write_cache_policy 	  = "%s"
+		reset_type 			  = "%s"
+		disk_cache_policy 	  = "%s"
+		reset_timeout 		  = %d
+		volume_job_timeout 	  = %d
+		capacity_bytes = %d
+  		optimum_io_size_bytes = %d
+	  }
+	  `,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+		storage_controller_id,
+		volume_name,
+		raid_type,
+		drives,
+		settings_apply_time,
+		read_cache_policy,
+		write_cache_policy,
+		reset_type,
+		disk_cache_policy,
+		reset_timeout,
+		volume_job_timeout,
+		capacity_bytes,
+		optimum_io_size_bytes,
+	)
+}
+
 func testAccRedfishResourceStorageVolumeEncryptedConfig(testingInfo TestingServerCredentials,
 	storage_controller_id string,
 	volume_name string,
@@ -545,7 +1256,7 @@ func testAccRedfishResourceStorageVolumeEncryptedConfig(testingInfo TestingServe
 func testAccRedfishResourceStorageVolumeMinConfig(testingInfo TestingServerCredentials,
 	storage_controller_id string,
 	volume_name string,
-	volume_type string,
+	raid_type string,
 	drives string,
 ) string {
 	return fmt.Sprintf(`
@@ -568,7 +1279,7 @@ func testAccRedfishResourceStorageVolumeMinConfig(testingInfo TestingServerCrede
 		testingInfo.Endpoint,
 		storage_controller_id,
 		volume_name,
-		volume_type,
+		raid_type,
 		drives,
 	)
 }
