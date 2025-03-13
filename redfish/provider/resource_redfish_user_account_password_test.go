@@ -19,6 +19,7 @@ package provider
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"testing"
 
@@ -33,6 +34,10 @@ func dependsOnUser() string {
 
 // Test to create and update redfish user - Positive
 func TestAccRedfishUserPassword_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Bios Tests for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -67,6 +72,10 @@ func TestAccRedfishUserPassword_basic(t *testing.T) {
 }
 
 func TestAccRedfishUserPassword_Mock(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Bios Tests for 17G")
+	}
 	accountList := make([]*redfish.ManagerAccount, 0)
 
 	resource.Test(t, resource.TestCase{
@@ -103,6 +112,102 @@ func TestAccRedfishUserPassword_Mock(t *testing.T) {
 			},
 		},
 	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+// Test to create and update redfish user - Positive
+func TestAccRedfishUserPassword17GBasic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Bios Tests for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+				},
+				Config: fmt.Sprintf(`
+				%s
+				%s
+				`,
+					testAccRedfishResourceUserConfig(creds, "test5", "Test@123", "Administrator", true, "5"), testAccRedfishResourceUserPasswordConfig(creds, "test5", "Test@123", "Test@1234", dependsOnUser())),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_user_account.user_config", "username", "test5"),
+					resource.TestCheckResourceAttr("redfish_user_account_password.user", "new_password", "Test@1234"),
+				),
+			},
+			{
+				Config: fmt.Sprintf(`
+				%s
+				`,
+					testAccRedfishResourceUserPasswordConfig(creds, "test1", "Test@1234", "Test@1235", "")),
+				ExpectError: regexp.MustCompile(ServiceErrorMsg),
+			},
+			{
+				Config: fmt.Sprintf(`
+				%s
+				`,
+					testAccRedfishResourceUserPasswordConfig(creds, "", "xyz", "xyz@123", "")),
+				ExpectError: regexp.MustCompile(ServiceErrorMsg),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+func TestAccRedfishUserPassword17GMock(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Bios Tests for below 17G")
+	}
+	accountList := make([]*redfish.ManagerAccount, 0)
+	var funcMocker1 *mockey.Mocker
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					funcMocker1 = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+					FunctionMocker = mockey.Mock(getAccounts).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config: fmt.Sprintf(`
+				%s
+				%s
+				`,
+					testAccRedfishResourceUserConfig(creds, "test5", "Test@123", "Administrator", true, "5"), testAccRedfishResourceUserPasswordConfig(creds, "test5", "Test@123", "Test@1234", dependsOnUser())),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(getAccounts).Return(accountList, nil).Build()
+				},
+				Config: fmt.Sprintf(`
+				%s
+				%s
+				`,
+					testAccRedfishResourceUserConfig(creds, "test5", "Test@123", "Administrator", true, "5"), testAccRedfishResourceUserPasswordConfig(creds, "test5", "Test@123", "Test@1234", dependsOnUser())),
+				ExpectError: regexp.MustCompile(`account not found`),
+			},
+		},
+	})
+	if funcMocker1 != nil {
+		funcMocker1.Release()
+	}
 	if FunctionMocker != nil {
 		FunctionMocker.Release()
 	}
