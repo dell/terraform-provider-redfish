@@ -399,6 +399,7 @@ func (u *simpleUpdater) updateRedfishSimpleUpdate(d models.SimpleUpdateRes) (dia
 			isGenerationSeventeenAndAbove, err := isServerGenerationSeventeenAndAbove(service)
 			if err != nil {
 				diags.AddError("Error retrieving the server generation", err.Error())
+				return diags, ret
 			}
 
 			if isGenerationSeventeenAndAbove {
