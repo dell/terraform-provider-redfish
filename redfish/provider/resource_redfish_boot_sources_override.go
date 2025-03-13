@@ -21,6 +21,7 @@ import (
 	"context"
 	"net/http"
 	"terraform-provider-redfish/common"
+	"terraform-provider-redfish/gofish/dell"
 	"terraform-provider-redfish/redfish/models"
 	"time"
 
@@ -297,6 +298,7 @@ func (r *BootSourceOverrideResource) bootOperation(ctx context.Context, service 
 
 	var resp *http.Response
 	var diags diag.Diagnostics
+	var uri string
 
 	system, err := getSystemResource(service, plan.SystemID.ValueString())
 	if err != nil {
@@ -305,33 +307,70 @@ func (r *BootSourceOverrideResource) bootOperation(ctx context.Context, service 
 	}
 
 	plan.SystemID = types.StringValue(system.ID)
-
-	type Boot struct {
-		BootSourceOverrideMode    redfish.BootSourceOverrideMode
-		BootSourceOverrideEnabled redfish.BootSourceOverrideEnabled
-		BootSourceOverrideTarget  redfish.BootSourceOverrideTarget
-	}
-	type Payload struct {
-		Boot Boot `json:"Boot"`
-	}
-
-	var payload Payload
-	payload.Boot.BootSourceOverrideMode = redfish.BootSourceOverrideMode(plan.BootSourceOverrideMode.ValueString())
-	payload.Boot.BootSourceOverrideEnabled = redfish.BootSourceOverrideEnabled(plan.BootSourceOverrideEnabled.ValueString())
-	payload.Boot.BootSourceOverrideTarget = redfish.BootSourceOverrideTarget(plan.BootSourceOverrideTarget.ValueString())
-
-	resp, err = service.GetClient().Patch(system.ODataID, payload)
+	isGenerationSeventeenAndAbove, err := isServerGenerationSeventeenAndAbove(service)
 	if err != nil {
-		diags.AddError("Cannot update boot override details ", err.Error())
+		diags.AddError("Error retrieving the server generation", err.Error())
 		return diags
 	}
+	// for 17G use system settings api for PATCH call
+	if isGenerationSeventeenAndAbove {
+		if !plan.BootSourceOverrideMode.IsUnknown() && !plan.BootSourceOverrideMode.IsNull() {
+			diags.AddError("BootSourceOverrideMode is not supported by 17G server", "Unable to support BootSourceOverrideMode for 17G")
+			return diags
+		}
 
-	diags.Append(r.restartServer(ctx, service, resp, plan)...)
+		res, err := dell.ComputerSystems(system)
+		uri = res.Settings.OdataID
+		if err != nil {
+			diags.AddError("Error retrieving the systems settings URI", err.Error())
+			return diags
+		}
+
+		type Boot struct {
+			BootSourceOverrideEnabled redfish.BootSourceOverrideEnabled
+			BootSourceOverrideTarget  redfish.BootSourceOverrideTarget
+		}
+		type Payload struct {
+			Boot Boot `json:"Boot"`
+		}
+		var payload Payload
+		payload.Boot.BootSourceOverrideEnabled = redfish.BootSourceOverrideEnabled(plan.BootSourceOverrideEnabled.ValueString())
+		payload.Boot.BootSourceOverrideTarget = redfish.BootSourceOverrideTarget(plan.BootSourceOverrideTarget.ValueString())
+		_, err = service.GetClient().Patch(uri, payload)
+		if err != nil {
+			diags.AddError("Cannot update boot override details ", err.Error())
+			return diags
+		}
+	} else {
+		// Below 17G will have System API for PATCH call
+		uri = system.ODataID
+		type Boot struct {
+			BootSourceOverrideMode    redfish.BootSourceOverrideMode
+			BootSourceOverrideEnabled redfish.BootSourceOverrideEnabled
+			BootSourceOverrideTarget  redfish.BootSourceOverrideTarget
+		}
+		type Payload struct {
+			Boot Boot `json:"Boot"`
+		}
+		var payload Payload
+		payload.Boot.BootSourceOverrideMode = redfish.BootSourceOverrideMode(plan.BootSourceOverrideMode.ValueString())
+		payload.Boot.BootSourceOverrideEnabled = redfish.BootSourceOverrideEnabled(plan.BootSourceOverrideEnabled.ValueString())
+		payload.Boot.BootSourceOverrideTarget = redfish.BootSourceOverrideTarget(plan.BootSourceOverrideTarget.ValueString())
+		resp, err = service.GetClient().Patch(uri, payload)
+		if err != nil {
+			diags.AddError("Cannot update boot override details ", err.Error())
+			return diags
+		}
+		jobID := resp.Header.Get("Location")
+		if jobID != "" {
+			diags.Append(r.restartServer(ctx, service, jobID, plan)...)
+		}
+	}
 	return diags
 }
 
 func (*BootSourceOverrideResource) restartServer(ctx context.Context, service *gofish.Service,
-	resp *http.Response, plan *models.BootSourceOverride,
+	jobID string, plan *models.BootSourceOverride,
 ) diag.Diagnostics {
 	// Power Operation parameters
 	var diags diag.Diagnostics
@@ -347,7 +386,6 @@ func (*BootSourceOverrideResource) restartServer(ctx context.Context, service *g
 		return diags
 	}
 
-	jobID := resp.Header.Get("Location")
 	// wait for the bios config job to finish
 	err = common.WaitForJobToFinish(service, jobID, intervalBootSourceOverrideJobCheckTime, bootSourceOverrideJobTimeout)
 	if err != nil {

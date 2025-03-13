@@ -32,6 +32,7 @@ resource "redfish_dell_system_attributes" "system" {
 
   // System attributes to be modified
   attributes = {
+    # If `PlatformCapability.1.PSPFCCapable` is Enabled then only will be able to modify `ServerPwr.1.PSPFCEnabled`
     "ServerPwr.1.PSPFCEnabled" = "Disabled"
     "SupportInfo.1.Outsourced" = "Yes"
   }
