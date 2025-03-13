@@ -174,7 +174,10 @@ resource "redfish_boot_source_override" "boot" {
         SDCard, UefiHttp, RemoteDrive, UefiBootNext]
   */
   boot_source_override_target = "UefiTarget"
-  boot_source_override_mode   = "UEFI"
+
+  # 17G device has only one boot_source_override_mode i.e UEFI and this is non modifiable 
+  # boot_source_override_mode can be modified for below 17G device only
+  boot_source_override_mode = "UEFI"
 
   /* Reset parameters to be applied after bios settings are applied
      list of possible value:

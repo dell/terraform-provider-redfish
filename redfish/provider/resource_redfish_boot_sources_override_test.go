@@ -19,19 +19,29 @@ package provider
 
 import (
 	"fmt"
+	"os"
+	"regexp"
 	"testing"
 	"time"
 
+	"github.com/bytedance/mockey"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 // test redfish Boot Order
 func TestAccRedfishBootSourceOverride_basic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Boot Source Override Test for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(false, nil).Build()
+				},
 				Config: testAccRedfishResourceBootSourceLegacyconfig(creds),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_boot_source_override.boot", "boot_source_override_mode", "Legacy"),
@@ -39,15 +49,24 @@ func TestAccRedfishBootSourceOverride_basic(t *testing.T) {
 			},
 		},
 	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
 }
 
 func TestAccRedfishBootSourceOverride_updated(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Boot Source Override Test for 17G")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(false, nil).Build()
+				},
 				Config: testAccRedfishResourceBootSourceResetType(creds),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_boot_source_override.boot", "boot_source_override_mode", "UEFI"),
@@ -64,6 +83,114 @@ func TestAccRedfishBootSourceOverride_updated(t *testing.T) {
 			},
 		},
 	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+// test redfish Boot Source Override for 17G
+func TestAccRedfishBootSourceOverride_17Gbasic(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Boot Source Override Test for below 17G")
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+				},
+				Config:      testAccRedfishResourceBootSourceLegacyconfig(creds),
+				ExpectError: regexp.MustCompile("BootSourceOverrideMode is not supported by 17G server"),
+			},
+			{
+				Config: testAccRedfishResourceBootSource17Gconfig(creds),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_boot_source_override.boot", "boot_source_override_target", "UefiTarget"),
+				),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+func TestAccRedfishBootSourceOverride_17Gupdated(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Boot Source Override Test for below 17G")
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(true, nil).Build()
+				},
+				Config: testAccRedfishResourceBootSource17GUpdateconfig(creds),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_boot_source_override.boot", "boot_source_override_target", "UefiTarget"),
+				),
+			},
+			{
+				PreConfig: func() {
+					time.Sleep(120 * time.Second)
+				},
+				Config: testAccRedfishResourceBootSource17Gconfig(creds),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("redfish_boot_source_override.boot", "boot_source_override_target", "UefiTarget"),
+				),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+// Run below negative scenario for 17G and below 17G devices
+func TestAccRedfishBootSourceOverride_MockErr(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceBootSource17GUpdateconfig(creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(getSystemResource).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceBootSource17GUpdateconfig(creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(isServerGenerationSeventeenAndAbove).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceBootSource17GUpdateconfig(creds),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
 }
 
 func testAccRedfishResourceBootSourceLegacyconfig(testingInfo TestingServerCredentials) string {
@@ -89,6 +216,28 @@ func testAccRedfishResourceBootSourceLegacyconfig(testingInfo TestingServerCrede
 	)
 }
 
+func testAccRedfishResourceBootSource17Gconfig(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+
+	resource "redfish_boot_source_override" "boot" {
+		redfish_server {
+			user = "%s"
+			password = "%s"
+			endpoint = "%s"
+			ssl_insecure = true
+		}
+	    system_id = "System.Embedded.1"
+		boot_source_override_enabled = "Once"
+		boot_source_override_target = "UefiTarget"
+		reset_type    = "GracefulRestart"
+	}	  
+	`,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+	)
+}
+
 func testAccRedfishResourceBootSourceUEFIconfig(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
 
@@ -105,6 +254,29 @@ func testAccRedfishResourceBootSourceUEFIconfig(testingInfo TestingServerCredent
 		boot_source_override_target = "UefiTarget"
 		boot_source_override_mode = "UEFI"
 		reset_type    = "GracefulRestart"
+	}	  
+	`,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+	)
+}
+
+func testAccRedfishResourceBootSource17GUpdateconfig(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+
+	resource "redfish_boot_source_override" "boot" {
+	  
+		redfish_server {
+			user = "%s"
+			password = "%s"
+			endpoint = "%s"
+			ssl_insecure = true
+		}
+	   
+		boot_source_override_enabled = "Once"
+		boot_source_override_target = "UefiTarget"
+		reset_type    = "ForceRestart"
 	}	  
 	`,
 		testingInfo.Username,
