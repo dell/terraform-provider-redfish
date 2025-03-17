@@ -19,6 +19,7 @@ package provider
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"terraform-provider-redfish/gofish/dell"
 	"testing"
@@ -40,15 +41,15 @@ type testingNICInputs struct {
 func init() {
 	nicParams = testingNICInputs{
 		TestingServerCredentials: creds,
-		NetworkDeviceFunctionID:  "NIC.Integrated.1-4-1",
-		NetworkAdapterID:         "NIC.Integrated.1",
+		NetworkDeviceFunctionID:  os.Getenv("NETWORK_DEVICE_FUNCTION_ID_1"),
+		NetworkAdapterID:         os.Getenv("NETWORK_ADAPTER_ID_1"),
 		SystemID:                 "System.Embedded.1",
 	}
 
 	fcParams = testingNICInputs{
 		TestingServerCredentials: creds,
-		NetworkDeviceFunctionID:  "FC.Slot.1-2",
-		NetworkAdapterID:         "FC.Slot.1",
+		NetworkDeviceFunctionID:  os.Getenv("NETWORK_DEVICE_FUNCTION_ID_2"),
+		NetworkAdapterID:         os.Getenv("NETWORK_ADAPTER_ID_2"),
 		SystemID:                 "System.Embedded.1",
 	}
 }
