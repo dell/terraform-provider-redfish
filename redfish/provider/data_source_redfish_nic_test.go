@@ -26,72 +26,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccRedfishNICDataSource17G_fetch(t *testing.T) {
-	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
-	nicDatasourceName := "data.redfish_network.nic"
-	resource.Test(t, resource.TestCase{
-
-		PreCheck: func() {
-			if version != "17" {
-				t.Skip("Skipping 17G test")
-			}
-			testAccPreCheck(t)
-		},
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccRedfishDataSourceNICConfig(creds),
-			},
-			{
-				Config: testAccNICDatasourceWithSystemID(creds),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestMatchResourceAttr(nicDatasourceName, "network_interfaces.0.odata_id", regexp.MustCompile(`.*System.Embedded.1*.`)),
-				),
-			},
-			{
-				Config:      testAccNICDatasourceWithInvalidSystemID(creds),
-				ExpectError: regexp.MustCompile(`.*Error one or more of the filtered system ids are not valid*.`),
-			},
-			{
-				Config: testAccNICDatasourceWithAdapterID(creds, os.Getenv("NETWORK_ADAPTER_ID_17G")),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.#"),
-					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.0.odata_id"),
-					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.0.network_adapter.odata_id"),
-				),
-			},
-			{
-				Config:      testAccNICDatasourceWithInvalidAdapterID(creds),
-				ExpectError: regexp.MustCompile(`.*Error one or more of the filtered network adapter ids are not valid*.`),
-			},
-			{
-				Config: testAccNICDatasourceWithConfiguredFilter(creds, os.Getenv("NETWORK_ADAPTER_ID_17G"), os.Getenv("NETWORK_PORT_IDS_17G"), os.Getenv("NETWORK_DEVICE_FUNCTION_IDS_17G")),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.#"),
-					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.0.odata_id"),
-					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.0.network_adapter.odata_id"),
-					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.0.network_ports.#"),
-					resource.TestCheckResourceAttrSet(nicDatasourceName, "network_interfaces.0.network_device_functions.#"),
-				),
-			},
-			{
-				Config:      testAccNICDatasourceWithInvalidPortID(creds, os.Getenv("NETWORK_ADAPTER_ID_17G")),
-				ExpectError: regexp.MustCompile(`.*Error one or more of the filtered network port ids are not valid*.`),
-			},
-		},
-	})
-}
-
 func TestAccRedfishNICDataSource_fetch(t *testing.T) {
-	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
 	nicDatasourceName := "data.redfish_network.nic"
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			if version == "17" {
-				t.Skip("Skipping 17G test")
-			}
-			testAccPreCheck(t)
-		},
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
