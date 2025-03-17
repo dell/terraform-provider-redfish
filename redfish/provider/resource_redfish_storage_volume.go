@@ -481,21 +481,6 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 		return diags
 	}
 
-	readCachePolicy := d.ReadCachePolicy.ValueString()
-	writeCachePolicy := d.WriteCachePolicy.ValueString()
-
-	// For 17G, check the readCachePolicy and writeCachePolicy values
-	if isGenerationSeventeenAndAbove {
-		if readCachePolicy != string(redfish.OffReadCachePolicyType) {
-			diags.AddError("Invalid ReadCachePolicy", "The ReadCachePolicy must be Off")
-			return diags
-		}
-		if writeCachePolicy != string(redfish.WriteThroughWriteCachePolicyType) {
-			diags.AddError("Invalid WriteCachePolicy", "The WriteCachePolicy must be WriteThrough")
-			return diags
-		}
-	}
-
 	storageID := d.StorageControllerID.ValueString()
 
 	// Map from the deprecated volume type to raid type
@@ -507,6 +492,8 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 	volumeName := d.VolumeName.ValueString()
 	optimumIOSizeBytes := int(d.OptimumIoSizeBytes.ValueInt64())
 	capacityBytes := int(d.CapacityBytes.ValueInt64())
+	readCachePolicy := d.ReadCachePolicy.ValueString()
+	writeCachePolicy := d.WriteCachePolicy.ValueString()
 	diskCachePolicy := d.DiskCachePolicy.ValueString()
 	applyTime := d.SettingsApplyTime.ValueString()
 	encrypted := d.Encrypted.ValueBool()
@@ -674,30 +661,11 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service,
 	redfishMutexKV.Lock(d.RedfishServer[0].Endpoint.ValueString())
 	defer redfishMutexKV.Unlock(d.RedfishServer[0].Endpoint.ValueString())
 
-	isGenerationSeventeenAndAbove, err := isServerGenerationSeventeenAndAbove(service)
-	if err != nil {
-		diags.AddError("Error retrieving the server generation", err.Error())
-		return diags
-	}
-
-	readCachePolicy := d.ReadCachePolicy.ValueString()
-	writeCachePolicy := d.WriteCachePolicy.ValueString()
-
-	// For 17G, check the readCachePolicy and writeCachePolicy values
-	if isGenerationSeventeenAndAbove {
-		if readCachePolicy != string(redfish.OffReadCachePolicyType) {
-			diags.AddError("Invalid ReadCachePolicy", "The ReadCachePolicy must be Off")
-			return diags
-		}
-		if writeCachePolicy != string(redfish.WriteThroughWriteCachePolicyType) {
-			diags.AddError("Invalid WriteCachePolicy", "The WriteCachePolicy must be WriteThrough")
-			return diags
-		}
-	}
-
 	// Get user config
 	storageID := d.StorageControllerID.ValueString()
 	volumeName := d.VolumeName.ValueString()
+	readCachePolicy := d.ReadCachePolicy.ValueString()
+	writeCachePolicy := d.WriteCachePolicy.ValueString()
 	diskCachePolicy := d.DiskCachePolicy.ValueString()
 	applyTime := d.SettingsApplyTime.ValueString()
 	encrypted := d.Encrypted.ValueBool()

@@ -62,12 +62,10 @@ resource "redfish_storage_volume" "volume" {
   //optimum_io_size_bytes = 131072
 
   // Possible values are "Off", "ReadAhead", "AdaptiveReadAhead"
-  // Note: For a 17G device, the allowable value for this property is "Off" only.
   read_cache_policy = "Off"
 
   // When creating on volumes on BOSS Controllers this property should be set to "WriteThrough"
   // Possible values are "ProtectedWriteBack", "WriteThrough", "UnprotectedWriteBack"
-  // Note: For a 17G device, the allowable value for this property is "WriteThrough" only.
   write_cache_policy = "WriteThrough"
 
   // Possible values are "Disabled", "Enabled"
