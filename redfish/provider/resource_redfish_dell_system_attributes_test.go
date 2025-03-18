@@ -196,7 +196,7 @@ func TestAccRedfishSystemAttributesImportCheck(t *testing.T) {
 				ResourceName:  systemAttributeResourceName,
 				ImportState:   true,
 				ExpectError:   nil,
-				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"attributes\":[\"ServerPwr.1.PSPFCEnabled\",\"SupportInfo.1.Outsourced\"],\"ssl_insecure\":true}",
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"attributes\":[\"SupportInfo.1.Outsourced\"],\"ssl_insecure\":true}",
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_dell_system_attributes.system", "attributes.SupportInfo.1.Outsourced", "Yes"),
 					// If `PlatformCapability.1.PSPFCCapable` is Enabled then only will be able to modify `ServerPwr.1.PSPFCEnabled`
