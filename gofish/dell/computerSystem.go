@@ -20,6 +20,7 @@ package dell
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/stmcginnis/gofish/redfish"
 )
@@ -41,7 +42,7 @@ func ComputerSystems(comSys *redfish.ComputerSystem) (*ComputerSystemExtended, e
 		ComputerSystem: comSys,
 		Settings:       &SettingsObject{},
 	}
-	rawDataBytes, err := GetRawDataBytes(comSys)
+	rawDataBytes, err := GetRawDataBytesByFieldName(comSys, "RawData")
 	if err != nil {
 		return dellSystem, err
 	}
@@ -55,6 +56,28 @@ func ComputerSystems(comSys *redfish.ComputerSystem) (*ComputerSystemExtended, e
 	}
 
 	return dellSystem, nil
+}
+
+// GetRawDataBytesByFieldName extracts the rawDataFieldName field from a gofish struct.
+func GetRawDataBytesByFieldName(source interface{}, rawDataFieldName string) ([]byte, error) {
+	destinationValue := reflect.ValueOf(source)
+	destinationType := reflect.TypeOf(source)
+
+	if destinationValue.Kind() == reflect.Ptr {
+		destinationValue = destinationValue.Elem()
+		destinationType = destinationType.Elem()
+	}
+
+	if destinationValue.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("source is not a struct")
+	}
+	destinationValue = destinationValue.FieldByName(rawDataFieldName)
+	destinationTye, found := destinationType.FieldByName(rawDataFieldName)
+	if !found || destinationTye.Type != reflect.TypeOf([]byte{}) || !destinationValue.IsValid() {
+		return nil, fmt.Errorf("source contains no rawData field or rawData not of type []byte")
+	}
+
+	return destinationValue.Bytes(), nil
 }
 
 // GetNodeFromRawDataHavingDotBytes extracts the node with the given name from the rawData field in a pointer to a struct.
