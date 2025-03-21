@@ -18,8 +18,11 @@ limitations under the License.
 package provider
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"regexp"
+	"terraform-provider-redfish/gofish/dell"
 	"testing"
 
 	"github.com/bytedance/mockey"
@@ -36,7 +39,8 @@ func TestAccRedfishSystemAttributesBasic(t *testing.T) {
 				Config: testAccRedfishResourceSystemAttributesConfig(creds),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_dell_system_attributes.system", "attributes.SupportInfo.1.Outsourced", "Yes"),
-					resource.TestCheckResourceAttr("redfish_dell_system_attributes.system", "attributes.ServerPwr.1.PSPFCEnabled", "Disabled"),
+					// If `PlatformCapability.1.PSPFCCapable` is Enabled then only will be able to modify `ServerPwr.1.PSPFCEnabled`
+					// resource.TestCheckResourceAttr("redfish_dell_system_attributes.system", "attributes.ServerPwr.1.PSPFCEnabled", "Disabled"),
 				),
 			},
 		},
@@ -78,8 +82,8 @@ func TestAccRedfishSystemManagerInvalidAttribute(t *testing.T) {
 				PreConfig: func() {
 					if FunctionMocker != nil {
 						FunctionMocker.Release()
-					funcMocker1 = mockey.Mock(assertSystemAttributes).Return(nil).Build()
-					FunctionMocker = mockey.Mock(setManagerAttributesRightType).Return(nil, fmt.Errorf("mock error")).Build()
+						funcMocker1 = mockey.Mock(assertSystemAttributes).Return(nil).Build()
+						FunctionMocker = mockey.Mock(setManagerAttributesRightType).Return(nil, fmt.Errorf("mock error")).Build()
 					}
 				},
 				Config:      testAccRedfishResourceSystemManagerAttributesTypeInvalid(creds),
@@ -104,14 +108,16 @@ func TestAccRedfishSystemAttributesUpdate(t *testing.T) {
 				Config: testAccRedfishResourceSystemAttributesConfig(creds),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_dell_system_attributes.system", "attributes.SupportInfo.1.Outsourced", "Yes"),
-					resource.TestCheckResourceAttr("redfish_dell_system_attributes.system", "attributes.ServerPwr.1.PSPFCEnabled", "Disabled"),
+					// If `PlatformCapability.1.PSPFCCapable` is Enabled then only will be able to modify `ServerPwr.1.PSPFCEnabled`
+					// resource.TestCheckResourceAttr("redfish_dell_system_attributes.system", "attributes.ServerPwr.1.PSPFCEnabled", "Disabled"),
 				),
 			},
 			{
 				Config: testAccRedfishResourceSystemAttributesUpdateConfig(creds),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_dell_system_attributes.system", "attributes.SupportInfo.1.Outsourced", "No"),
-					resource.TestCheckResourceAttr("redfish_dell_system_attributes.system", "attributes.ServerPwr.1.PSPFCEnabled", "Enabled"),
+					// If `PlatformCapability.1.PSPFCCapable` is Enabled then only will be able to modify `ServerPwr.1.PSPFCEnabled`
+					// resource.TestCheckResourceAttr("redfish_dell_system_attributes.system", "attributes.ServerPwr.1.PSPFCEnabled", "Enabled"),
 				),
 			},
 		},
@@ -190,16 +196,87 @@ func TestAccRedfishSystemAttributesImportCheck(t *testing.T) {
 				ResourceName:  systemAttributeResourceName,
 				ImportState:   true,
 				ExpectError:   nil,
-				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"attributes\":[\"ServerPwr.1.PSPFCEnabled\",\"SupportInfo.1.Outsourced\"],\"ssl_insecure\":true}",
+				ImportStateId: "{\"username\":\"" + creds.Username + "\",\"password\":\"" + creds.Password + "\",\"endpoint\":\"" + creds.Endpoint + "\",\"attributes\":[\"SupportInfo.1.Outsourced\"],\"ssl_insecure\":true}",
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("redfish_dell_system_attributes.system", "attributes.SupportInfo.1.Outsourced", "Yes"),
-					resource.TestCheckResourceAttr("redfish_dell_system_attributes.system", "attributes.ServerPwr.1.PSPFCEnabled", "Disabled"),
+					// If `PlatformCapability.1.PSPFCCapable` is Enabled then only will be able to modify `ServerPwr.1.PSPFCEnabled`
+					// resource.TestCheckResourceAttr("redfish_dell_system_attributes.system", "attributes.ServerPwr.1.PSPFCEnabled", "Disabled"),
 				),
 			},
 		},
 	})
 }
 
+func TestAccRedfishSystemAttributesPSPFCEnabled(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(dell.Manager).Return(nil, fmt.Errorf("Could not get OEM from iDRAC manager")).Build()
+				},
+				Config:      testAccRedfishResourceSystemAttributesEnabledConfig(creds),
+				ExpectError: regexp.MustCompile(`.*Could not get OEM from iDRAC manager*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(io.ReadAll).Return(nil, fmt.Errorf("Failed to parse response body")).Build()
+				},
+				Config:      testAccRedfishResourceSystemAttributesEnabledConfig(creds),
+				ExpectError: regexp.MustCompile(`.*Failed to parse response body*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(json.Unmarshal).Return(fmt.Errorf("Cannot convert response to string")).Build()
+				},
+				Config:      testAccRedfishResourceSystemAttributesEnabledConfig(creds),
+				ExpectError: regexp.MustCompile(`.*Cannot convert response to string*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+				},
+				Config:      testAccRedfishResourceSystemAttributesEnabledConfig(creds),
+				ExpectError: regexp.MustCompile(`.*As PSPFCCapable Attributes disabled, Unable to update the PSPFCEnabled Attribute.*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(checkManagerAttributes).Return(fmt.Errorf("Manager attribute registry from iDRAC does not match input")).Build()
+				},
+				Config:      testAccRedfishResourceSystemAttributesConfig(creds),
+				ExpectError: regexp.MustCompile(`.*Manager attribute registry from iDRAC does not match input*.`),
+			},
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+					FunctionMocker = mockey.Mock(getSystemAttributes).Return(nil, fmt.Errorf("Could not get system attributes")).Build()
+				},
+				Config:      testAccRedfishResourceSystemAttributesConfig(creds),
+				ExpectError: regexp.MustCompile(`.*Could not get system attributes*.`),
+			},
+		},
+	})
+	if FunctionMocker != nil {
+		FunctionMocker.Release()
+	}
+}
+
+// If `PlatformCapability.1.PSPFCCapable` is Enabled then only will be able to modify `ServerPwr.1.PSPFCEnabled`
+// Hence commenting the `ServerPwr.1.PSPFCEnabled` from the configurations
 func testAccRedfishResourceSystemAttributesConfig(testingInfo TestingServerCredentials) string {
 	return fmt.Sprintf(`
 	resource "redfish_dell_system_attributes" "system" {
@@ -209,9 +286,8 @@ func testAccRedfishResourceSystemAttributesConfig(testingInfo TestingServerCrede
 		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
-	  
+
 		attributes = {
-			"ServerPwr.1.PSPFCEnabled" = "Disabled"
 			"SupportInfo.1.Outsourced" = "Yes"
 		}
 	  }
@@ -233,7 +309,6 @@ func testAccRedfishResourceSystemAttributesUpdateConfig(testingInfo TestingServe
 		}
 
 		attributes = {
-			"ServerPwr.1.PSPFCEnabled" = "Enabled"
 			"SupportInfo.1.Outsourced" = "No"
 		}
 	  }
@@ -253,9 +328,8 @@ func testAccRedfishResourceSystemConfigInvalid(testingInfo TestingServerCredenti
 		  endpoint     = "%s"
 		  ssl_insecure = true
 		}
-	  
+
 		attributes = {
-			"ServerPwr.1.PSPFCEnabled" = "Disabled",
 			"SupportInfo.1.Outsourced" = "Yes",
 		  	"SysLog.1.PowerLogInterval" = 5,
 		  	"InvalidAttribute" 		  = "invalid",
@@ -302,6 +376,28 @@ func testAccRedfishResourceSystemManagerAttributesTypeInvalid(testingInfo Testin
 
 		attributes = {
 			"invalid" = 9,
+		}
+	  }
+	  `,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+	)
+}
+
+func testAccRedfishResourceSystemAttributesEnabledConfig(testingInfo TestingServerCredentials) string {
+	return fmt.Sprintf(`
+	resource "redfish_dell_system_attributes" "system" {
+		redfish_server {
+		  user         = "%s"
+		  password     = "%s"
+		  endpoint     = "%s"
+		  ssl_insecure = true
+		}
+
+		attributes = {
+			"SupportInfo.1.Outsourced" = "Yes",
+			"ServerPwr.1.PSPFCEnabled" = "Enabled"
 		}
 	  }
 	  `,
