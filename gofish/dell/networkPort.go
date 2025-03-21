@@ -110,6 +110,13 @@ func GetRawDataBytes(source interface{}) ([]byte, error) {
 	rawDataFieldName := "rawData"
 	destinationValue = destinationValue.FieldByName(rawDataFieldName)
 	destinationTye, found := destinationType.FieldByName(rawDataFieldName)
+	if !found {
+		rawDataBytes, err := GetRawDataBytesByFieldName(source, "RawData")
+		if err != nil {
+			return nil, err
+		}
+		return rawDataBytes, nil
+	}
 	if !found || destinationTye.Type != reflect.TypeOf([]byte{}) || !destinationValue.IsValid() {
 		return nil, fmt.Errorf("source contains no rawData field or rawData not of type []byte")
 	}
