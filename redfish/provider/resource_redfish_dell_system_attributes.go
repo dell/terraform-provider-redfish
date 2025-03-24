@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"slices"
 	"strings"
 	"terraform-provider-redfish/gofish/dell"
@@ -306,6 +307,60 @@ func updateRedfishDellSystemAttributes(ctx context.Context, service *gofish.Serv
 		diags.AddError(fmt.Sprintf("%s: Could not get manager attribute registry from iDRAC", idracError), err.Error())
 		return diags
 	}
+	// get managers (Dell servers have only the iDRAC)
+	managers, err := service.Managers()
+	if err != nil {
+		diags.AddError(fmt.Sprintf("%s: Could not get manager from iDRAC", idracError), err.Error())
+		return diags
+	}
+
+	// Get OEM
+	dellManager, err := dell.Manager(managers[0])
+	if err != nil {
+		diags.AddError(fmt.Sprintf("%s: Could not get OEM from iDRAC manager", idracError), err.Error())
+		return diags
+	}
+	// Suppressed API to check PSPFCCapable status
+	const suppressedAPI = "/Oem/Dell/DellAttributes/iDRAC.Embedded.1/Suppressed"
+	suppressedURI := dellManager.Manager.ODataID + suppressedAPI
+	supResp, err := service.GetClient().Get(suppressedURI)
+	if err != nil {
+		diags.AddError(fmt.Sprintf("%s: Could not get PlatformCapability.1.PSPFCCapable from iDRAC manager", idracError), err.Error())
+		return diags
+	}
+
+	// Parasing the response of suppressed API
+	readResponse, err := io.ReadAll(supResp.Body)
+	if err != nil {
+		diags.AddError("Failed to parse response body", err.Error())
+		return diags
+	}
+	// ReadResponse is the response body of the suppressed API
+	// Here we are unmarshaling the response body into a map[string]interface{}
+	// to check the PSPFCCapable status.
+	// If the status is "Enabled" then we can proceed with the modification of
+	// PSPFCEnabled attribute, otherwise it is disabled.
+	var decodedAttrData map[string]interface{}
+	err = json.Unmarshal(readResponse, &decodedAttrData)
+	if err != nil {
+		diags.AddError("Cannot convert response to string", err.Error())
+		return diags
+	}
+	capableAttr, ok := decodedAttrData["Attributes"].(map[string]interface{})["PlatformCapability.1.PSPFCCapable"]
+	if !ok {
+		diags.AddError("Failed to read decoded data", "Failed to read decoded data")
+		return diags
+	}
+	// Check the status of PSPFCCapable, if enabled then procceed with modification of PSPFCEnabled attribute,
+	// Otherwise throw an error because PSPFCCapable is disabled.
+	if value, ok := attributesTf["ServerPwr.1.PSPFCEnabled"]; ok {
+		if value == "Enabled" && capableAttr.(string) == "Disabled" {
+			const attributeErr = "As PSPFCCapable Attributes disabled, Unable to update the PSPFCEnabled Attribute."
+			diags.AddError(attributeErr, attributeErr)
+			return diags
+		}
+	}
+
 	err = assertSystemAttributes(attributesTf, managerAttributeRegistry)
 	if err != nil {
 		diags.AddError(fmt.Sprintf("%s: System attribute registry from iDRAC does not match input", idracError), err.Error())
@@ -322,20 +377,6 @@ func updateRedfishDellSystemAttributes(ctx context.Context, service *gofish.Serv
 	err = checkManagerAttributes(managerAttributeRegistry, attributesToPatch)
 	if err != nil {
 		diags.AddError(fmt.Sprintf("%s: Manager attribute registry from iDRAC does not match input", idracError), err.Error())
-		return diags
-	}
-
-	// get managers (Dell servers have only the iDRAC)
-	managers, err := service.Managers()
-	if err != nil {
-		diags.AddError(fmt.Sprintf("%s: Could not get manager from iDRAC", idracError), err.Error())
-		return diags
-	}
-
-	// Get OEM
-	dellManager, err := dell.Manager(managers[0])
-	if err != nil {
-		diags.AddError(fmt.Sprintf("%s: Could not get OEM from iDRAC manager", idracError), err.Error())
 		return diags
 	}
 
