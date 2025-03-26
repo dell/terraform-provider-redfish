@@ -321,6 +321,12 @@ func updateRedfishStorageController(ctx context.Context, service *gofish.Service
 	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
 	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
 
+	isGenerationSeventeenAndAbove, err := isServerGenerationSeventeenAndAbove(service)
+	if err != nil {
+		diags.AddError("Error retrieving the server generation", err.Error())
+		return diags
+	}
+
 	// OnReset case
 	if applyTime == string(redfishcommon.OnResetApplyTime) {
 		// Reboot the server
@@ -338,6 +344,12 @@ func updateRedfishStorageController(ctx context.Context, service *gofish.Service
 
 	var jobURL string
 	if isControllerModeAttributeChanged {
+		if isGenerationSeventeenAndAbove {
+			diags.AddError("In 17G and above, controller mode is a read-only property that depends upon the controller personality and hence cannot be updated.",
+				"In 17G and above, ensure the `controller_mode` attribute is commented.")
+			return diags
+		}
+
 		if isAnyOtherStorageControllerAttributeChanged || isAnySecurityAttributeChanged {
 			diags.AddError("While updating `controller_mode`, no other property should be changed.",
 				"Along with `controller_mode`, some other property is changed.")
@@ -396,12 +408,14 @@ func updateRedfishStorageController(ctx context.Context, service *gofish.Service
 		tflog.Trace(ctx, "No attributes changed. Skip update for Storage Controller.")
 	}
 
-	var err error
+	// var err error
 	if jobWait && jobURL != "" {
 		// jobURL could contain Jobs or Tasks
 		if strings.Contains(jobURL, "Job") {
 			err = common.WaitForJobToFinish(service, jobURL, intervalStorageControllerJobCheckTime, jobTimeout)
 		} else {
+			// changes for 17G - replacing TaskMonitors with Tasks
+			jobURL = strings.Replace(jobURL, "TaskMonitors", "Tasks", 1)
 			err = common.WaitForTaskToFinish(service, jobURL, intervalStorageControllerJobCheckTime, jobTimeout)
 		}
 		if err != nil {
@@ -425,6 +439,12 @@ func updateRedfishStorageController(ctx context.Context, service *gofish.Service
 func updateSecurityAttributes(ctx context.Context, service *gofish.Service, plan, state *models.StorageControllerResource) (string, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
+	isGenerationSeventeenAndAbove, err := isServerGenerationSeventeenAndAbove(service)
+	if err != nil {
+		diags.AddError("Error retrieving the server generation", err.Error())
+		return "", diags
+	}
+
 	objectAsOptions := basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true}
 
 	var planAttributes models.SecurityAttributes
@@ -445,29 +465,16 @@ func updateSecurityAttributes(ctx context.Context, service *gofish.Service, plan
 	}
 	securityAction := planAttributes.Action.ValueString()
 
-	// get storage controller by using system id, storage id, controller id
-	system, storageController, err := getStorageControllerInstance(
-		service,
-		plan.SystemID.ValueString(),
-		plan.StorageID.ValueString(),
-		plan.ControllerID.ValueString(),
-	)
-	if err != nil {
-		diags.AddError("Error when retrieving storage controller", err.Error())
-		return "", diags
-	}
-
-	storageControllerODataID := storageController.ODataID
-	systemID := system.ID
-	pathToAppend := "/Oem/Dell/DellRaidService/Actions/DellRaidService." + securityAction
-
-	idx := strings.Index(storageControllerODataID, systemID)
-	url := storageControllerODataID[:idx+len(systemID)] + pathToAppend
-
+	// Create the request body using security action
 	postBody := make(map[string]interface{})
-	postBody["TargetFQDD"] = plan.ControllerID.ValueString()
 
 	if securityAction == "SetControllerKey" {
+		if isGenerationSeventeenAndAbove {
+			diags.AddError("If server generation is 17G and above, the action `SetControllerKey` is not supported.",
+				"In lesser than 17G, the action `SetControllerKey` is supported.")
+			return "", diags
+		}
+
 		if planAttributes.KeyID.IsNull() || planAttributes.KeyID.IsUnknown() {
 			diags.AddError("With `action` set to `SetControllerKey`, the `key_id` needs to be set.", "`key_id` is not set.")
 			return "", diags
@@ -490,7 +497,14 @@ func updateSecurityAttributes(ctx context.Context, service *gofish.Service, plan
 
 		postBody["Keyid"] = planAttributes.KeyID.ValueString()
 		postBody["Key"] = planAttributes.Key.ValueString()
+		postBody["TargetFQDD"] = plan.ControllerID.ValueString()
 	} else if securityAction == "ReKey" {
+		if isGenerationSeventeenAndAbove {
+			diags.AddError("If server generation is 17G and above, the action `ReKey` is not supported.",
+				"In lesser than 17G, the action `ReKey` is supported.")
+			return "", diags
+		}
+
 		if planAttributes.KeyID.IsNull() || planAttributes.KeyID.IsUnknown() {
 			diags.AddError("With `action` set to `ReKey`, the `key_id` needs to be set.", "`key_id` is not set.")
 			return "", diags
@@ -515,7 +529,14 @@ func updateSecurityAttributes(ctx context.Context, service *gofish.Service, plan
 		postBody["Mode"] = planAttributes.Mode.ValueString()
 		postBody["NewKey"] = planAttributes.Key.ValueString()
 		postBody["OldKey"] = planAttributes.OldKey.ValueString()
+		postBody["TargetFQDD"] = plan.ControllerID.ValueString()
 	} else if securityAction == "RemoveControllerKey" {
+		if isGenerationSeventeenAndAbove {
+			diags.AddError("If server generation is 17G and above, the action `RemoveControllerKey` is not supported.",
+				"In lesser than 17G, the action `RemoveControllerKey` is supported.")
+			return "", diags
+		}
+
 		if !planAttributes.KeyID.IsNull() && !planAttributes.KeyID.IsUnknown() {
 			diags.AddError("With `action` set to `RemoveControllerKey`, the `key_id` needs to be commented.", "`key_id` is not commented.")
 			return "", diags
@@ -535,8 +556,87 @@ func updateSecurityAttributes(ctx context.Context, service *gofish.Service, plan
 			diags.AddError("With `action` set to `RemoveControllerKey`, the `mode` needs to be commented.", "`mode` is not commented.")
 			return "", diags
 		}
+
+		postBody["TargetFQDD"] = plan.ControllerID.ValueString()
+	} else if securityAction == "EnableSecurity" {
+		if !isGenerationSeventeenAndAbove {
+			diags.AddError("If server generation is lesser than 17G, the action `EnableSecurity` is not supported.",
+				"In 17G and above, the action `EnableSecurity` is supported.")
+			return "", diags
+		}
+
+		if !planAttributes.KeyID.IsNull() && !planAttributes.KeyID.IsUnknown() {
+			diags.AddError("With `action` set to `EnableSecurity`, the `key_id` needs to be commented.", "`key_id` is not commented.")
+			return "", diags
+		}
+
+		if !planAttributes.Key.IsNull() && !planAttributes.Key.IsUnknown() {
+			diags.AddError("With `action` set to `EnableSecurity`, the `key` needs to be commented.", "`key` is not commented.")
+			return "", diags
+		}
+
+		if !planAttributes.OldKey.IsNull() && !planAttributes.OldKey.IsUnknown() {
+			diags.AddError("With `action` set to `EnableSecurity`, the `old_key` needs to be commented.", "`old_key` is not commented.")
+			return "", diags
+		}
+
+		if !planAttributes.Mode.IsNull() && !planAttributes.Mode.IsUnknown() {
+			diags.AddError("With `action` set to `EnableSecurity`, the `mode` needs to be commented.", "`mode` is not commented.")
+			return "", diags
+		}
+
+		postBody["TargetFQDD"] = plan.ControllerID.ValueString()
+	} else if securityAction == "DisableSecurity" {
+		if !isGenerationSeventeenAndAbove {
+			diags.AddError("If server generation is lesser than 17G, the action `DisableSecurity` is not supported.",
+				"In 17G and above, the action `DisableSecurity` is supported.")
+			return "", diags
+		}
+
+		if !planAttributes.KeyID.IsNull() && !planAttributes.KeyID.IsUnknown() {
+			diags.AddError("With `action` set to `DisableSecurity`, the `key_id` needs to be commented.", "`key_id` is not commented.")
+			return "", diags
+		}
+
+		if !planAttributes.Key.IsNull() && !planAttributes.Key.IsUnknown() {
+			diags.AddError("With `action` set to `DisableSecurity`, the `key` needs to be commented.", "`key` is not commented.")
+			return "", diags
+		}
+
+		if !planAttributes.OldKey.IsNull() && !planAttributes.OldKey.IsUnknown() {
+			diags.AddError("With `action` set to `DisableSecurity`, the `old_key` needs to be commented.", "`old_key` is not commented.")
+			return "", diags
+		}
+
+		if !planAttributes.Mode.IsNull() && !planAttributes.Mode.IsUnknown() {
+			diags.AddError("With `action` set to `DisableSecurity`, the `mode` needs to be commented.", "`mode` is not commented.")
+			return "", diags
+		}
+
+		postBody["ControllerFQDD"] = plan.ControllerID.ValueString()
 	}
 
+	// Create the url using security action
+	// get storage controller by using system id, storage id, controller id
+	system, storageController, err := getStorageControllerInstance(
+		service,
+		plan.SystemID.ValueString(),
+		plan.StorageID.ValueString(),
+		plan.ControllerID.ValueString(),
+	)
+	if err != nil {
+		diags.AddError("Error when retrieving storage controller", err.Error())
+		return "", diags
+	}
+
+	storageControllerODataID := storageController.ODataID
+	systemID := system.ID
+	pathToAppend := "/Oem/Dell/DellRaidService/Actions/DellRaidService." + securityAction
+
+	idx := strings.Index(storageControllerODataID, systemID)
+	url := storageControllerODataID[:idx+len(systemID)] + pathToAppend
+
+	// Make the POST call using the url and the request body
 	resp, err := service.GetClient().Post(url, postBody)
 	if err != nil {
 		diags.AddError("Post request to IDRAC failed", err.Error())

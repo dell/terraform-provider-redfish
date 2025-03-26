@@ -48,6 +48,10 @@ func parseSecurityAttributesIntoState(ctx context.Context, storageControllerExte
 		stateSecurityAttributes.Mode = types.StringValue("LKM")
 	} else if storageControllerExtended.Oem.Dell.DellStorageController.EncryptionMode == "SecureEnterpriseKeyManager" {
 		stateSecurityAttributes.Mode = types.StringValue("SEKM")
+	} else if storageControllerExtended.Oem.Dell.DellStorageController.EncryptionMode == "Enabled" {
+		stateSecurityAttributes.Mode = types.StringValue("Enabled")
+	} else if storageControllerExtended.Oem.Dell.DellStorageController.EncryptionMode == "Disabled" {
+		stateSecurityAttributes.Mode = types.StringValue("Disabled")
 	}
 
 	if stateSecurityAttributes.Action.IsNull() || stateSecurityAttributes.Action.IsUnknown() {
