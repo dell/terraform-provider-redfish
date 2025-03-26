@@ -25,6 +25,7 @@ import (
 	"terraform-provider-redfish/common"
 	"terraform-provider-redfish/gofish/dell"
 	"terraform-provider-redfish/redfish/models"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -555,6 +556,7 @@ func scpImportExecutor(ctx context.Context, service *gofish.Service, plan models
 	if err != nil {
 		return "error while retrieving dell manager", err
 	}
+	time.Sleep(60 * time.Second)
 	importURL := dellManager.Actions.ImportSystemConfigurationTarget
 	response, err := service.GetClient().Post(importURL, constructPayload(ctx, plan, dellManager.FirmwareVersion))
 	if err != nil {

@@ -383,9 +383,9 @@ func (r *BiosResource) updateRedfishDellBiosAttributes(ctx context.Context, serv
 		tflog.Info(ctx, "rebooting the server completed successfully")
 		tflog.Info(ctx, "Waiting for the bios config job to finish")
 
-		// Below 17G device returns location as /redfish/v1/TaskService/Taks/JOB_ID for same GET call return status as 200 with all the job status.
+		// Below 17G device returns location as /redfish/v1/TaskService/Tasks/JOB_ID for same GET call return status as 200 with all the job status.
 		// where as 17G device returns location as /redfish/v1/TaskService/TaskMonitors/JOB_ID for same GET call return no content hence
-		// we are replacing TaskMonitors to Taks.
+		// we are replacing TaskMonitors to Tasks.
 		biosTaskURI = strings.Replace(biosTaskURI, "TaskMonitors", "Tasks", 1)
 		// wait for the bios config job to finish
 		err = common.WaitForTaskToFinish(service, biosTaskURI, intervalBiosConfigJobCheckTime, biosConfigJobTimeout)

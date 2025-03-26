@@ -169,6 +169,21 @@ func GetJobAttachment(service *gofish.Service, jobURI string, timeBetweenAttempt
 			if err != nil {
 				return nil, fmt.Errorf("error making request: %w", err)
 			}
+			// check is required for 17G because jobURI took 7-8 min to return xml data in 17G
+			Content := resp.Header["Content-Type"][0]
+			if Content != "application/xml;odata.metadata=minimal;charset=utf-8" {
+				for {
+					time.Sleep(20 * time.Second)
+					resp, err = service.GetClient().Get(jobURI)
+					if err != nil {
+						return nil, fmt.Errorf("error making request: %w", err)
+					}
+					Content := resp.Header["Content-Type"][0]
+					if Content == "application/xml;odata.metadata=minimal;charset=utf-8" {
+						break
+					}
+				}
+			}
 
 			if resp.StatusCode == StatusCodeSuccess {
 				body, err := io.ReadAll(resp.Body)

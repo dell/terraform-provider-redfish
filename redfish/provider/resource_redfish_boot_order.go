@@ -206,8 +206,9 @@ func (r *BootOrderResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	state, diags := r.updateServer(service, plan)
+	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
-		resp.Diagnostics.AddError("Update server failed", "")
+		// resp.Diagnostics.AddError("Update server failed", "")
 		return
 	}
 
@@ -245,8 +246,9 @@ func (r *BootOrderResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	state, diags := r.updateServer(service, plan)
+	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
-		resp.Diagnostics.AddError("Update server failed", "")
+		// resp.Diagnostics.AddError("Update server failed", "")
 		return
 	}
 
