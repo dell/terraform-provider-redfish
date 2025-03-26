@@ -39,7 +39,8 @@ resource "redfish_storage_controller" "storage_controller_example" {
   controller_id = "RAID.Integrated.1-1"
 
   # Apply Time. Required for creating and updating.
-  # Accepted values: `Immediate`, `OnReset`, `AtMaintenanceWindowStart`, `InMaintenanceWindowOnReset`
+  # If server generation is lesser than 17G, accepted values: `Immediate`, `OnReset`, `AtMaintenanceWindowStart`, `InMaintenanceWindowOnReset`.
+  # If server generation is 17G and above, accepted values: `Immediate`, `OnReset`.
   # When updating `controller_mode`, ensure that the `apply_time` is `OnReset`.
   # When updating `security`, ensure that the `apply_time` is `Immediate` or `OnReset`.
   apply_time = "Immediate"
@@ -76,13 +77,23 @@ resource "redfish_storage_controller" "storage_controller_example" {
   # }
 
   # Please update any one out of `storage_controller` and `security` at a time.
+  # In 17G, for `PERC H365i Front`, only the following attributes under `storage_controller` are configurable:
+  #   - `consistency_check_rate_percent`
+  #   - `background_initialization_rate_percent`
+  # In 17G, for `PERC H965i Front`, only the following attributes under `storage_controller` are configurable:
+  #   - `consistency_check_rate_percent`
+  #   - `background_initialization_rate_percent`
+  #   - `reconstruct_rate_percent`
+  # For the above mentioned storage controllers, the other attributes under `storage_controller` need to be commented.
   storage_controller = {
     oem = {
       dell = {
         dell_storage_controller = {
           # Controller Mode. 
-          # Accepted values: `RAID`, `HBA`.
-          # When updating `controller_mode`:
+          # If server generation is lesser than 17G, accepted values: `RAID`, `HBA`.
+          # If server generation is 17G and above, `controller_mode` need to be commented.
+          # Note: In 17G and above, controller mode is a read-only property that depends upon the controller personality and hence cannot be updated.
+          # In lesser than 17G, when updating `controller_mode`:
           #   - the `apply_time` should be `OnReset`
           #   - no other attributes from `storage_controller` or `security` should be updated.
           # Specifically when updating to `HBA`:
@@ -134,10 +145,12 @@ resource "redfish_storage_controller" "storage_controller_example" {
 
   # Please update any one out of `security` and `storage_controller` at a time.
   # When updating `security`, ensure that the `apply_time` is `Immediate` or `OnReset`.
-  # When updating `controller_mode` to `HBA`, ensure that the security key is not present.
+  # In lesser than 17G, when updating `controller_mode` to `HBA`, ensure that the security key is not present.
   security = {
     # Action.
-    # Accepted values: `SetControllerKey`, `ReKey`, `RemoveControllerKey`.
+    # If server generation is lesser than 17G, accepted values: `SetControllerKey`, `ReKey`, `RemoveControllerKey`.
+    # If server generation is 17G and above, accepted values: `EnableSecurity`, `DisableSecurity`.
+    # Note: In 17G and above, before enabling security ensure that the SEKM license is imported and SEKM/iLKM is configured.
     # action = "ReKey"
 
     # When `action` is set to `SetControllerKey`:
@@ -146,6 +159,10 @@ resource "redfish_storage_controller" "storage_controller_example" {
     # When `action` is set to `ReKey`:
     #   - `key_id`, `key`, `old_key` and `mode` need to be set.
     # When `action` is set to `RemoveControllerKey`:
+    #   - `key_id`, `key`, `old_key` and `mode` need to be commented.
+    # When `action` is set to `EnableSecurity`:
+    #   - `key_id`, `key`, `old_key` and `mode` need to be commented.
+    # When `action` is set to `DisableSecurity`:
     #   - `key_id`, `key`, `old_key` and `mode` need to be commented.
 
     # Key ID.
