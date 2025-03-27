@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/stmcginnis/gofish"
@@ -50,6 +51,10 @@ func WaitForTaskToFinish(service *gofish.Service, jobURI string, timeBetweenAtte
 	// Create tickers
 	attemptTick := time.NewTicker(time.Duration(timeBetweenAttempts) * time.Second)
 	timeoutTick := time.NewTicker(time.Duration(timeout) * time.Second)
+	// Below 17G device returns location as /redfish/v1/TaskService/Tasks/JOB_ID for same GET call return status as 200 with all the job status.
+	// where as 17G device returns location as /redfish/v1/TaskService/TaskMonitors/JOB_ID for same GET call return no content hence
+	// we are replacing TaskMonitors to Tasks.
+	jobURI = strings.Replace(jobURI, "TaskMonitors", "Tasks", 1)
 	for {
 		select {
 		case <-attemptTick.C:
@@ -158,6 +163,10 @@ func GetJobDetailsOnFinish(service *gofish.Service, jobURI string, timeBetweenAt
 func GetJobAttachment(service *gofish.Service, jobURI string, timeBetweenAttempts int64, timeout int64) ([]byte, error) {
 	attemptTick := time.NewTicker(time.Duration(timeBetweenAttempts) * time.Second)
 	timeoutTick := time.NewTicker(time.Duration(timeout) * time.Second)
+	// Below 17G device returns location as /redfish/v1/TaskService/Tasks/JOB_ID for same GET call return status as 200 with all the job status.
+	// where as 17G device returns location as /redfish/v1/TaskService/TaskMonitors/JOB_ID for same GET call return no content hence
+	// we are replacing TaskMonitors to Tasks.
+	jobURI = strings.Replace(jobURI, "TaskMonitors", "Tasks", 1)
 	defer attemptTick.Stop()
 	defer timeoutTick.Stop()
 	for {
@@ -231,6 +240,10 @@ func WaitForDellJobToFinish(service *gofish.Service, jobURI string, timeBetweenA
 	// Create tickers
 	attemptTick := time.NewTicker(time.Duration(timeBetweenAttempts) * time.Second)
 	timeoutTick := time.NewTicker(time.Duration(timeout) * time.Second)
+	// Below 17G device returns location as /redfish/v1/TaskService/Tasks/JOB_ID for same GET call return status as 200 with all the job status.
+	// where as 17G device returns location as /redfish/v1/TaskService/TaskMonitors/JOB_ID for same GET call return no content hence
+	// we are replacing TaskMonitors to Tasks.
+	jobURI = strings.Replace(jobURI, "TaskMonitors", "Tasks", 1)
 	for {
 		select {
 		case <-attemptTick.C:
