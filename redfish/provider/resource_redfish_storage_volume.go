@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"strings"
 	"terraform-provider-redfish/common"
 	"terraform-provider-redfish/redfish/models"
 	"time"
@@ -570,9 +569,6 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 		return diags
 	}
 
-	// changes for 17G - replacing TaskMonitors with Tasks
-	jobID = strings.Replace(jobID, "TaskMonitors", "Tasks", 1)
-
 	// Immediate or OnReset scenarios
 	if applyTime == string(redfishcommon.OnResetApplyTime) { // OnReset case
 		// Get reset_timeout and reset_type from schema
@@ -717,9 +713,6 @@ func updateRedfishStorageVolume(ctx context.Context, service *gofish.Service,
 		return diags
 	}
 
-	// changes for 17G - replacing TaskMonitors with Tasks
-	jobID = strings.Replace(jobID, "TaskMonitors", "Tasks", 1)
-
 	// Immediate or OnReset scenarios
 	if applyTime == string(redfishcommon.OnResetApplyTime) { // OnReset case
 		resetType := d.ResetType.ValueString()
@@ -774,9 +767,6 @@ func deleteRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 		diags.AddError("Error when deleting volume", err.Error())
 		return diags
 	}
-
-	// changes for 17G - replacing TaskMonitors with Tasks
-	jobID = strings.Replace(jobID, "TaskMonitors", "Tasks", 1)
 
 	if applyTime == string(redfishcommon.OnResetApplyTime) { // OnReset case
 		// Get reset_timeout and reset_type from schema

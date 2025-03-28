@@ -26,6 +26,7 @@ import (
 	"terraform-provider-redfish/common"
 	"terraform-provider-redfish/gofish/dell"
 	"terraform-provider-redfish/redfish/models"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -512,6 +513,7 @@ func scpExportExecutor(ctx context.Context, service *gofish.Service, plan models
 	if err != nil {
 		return "", err
 	}
+	time.Sleep(60 * time.Second)
 	exportURL := dellManager.Actions.ExportSystemConfigurationTarget
 	resp, err := service.GetClient().Post(exportURL, constructExportPayload(ctx, plan, dellManager.FirmwareVersion))
 	if err != nil {
@@ -519,10 +521,6 @@ func scpExportExecutor(ctx context.Context, service *gofish.Service, plan models
 	}
 	if location, err := resp.Location(); err == nil {
 		taskURI := location.EscapedPath()
-		// Below 17G device returns location as /redfish/v1/TaskService/Tasks/JOB_ID for same GET call return status as 200 with all the job status.
-		// where as 17G device returns location as /redfish/v1/TaskService/TaskMonitors/JOB_ID for same GET call return no content hence
-		// we are replacing TaskMonitors to Tasks.
-		taskURI = strings.Replace(taskURI, "TaskMonitors", "Tasks", 1)
 		if sp.ShareType.ValueString() == "LOCAL" {
 			fileContent, err := common.GetJobAttachment(service, taskURI, intervalJobCheckTime, defaultJobTimeout)
 			if err != nil {
