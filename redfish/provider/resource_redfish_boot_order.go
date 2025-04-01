@@ -206,8 +206,9 @@ func (r *BootOrderResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	state, diags := r.updateServer(service, plan)
+	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
-		resp.Diagnostics.AddError("Update server failed", "")
+		// resp.Diagnostics.AddError("Update server failed", "")
 		return
 	}
 
@@ -245,8 +246,9 @@ func (r *BootOrderResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	state, diags := r.updateServer(service, plan)
+	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
-		resp.Diagnostics.AddError("Update server failed", "")
+		// resp.Diagnostics.AddError("Update server failed", "")
 		return
 	}
 
@@ -613,10 +615,6 @@ func (*BootOrderResource) restartServer(ctx context.Context, service *gofish.Ser
 		diags.AddWarning("this configuration is already set ", "Update the configuration and run again")
 		return diags
 	}
-	// Below 17G device returns location as /redfish/v1/TaskService/Tasks/JOB_ID for same GET call return status as 200 with all the job status.
-	// where as 17G device returns location as /redfish/v1/TaskService/TaskMonitors/JOB_ID for same GET call return no content hence
-	// we are replacing TaskMonitors to Tasks.
-	jobID = strings.Replace(jobID, "TaskMonitors", "Tasks", 1)
 
 	// reboot the server
 	pOp := powerOperator{ctx, service, plan.SystemID.ValueString()}
