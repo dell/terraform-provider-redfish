@@ -54,20 +54,24 @@ func StorageControllerResourceSchema() map[string]schema.Attribute {
 			Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
 		},
 		"apply_time": schema.StringAttribute{
-			MarkdownDescription: "Apply time of the storage controller attributes. (Update Supported)" +
-				"Accepted values: `Immediate`, `OnReset`, `AtMaintenanceWindowStart`, `InMaintenanceWindowOnReset`. " +
+			MarkdownDescription: "Apply time of the storage controller attributes. (Update Supported) " +
+				"If server generation is lesser than 17G, " +
+				"accepted values: `Immediate`, `OnReset`, `AtMaintenanceWindowStart`, `InMaintenanceWindowOnReset`. " +
+				"If server generation is 17G and above, accepted values: `Immediate`, `OnReset`. " +
 				"Immediate: allows the user to immediately reboot the host and apply the changes. " +
-				"OnReset: allows the user to apply the changes on the next reboot of the host server." +
-				"AtMaintenanceWindowStart: allows the user to apply at the start of a maintenance window as specified in `maintenance_window`." +
+				"OnReset: allows the user to apply the changes on the next reboot of the host server. " +
+				"AtMaintenanceWindowStart: allows the user to apply at the start of a maintenance window as specified in `maintenance_window`. " +
 				"InMaintenanceWindowOnReset: allows to apply after a manual reset " +
 				"but within the maintenance window as specified in `maintenance_window`. " +
 				"When updating `controller_mode`, ensure that the `apply_time` is `OnReset`. " +
 				"When updating `security`, ensure that the `apply_time` is `Immediate` or `OnReset`.",
-			Description: "Apply time of the storage controller attributes. (Update Supported)" +
-				"Accepted values: `Immediate`, `OnReset`, `AtMaintenanceWindowStart`, `InMaintenanceWindowOnReset`. " +
+			Description: "Apply time of the storage controller attributes. (Update Supported) " +
+				"If server generation is lesser than 17G, " +
+				"accepted values: `Immediate`, `OnReset`, `AtMaintenanceWindowStart`, `InMaintenanceWindowOnReset`. " +
+				"If server generation is 17G and above, accepted values: `Immediate`, `OnReset`. " +
 				"Immediate: allows the user to immediately reboot the host and apply the changes. " +
-				"OnReset: allows the user to apply the changes on the next reboot of the host server." +
-				"AtMaintenanceWindowStart: allows the user to apply at the start of a maintenance window as specified in `maintenance_window`." +
+				"OnReset: allows the user to apply the changes on the next reboot of the host server. " +
+				"AtMaintenanceWindowStart: allows the user to apply at the start of a maintenance window as specified in `maintenance_window`. " +
 				"InMaintenanceWindowOnReset: allows to apply after a manual reset " +
 				"but within the maintenance window as specified in `maintenance_window`. " +
 				"When updating `controller_mode`, ensure that the `apply_time` is `OnReset`. " +
@@ -151,9 +155,17 @@ func StorageControllerResourceSchema() map[string]schema.Attribute {
 		},
 		"storage_controller": schema.SingleNestedAttribute{
 			MarkdownDescription: "This consists of the attributes to configure the storage controller. " +
-				"Please update any one out of `storage_controller` and `security` at a time.",
+				"Please update any one out of `storage_controller` and `security` at a time. " +
+				"In 17G, for `PERC H365i Front`, only the following attributes under `storage_controller` are configurable: " +
+				"`consistency_check_rate_percent`, `background_initialization_rate_percent`. " +
+				"In 17G, for `PERC H965i Front`, only the following attributes under `storage_controller` are configurable: " +
+				"`consistency_check_rate_percent`, `background_initialization_rate_percent`, `reconstruct_rate_percent`.",
 			Description: "This consists of the attributes to configure the storage controller. " +
-				"Please update any one out of `storage_controller` and `security` at a time.",
+				"Please update any one out of `storage_controller` and `security` at a time. " +
+				"In 17G, for `PERC H365i Front`, only the following attributes under `storage_controller` are configurable: " +
+				"`consistency_check_rate_percent`, `background_initialization_rate_percent`. " +
+				"In 17G, for `PERC H965i Front`, only the following attributes under `storage_controller` are configurable: " +
+				"`consistency_check_rate_percent`, `background_initialization_rate_percent`, `reconstruct_rate_percent`.",
 			Optional:   true,
 			Computed:   true,
 			Attributes: StorageControllerInstanceSchema(),
@@ -178,24 +190,38 @@ func StorageControllerResourceSchema() map[string]schema.Attribute {
 func SecuritySchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"action": schema.StringAttribute{
-			MarkdownDescription: "Action to create/change/delete the security key. " +
+			MarkdownDescription: "Action to create/change/delete the security key, if server generation is lesser than 17G. " +
 				"Accepted values: `SetControllerKey`, `ReKey`, `RemoveControllerKey`. " +
-				"The `SetControllerKey` action is used to set the key on controllers and " +
+				"Action to enable/disable the security, if server generation is 17G and above. " +
+				"Accepted values: `EnableSecurity`, `DisableSecurity`. " +
+				"Note: In 17G and above, before enabling security ensure that the SEKM license is imported and SEKM/iLKM is configured. " +
+				"In lesser than 17G, the `SetControllerKey` action is used to set the key on controllers and " +
 				"set the controller in Local key Management (LKM) to encrypt the drives. " +
-				"The `ReKey` action resets the key on the controller that support encryption of the of drives. " +
-				"The `RemoveControllerKey` method erases the encryption key on controller. CAUTION: All encrypted drives shall be erased.",
-			Description: "Action to create/change/delete the security key. " +
+				"In lesser than 17G, the `ReKey` action resets the key on the controller that support encryption of the of drives. " +
+				"In lesser than 17G, the `RemoveControllerKey` method erases the encryption key on controller. " +
+				"CAUTION: All encrypted drives shall be erased. " +
+				"In 17G and above, the `EnableSecurity` action is used to enable the security. " +
+				"In 17G and above, the `DisableSecurity` action is used to disable the security.",
+			Description: "Action to create/change/delete the security key, if server generation is lesser than 17G. " +
 				"Accepted values: `SetControllerKey`, `ReKey`, `RemoveControllerKey`. " +
-				"The `SetControllerKey` action is used to set the key on controllers and " +
+				"Action to enable/disable the security, if server generation is 17G and above. " +
+				"Accepted values: `EnableSecurity`, `DisableSecurity`. " +
+				"Note: In 17G and above, before enabling security ensure that the SEKM license is imported and SEKM/iLKM is configured. " +
+				"In lesser than 17G, the `SetControllerKey` action is used to set the key on controllers and " +
 				"set the controller in Local key Management (LKM) to encrypt the drives. " +
-				"The `ReKey` action resets the key on the controller that support encryption of the of drives. " +
-				"The `RemoveControllerKey` method erases the encryption key on controller. CAUTION: All encrypted drives shall be erased.",
+				"In lesser than 17G, the `ReKey` action resets the key on the controller that support encryption of the of drives. " +
+				"In lesser than 17G, the `RemoveControllerKey` method erases the encryption key on controller. " +
+				"CAUTION: All encrypted drives shall be erased. " +
+				"In 17G and above, the `EnableSecurity` action is used to enable the security. " +
+				"In 17G and above, the `DisableSecurity` action is used to disable the security.",
 			Optional: true,
 			Computed: true,
 			Validators: []validator.String{stringvalidator.OneOf(
 				"SetControllerKey",
 				"ReKey",
 				"RemoveControllerKey",
+				"EnableSecurity",
+				"DisableSecurity",
 			)},
 		},
 		"key_id": schema.StringAttribute{
@@ -219,15 +245,33 @@ func SecuritySchema() map[string]schema.Attribute {
 			Computed:            true,
 		},
 		"mode": schema.StringAttribute{
-			MarkdownDescription: "Mode of the controller: Local Key Management(LKM)/Secure Enterprise Key Manager(SEKM). " +
-				"Accepted values: `LKM`, `SEKM`.",
-			Description: "Mode of the controller: Local Key Management(LKM)/Secure Enterprise Key Manager(SEKM). " +
-				"Accepted values: `LKM`, `SEKM`.",
+			MarkdownDescription: "Encryption mode of the controller: " +
+				"Local Key Management(LKM)/Secure Enterprise Key Manager(SEKM), if server generation is lesser than 17G. " +
+				"If server generation is lesser than 17G, the accepted values are: `LKM`, `SEKM`. " +
+				"Encryption mode of the controller: Enabled/Disabled, if server generation is 17G and above. " +
+				"If server generation is 17G and above, " +
+				"it will be set to `Enabled`, if SEKM license is imported, SEKM/iLKM is configured " +
+				"and `EnableSecurity` action has been performed successfully. " +
+				"It will be set to `Disabled`, if SEKM license is not imported or SEKM/iLKM is not configured " +
+				"or `EnableSecurity` action has not yet been performed " +
+				"or `DisableSecurity` action has been performed successfully.",
+			Description: "Encryption mode of the controller: " +
+				"Local Key Management(LKM)/Secure Enterprise Key Manager(SEKM), if server generation is lesser than 17G. " +
+				"If server generation is lesser than 17G, the accepted values are: `LKM`, `SEKM`. " +
+				"Encryption mode of the controller: Enabled/Disabled, if server generation is 17G and above. " +
+				"If server generation is 17G and above, " +
+				"it will be set to `Enabled`, if SEKM license is imported, SEKM/iLKM is configured " +
+				"and `EnableSecurity` action has been performed successfully. " +
+				"It will be set to `Disabled`, if SEKM license is not imported or SEKM/iLKM is not configured " +
+				"or `EnableSecurity` action has not yet been performed " +
+				"or `DisableSecurity` action has been performed successfully.",
 			Optional: true,
 			Computed: true,
 			Validators: []validator.String{stringvalidator.OneOf(
 				"LKM",
 				"SEKM",
+				"Enabled",
+				"Disabled",
 			)},
 		},
 	}
@@ -302,13 +346,21 @@ func StorageControllerOEMDellResourceSchema() map[string]schema.Attribute {
 func DellStorageControllerResourceSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"controller_mode": schema.StringAttribute{
-			MarkdownDescription: "Controller Mode. Accepted values: `RAID`, `HBA`. " +
-				"When updating `controller_mode`, the `apply_time` should be `OnReset` and " +
+			MarkdownDescription: "Controller Mode. " +
+				"Accepted values: `RAID`, `HBA` if server generation is lesser than 17G. " +
+				"If server generation is 17G and above, `EnhancedHBA` is another value it supports. " +
+				"However, in 17G and above, ensure the controller mode attribute is commented. " +
+				"Note: In 17G and above, controller mode is a read-only property that depends upon the controller personality and hence cannot be updated. " +
+				"If server generation is lesser than 17G, when updating `controller_mode`, the `apply_time` should be `OnReset` and " +
 				"no other attributes from `storage_controller` or `security` should be updated. " +
 				"Specifically, when updating `controller_mode` to `HBA`, the `enhanced_auto_import_foreign_configuration_mode` attribute needs to be commented " +
 				"and also ensure that the security key is not present, if present first delete it using `RemoveControllerKey` action.",
-			Description: "Controller Mode. Accepted values: `RAID`, `HBA`. " +
-				"When updating `controller_mode`, the `apply_time` should be `OnReset` and " +
+			Description: "Controller Mode. " +
+				"Accepted values: `RAID`, `HBA` if server generation is lesser than 17G. " +
+				"If server generation is 17G and above, `EnhancedHBA` is another value it supports. " +
+				"However, in 17G and above, ensure the controller mode attribute is commented. " +
+				"Note: In 17G and above, controller mode is a read-only property that depends upon the controller personality and hence cannot be updated. " +
+				"If server generation is lesser than 17G, when updating `controller_mode`, the `apply_time` should be `OnReset` and " +
 				"no other attributes from `storage_controller` or `security` should be updated. " +
 				"Specifically, when updating `controller_mode` to `HBA`, the `enhanced_auto_import_foreign_configuration_mode` attribute needs to be commented " +
 				"and also ensure that the security key is not present, if present first delete it using `RemoveControllerKey` action.",
@@ -317,6 +369,7 @@ func DellStorageControllerResourceSchema() map[string]schema.Attribute {
 			Validators: []validator.String{stringvalidator.OneOf(
 				"RAID",
 				"HBA",
+				"EnhancedHBA",
 			)},
 		},
 		"check_consistency_mode": schema.StringAttribute{

@@ -19,6 +19,7 @@ package provider
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"testing"
 
@@ -27,6 +28,7 @@ import (
 )
 
 var storageControllerParams testingStorageControllerInputs
+var storageController17GParams testingStorageControllerInputs
 
 type testingStorageControllerInputs struct {
 	TestingServerCredentials
@@ -42,9 +44,20 @@ func init() {
 		StorageID:                "RAID.Integrated.1-1",
 		ControllerID:             "RAID.Integrated.1-1",
 	}
+
+	storageController17GParams = testingStorageControllerInputs{
+		TestingServerCredentials: creds,
+		SystemID:                 "System.Embedded.1",
+		StorageID:                "RAID.SL.1-1",
+		ControllerID:             "RAID.SL.1-1",
+	}
 }
 
 func TestAccRedfishStorageControllerAttributesCreate(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Tests for 17G")
+	}
 	storageControllerResourceName := "redfish_storage_controller.test"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -62,7 +75,33 @@ func TestAccRedfishStorageControllerAttributesCreate(t *testing.T) {
 	})
 }
 
-func TestAccRedfishStorageControllerAttributesUpdate(t *testing.T) {
+func TestAccRedfishStorageControllerAttributes17GCreate(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Tests for below 17G")
+	}
+	storageControllerResourceName := "redfish_storage_controller.test"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// create using basic config
+			{
+				Config: testAccRedfishResourceStorageControllerBasicConfig(storageController17GParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(storageControllerResourceName, "system_id", "System.Embedded.1"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_id", "RAID.SL.1-1"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "controller_id", "RAID.SL.1-1")),
+			},
+		},
+	})
+}
+
+func TestAccRedfishStorageControllerAttributesUpdateNonSecurity(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Tests for 17G")
+	}
 	storageControllerResourceName := "redfish_storage_controller.test"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -109,6 +148,68 @@ func TestAccRedfishStorageControllerAttributesUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.controller_rates.rebuild_rate_percent", "30"),
 				),
 			},
+		},
+	})
+}
+
+func TestAccRedfishStorageControllerAttributes17GUpdateNonSecurity(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Tests for below 17G")
+	}
+	storageControllerResourceName := "redfish_storage_controller.test"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// create using basic config
+			{
+				Config: testAccRedfishResourceStorageControllerBasicConfig(storageController17GParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(storageControllerResourceName, "system_id", "System.Embedded.1"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_id", "RAID.SL.1-1"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "controller_id", "RAID.SL.1-1"),
+				),
+			},
+			// update storage_controller attributes with one set of values
+			{
+				Config: testAccRedfishResourceStorageController17GFirstAvailableChoiceSelectedConfig(storageController17GParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.background_initialization_rate_percent", "32"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.controller_rates.consistency_check_rate_percent", "32"),
+				),
+			},
+			// update storage_controller attributes with another set of values
+			{
+				Config: testAccRedfishResourceStorageController17GSecondAvailableChoiceSelectedConfig(storageController17GParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.background_initialization_rate_percent", "30"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.controller_rates.consistency_check_rate_percent", "30"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccRedfishStorageControllerAttributesUpdateSecurity(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Tests for 17G")
+	}
+	storageControllerResourceName := "redfish_storage_controller.test"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// create using basic config
+			{
+				Config: testAccRedfishResourceStorageControllerBasicConfig(storageControllerParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(storageControllerResourceName, "system_id", "System.Embedded.1"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_id", "RAID.Integrated.1-1"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "controller_id", "RAID.Integrated.1-1"),
+				),
+			},
 			// update security attributes with SetControllerKey action
 			{
 				Config: testAccRedfishResourceStorageControllerSecuritySetControllerKeyConfig(storageControllerParams),
@@ -141,7 +242,50 @@ func TestAccRedfishStorageControllerAttributesUpdate(t *testing.T) {
 	})
 }
 
+func TestAccRedfishStorageControllerAttributes17GUpdateSecurity(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Tests for below 17G")
+	}
+	storageControllerResourceName := "redfish_storage_controller.test"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// create using basic config
+			{
+				Config: testAccRedfishResourceStorageControllerBasicConfig(storageController17GParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(storageControllerResourceName, "system_id", "System.Embedded.1"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_id", "RAID.SL.1-1"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "controller_id", "RAID.SL.1-1"),
+				),
+			},
+			// update security attributes with EnableSecurity action
+			{
+				Config: testAccRedfishResourceStorageController17GEnableSecurityConfig(storageController17GParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(storageControllerResourceName, "security.action", "EnableSecurity"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "security.mode", "Enabled"),
+				),
+			},
+			// update security attributes with DisableSecurity action
+			{
+				Config: testAccRedfishResourceStorageController17GDisableSecurityConfig(storageController17GParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(storageControllerResourceName, "security.action", "DisableSecurity"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "security.mode", "Disabled"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccRedfishStorageControllerAttributesError(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Tests for 17G")
+	}
 	storageControllerResourceName := "redfish_storage_controller.test"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -269,7 +413,69 @@ func TestAccRedfishStorageControllerAttributesError(t *testing.T) {
 	})
 }
 
+func TestAccRedfishStorageControllerAttributes17GError(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Tests for below 17G")
+	}
+	storageControllerResourceName := "redfish_storage_controller.test"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// create using basic config
+			{
+				Config: testAccRedfishResourceStorageControllerBasicConfig(storageController17GParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(storageControllerResourceName, "system_id", "System.Embedded.1"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_id", "RAID.SL.1-1"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "controller_id", "RAID.SL.1-1"),
+				),
+			},
+			// error scenario when updating using a different system id
+			{
+				Config:      testAccRedfishResourceStorageControllerDifferentSystemIDConfig(storageController17GParams),
+				ExpectError: regexp.MustCompile("Error when updating with invalid input"),
+			},
+			// error scenario when updating using a different storage id
+			{
+				Config:      testAccRedfishResourceStorageControllerDifferentStorageIDConfig(storageController17GParams),
+				ExpectError: regexp.MustCompile("Error when updating with invalid input"),
+			},
+			// error scenario when updating using a different controller id
+			{
+				Config:      testAccRedfishResourceStorageControllerDifferentControllerIDConfig(storageController17GParams),
+				ExpectError: regexp.MustCompile("Error when updating with invalid input"),
+			},
+			// error scenario when updating security and some other storage controller attribute
+			{
+				Config:      testAccRedfishResourceStorageController17GSecurityAndOtherAttributeUpdateConfig(storageController17GParams),
+				ExpectError: regexp.MustCompile("Attributes of both `security` and `storage_controller` were changed."),
+			},
+			// error scenario when updating security with maintenance type of apply time
+			{
+				Config:      testAccRedfishResourceStorageController17GSecurityWithMaintenanceTypeApplyTimeConfig(storageController17GParams),
+				ExpectError: regexp.MustCompile("In 17G and above, the `apply_time` values `AtMaintenanceWindowStart` and `InMaintenanceWindowOnReset` are not valid"),
+			},
+			// error scenario when updating storage controller with maintenance type of apply time
+			{
+				Config:      testAccRedfishResourceStorageController17GStorageControllerWithMaintenanceTypeApplyTimeConfig(storageController17GParams),
+				ExpectError: regexp.MustCompile("In 17G and above, the `apply_time` values `AtMaintenanceWindowStart` and `InMaintenanceWindowOnReset` are not valid"),
+			},
+			// error scenario when performing DisableSecurity action when security is already disabled.
+			{
+				Config:      testAccRedfishResourceStorageController17GDisableSecurityConfig(storageController17GParams),
+				ExpectError: regexp.MustCompile("Post request to IDRAC failed"),
+			},
+		},
+	})
+}
+
 func TestAccRedfishStorageControllerAttributesImport(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Tests for 17G")
+	}
 	storageControllerResourceName := "redfish_storage_controller.test"
 	importReqID := fmt.Sprintf("{\"system_id\":\"%s\",\"storage_id\":\"%s\",\"controller_id\":\"%s\",\"username\":\"%s\",\"password\":\"%s\",\"endpoint\":\"%s\",\"ssl_insecure\":true}",
 		storageControllerParams.SystemID, storageControllerParams.StorageID, storageControllerParams.ControllerID, storageControllerParams.Username, storageControllerParams.Password, storageControllerParams.Endpoint)
@@ -290,7 +496,36 @@ func TestAccRedfishStorageControllerAttributesImport(t *testing.T) {
 	})
 }
 
+func TestAccRedfishStorageControllerAttributes17GImport(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Tests for below 17G")
+	}
+	storageControllerResourceName := "redfish_storage_controller.test"
+	importReqID := fmt.Sprintf("{\"system_id\":\"%s\",\"storage_id\":\"%s\",\"controller_id\":\"%s\",\"username\":\"%s\",\"password\":\"%s\",\"endpoint\":\"%s\",\"ssl_insecure\":true}",
+		storageController17GParams.SystemID, storageController17GParams.StorageID, storageController17GParams.ControllerID, storageController17GParams.Username, storageController17GParams.Password, storageController17GParams.Endpoint)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `resource "redfish_storage_controller" "test" {
+				}`,
+				ResourceName:  storageControllerResourceName,
+				ImportState:   true,
+				ImportStateId: importReqID,
+				ExpectError:   nil,
+			},
+		},
+	})
+}
+
 func TestAccRedfishStorageControllerAttributesMock(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version == "17" {
+		t.Skip("Skipping Tests for 17G")
+	}
 	storageControllerResourceName := "redfish_storage_controller.test"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -360,6 +595,70 @@ func TestAccRedfishStorageControllerAttributesMock(t *testing.T) {
 					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.reconstruct_rate_percent", "30"),
 					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.controller_rates.consistency_check_rate_percent", "30"),
 					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.controller_rates.rebuild_rate_percent", "30"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccRedfishStorageControllerAttributes17GMock(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Tests for below 17G")
+	}
+	storageControllerResourceName := "redfish_storage_controller.test"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// mock NewConfig error when creating
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceStorageControllerBasicConfig(storageController17GParams),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			// creating
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+				},
+				Config: testAccRedfishResourceStorageControllerBasicConfig(storageController17GParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(storageControllerResourceName, "system_id", "System.Embedded.1"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_id", "RAID.SL.1-1"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "controller_id", "RAID.SL.1-1")),
+			},
+			// mock NewConfig error when updating
+			{
+				PreConfig: func() {
+					FunctionMocker = mockey.Mock(NewConfig).Return(nil, fmt.Errorf("mock error")).Build()
+				},
+				Config:      testAccRedfishResourceStorageController17GFirstAvailableChoiceSelectedConfig(storageController17GParams),
+				ExpectError: regexp.MustCompile(`.*mock error*.`),
+			},
+			// updating
+			{
+				PreConfig: func() {
+					if FunctionMocker != nil {
+						FunctionMocker.Release()
+					}
+				},
+				Config: testAccRedfishResourceStorageController17GFirstAvailableChoiceSelectedConfig(storageController17GParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.background_initialization_rate_percent", "32"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.controller_rates.consistency_check_rate_percent", "32"),
+				),
+			},
+			// updating
+			{
+				Config: testAccRedfishResourceStorageController17GSecondAvailableChoiceSelectedConfig(storageController17GParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.oem.dell.dell_storage_controller.background_initialization_rate_percent", "30"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_controller.controller_rates.consistency_check_rate_percent", "30"),
 				),
 			},
 		},
@@ -437,6 +736,44 @@ func testAccRedfishResourceStorageControllerFirstAvailableChoiceSelectedConfig(t
 	)
 }
 
+func testAccRedfishResourceStorageController17GFirstAvailableChoiceSelectedConfig(testingInfo testingStorageControllerInputs) string {
+	return fmt.Sprintf(`
+	resource "redfish_storage_controller" "test" {
+		redfish_server {
+			user         = "%s"
+			password     = "%s"
+			endpoint     = "%s"
+			ssl_insecure = true
+		}
+		system_id = "%s"
+		storage_id = "%s"
+		controller_id = "%s"
+		apply_time = "Immediate"
+		job_timeout = 1200
+		storage_controller = {
+			oem = {
+				dell = {
+					dell_storage_controller = {
+						background_initialization_rate_percent = 32
+					}
+				}
+			}
+
+			controller_rates = {
+				consistency_check_rate_percent = 32
+			}
+		}
+	}
+		`,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+		testingInfo.SystemID,
+		testingInfo.StorageID,
+		testingInfo.ControllerID,
+	)
+}
+
 func testAccRedfishResourceStorageControllerSecondAvailableChoiceSelectedConfig(testingInfo testingStorageControllerInputs) string {
 	return fmt.Sprintf(`
 	resource "redfish_storage_controller" "test" {
@@ -470,6 +807,44 @@ func testAccRedfishResourceStorageControllerSecondAvailableChoiceSelectedConfig(
 			controller_rates = {
 				consistency_check_rate_percent = 30
 				rebuild_rate_percent = 30
+			}
+		}
+	}
+		`,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+		testingInfo.SystemID,
+		testingInfo.StorageID,
+		testingInfo.ControllerID,
+	)
+}
+
+func testAccRedfishResourceStorageController17GSecondAvailableChoiceSelectedConfig(testingInfo testingStorageControllerInputs) string {
+	return fmt.Sprintf(`
+	resource "redfish_storage_controller" "test" {
+		redfish_server {
+			user         = "%s"
+			password     = "%s"
+			endpoint     = "%s"
+			ssl_insecure = true
+		}
+		system_id = "%s"
+		storage_id = "%s"
+		controller_id = "%s"
+		apply_time = "Immediate"
+		job_timeout = 1200
+		storage_controller = {
+			oem = {
+				dell = {
+					dell_storage_controller = {
+						background_initialization_rate_percent = 30
+					}
+				}
+			}
+
+			controller_rates = {
+				consistency_check_rate_percent = 30
 			}
 		}
 	}
@@ -561,6 +936,62 @@ func testAccRedfishResourceStorageControllerSecurityRemoveControllerKeyConfig(te
 		job_timeout = 1200
 		security = {
 			action = "RemoveControllerKey"
+		}
+	}
+		`,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+		testingInfo.SystemID,
+		testingInfo.StorageID,
+		testingInfo.ControllerID,
+	)
+}
+
+func testAccRedfishResourceStorageController17GEnableSecurityConfig(testingInfo testingStorageControllerInputs) string {
+	return fmt.Sprintf(`
+	resource "redfish_storage_controller" "test" {
+		redfish_server {
+			user         = "%s"
+			password     = "%s"
+			endpoint     = "%s"
+			ssl_insecure = true
+		}
+		system_id = "%s"
+		storage_id = "%s"
+		controller_id = "%s"
+		apply_time = "Immediate"
+		job_timeout = 1200
+		security = {
+			action = "EnableSecurity"
+		}
+	}
+		`,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+		testingInfo.SystemID,
+		testingInfo.StorageID,
+		testingInfo.ControllerID,
+	)
+}
+
+func testAccRedfishResourceStorageController17GDisableSecurityConfig(testingInfo testingStorageControllerInputs) string {
+	return fmt.Sprintf(`
+	resource "redfish_storage_controller" "test" {
+		redfish_server {
+			user         = "%s"
+			password     = "%s"
+			endpoint     = "%s"
+			ssl_insecure = true
+		}
+		system_id = "%s"
+		storage_id = "%s"
+		controller_id = "%s"
+		apply_time = "Immediate"
+		job_timeout = 1200
+		security = {
+			action = "DisableSecurity"
 		}
 	}
 		`,
@@ -859,6 +1290,46 @@ func testAccRedfishResourceStorageControllerSecurityAndOtherAttributeUpdateConfi
 	)
 }
 
+func testAccRedfishResourceStorageController17GSecurityAndOtherAttributeUpdateConfig(testingInfo testingStorageControllerInputs) string {
+	return fmt.Sprintf(`
+	resource "redfish_storage_controller" "test" {
+		redfish_server {
+			user         = "%s"
+			password     = "%s"
+			endpoint     = "%s"
+			ssl_insecure = true
+		}
+		system_id = "%s"
+		storage_id = "%s"
+		controller_id = "%s"
+		apply_time = "Immediate"
+		job_timeout = 1200
+		storage_controller = {
+			oem = {
+				dell = {
+					dell_storage_controller = {
+						background_initialization_rate_percent = 32
+					}
+				}
+			}
+			controller_rates = {
+				consistency_check_rate_percent = 32
+			}
+		}
+		security = {
+			action = "EnableSecurity"
+		}
+	}
+		`,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+		testingInfo.SystemID,
+		testingInfo.StorageID,
+		testingInfo.ControllerID,
+	)
+}
+
 func testAccRedfishResourceStorageControllerSecurityWithMaintenanceTypeApplyTimeConfig(testingInfo testingStorageControllerInputs) string {
 	return fmt.Sprintf(`
 	resource "redfish_storage_controller" "test" {
@@ -881,6 +1352,79 @@ func testAccRedfishResourceStorageControllerSecurityWithMaintenanceTypeApplyTime
 			action = "SetControllerKey"
 			key_id = "testkey1"
 			key = "Test123##"
+		}
+	}
+		`,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+		testingInfo.SystemID,
+		testingInfo.StorageID,
+		testingInfo.ControllerID,
+	)
+}
+
+func testAccRedfishResourceStorageController17GSecurityWithMaintenanceTypeApplyTimeConfig(testingInfo testingStorageControllerInputs) string {
+	return fmt.Sprintf(`
+	resource "redfish_storage_controller" "test" {
+		redfish_server {
+			user         = "%s"
+			password     = "%s"
+			endpoint     = "%s"
+			ssl_insecure = true
+		}
+		system_id = "%s"
+		storage_id = "%s"
+		controller_id = "%s"
+		apply_time = "AtMaintenanceWindowStart"
+		job_timeout = 1200
+		maintenance_window = {
+			start_time = "2024-10-15T22:45:00-05:00"
+			duration = 600
+		}
+		security = {
+			action = "EnableSecurity"
+		}
+	}
+		`,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+		testingInfo.SystemID,
+		testingInfo.StorageID,
+		testingInfo.ControllerID,
+	)
+}
+
+func testAccRedfishResourceStorageController17GStorageControllerWithMaintenanceTypeApplyTimeConfig(testingInfo testingStorageControllerInputs) string {
+	return fmt.Sprintf(`
+	resource "redfish_storage_controller" "test" {
+		redfish_server {
+			user         = "%s"
+			password     = "%s"
+			endpoint     = "%s"
+			ssl_insecure = true
+		}
+		system_id = "%s"
+		storage_id = "%s"
+		controller_id = "%s"
+		apply_time = "AtMaintenanceWindowStart"
+		job_timeout = 1200
+		maintenance_window = {
+			start_time = "2024-10-15T22:45:00-05:00"
+			duration = 600
+		}
+		storage_controller = {
+			oem = {
+				dell = {
+					dell_storage_controller = {
+						background_initialization_rate_percent = 32
+					}
+				}
+			}
+			controller_rates = {
+				consistency_check_rate_percent = 32
+			}
 		}
 	}
 		`,

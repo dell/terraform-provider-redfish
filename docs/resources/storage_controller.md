@@ -171,7 +171,8 @@ resource "redfish_storage_controller" "storage_controller_example" {
   controller_id = "RAID.Integrated.1-1"
 
   # Apply Time. Required for creating and updating.
-  # Accepted values: `Immediate`, `OnReset`, `AtMaintenanceWindowStart`, `InMaintenanceWindowOnReset`
+  # If server generation is lesser than 17G, accepted values: `Immediate`, `OnReset`, `AtMaintenanceWindowStart`, `InMaintenanceWindowOnReset`.
+  # If server generation is 17G and above, accepted values: `Immediate`, `OnReset`.
   # When updating `controller_mode`, ensure that the `apply_time` is `OnReset`.
   # When updating `security`, ensure that the `apply_time` is `Immediate` or `OnReset`.
   apply_time = "Immediate"
@@ -208,13 +209,23 @@ resource "redfish_storage_controller" "storage_controller_example" {
   # }
 
   # Please update any one out of `storage_controller` and `security` at a time.
+  # In 17G, for `PERC H365i Front`, only the following attributes under `storage_controller` are configurable:
+  #   - `consistency_check_rate_percent`
+  #   - `background_initialization_rate_percent`
+  # In 17G, for `PERC H965i Front`, only the following attributes under `storage_controller` are configurable:
+  #   - `consistency_check_rate_percent`
+  #   - `background_initialization_rate_percent`
+  #   - `reconstruct_rate_percent`
+  # For the above mentioned storage controllers, the other attributes under `storage_controller` need to be commented.
   storage_controller = {
     oem = {
       dell = {
         dell_storage_controller = {
           # Controller Mode. 
-          # Accepted values: `RAID`, `HBA`.
-          # When updating `controller_mode`:
+          # If server generation is lesser than 17G, accepted values: `RAID`, `HBA`.
+          # If server generation is 17G and above, `controller_mode` need to be commented.
+          # Note: In 17G and above, controller mode is a read-only property that depends upon the controller personality and hence cannot be updated.
+          # In lesser than 17G, when updating `controller_mode`:
           #   - the `apply_time` should be `OnReset`
           #   - no other attributes from `storage_controller` or `security` should be updated.
           # Specifically when updating to `HBA`:
@@ -266,10 +277,12 @@ resource "redfish_storage_controller" "storage_controller_example" {
 
   # Please update any one out of `security` and `storage_controller` at a time.
   # When updating `security`, ensure that the `apply_time` is `Immediate` or `OnReset`.
-  # When updating `controller_mode` to `HBA`, ensure that the security key is not present.
+  # In lesser than 17G, when updating `controller_mode` to `HBA`, ensure that the security key is not present.
   security = {
     # Action.
-    # Accepted values: `SetControllerKey`, `ReKey`, `RemoveControllerKey`.
+    # If server generation is lesser than 17G, accepted values: `SetControllerKey`, `ReKey`, `RemoveControllerKey`.
+    # If server generation is 17G and above, accepted values: `EnableSecurity`, `DisableSecurity`.
+    # Note: In 17G and above, before enabling security ensure that the SEKM license is imported and SEKM/iLKM is configured.
     # action = "ReKey"
 
     # When `action` is set to `SetControllerKey`:
@@ -278,6 +291,10 @@ resource "redfish_storage_controller" "storage_controller_example" {
     # When `action` is set to `ReKey`:
     #   - `key_id`, `key`, `old_key` and `mode` need to be set.
     # When `action` is set to `RemoveControllerKey`:
+    #   - `key_id`, `key`, `old_key` and `mode` need to be commented.
+    # When `action` is set to `EnableSecurity`:
+    #   - `key_id`, `key`, `old_key` and `mode` need to be commented.
+    # When `action` is set to `DisableSecurity`:
     #   - `key_id`, `key`, `old_key` and `mode` need to be commented.
 
     # Key ID.
@@ -303,7 +320,7 @@ After the successful execution of the above resource block, the storage controll
 
 ### Required
 
-- `apply_time` (String) Apply time of the storage controller attributes. (Update Supported)Accepted values: `Immediate`, `OnReset`, `AtMaintenanceWindowStart`, `InMaintenanceWindowOnReset`. Immediate: allows the user to immediately reboot the host and apply the changes. OnReset: allows the user to apply the changes on the next reboot of the host server.AtMaintenanceWindowStart: allows the user to apply at the start of a maintenance window as specified in `maintenance_window`.InMaintenanceWindowOnReset: allows to apply after a manual reset but within the maintenance window as specified in `maintenance_window`. When updating `controller_mode`, ensure that the `apply_time` is `OnReset`. When updating `security`, ensure that the `apply_time` is `Immediate` or `OnReset`.
+- `apply_time` (String) Apply time of the storage controller attributes. (Update Supported) If server generation is lesser than 17G, accepted values: `Immediate`, `OnReset`, `AtMaintenanceWindowStart`, `InMaintenanceWindowOnReset`. If server generation is 17G and above, accepted values: `Immediate`, `OnReset`. Immediate: allows the user to immediately reboot the host and apply the changes. OnReset: allows the user to apply the changes on the next reboot of the host server. AtMaintenanceWindowStart: allows the user to apply at the start of a maintenance window as specified in `maintenance_window`. InMaintenanceWindowOnReset: allows to apply after a manual reset but within the maintenance window as specified in `maintenance_window`. When updating `controller_mode`, ensure that the `apply_time` is `OnReset`. When updating `security`, ensure that the `apply_time` is `Immediate` or `OnReset`.
 - `controller_id` (String) ID of the storage controller
 - `storage_id` (String) ID of the storage
 
@@ -315,7 +332,7 @@ After the successful execution of the above resource block, the storage controll
 - `reset_timeout` (Number) Reset Timeout. Default value is 120 seconds. (Update Supported)
 - `reset_type` (String) Reset Type. (Update Supported) Accepted values: `ForceRestart`, `GracefulRestart`, `PowerCycle`. Default value is `ForceRestart`.
 - `security` (Attributes) This consists of the attributes to configure the security of the storage controller. Please update any one out of `security` and `storage_controller` at a time. When updating `security`, ensure that the `apply_time` is `Immediate` or `OnReset`. When updating `controller_mode` to `HBA`, ensure that the security key is not present. (see [below for nested schema](#nestedatt--security))
-- `storage_controller` (Attributes) This consists of the attributes to configure the storage controller. Please update any one out of `storage_controller` and `security` at a time. (see [below for nested schema](#nestedatt--storage_controller))
+- `storage_controller` (Attributes) This consists of the attributes to configure the storage controller. Please update any one out of `storage_controller` and `security` at a time. In 17G, for `PERC H365i Front`, only the following attributes under `storage_controller` are configurable: `consistency_check_rate_percent`, `background_initialization_rate_percent`. In 17G, for `PERC H965i Front`, only the following attributes under `storage_controller` are configurable: `consistency_check_rate_percent`, `background_initialization_rate_percent`, `reconstruct_rate_percent`. (see [below for nested schema](#nestedatt--storage_controller))
 - `system_id` (String) ID of the system resource. If the value for system ID is not provided, the resource picks the first system available from the iDRAC.
 
 ### Read-Only
@@ -348,10 +365,10 @@ Optional:
 
 Optional:
 
-- `action` (String) Action to create/change/delete the security key. Accepted values: `SetControllerKey`, `ReKey`, `RemoveControllerKey`. The `SetControllerKey` action is used to set the key on controllers and set the controller in Local key Management (LKM) to encrypt the drives. The `ReKey` action resets the key on the controller that support encryption of the of drives. The `RemoveControllerKey` method erases the encryption key on controller. CAUTION: All encrypted drives shall be erased.
+- `action` (String) Action to create/change/delete the security key, if server generation is lesser than 17G. Accepted values: `SetControllerKey`, `ReKey`, `RemoveControllerKey`. Action to enable/disable the security, if server generation is 17G and above. Accepted values: `EnableSecurity`, `DisableSecurity`. Note: In 17G and above, before enabling security ensure that the SEKM license is imported and SEKM/iLKM is configured. In lesser than 17G, the `SetControllerKey` action is used to set the key on controllers and set the controller in Local key Management (LKM) to encrypt the drives. In lesser than 17G, the `ReKey` action resets the key on the controller that support encryption of the of drives. In lesser than 17G, the `RemoveControllerKey` method erases the encryption key on controller. CAUTION: All encrypted drives shall be erased. In 17G and above, the `EnableSecurity` action is used to enable the security. In 17G and above, the `DisableSecurity` action is used to disable the security.
 - `key` (String) New controller key.
 - `key_id` (String) Key Identifier that describes the key. The Key ID shall be maximum of 32 characters in length and should not have any spaces.
-- `mode` (String) Mode of the controller: Local Key Management(LKM)/Secure Enterprise Key Manager(SEKM). Accepted values: `LKM`, `SEKM`.
+- `mode` (String) Encryption mode of the controller: Local Key Management(LKM)/Secure Enterprise Key Manager(SEKM), if server generation is lesser than 17G. If server generation is lesser than 17G, the accepted values are: `LKM`, `SEKM`. Encryption mode of the controller: Enabled/Disabled, if server generation is 17G and above. If server generation is 17G and above, it will be set to `Enabled`, if SEKM license is imported, SEKM/iLKM is configured and `EnableSecurity` action has been performed successfully. It will be set to `Disabled`, if SEKM license is not imported or SEKM/iLKM is not configured or `EnableSecurity` action has not yet been performed or `DisableSecurity` action has been performed successfully.
 - `old_key` (String) Old controller key.
 
 
@@ -393,7 +410,7 @@ Optional:
 
 - `background_initialization_rate_percent` (Number) Background Initialization Rate Percent
 - `check_consistency_mode` (String) Check Consistency Mode. Accepted values: `Normal`, `StopOnError`.
-- `controller_mode` (String) Controller Mode. Accepted values: `RAID`, `HBA`. When updating `controller_mode`, the `apply_time` should be `OnReset` and no other attributes from `storage_controller` or `security` should be updated. Specifically, when updating `controller_mode` to `HBA`, the `enhanced_auto_import_foreign_configuration_mode` attribute needs to be commented and also ensure that the security key is not present, if present first delete it using `RemoveControllerKey` action.
+- `controller_mode` (String) Controller Mode. Accepted values: `RAID`, `HBA` if server generation is lesser than 17G. If server generation is 17G and above, `EnhancedHBA` is another value it supports. However, in 17G and above, ensure the controller mode attribute is commented. Note: In 17G and above, controller mode is a read-only property that depends upon the controller personality and hence cannot be updated. If server generation is lesser than 17G, when updating `controller_mode`, the `apply_time` should be `OnReset` and no other attributes from `storage_controller` or `security` should be updated. Specifically, when updating `controller_mode` to `HBA`, the `enhanced_auto_import_foreign_configuration_mode` attribute needs to be commented and also ensure that the security key is not present, if present first delete it using `RemoveControllerKey` action.
 - `copyback_mode` (String) Copyback Mode. Accepted values: `On`, `OnWithSMART`, `Off`.
 - `enhanced_auto_import_foreign_configuration_mode` (String) Enhanced Auto Import Foreign Configuration Mode. Accepted values: `Disabled`, `Enabled`. When updating `controller_mode` to `HBA`, this attribute needs to be commented.
 - `load_balance_mode` (String) Load Balance Mode. Accepted values: `Automatic`, `Disabled`.
