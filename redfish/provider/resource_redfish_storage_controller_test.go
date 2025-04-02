@@ -351,6 +351,16 @@ func TestAccRedfishStorageControllerAttributesError(t *testing.T) {
 				Config:      testAccRedfishResourceStorageControllerSecurityWithoutActionConfig(storageControllerParams),
 				ExpectError: regexp.MustCompile("Security updates will not be applied since the `action` is not specified."),
 			},
+			// error scenario when updating security using EnableSecurity action
+			{
+				Config:      testAccRedfishResourceStorageController17GEnableSecurityConfig(storageControllerParams),
+				ExpectError: regexp.MustCompile("If server generation is lesser than 17G, the action `EnableSecurity` is not supported."),
+			},
+			// error scenario when updating security using DisableSecurity action
+			{
+				Config:      testAccRedfishResourceStorageController17GDisableSecurityConfig(storageControllerParams),
+				ExpectError: regexp.MustCompile("If server generation is lesser than 17G, the action `DisableSecurity` is not supported."),
+			},
 			// error scenario when updating security with an incorrect config for SetControllerKey action
 			{
 				Config:      testAccRedfishResourceStorageControllerSecuritySetControllerKeyIncorrectConfig(storageControllerParams),
@@ -461,6 +471,26 @@ func TestAccRedfishStorageControllerAttributes17GError(t *testing.T) {
 			{
 				Config:      testAccRedfishResourceStorageController17GStorageControllerWithMaintenanceTypeApplyTimeConfig(storageController17GParams),
 				ExpectError: regexp.MustCompile("In 17G and above, the `apply_time` values `AtMaintenanceWindowStart` and `InMaintenanceWindowOnReset` are not valid"),
+			},
+			// error scenario when updating security without specifying the action
+			{
+				Config:      testAccRedfishResourceStorageControllerSecurityWithoutActionConfig(storageController17GParams),
+				ExpectError: regexp.MustCompile("Security updates will not be applied since the `action` is not specified."),
+			},
+			// error scenario when updating security using SetControllerKey action
+			{
+				Config:      testAccRedfishResourceStorageControllerSecuritySetControllerKeyConfig(storageController17GParams),
+				ExpectError: regexp.MustCompile("If server generation is 17G and above, the action `SetControllerKey` is not supported."),
+			},
+			// error scenario when updating security using ReKey action
+			{
+				Config:      testAccRedfishResourceStorageControllerSecurityReKeyConfig(storageController17GParams),
+				ExpectError: regexp.MustCompile("If server generation is 17G and above, the action `ReKey` is not supported."),
+			},
+			// error scenario when updating security using RemoveControllerKey action
+			{
+				Config:      testAccRedfishResourceStorageControllerSecurityRemoveControllerKeyConfig(storageController17GParams),
+				ExpectError: regexp.MustCompile("If server generation is 17G and above, the action `RemoveControllerKey` is not supported."),
 			},
 			// error scenario when performing DisableSecurity action when security is already disabled.
 			{
