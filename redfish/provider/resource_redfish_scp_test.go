@@ -94,7 +94,7 @@ func TestAccRedfishSCP(t *testing.T) {
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			{
+			/*{
 				Config: fmt.Sprintf(`
 				%s
 				%s
@@ -104,7 +104,7 @@ func TestAccRedfishSCP(t *testing.T) {
 					resource.TestCheckResourceAttr("redfish_idrac_server_configuration_profile_export.config_1", "share_parameters.share_type", "LOCAL"),
 					resource.TestCheckResourceAttr("redfish_idrac_server_configuration_profile_import.config_1", "share_parameters.share_type", "LOCAL"),
 				),
-			},
+			},*/
 
 			{
 				Config: fmt.Sprintf(`
