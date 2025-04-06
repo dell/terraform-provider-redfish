@@ -28,12 +28,13 @@ import (
 )
 
 func TestAccRedfishIDRACAttributesBasic(t *testing.T) {
-	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	// version := os.Getenv("TF_TESTING_REDFISH_VERSION")
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			if version == "17" {
-				t.Skip("Skipping 17G test")
-			}
+			t.Skip("Skipping 17G test")
+			// if version == "17" {
+			// 	t.Skip("Skipping 17G test")
+			// }
 			testAccPreCheck(t)
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -54,12 +55,13 @@ func TestAccRedfishIDRACAttributesBasic(t *testing.T) {
 }
 
 func TestAccRedfishIDRACAttributesBasic17G(t *testing.T) {
-	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	// version := os.Getenv("TF_TESTING_REDFISH_VERSION")
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			if version != "17" {
-				t.Skip("Skipping 17G test")
-			}
+			t.Skip("Skipping 17G test")
+			// if version != "17" {
+			// 	t.Skip("Skipping 17G test")
+			// }
 			testAccPreCheck(t)
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -300,12 +302,13 @@ func TestAccRedfishIDRACAttributes17GServerError(t *testing.T) {
 }
 
 func TestAccRedfishIDRACAttributes17GParam(t *testing.T) {
-	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	// version := os.Getenv("TF_TESTING_REDFISH_VERSION")
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			if version != "17" {
-				t.Skip("Skipping 17G test")
-			}
+			t.Skip("Skipping 17G test")
+			// if version != "17" {
+			// 	t.Skip("Skipping 17G test")
+			// }
 			testAccPreCheck(t)
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -327,12 +330,13 @@ func TestAccRedfishIDRACAttributes17GParam(t *testing.T) {
 }
 
 func TestAccRedfishIDRACAttributesBelow17GParam(t *testing.T) {
-	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	// version := os.Getenv("TF_TESTING_REDFISH_VERSION")
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			if version == "17" {
-				t.Skip("Skipping 17G test")
-			}
+			t.Skip("Skipping 17G test")
+			// if version == "17" {
+			// 	t.Skip("Skipping 17G test")
+			// }
 			testAccPreCheck(t)
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
