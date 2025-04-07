@@ -695,6 +695,34 @@ func TestAccRedfishStorageControllerAttributes17GMock(t *testing.T) {
 	})
 }
 
+func TestAccRedfishStorageControllerAttributes17GUpdateControllerMode(t *testing.T) {
+	version := os.Getenv("TF_TESTING_REDFISH_VERSION")
+	if version != "17" {
+		t.Skip("Skipping Tests for below 17G")
+	}
+	storageControllerResourceName := "redfish_storage_controller.test"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// create using basic config
+			{
+				Config: testAccRedfishResourceStorageControllerBasicConfig(storageController17GParams),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(storageControllerResourceName, "system_id", "System.Embedded.1"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "storage_id", "RAID.SL.1-1"),
+					resource.TestCheckResourceAttr(storageControllerResourceName, "controller_id", "RAID.SL.1-1"),
+				),
+			},
+			// error scenario when updating controller_mode for 17G device
+			{
+				Config:      testAccRedfishResourceStorageControllerUpdateControllerMode(storageController17GParams, "HBA"),
+				ExpectError: regexp.MustCompile("In 17G and above, controller mode is a read-only property that depends upon the controller personality and hence cannot be updated."),
+			},
+		},
+	})
+}
+
 func testAccRedfishResourceStorageControllerBasicConfig(testingInfo testingStorageControllerInputs) string {
 	return fmt.Sprintf(`
 	resource "redfish_storage_controller" "test" {
@@ -1582,5 +1610,42 @@ func testAccRedfishResourceStorageControllerSecurityRemoveControllerKeyIncorrect
 		testingInfo.SystemID,
 		testingInfo.StorageID,
 		testingInfo.ControllerID,
+	)
+}
+
+func testAccRedfishResourceStorageControllerUpdateControllerMode(testingInfo testingStorageControllerInputs, controllerMode string) string {
+	return fmt.Sprintf(`
+	resource "redfish_storage_controller" "test" {
+		redfish_server {
+			user         = "%s"
+			password     = "%s"
+			endpoint     = "%s"
+			ssl_insecure = true
+		}
+		system_id = "%s"
+		storage_id = "%s"
+		controller_id = "%s"
+		apply_time = "OnReset"
+		reset_type = "ForceRestart"
+		reset_timeout = 120
+		job_timeout = 1200
+		storage_controller = {
+			oem = {
+				dell = {
+					dell_storage_controller = {
+						controller_mode = "%s"
+					}
+				}
+			}
+		}
+	}
+		`,
+		testingInfo.Username,
+		testingInfo.Password,
+		testingInfo.Endpoint,
+		testingInfo.SystemID,
+		testingInfo.StorageID,
+		testingInfo.ControllerID,
+		controllerMode,
 	)
 }
