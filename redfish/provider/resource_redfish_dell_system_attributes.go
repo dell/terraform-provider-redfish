@@ -293,6 +293,7 @@ func (r *dellSystemAttributesResource) getEnv(rserver *[]models.RedfishServer) (
 	return api, nil
 }
 
+// nolint: revive
 func updateRedfishDellSystemAttributes(ctx context.Context, service *gofish.Service, d *models.DellSystemAttributes) diag.Diagnostics {
 	tflog.Info(ctx, "updateRedfishDellSystemAttributes: started")
 	var diags diag.Diagnostics
@@ -320,9 +321,25 @@ func updateRedfishDellSystemAttributes(ctx context.Context, service *gofish.Serv
 		diags.AddError(fmt.Sprintf("%s: Could not get OEM from iDRAC manager", idracError), err.Error())
 		return diags
 	}
+
+	// check whether server is of seventeen gen or below
+	isGenerationSeventeenAndAbove, err := isServerGenerationSeventeenAndAbove(service)
+	if err != nil {
+		diags.AddError("Error retrieving the server generation", err.Error())
+		return diags
+	}
 	// Suppressed API to check PSPFCCapable status
-	const suppressedAPI = "/Oem/Dell/DellAttributes/iDRAC.Embedded.1/Suppressed"
-	suppressedURI := dellManager.Manager.ODataID + suppressedAPI
+	const suppressedAPISeventeenGen = "/Oem/Dell/DellAttributes/iDRAC.Embedded.1/Suppressed"
+	const suppressedAPIBelowSeventeenGen = "/Oem/Dell/DellAttributes/iDRAC.Embedded.1?$select=PlatformCapability.1.*"
+	var suppressedURI string
+	if isGenerationSeventeenAndAbove {
+		// URI to fetch Suppressed attributes for Seventeen Generation device
+		suppressedURI = dellManager.Manager.ODataID + suppressedAPISeventeenGen
+	} else {
+		// URI to fetch Suppressed attributes for below Seventeen Generation device
+		suppressedURI = dellManager.Manager.ODataID + suppressedAPIBelowSeventeenGen
+	}
+
 	supResp, err := service.GetClient().Get(suppressedURI)
 	if err != nil {
 		diags.AddError(fmt.Sprintf("%s: Could not get PlatformCapability.1.PSPFCCapable from iDRAC manager", idracError), err.Error())
