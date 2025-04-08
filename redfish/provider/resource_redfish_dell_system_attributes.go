@@ -293,6 +293,7 @@ func (r *dellSystemAttributesResource) getEnv(rserver *[]models.RedfishServer) (
 	return api, nil
 }
 
+// nolint: revive
 func updateRedfishDellSystemAttributes(ctx context.Context, service *gofish.Service, d *models.DellSystemAttributes) diag.Diagnostics {
 	tflog.Info(ctx, "updateRedfishDellSystemAttributes: started")
 	var diags diag.Diagnostics
