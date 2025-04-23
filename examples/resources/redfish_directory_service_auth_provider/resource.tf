@@ -26,7 +26,8 @@ data "local_file" "kerberos" {
 # Available action: Create, Update (Active Directory, LDAP)
 # Active Directory (Create, Update): remote_role_mapping, service_addresses, service_enabled,authentication, active_directory_attributes
 # LDAP (Create, Update): remote_role_mapping, service_addresses, service_enabled,ldap_service, ldap_attributes
-resource "redfish_directory_service_auth_provider" "ds_auth" {
+# This resource will allow to configure AD for below 17G
+resource "redfish_directory_service_auth_provider" "ds_auth_ad" {
   for_each = var.rack1
 
   redfish_server {
@@ -107,43 +108,152 @@ resource "redfish_directory_service_auth_provider" "ds_auth" {
     # GCRootDomain can be configured when GCLookupEnable is Enabled  
     #"ActiveDirectory.1.GCRootDomain" = "test"     
   }
+}
 
+# This resource will allow to configure LDAP for below 17G
+resource "redfish_directory_service_auth_provider" "ds_auth_ldap" {
+  for_each = var.rack1
 
+  redfish_server {
+    # Alias name for server BMCs. The key in provider's `redfish_servers` map
+    # `redfish_alias` is used to align with enhancements to password management.
+    # When using redfish_alias, provider's `redfish_servers` is required.
+    redfish_alias = each.key
 
-  #    ldap = {
-  #		directory = {
-  #			remote_role_mapping = [
-  #				{
-  #					local_role = "Administrator",
-  #					remote_group = "cn = idracgroup,cn = users,dc = yulan,dc = pie,dc = lab,dc = emc,dc = com"
-  #				}        
-  #			],
-  #   To Update LDAP service addresses for 17G please provide configuration in ldap_attributes
-  #			service_addresses = [
-  #				"yulanadhost12.yulan.pie.lab.emc.com"
-  #			],
-  #			service_enabled = false
-  #		},
-  #		ldap_service = {
-  #			search_settings = {
-  #			    base_distinguished_names = [
-  #				  "dc = yulan,dc = pie,dc = lab,dc = emc,dc = com"
-  #				],
-  #				group_name_attribute = "name",
-  #				user_name_attribute = "member"
-  #			}
-  #		}
-  #	}
-  #		
-  #	ldap_attributes = {
-  #	  "LDAP.1.GroupAttributeIsDN" = "Enabled"
-  #	  "LDAP.1.Port" = "636",
-  #	  "LDAP.1.BindDN" = "cn = adtester,cn = users,dc = yulan,dc = pie,dc = lab,dc = emc,dc = com",
-  #	  "LDAP.1.BindPassword" = "",
-  #	  "LDAP.1.SearchFilter" = "(objectclass = *)",
-  #   To Update LDAP service addresses for 17G please provide below configuration
-  #   "LDAP.1.Server": "yulanadhost12.yulan.pie.lab.emc.com",
-  #	  
-  #		  }
+    user         = each.value.user
+    password     = each.value.password
+    endpoint     = each.value.endpoint
+    ssl_insecure = each.value.ssl_insecure
+  }
+
+  #Note: `active_directory` is mutually inclusive with `active_directory_attributes`.
+  #Note: `ldap` is mutually inclusive with `ldap_attributes`.
+  #Note: `active_directory` is mutually exclusive with `ldap`.
+  #Note: `active_directory_attributes` is mutually exclusive with `ldap_attributes`. 
+
+  ldap = {
+    directory = {
+      remote_role_mapping = [
+        {
+          local_role   = "Administrator",
+          remote_group = "cn = idracgroup,cn = users,dc = yulan,dc = pie,dc = lab,dc = emc,dc = com"
+        }
+      ],
+      #   To Update LDAP service addresses for 17G please provide configuration in ldap_attributes
+      service_addresses = [
+        "yulanadhost12.yulan.pie.lab.emc.com"
+      ],
+      service_enabled = false
+    },
+    ldap_service = {
+      search_settings = {
+        base_distinguished_names = [
+          "dc = yulan,dc = pie,dc = lab,dc = emc,dc = com"
+        ],
+        group_name_attribute = "name",
+        user_name_attribute  = "member"
+      }
+    }
+  }
+
+  ldap_attributes = {
+    "LDAP.1.GroupAttributeIsDN" = "Enabled"
+    "LDAP.1.Port"               = "636",
+    "LDAP.1.BindDN"             = "cn = adtester,cn = users,dc = yulan,dc = pie,dc = lab,dc = emc,dc = com",
+    "LDAP.1.BindPassword"       = "",
+    "LDAP.1.SearchFilter"       = "(objectclass = *)",
+    #   To Update LDAP service addresses for 17G please provide below configuration
+    #   "LDAP.1.Server": "yulanadhost12.yulan.pie.lab.emc.com",
+
+  }
+}
+
+# This resource will allow to configure AD for 17G and above
+resource "redfish_directory_service_auth_provider" "ds_auth_17g_ad" {
+  for_each = var.rack1
+
+  redfish_server {
+    # Alias name for server BMCs. The key in provider's `redfish_servers` map
+    # `redfish_alias` is used to align with enhancements to password management.
+    # When using redfish_alias, provider's `redfish_servers` is required.
+    redfish_alias = each.key
+
+    user         = each.value.user
+    password     = each.value.password
+    endpoint     = each.value.endpoint
+    ssl_insecure = each.value.ssl_insecure
+  }
+
+  active_directory = {
+    directory = {
+      service_enabled = false
+      remote_role_mapping = [
+        {
+          local_role   = "Administrator",
+          remote_group = "idracgroup"
+        }
+      ],
+    }
+  }
+
+  active_directory_attributes = {
+    "ActiveDirectory.1.AuthTimeout"          = "110",
+    "ActiveDirectory.1.CertValidationEnable" = "Enabled",
+    "ActiveDirectory.1.DCLookupEnable"       = "Enabled",
+    "UserDomain.1.Name"                      = "yulan.pie.lab.emc.com",
+    "ActiveDirectory.1.DCLookupByUserDomain" : "Enabled",
+    "ActiveDirectory.1.GCLookupEnable" = "Disabled",
+    "ActiveDirectory.1.GlobalCatalog1" = "yulanadhost.yulan.pie.lab.emc.com",
+  }
+
+}
+
+# This resource will allow to configure LDAP for 17G and above
+resource "redfish_directory_service_auth_provider" "ds_auth_17g_ldap" {
+  for_each = var.rack1
+
+  redfish_server {
+    # Alias name for server BMCs. The key in provider's `redfish_servers` map
+    # `redfish_alias` is used to align with enhancements to password management.
+    # When using redfish_alias, provider's `redfish_servers` is required.
+    redfish_alias = each.key
+
+    user         = each.value.user
+    password     = each.value.password
+    endpoint     = each.value.endpoint
+    ssl_insecure = each.value.ssl_insecure
+  }
+
+  ldap = {
+    directory = {
+      remote_role_mapping = [
+        {
+          local_role   = "Administrator",
+          remote_group = "cn = idracgroup,cn = users,dc = yulan,dc = pie,dc = lab,dc = emc,dc = com"
+        }
+      ],
+      service_enabled = false
+    },
+    ldap_service = {
+      search_settings = {
+        base_distinguished_names = [
+          "dc = yulan,dc = pie,dc = lab,dc = emc,dc = com"
+        ],
+        group_name_attribute = "name",
+        user_name_attribute  = "member"
+      }
+    }
+  }
+
+  ldap_attributes = {
+    "LDAP.1.GroupAttributeIsDN" = "Enabled"
+    "LDAP.1.Port"               = "636",
+    "LDAP.1.BindDN"             = "cn = adtester,cn = users,dc = yulan,dc = pie,dc = lab,dc = emc,dc = com",
+    "LDAP.1.BindPassword"       = "",
+    "LDAP.1.SearchFilter"       = "(objectclass = *)",
+    #   To Update LDAP service addresses for 17G please provide below configuration
+    "LDAP.1.Server" : "yulanadhost12.yulan.pie.lab.emc.com",
+
+  }
 
 }
