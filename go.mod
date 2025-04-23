@@ -1,8 +1,8 @@
 module terraform-provider-redfish
 
-go 1.23.0
+go 1.24.0
 
-toolchain go1.23.7
+toolchain go1.24.1
 
 require (
 	github.com/bytedance/mockey v1.2.14
@@ -21,7 +21,6 @@ require (
 	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/fatih/color v1.17.0 // indirect
 	github.com/go-git/go-git/v5 v5.14.0 // indirect
-	github.com/golang/glog v1.2.4 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/gopherjs/gopherjs v1.12.80 // indirect
