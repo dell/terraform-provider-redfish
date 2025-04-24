@@ -53,37 +53,85 @@ The Terraform Provider for RedFish is released and licensed under the MPL-2.0 li
 | v1.5.0 | 5.x <br> 6.x <br> 7.x | ubuntu22.04 <br> rhel9.x | 1.8.x <br> 1.9.x | 1.22
 
 ## List of DataSources in Terraform Provider for RedFish
-  * [Bios](docs/data-sources/bios.md)
-  * [iDRAC Attributes](docs/data-sources/dell_idrac_attributes.md)
-  * [Firmware Inventory](docs/data-sources/firmware_inventory.md)
-  * [Storage](docs/data-sources/storage.md)
-  * [System Boot](docs/data-sources/system_boot.md)
-  * [Virtual Media](docs/data-sources/virtual_media.md)
-  * [Server NIC](docs/data-sources/network.md)
-  * [Storage Controller](docs/data-sources/storage_controller.md)
-  * [Directory Service Auth Provider](docs/data-sources/directory_service_auth_provider.md)
 
+### System Configuration and Management
+ 
+ * [Bios](../product_guide/data-sources/bios)
+ * [System Boot](../product_guide/data-sources/system_boot)
+
+### Authentication and Security
+
+  * [Directory Service Auth Provider](../product_guide/data-sources/directory_service_auth_provider)
+  * [Directory Service Auth Provide Certificate](../product_guide/data-sources/directory_service_auth_provider_certificate)
+
+### Firmware and Inventory
+
+  * [Firmware Inventory](../product_guide/data-sources/firmware_inventory)
+
+### Dell iDRAC Management
+
+  * [iDRAC Attributes](../product_guide/data-sources/dell_idrac_attributes)
+
+### Networking
+
+  * [Server NIC](../product_guide/data-sources/network)
+
+### Storage Management
+
+  * [Storage](../product_guide/data-sources/storage)
+  * [Storage Controller](../product_guide/data-sources/storage_controller)
+
+### Virtual Media
+
+  * [Virtual Media](../product_guide/data-sources/virtual_media)
+
+ 
 ## List of Resources in Terraform Provider for RedFish
-  * [Bios](docs/resources/bios.md)
-  * [iDRAC Attributes](docs/resources/dell_idrac_attributes.md)
-  * [Lifecycle Controller Attributes](docs/resources/dell_lc_attributes.md)
-  * [System Attributes](docs/resources/dell_system_attributes.md)
-  * [Power](docs/resources/power.md)
-  * [Simple Update](docs/resources/simple_update.md)
-  * [Storage Volume](docs/resources/storage_volume.md)
-  * [User Account](docs/resources/user_account.md)
-  * [Virtual Media](docs/resources/virtual_media.md)
-  * [Manager reset](docs/resources/manager_reset.md)
-  * [Boot Order](docs/resources/boot_order.md)
-  * [Boot Source Override](docs/resources/boot_source_override.md)
-  * [Certificate](docs/resources/certificate.md)
-  * [iDRAC Firmware Update](docs/resources/idrac_firmware_update.md)
-  * [User Account Password](docs/resources/user_account_password.md)
-  * [Server Configuration Profile Export](docs/resources/idrac_server_configuration_profile_export.md)
-  * [Server Configuration Profile Import](docs/resources/idrac_server_configuration_profile_import.md)
-  * [Server NIC](docs/resources/network_adapter.md)
-  * [Storage Controller](docs/resources/storage_controller.md)
-  * [Directory Service Auth Provider](docs/resources/directory_service_auth_provider.md)
+
+### System Configuration and Management
+
+  * [Bios](../product_guide/resources/bios)
+  * [Boot Order](../product_guide/resources/boot_order)
+  * [Boot Source Override](../product_guide/resources/boot_source_override)
+  * [System Attributes](../product_guide/resources/dell_system_attributes)
+
+### Authentication and Security
+
+  * [Certificate](../product_guide/resources/certificate)
+  * [Directory Service Auth Provider](../product_guide/resources/directory_service_auth_provider)
+  * [Directory Service Auth Provider Certificate](../product_guide/resources/directory_service_auth_provider_certificate)
+  * [User Account](../product_guide/resources/user_account)
+  * [User Account Password](../product_guide/resources/user_account_password)
+
+### Firmware and Updates
+
+  * [Simple Update](../product_guide/resources/simple_update)
+  * [iDRAC Firmware Update](../product_guide/resources/idrac_firmware_update)
+
+### Dell iDRAC and Lifecycle Controller (LC) Management
+
+  * [iDRAC Attributes](../product_guide/resources/dell_idrac_attributes)
+  * [Lifecycle Controller Attributes](../product_guide/resources/dell_lc_attributes)
+  * [Server Configuration Profile Export](../product_guide/resources/idrac_server_configuration_profile_export)
+  * [Server Configuration Profile Import](../product_guide/resources/idrac_server_configuration_profile_import)
+
+### Power and Reset Management:
+
+  * [Power](../product_guide/resources/power)
+  * [Manager reset](../product_guide/resources/manager_reset)
+
+### Networking
+
+  * [Server NIC](../product_guide/resources/network_adapter)
+
+### Storage Management
+
+  * [Storage Controller](../product_guide/resources/storage_controller)
+  * [Storage Volume](../product_guide/resources/storage_volume)
+
+### Virtual Media
+
+  * [Virtual Media](../product_guide/resources/virtual_media)
 
 ## Installation and execution of Terraform Provider for RedFish
 The installation and execution steps of Terraform Provider for Dell RedFish can be found [here](about/INSTALLATION.md).
