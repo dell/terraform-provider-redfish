@@ -164,10 +164,17 @@ resource "redfish_dell_idrac_attributes" "idrac" {
 
   // iDRAC attributes to be modified
   attributes = {
-    "Users.3.Enable"                         = "Disabled"
-    "Users.3.UserName"                       = "mike"
-    "Users.3.Password"                       = "test1234"
-    "Users.3.Privilege"                      = 511
+    "Users.3.Enable"   = "Disabled"
+    "Users.3.UserName" = "mike"
+    "Users.3.Password" = "test1234"
+    # 17G do not supports Users.x.Privilege,
+    # To Update Privileges Please use Users.x.Role configuration, valid values for this
+    # (ReadOnly,Operator,Administrator instead of Privilege number)
+    # "Users.3.Role"                      = "ReadOnly"
+
+    # Only below 17G Supports Users.x.Privilege, for 17G device remove below Privilege config
+    "Users.3.Privilege" = 511
+
     "Redfish.1.NumericDynamicSegmentsEnable" = "Disabled"
     "SysLog.1.PowerLogInterval"              = "5"
     "Time.1.Timezone"                        = "CST6CDT"
