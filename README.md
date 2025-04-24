@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2020-2024 Dell Inc., or its subsidiaries. All Rights Reserved.
+Copyright (c) 2020-2025 Dell Inc., or its subsidiaries. All Rights Reserved.
 
 Licensed under the Mozilla Public License Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,19 +38,18 @@ The Terraform Provider can be used to manage server power cycles, IDRAC attribut
 * [List of Resources in Terraform Provider for RedFish](#list-of-resources-in-terraform-provider-for-redfish)
 * [Releasing, Maintenance and Deprecation](#releasing-maintenance-and-deprecation)
 * [Documentation](#documentation)
-* [New to Terraform?](#new-to-terraform)
 
 ## Support
 For any Terraform Provider for RedFish issues, questions or feedback, please follow our [support process](https://github.com/dell/dell-terraform-providers/blob/main/docs/SUPPORT.md)
 
 ## License
-The Terraform Provider for RedFish is released and licensed under the MPL-2.0 license. See [LICENSE](LICENSE) for the full terms.
+The Terraform Provider for RedFish is released and licensed under the MPL-2.0 license. See [LICENSE](https://github.com/dell/dell-terraform-providers/blob/main/LICENSE) for the full terms.
 
 ## Prerequisites
 
-| **Terraform Provider** | **iDRAC9 Firmware Version** | **OS** | **Terraform** | **Golang** |
-|---------------------|-----------------------|-------|--------------------|--------------------------|
-| v1.5.0 | 5.x <br> 6.x <br> 7.x | ubuntu22.04 <br> rhel9.x | 1.8.x <br> 1.9.x | 1.22
+| **Terraform Provider** | **iDRAC9 Firmware Version** | **iDRAC10 Firmware Version** | **OS** | **Terraform** | **Golang**|
+|---------------------|-----------------------|-----------------------|-------|--------------------|--------------------------|
+| v1.6.0 | 6.x <br> 7.x | 1.20.25.x | ubuntu22.04 <br> rhel9.x | 1.9.x <br> 1.10.x | 1.24 |
 
 ## List of DataSources in Terraform Provider for RedFish
 
@@ -132,9 +131,9 @@ The Terraform Provider for RedFish is released and licensed under the MPL-2.0 li
 ### Virtual Media
 
   * [Virtual Media](../product_guide/resources/virtual_media)
-
+  
 ## Installation and execution of Terraform Provider for RedFish
-The installation and execution steps of Terraform Provider for Dell RedFish can be found [here](about/INSTALLATION.md).
+The installation and execution steps of Terraform Provider for Dell RedFish can be found [here](https://github.com/dell/terraform-provider-redfish/blob/main/about/INSTALLATION.md).
 
 ## Releasing, Maintenance and Deprecation
 
@@ -153,15 +152,3 @@ For more detailed information, please refer to [Dell Terraform Providers Documen
 **Check the following links for the terraform-modules repository and registry**
 [Terraform Redfish Modules Github](https://github.com/dell/terraform-redfish-modules)
 [Terraform Redfish Modules Registry](https://registry.terraform.io/modules/dell/modules/redfish/latest)
-
-## New to Terraform?
-**Here are some helpful links to get you started if you are new to terraform before using our provider:**
-
-- Intro to Terraform: https://developer.hashicorp.com/terraform/intro 
-- Providers: https://developer.hashicorp.com/terraform/language/providers 
-- Resources: https://developer.hashicorp.com/terraform/language/resources
-- Datasources: https://developer.hashicorp.com/terraform/language/data-sources
-- Import: https://developer.hashicorp.com/terraform/language/import
-- Variables: https://developer.hashicorp.com/terraform/language/values/variables
-- Modules: https://developer.hashicorp.com/terraform/language/modules
-- State: https://developer.hashicorp.com/terraform/language/state

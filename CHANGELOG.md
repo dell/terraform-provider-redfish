@@ -20,8 +20,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 # v1.6.0 (April, 2025)
 ## Release Summary
-Qualified with iDRAC 17G Server.
+Qualified with iDRAC 17G Server(iDRAC10).
+
 ## Features
+N/A
 
 ### Others
 N/A
