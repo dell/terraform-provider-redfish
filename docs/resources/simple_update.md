@@ -31,7 +31,7 @@ This Terraform resource is used to Update firmware of the iDRAC Server. We can R
 variables.tf
 ```terraform
 /*
-Copyright (c) 2022-2024 Dell Inc., or its subsidiaries. All Rights Reserved.
+Copyright (c) 2022-2025 Dell Inc., or its subsidiaries. All Rights Reserved.
 
 Licensed under the Mozilla Public License Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -95,7 +95,7 @@ rack1 = {
 provider.tf
 ```terraform
 /*
-Copyright (c) 2022-2024 Dell Inc., or its subsidiaries. All Rights Reserved.
+Copyright (c) 2022-2025 Dell Inc., or its subsidiaries. All Rights Reserved.
 
 Licensed under the Mozilla Public License Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

@@ -33,7 +33,7 @@ This Terraform resource is used to configure Boot Order and enable/disable Boot 
 variables.tf
 ```terraform
 /*
-Copyright (c) 2021-2024 Dell Inc., or its subsidiaries. All Rights Reserved.
+Copyright (c) 2021-2025 Dell Inc., or its subsidiaries. All Rights Reserved.
 
 Licensed under the Mozilla Public License Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -133,7 +133,7 @@ provider "redfish" {
 main.tf
 ```terraform
 /*
-Copyright (c) 2023-2024 Dell Inc., or its subsidiaries. All Rights Reserved.
+Copyright (c) 2023-2025 Dell Inc., or its subsidiaries. All Rights Reserved.
 
 Licensed under the Mozilla Public License Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -234,7 +234,7 @@ Import is supported using the following syntax:
 
 ```shell
 /*
-Copyright (c) 2023-2024 Dell Inc., or its subsidiaries. All Rights Reserved.
+Copyright (c) 2023-2025 Dell Inc., or its subsidiaries. All Rights Reserved.
 
 Licensed under the Mozilla Public License Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
