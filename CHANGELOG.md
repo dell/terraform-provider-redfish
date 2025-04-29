@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2022-2024 Dell Inc., or its subsidiaries. All Rights Reserved.
+Copyright (c) 2022-2025 Dell Inc., or its subsidiaries. All Rights Reserved.
 
 Licensed under the Mozilla Public License Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,23 @@ limitations under the License.
 
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
+
+# v1.6.0 (April, 2025)
+## Release Summary
+Qualified with iDRAC 17G Server(iDRAC10).
+
+## Features
+N/A
+
+### Others
+N/A
+
+## Enhancements
+N/A
+
+## Bug Fixes
+- [#232](https://github.com/dell/terraform-provider-redfish/issues/232) - redfish_idrac_firmware_update: fails after initial apply
+- [#286](https://github.com/dell/terraform-provider-redfish/issues/286) - Provider Crash when running  'redfish_storage' datasource plan
 
 # v1.5.0 (October, 2024)
 ## Release Summary
