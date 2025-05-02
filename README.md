@@ -40,7 +40,7 @@ The Terraform Provider can be used to manage server power cycles, IDRAC attribut
 * [Documentation](#documentation)
 
 ## Support
-For any Terraform Provider for RedFish issues, questions or feedback, please follow our [support process](https://github.com/dell/dell-terraform-providers/blob/main/docs/SUPPORT.md)
+For any Terraform Provider for RedFish issues, questions or feedback, please follow our [support process](https://github.com/dell/dell-terraform-providers/blob/main/docs/SUPPORT.md). You can interact with us on [GitHub](https://github.com/dell/dell-terraform-providers) by creating various types of [GitHub Issues](https://github.com/dell/dell-terraform-providers/issues/new/choose) such as bugs, feature requests, and questions.
 
 ## License
 The Terraform Provider for RedFish is released and licensed under the MPL-2.0 license. See [LICENSE](https://github.com/dell/dell-terraform-providers/blob/main/LICENSE) for the full terms.
