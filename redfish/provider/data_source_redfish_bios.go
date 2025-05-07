@@ -182,10 +182,8 @@ func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (mod
 	d.Attributes, diags = types.MapValue(types.StringType, attributes)
 
 	bootOptionsList := make([]models.BiosBootOptions, 0)
-	if bootOptions != nil {
-		for _, bootOption := range bootOptions {
-			bootOptionsList = append(bootOptionsList, newBootOption(bootOption))
-		}
+	for _, bootOption := range bootOptions {
+		bootOptionsList = append(bootOptionsList, newBootOption(bootOption))
 	}
 	d.BootOptions = bootOptionsList
 
