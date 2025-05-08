@@ -139,9 +139,19 @@ func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (mod
 		return d, diags
 	}
 
+	if system == nil {
+		diags.AddError("System not found", "System with ID "+d.SystemID.ValueString()+" not found")
+		return d, diags
+	}
+
 	bios, err := system.Bios()
 	if err != nil {
 		diags.AddError("Error fetching bios", err.Error())
+		return d, diags
+	}
+
+	if bios == nil {
+		diags.AddError("BIOS not found", "BIOS not found for system with ID "+d.SystemID.ValueString())
 		return d, diags
 	}
 
@@ -157,11 +167,13 @@ func (g *BiosDatasource) readDatasourceRedfishBios(d models.BiosDatasource) (mod
 	attributes := make(map[string]attr.Value)
 
 	// copy from the BIOS attributes to the new bios attributes map
-	for key, value := range bios.Attributes {
-		if attrVal, ok := value.(string); ok {
-			attributes[key] = types.StringValue(attrVal)
-		} else {
-			attributes[key] = types.StringValue(fmt.Sprintf("%v", value))
+	if bios.Attributes != nil {
+		for key, value := range bios.Attributes {
+			if attrVal, ok := value.(string); ok {
+				attributes[key] = types.StringValue(attrVal)
+			} else {
+				attributes[key] = types.StringValue(fmt.Sprintf("%v", value))
+			}
 		}
 	}
 
