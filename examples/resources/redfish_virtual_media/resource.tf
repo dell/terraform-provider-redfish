@@ -31,6 +31,7 @@ resource "redfish_virtual_media" "vm" {
   }
   // Image to be attached to virtual media
   # image           = "http://inuxlib.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img"
+  # image           = "//1.2.3.4/path/to/file/image.iso"
   image = "http://linuxlib.us.dell.com/pub/redhat/RHEL8/8.8/BaseOS/x86_64/os/images/efiboot.img"
   /* Indicates how the data is transferred
      List of possible value: [Stream, Upload]
@@ -43,7 +44,12 @@ resource "redfish_virtual_media" "vm" {
      ] 
   */
   transfer_protocol_type = "HTTP"
+  # transfer_protocol_type = "CIFS"
   write_protected        = true
+
+  share_username = "administrator"
+
+  share_password = "Dell123"
 
   // by default, the resource uses the first system
   # system_id = "System.Embedded.1"

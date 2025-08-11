@@ -129,6 +129,19 @@ func VirtualMediaSchema() map[string]schema.Attribute {
 				stringplanmodifier.RequiresReplaceIfConfigured(),
 			},
 		},
+		"share_username": schema.StringAttribute{
+			MarkdownDescription: "Username to authenticate share server",
+			Description:         "Username to authenticate share server",
+			Computed:            true,
+			Optional:            true,
+		},
+		"share_password": schema.StringAttribute{
+			MarkdownDescription: "Password to authenticate share server",
+			Description:         "Password to authenticate share server",
+			Computed:            true,
+			Optional:            true,
+			Sensitive:           true,
+		},
 	}
 }
 
@@ -155,6 +168,13 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// Get/Validate transfer method
+	tMethod, err := helper.GetTransferMethod(plan.TransferMethod.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(RedfishVirtualMediaMountError, err.Error())
+		return
+	}
 	// Validate image extension
 	image := plan.Image.ValueString()
 	if !strings.HasSuffix(image, ".iso") && !strings.HasSuffix(image, ".img") {
@@ -166,12 +186,20 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		resp.Diagnostics.AddError(RedfishVirtualMediaMountError, "Unable to Process the request. TransferMethod upload is not supported.")
 		return
 	}
+	tProtocoltype, err := helper.GetTransferProtocolType(plan.TransferProtocolType.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(RedfishVirtualMediaMountError, err.Error())
+		return
+	}
+
 	virtualMediaConfig := redfish.VirtualMediaConfig{
 		Image:                image,
-		Inserted:             plan.Inserted.ValueBool(),
-		TransferMethod:       redfish.TransferMethod(plan.TransferMethod.ValueString()),
-		TransferProtocolType: redfish.TransferProtocolType(plan.TransferProtocolType.ValueString()),
-		WriteProtected:       plan.WriteProtected.ValueBool(),
+		Inserted:             plan.Inserted.ValueBoolPointer(),
+		TransferMethod:       &tMethod,
+		TransferProtocolType: &tProtocoltype,
+		WriteProtected:       plan.WriteProtected.ValueBoolPointer(),
+		UserName:             plan.ShareUserName.ValueStringPointer(),
+		Password:             plan.SharePassword.ValueStringPointer(),
 	}
 	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
@@ -269,7 +297,7 @@ func (r *virtualMediaResource) Read(ctx context.Context, req resource.ReadReques
 		return
 	}
 
-	if len(virtualMedia.Image) == 0 { // Nothing is mounted here
+	if len(*virtualMedia.Image) == 0 { // Nothing is mounted here
 		return
 	}
 
@@ -343,7 +371,7 @@ func (r *virtualMediaResource) ImportState(ctx context.Context, req resource.Imp
 	}
 
 	// check if virtual media is mounted
-	if len(media.Image) == 0 { // Nothing is mounted here
+	if len(*media.Image) == 0 { // Nothing is mounted here
 		resp.Diagnostics.AddError("Virtual Media with ID "+c.ID+" is not mounted.", "")
 		return
 	}
@@ -387,6 +415,12 @@ func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRe
 	service := api.Service
 	defer api.Logout()
 
+	// Get/Validate transfer method
+	tMethod, err := helper.GetTransferMethod(plan.TransferMethod.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(RedfishVirtualMediaMountError, err.Error())
+		return
+	}
 	// Validate image extension
 	image := plan.Image.ValueString()
 	if !strings.HasSuffix(image, ".iso") && !strings.HasSuffix(image, ".img") {
@@ -399,21 +433,30 @@ func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRe
 		resp.Diagnostics.AddError(RedfishVirtualMediaMountError, "Unable to Process the request. TransferMethod upload is not supported.")
 		return
 	}
+	tProtocoltype, err := helper.GetTransferProtocolType(plan.TransferProtocolType.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(RedfishVirtualMediaMountError, err.Error())
+		return
+	}
 
 	virtualMediaConfig := redfish.VirtualMediaConfig{
-		Image:                plan.Image.ValueString(),
-		Inserted:             plan.Inserted.ValueBool(),
-		TransferMethod:       redfish.TransferMethod(plan.TransferMethod.ValueString()),
-		TransferProtocolType: redfish.TransferProtocolType(plan.TransferProtocolType.ValueString()),
-		WriteProtected:       plan.WriteProtected.ValueBool(),
+		Image:                image,
+		Inserted:             plan.Inserted.ValueBoolPointer(),
+		TransferMethod:       &tMethod,
+		TransferProtocolType: &tProtocoltype,
+		WriteProtected:       plan.WriteProtected.ValueBoolPointer(),
+		UserName:             plan.ShareUserName.ValueStringPointer(),
+		Password:             plan.SharePassword.ValueStringPointer(),
 	}
 
 	virtualMediaConfigState := redfish.VirtualMediaConfig{
-		Image:                state.Image.ValueString(),
-		Inserted:             state.Inserted.ValueBool(),
-		TransferMethod:       redfish.TransferMethod(state.TransferMethod.ValueString()),
-		TransferProtocolType: redfish.TransferProtocolType(state.TransferProtocolType.ValueString()),
-		WriteProtected:       state.WriteProtected.ValueBool(),
+		Image:                image,
+		Inserted:             plan.Inserted.ValueBoolPointer(),
+		TransferMethod:       &tMethod,
+		TransferProtocolType: &tProtocoltype,
+		WriteProtected:       plan.WriteProtected.ValueBoolPointer(),
+		UserName:             plan.ShareUserName.ValueStringPointer(),
+		Password:             plan.SharePassword.ValueStringPointer(),
 	}
 
 	// Hot update is not possible. Unmount and mount needs to be done to update
@@ -422,11 +465,11 @@ func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRe
 		resp.Diagnostics.AddError(err.Error(), err.Error()) // This error won't be triggered ever
 		return
 	}
-	err = virtualMedia.InsertMediaConfig(virtualMediaConfig)
+	_, err = virtualMedia.InsertMediaConfig(virtualMediaConfig)
 	if err != nil {
 		resp.Diagnostics.AddError("Couldn't mount Virtual Media ", err.Error())
 		// if insert media fails, again performing insert with original(state) config
-		err = virtualMedia.InsertMediaConfig(virtualMediaConfigState)
+		_, err = virtualMedia.InsertMediaConfig(virtualMediaConfigState)
 		if err != nil {
 			resp.Diagnostics.AddError("Couldn't mount Virtual Media ", err.Error())
 			return

@@ -31,6 +31,8 @@ type VirtualMedia struct {
 	TransferProtocolType types.String    `tfsdk:"transfer_protocol_type"`
 	WriteProtected       types.Bool      `tfsdk:"write_protected"`
 	SystemID             types.String    `tfsdk:"system_id"`
+	ShareUserName        types.String    `tfsdk:"share_username"`
+	SharePassword        types.String    `tfsdk:"share_password"`
 }
 
 // VirtualMediaDataSource struct for datasource

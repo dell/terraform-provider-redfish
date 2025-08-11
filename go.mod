@@ -11,7 +11,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.25.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-testing v1.9.0
-	github.com/stmcginnis/gofish v0.20.0
+	github.com/stmcginnis/gofish v0.20.1-0.20250807185111-4fef0ea4f5fe
 )
 
 require (

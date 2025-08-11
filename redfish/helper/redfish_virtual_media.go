@@ -84,8 +84,8 @@ func InsertMedia(id string, collection []*redfish.VirtualMedia, config redfish.V
 	}
 	virtualMedia.Entity.SetETag("")
 
-	if !virtualMedia.Inserted {
-		err = virtualMedia.InsertMediaConfig(config)
+	if !*virtualMedia.Inserted {
+		_, err := virtualMedia.InsertMediaConfig(config)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't mount Virtual Media: %w", err)
 		}
@@ -102,12 +102,14 @@ func InsertMedia(id string, collection []*redfish.VirtualMedia, config redfish.V
 func UpdateVirtualMediaState(response *redfish.VirtualMedia, plan models.VirtualMedia) models.VirtualMedia {
 	return models.VirtualMedia{
 		VirtualMediaID:       types.StringValue(response.ODataID),
-		Image:                types.StringValue(response.Image),
-		Inserted:             types.BoolValue(response.Inserted),
-		TransferMethod:       types.StringValue(string(response.TransferMethod)),
-		TransferProtocolType: types.StringValue(string(response.TransferProtocolType)),
-		WriteProtected:       types.BoolValue(response.WriteProtected),
+		Image:                types.StringValue(*response.Image),
+		Inserted:             types.BoolValue(*response.Inserted),
+		TransferMethod:       types.StringValue(string(*response.TransferMethod)),
+		TransferProtocolType: types.StringValue(string(*response.TransferProtocolType)),
+		WriteProtected:       types.BoolValue(*response.WriteProtected),
 		RedfishServer:        plan.RedfishServer,
+		ShareUserName:        plan.ShareUserName,
+		SharePassword:        plan.SharePassword,
 	}
 }
 
@@ -150,4 +152,40 @@ type ServerConf struct {
 	Password    string `json:"password"`
 	Endpoint    string `json:"endpoint"`
 	SslInsecure bool   `json:"ssl_insecure"`
+}
+
+func GetTransferMethod(method string) (redfish.TransferMethod, error) {
+	switch method {
+	case "Stream":
+		return redfish.StreamTransferMethod, nil
+	case "Upload":
+		return redfish.UploadTransferMethod, nil
+	default:
+		return "", fmt.Errorf("Unable to Process the request. TransferMethod should be Stream or Upload")
+	}
+}
+
+func GetTransferProtocolType(protocol string) (redfish.TransferProtocolType, error) {
+	switch protocol {
+	case "HTTP":
+		return redfish.HTTPTransferProtocolType, nil
+	case "HTTPS":
+		return redfish.HTTPSTransferProtocolType, nil
+	case "CIFS":
+		return redfish.CIFSTransferProtocolType, nil
+	case "FTP":
+		return redfish.FTPTransferProtocolType, nil
+	case "SFTP":
+		return redfish.SFTPTransferProtocolType, nil
+	case "NFS":
+		return redfish.NFSTransferProtocolType, nil
+	case "SCP":
+		return redfish.SCPTransferProtocolType, nil
+	case "TFTP":
+		return redfish.TFTPTransferProtocolType, nil
+	case "OEM":
+		return redfish.OEMTransferProtocolType, nil
+	default:
+		return "", fmt.Errorf("Unable to Process the request. TransferProtocolType should be HTTP, HTTPS, CIFS, FTP, SFTP, NFS, SCP, TFTP or OEM")
+	}
 }
