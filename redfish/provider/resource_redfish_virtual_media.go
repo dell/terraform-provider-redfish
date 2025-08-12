@@ -173,6 +173,10 @@ func (r *virtualMediaResource) Create(ctx context.Context, req resource.CreateRe
 		TransferProtocolType: redfish.TransferProtocolType(plan.TransferProtocolType.ValueString()),
 		WriteProtected:       plan.WriteProtected.ValueBool(),
 	}
+
+	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
+	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
+
 	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
 		resp.Diagnostics.AddError(ServiceErrorMsg, err.Error())
@@ -378,6 +382,9 @@ func (r *virtualMediaResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
+	redfishMutexKV.Lock(plan.RedfishServer[0].Endpoint.ValueString())
+	defer redfishMutexKV.Unlock(plan.RedfishServer[0].Endpoint.ValueString())
+
 	// Get service
 	api, err := NewConfig(r.p, &plan.RedfishServer)
 	if err != nil {
@@ -458,6 +465,9 @@ func (r *virtualMediaResource) Delete(ctx context.Context, req resource.DeleteRe
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	redfishMutexKV.Lock(state.RedfishServer[0].Endpoint.ValueString())
+	defer redfishMutexKV.Unlock(state.RedfishServer[0].Endpoint.ValueString())
 
 	// Get service
 	api, err := NewConfig(r.p, &state.RedfishServer)
