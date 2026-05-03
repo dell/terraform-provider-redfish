@@ -334,10 +334,10 @@ func updateRedfishDellSystemAttributes(ctx context.Context, service *gofish.Serv
 	var suppressedURI string
 	if isGenerationSeventeenAndAbove {
 		// URI to fetch Suppressed attributes for Seventeen Generation device
-		suppressedURI = dellManager.Manager.ODataID + suppressedAPISeventeenGen
+		suppressedURI = dellManager.ODataID + suppressedAPISeventeenGen
 	} else {
 		// URI to fetch Suppressed attributes for below Seventeen Generation device
-		suppressedURI = dellManager.Manager.ODataID + suppressedAPIBelowSeventeenGen
+		suppressedURI = dellManager.ODataID + suppressedAPIBelowSeventeenGen
 	}
 
 	supResp, err := service.GetClient().Get(suppressedURI)

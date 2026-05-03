@@ -355,7 +355,7 @@ func (r *idracFirmwareUpdateResource) Create(ctx context.Context, req resource.C
 			return
 		}
 
-		var state models.IdracFirmwareUpdate = plan
+		state := plan
 		updateKey := map[string]attr.Type{
 			"package_name":            types.StringType,
 			"current_package_version": types.StringType,
@@ -404,7 +404,7 @@ func (r *idracFirmwareUpdateResource) Create(ctx context.Context, req resource.C
 		}
 	}
 	// Use input values from plan
-	var state models.IdracFirmwareUpdate = plan
+	state := plan
 	// Update the list of updates available using the parsed response
 	state.UpdateList, _ = helper.GetUpdatedList(result, jobs)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

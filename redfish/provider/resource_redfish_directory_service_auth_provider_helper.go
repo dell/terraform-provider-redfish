@@ -450,7 +450,8 @@ func isValidStandardSchemaConfig(attrsState *models.DirectoryServiceAuthProvider
 		}
 		return false, diags
 	}
-	if gcLookupEnableValue == Enabled {
+	switch gcLookupEnableValue {
+	case Enabled:
 		gcRootDomain := checkAttributeskeyPresent(attributes, ActiveDirectory, "GCRootDomain")
 		if !gcRootDomain || getkAttributeskeyValue(attributes, ActiveDirectory, "GCRootDomain") == "" {
 			diags.AddError("GCRootDomain must be configured for Enabled GCLookupEnable",
@@ -463,7 +464,7 @@ func isValidStandardSchemaConfig(attrsState *models.DirectoryServiceAuthProvider
 				" GlobalCatalog can not be configured for Enabled GCLookupEnable")
 			return false, diags
 		}
-	} else if gcLookupEnableValue == Disabled {
+	case Disabled:
 		gc1Value := getkAttributeskeyValue(attributes, ActiveDirectory, "GlobalCatalog1")
 		gc2Value := getkAttributeskeyValue(attributes, ActiveDirectory, "GlobalCatalog2")
 		gc3Value := getkAttributeskeyValue(attributes, ActiveDirectory, "GlobalCatalog3")
@@ -480,7 +481,7 @@ func isValidStandardSchemaConfig(attrsState *models.DirectoryServiceAuthProvider
 				"GCRootDomain can not be configured for Disabled GCLookupEnable")
 			return false, diags
 		}
-	} else {
+	default:
 		diags.AddError("Invalid configuration for Standard Schema", "Please provide valid configuration for Standard Schema")
 		return false, diags
 	}
@@ -520,7 +521,8 @@ func isValidDCLookupDomainConfig(ctx context.Context, prefix string, suffix stri
 		checkDomainController2 := checkAttributeskeyPresent(attributes, ActiveDirectory, "DomainController2")
 		checkDomainController3 := checkAttributeskeyPresent(attributes, ActiveDirectory, "DomainController3")
 
-		if dcLookupEnableValue == Disabled {
+		switch dcLookupEnableValue {
+		case Disabled:
 			// diags.AddError("Invalid configuration for DCLookUp", "Service address must be configured for DCLookUp"+strconv.Itoa(len(serviceAddressList)))
 			if !isSeventeenGen && len(serviceAddressList) == 0 {
 				diags.AddError("ServiceAddresses is not Configured for Disabled DCLookUp",
@@ -553,7 +555,7 @@ func isValidDCLookupDomainConfig(ctx context.Context, prefix string, suffix stri
 					"DCLookupDomainName can not be configured for Disabled DCLookUp")
 				return false, diags
 			}
-		} else if dcLookupEnableValue == Enabled {
+		case Enabled:
 			if !isSeventeenGen && len(serviceAddressList) != 0 {
 				diags.AddError("Service address can not be configured for Enabled DCLookUp", "Service address can not be configured for Enabled DCLookUp")
 				return false, diags
@@ -568,7 +570,8 @@ func isValidDCLookupDomainConfig(ctx context.Context, prefix string, suffix stri
 				return false, diags
 			}
 			userDomainValue := getkAttributeskeyValue(attributes, ActiveDirectory, "DCLookupByUserDomain")
-			if userDomainValue == Disabled {
+			switch userDomainValue {
+			case Disabled:
 				if !specifyDomain {
 					diags.AddError("DCLookupDomainName must be configured for Disabled DCLookupByUserDomain",
 						"DCLookupDomainName must be configured for Disabled DCLookupByUserDomain")
@@ -580,7 +583,7 @@ func isValidDCLookupDomainConfig(ctx context.Context, prefix string, suffix stri
 						"DCLookupDomainName must be configured for Disabled DCLookupByUserDomain")
 					return false, diags
 				}
-			} else if userDomainValue == Enabled {
+			case Enabled:
 				specifyDomain := checkAttributeskeyPresent(attributes, ActiveDirectory, "DCLookupDomainName")
 				if specifyDomain {
 					diags.AddError("DCLookupDomainName can not be configured for Enabled DCLookupByUserDomain",
@@ -590,7 +593,7 @@ func isValidDCLookupDomainConfig(ctx context.Context, prefix string, suffix stri
 			}
 			return true, diags
 
-		} else {
+		default:
 			diags.AddError("Invalid configuration for DCLookUp", "Please provide valid configuration for DCLookUp")
 			return false, diags
 		}

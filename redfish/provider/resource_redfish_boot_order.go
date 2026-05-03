@@ -496,7 +496,7 @@ func (r *BootOrderResource) updateBootOptions(service *gofish.Service, d *models
 		diags.AddError("unable to fetch boot Options Boot Options are not specified", "")
 		return nil, diags
 	}
-	url = bootOptions[0].Entity.ODataID
+	url = bootOptions[0].ODataID
 	lastIndx := strings.LastIndex(url, "/")
 	url = url[:lastIndx]
 

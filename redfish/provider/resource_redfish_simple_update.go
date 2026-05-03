@@ -376,14 +376,15 @@ func (u *simpleUpdater) updateRedfishSimpleUpdate(d models.SimpleUpdateRes) (dia
 	}
 	tflog.Debug(u.ctx, "resource_simple_update : update type "+transferProtocol+" is valid")
 
-	if transferProtocol == "NFS" {
+	switch transferProtocol {
+	case "NFS":
 		tflog.Info(u.ctx, "Remote NFS protocol detected")
 		ret, err = u.pullUpdate(ret)
 		if err != nil {
 			diags.AddError(err.Error(), "")
 		}
 		tflog.Debug(u.ctx, "Update Complete")
-	} else if transferProtocol == "HTTP" || transferProtocol == "HTTPS" {
+	case "HTTP", "HTTPS":
 		if strings.HasPrefix(targetFirmwareImage, "http") {
 			tflog.Info(u.ctx, "Remote HTTP protocol detected")
 			ret, err = u.pullUpdate(ret)
@@ -426,7 +427,7 @@ func (u *simpleUpdater) updateRedfishSimpleUpdate(d models.SimpleUpdateRes) (dia
 				ret = state
 			}
 		}
-	} else {
+	default:
 		diags.AddError("Transfer protocol not available in this implementation", "")
 	}
 

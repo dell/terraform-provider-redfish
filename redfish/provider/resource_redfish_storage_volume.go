@@ -551,7 +551,7 @@ func createRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 	var listDrives []map[string]string
 	for _, drive := range drives {
 		storageDrive := make(map[string]string)
-		storageDrive["@odata.id"] = drive.Entity.ODataID
+		storageDrive["@odata.id"] = drive.ODataID
 		listDrives = append(listDrives, storageDrive)
 	}
 
@@ -797,7 +797,7 @@ func deleteRedfishStorageVolume(ctx context.Context, service *gofish.Service, d 
 
 func getStorageController(storageControllers []*redfish.Storage, diskControllerID string) (*redfish.Storage, error) {
 	for _, storage := range storageControllers {
-		if storage.Entity.ID == diskControllerID {
+		if storage.ID == diskControllerID {
 			return storage, nil
 		}
 	}
