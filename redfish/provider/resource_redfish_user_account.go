@@ -508,7 +508,7 @@ func (*UserAccountResource) ImportState(ctx context.Context, req resource.Import
 		Password     string `json:"password"`
 		Endpoint     string `json:"endpoint"`
 		SslInsecure  bool   `json:"ssl_insecure"`
-		Id           string `json:"id"`
+		Id           string `json:"id"` //revive:disable-line:var-naming
 		RedfishAlias string `json:"redfish_alias"`
 	}
 

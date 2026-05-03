@@ -25,7 +25,7 @@ import (
 
 // IdracFirmwareUpdate model for IdracFirmwareUpdateResource
 type IdracFirmwareUpdate struct {
-	Id                       types.String    `tfsdk:"id"`
+	Id                       types.String    `tfsdk:"id"` //revive:disable-line:var-naming
 	RedfishServer            []RedfishServer `tfsdk:"redfish_server"`
 	ShareType                types.String    `tfsdk:"share_type"`
 	IPAddress                types.String    `tfsdk:"ip_address"`

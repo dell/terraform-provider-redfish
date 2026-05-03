@@ -32,6 +32,6 @@ type FirmwareInventory struct {
 // Inventory struct is created which is used in firmware inventory
 type Inventory struct {
 	EntityName types.String `tfsdk:"entity_name"`
-	EntityId   types.String `tfsdk:"entity_id"`
+	EntityId   types.String `tfsdk:"entity_id"` //revive:disable-line:var-naming
 	Version    types.String `tfsdk:"version"`
 }

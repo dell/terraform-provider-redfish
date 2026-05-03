@@ -447,7 +447,7 @@ func (u *simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.
 	if err != nil {
 		return nil, fmt.Errorf("error while retrieving Etag from FirmwareInventory: %w", err)
 	}
-	response.Body.Close() // #nosec G104
+	_ = response.Body.Close() // #nosec G104
 	etag := response.Header.Get("ETag")
 
 	// Set custom headers
@@ -460,7 +460,9 @@ func (u *simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.
 	if err != nil {
 		return nil, fmt.Errorf("couldn't open FW file to upload - %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	// Set payload
 	payload := map[string]io.Reader{
@@ -472,7 +474,7 @@ func (u *simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.
 	if err != nil {
 		return nil, fmt.Errorf("there was an issue when uploading FW package to redfish - %w", err)
 	}
-	response.Body.Close() // #nosec G104
+	_ = response.Body.Close() // #nosec G104
 	packageLocation := response.Header.Get(locationKey)
 
 	// Get package information ( SoftwareID - Version )
@@ -493,7 +495,7 @@ func (u *simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.
 		// Delete uploaded package - TBD
 		return nil, fmt.Errorf("there was an issue when scheduling the update job - %w", err)
 	}
-	response.Body.Close() // #nosec G104
+	_ = response.Body.Close() // #nosec G104
 
 	// Get jobid
 	jobID := response.Header.Get(locationKey)
@@ -533,7 +535,9 @@ func (u *simpleUpdater) uploadLocalFirmwareSeventeenGeneration(d models.SimpleUp
 	if err != nil {
 		return d, fmt.Errorf("couldn't open FW file to upload - %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	// Set payload
 	payload := map[string]io.Reader{

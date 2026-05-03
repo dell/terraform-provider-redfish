@@ -114,7 +114,9 @@ func GetDellAttributes(c common.Client, uri string) (*Attributes, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	var dellAttributes Attributes
 	err = json.NewDecoder(resp.Body).Decode(&dellAttributes)

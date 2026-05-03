@@ -416,7 +416,9 @@ func updateNicNetworktributes(ctx context.Context, service *gofish.Service, plan
 		diags.AddError(fmt.Sprintf("%s: patch request to iDRAC failed", networkAttrsError), err.Error())
 		return
 	}
-	defer resp.Body.Close() // #nosec G104
+	defer func() {
+		_ = resp.Body.Close() // #nosec G104
+	}()
 
 	// check if location is present in the response header
 	location, err := resp.Location()
@@ -530,7 +532,9 @@ func updateNicOemNetworkAttributes(ctx context.Context, service *gofish.Service,
 		diags.AddError(fmt.Sprintf("%s: patch request to iDRAC failed", oemNetworkAttrsError), err.Error())
 		return
 	}
-	defer resp.Body.Close() // #nosec G104
+	defer func() {
+		_ = resp.Body.Close() // #nosec G104
+	}()
 
 	// check if location is present in the response header
 	// for all supported applytime, there should exist location and jobURL when setting oem network attributes successfully

@@ -77,7 +77,7 @@ type FibreChannelSettings struct {
 	WWNN                  types.String `tfsdk:"wwnn"`
 	WWNSource             types.String `tfsdk:"wwn_source"`
 	WWPN                  types.String `tfsdk:"wwpn"`
-	FibreChannelId        types.String `tfsdk:"fibre_channel_id"`
+	FibreChannelId        types.String `tfsdk:"fibre_channel_id"` //revive:disable-line:var-naming
 }
 
 // MaintenanceWindow is struct for maintenance window.
@@ -555,7 +555,7 @@ type FibreChannel struct {
 	WWNN                  types.String `tfsdk:"wwnn"`
 	WWNSource             types.String `tfsdk:"wwn_source"`
 	WWPN                  types.String `tfsdk:"wwpn"`
-	FibreChannelId        types.String `tfsdk:"fibre_channel_id"`
+	FibreChannelId        types.String `tfsdk:"fibre_channel_id"` //revive:disable-line:var-naming
 }
 
 // ISCSIBoot is the tfsdk model of ISCSIBoot.

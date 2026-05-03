@@ -23,7 +23,7 @@ import (
 
 // RedfishManagerReset to construct terraform schema for manager reset resource.
 type RedfishManagerReset struct {
-	Id            types.String    `tfsdk:"id"`
+	Id            types.String    `tfsdk:"id"` //revive:disable-line:var-naming
 	ResetType     types.String    `tfsdk:"reset_type"`
 	RedfishServer []RedfishServer `tfsdk:"redfish_server"`
 }

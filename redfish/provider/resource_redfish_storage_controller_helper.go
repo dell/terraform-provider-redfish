@@ -438,7 +438,9 @@ func updateStorageControllerAttributes(ctx context.Context, service *gofish.Serv
 		diags.AddError("Patch request to IDRAC failed", err.Error())
 		return
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	location, err := resp.Location()
 	if err != nil {
@@ -808,7 +810,9 @@ func updateSecurityAttributes(ctx context.Context, service *gofish.Service, plan
 		diags.AddError("Post request to IDRAC failed", err.Error())
 		return "", diags
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	location, err := resp.Location()
 	if err != nil {

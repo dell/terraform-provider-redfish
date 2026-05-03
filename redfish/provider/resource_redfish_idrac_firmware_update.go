@@ -373,7 +373,9 @@ func (r *idracFirmwareUpdateResource) Create(ctx context.Context, req resource.C
 		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 		return
 	}
-	defer getres.Body.Close()
+	defer func() {
+		_ = getres.Body.Close()
+	}()
 
 	getBody, err := io.ReadAll(getres.Body)
 	if err != nil {

@@ -432,7 +432,7 @@ func (*RedfishStorageVolumeResource) ImportState(ctx context.Context, req resour
 		Password     string `json:"password"`
 		Endpoint     string `json:"endpoint"`
 		SslInsecure  bool   `json:"ssl_insecure"`
-		Id           string `json:"id"`
+		Id           string `json:"id"` //revive:disable-line:var-naming
 		SystemID     string `json:"system_id"`
 		RedfishAlias string `json:"redfish_alias"`
 	}
@@ -810,7 +810,9 @@ func deleteVolume(service *gofish.Service, volumeURI string) (jobID string, err 
 	if err != nil {
 		return "", fmt.Errorf("error while deleting the volume %s", volumeURI)
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	if res.StatusCode != http.StatusAccepted {
 		return "", fmt.Errorf("the operation was not successful. Return code %d was different from 202 ACCEPTED", res.StatusCode)
 	}
@@ -878,7 +880,9 @@ func createVolume(service *gofish.Service,
 	if err != nil {
 		return "", err
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	if res.StatusCode != http.StatusAccepted {
 		return "", fmt.Errorf("the query was unsucessfull")
 	}
@@ -899,7 +903,9 @@ func updateVolume(service *gofish.Service,
 	if err != nil {
 		return "", err
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	if res.StatusCode != http.StatusAccepted {
 		return "", fmt.Errorf("the query was unsucessfull")
 	}

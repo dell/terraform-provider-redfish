@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package provider implements Terraform Redfish provider resources and datasources.
 package provider
 
 import (

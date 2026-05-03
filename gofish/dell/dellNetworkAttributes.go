@@ -75,7 +75,9 @@ func GetDellNetworkAttributes(c common.Client, uri string) (*NetworkAttributes, 
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	var dellNetworkAttributes NetworkAttributes
 	err = json.NewDecoder(resp.Body).Decode(&dellNetworkAttributes)

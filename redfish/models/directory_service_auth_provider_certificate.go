@@ -57,7 +57,7 @@ type DirectoryServiceAuthProviderCertificate struct {
 
 // DirectoryServiceCertificate is the tfsdk model of DirectoryServiceCertificate
 type DirectoryServiceCertificate struct {
-	ODataId               types.String   `tfsdk:"odata_id"`
+	ODataId               types.String   `tfsdk:"odata_id"` //revive:disable-line:var-naming
 	Name                  types.String   `tfsdk:"name"`
 	Description           types.String   `tfsdk:"description"`
 	ValidNotAfter         types.String   `tfsdk:"valid_not_after"`
@@ -82,7 +82,7 @@ type Subject struct {
 // CertificateFilter is the tfsdk model of CertificateFilter
 type CertificateFilter struct {
 	CertificateProviderType types.String `tfsdk:"certificate_provider_type"`
-	CertificateId           types.String `tfsdk:"certificate_id"`
+	CertificateId           types.String `tfsdk:"certificate_id"` //revive:disable-line:var-naming
 }
 
 // CertificateCollection is the json model of CertificateCollection

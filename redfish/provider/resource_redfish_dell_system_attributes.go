@@ -423,7 +423,7 @@ func updateRedfishDellSystemAttributes(ctx context.Context, service *gofish.Serv
 		diags.AddError(fmt.Sprintf("%s: patch request to iDRAC failed", idracError), err.Error())
 		return diags
 	}
-	response.Body.Close() // #nosec G104
+	_ = response.Body.Close() // #nosec G104
 	d.ID = types.StringValue(systemAttributes.ODataID)
 	diags = readRedfishDellSystemAttributes(ctx, service, d)
 	return diags

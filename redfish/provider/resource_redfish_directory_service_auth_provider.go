@@ -389,7 +389,9 @@ func updateActiveDirectory(ctx context.Context, serviceURI string, service *gofi
 		}
 	}
 
-	defer response.Body.Close()
+	defer func() {
+		_ = response.Body.Close()
+	}()
 	var idracAttributesPlan models.DellIdracAttributes
 	idracAttributesPlan.Attributes = plan.ActiveDirectoryAttributes
 	idracAttributesPlan.ID = plan.ID
@@ -439,7 +441,9 @@ func updateLDAP(ctx context.Context, serviceURI string, service *gofish.Service,
 			return diags
 		}
 	}
-	defer response.Body.Close()
+	defer func() {
+		_ = response.Body.Close()
+	}()
 	var idracAttributesPlan models.DellIdracAttributes
 	idracAttributesPlan.Attributes = plan.LDAPAttributes
 	idracAttributesPlan.ID = plan.ID
