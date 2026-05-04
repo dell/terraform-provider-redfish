@@ -352,7 +352,8 @@ func getStorageControllerAttributeInfo(ctx context.Context, plan *models.Storage
 		return true, ""
 	}
 
-	if attributeName == "ControllerMode" {
+	switch attributeName {
+	case "ControllerMode":
 		if !planDellStorageControllerAttributes.ControllerMode.IsNull() &&
 			!planDellStorageControllerAttributes.ControllerMode.IsUnknown() &&
 			planDellStorageControllerAttributes.ControllerMode.ValueString() != "" {
@@ -360,7 +361,7 @@ func getStorageControllerAttributeInfo(ctx context.Context, plan *models.Storage
 		}
 
 		return true, ""
-	} else if attributeName == "EnhancedAutoImportForeignConfigurationMode" {
+	case "EnhancedAutoImportForeignConfigurationMode":
 		if !planDellStorageControllerAttributes.EnhancedAutoImportForeignConfigurationMode.IsNull() &&
 			!planDellStorageControllerAttributes.EnhancedAutoImportForeignConfigurationMode.IsUnknown() &&
 			planDellStorageControllerAttributes.EnhancedAutoImportForeignConfigurationMode.ValueString() != "" {
@@ -437,7 +438,9 @@ func updateStorageControllerAttributes(ctx context.Context, service *gofish.Serv
 		diags.AddError("Patch request to IDRAC failed", err.Error())
 		return
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	location, err := resp.Location()
 	if err != nil {
@@ -632,7 +635,8 @@ func updateSecurityAttributes(ctx context.Context, service *gofish.Service, plan
 	// Create the request body using security action
 	postBody := make(map[string]interface{})
 
-	if securityAction == "SetControllerKey" {
+	switch securityAction {
+	case "SetControllerKey":
 		if isGenerationSeventeenAndAbove {
 			diags.AddError("If server generation is 17G and above, the action `SetControllerKey` is not supported.",
 				"In lesser than 17G, the action `SetControllerKey` is supported.")
@@ -662,7 +666,7 @@ func updateSecurityAttributes(ctx context.Context, service *gofish.Service, plan
 		postBody["Keyid"] = planAttributes.KeyID.ValueString()
 		postBody["Key"] = planAttributes.Key.ValueString()
 		postBody["TargetFQDD"] = plan.ControllerID.ValueString()
-	} else if securityAction == "ReKey" {
+	case "ReKey":
 		if isGenerationSeventeenAndAbove {
 			diags.AddError("If server generation is 17G and above, the action `ReKey` is not supported.",
 				"In lesser than 17G, the action `ReKey` is supported.")
@@ -694,7 +698,7 @@ func updateSecurityAttributes(ctx context.Context, service *gofish.Service, plan
 		postBody["NewKey"] = planAttributes.Key.ValueString()
 		postBody["OldKey"] = planAttributes.OldKey.ValueString()
 		postBody["TargetFQDD"] = plan.ControllerID.ValueString()
-	} else if securityAction == "RemoveControllerKey" {
+	case "RemoveControllerKey":
 		if isGenerationSeventeenAndAbove {
 			diags.AddError("If server generation is 17G and above, the action `RemoveControllerKey` is not supported.",
 				"In lesser than 17G, the action `RemoveControllerKey` is supported.")
@@ -722,7 +726,7 @@ func updateSecurityAttributes(ctx context.Context, service *gofish.Service, plan
 		}
 
 		postBody["TargetFQDD"] = plan.ControllerID.ValueString()
-	} else if securityAction == "EnableSecurity" {
+	case "EnableSecurity":
 		if !isGenerationSeventeenAndAbove {
 			diags.AddError("If server generation is lesser than 17G, the action `EnableSecurity` is not supported.",
 				"In 17G and above, the action `EnableSecurity` is supported.")
@@ -750,7 +754,7 @@ func updateSecurityAttributes(ctx context.Context, service *gofish.Service, plan
 		}
 
 		postBody["TargetFQDD"] = plan.ControllerID.ValueString()
-	} else if securityAction == "DisableSecurity" {
+	case "DisableSecurity":
 		if !isGenerationSeventeenAndAbove {
 			diags.AddError("If server generation is lesser than 17G, the action `DisableSecurity` is not supported.",
 				"In 17G and above, the action `DisableSecurity` is supported.")
@@ -806,7 +810,9 @@ func updateSecurityAttributes(ctx context.Context, service *gofish.Service, plan
 		diags.AddError("Post request to IDRAC failed", err.Error())
 		return "", diags
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	location, err := resp.Location()
 	if err != nil {

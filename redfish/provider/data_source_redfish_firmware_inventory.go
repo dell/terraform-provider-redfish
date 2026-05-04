@@ -136,12 +136,12 @@ func (g *FirmwareInventoryDatasource) Read(ctx context.Context, req datasource.R
 func getInventoryItems(fwInventories []*redfish.SoftwareInventory) []models.Inventory {
 	inventoryItemList := make([]models.Inventory, 0)
 	for _, fwInv := range fwInventories {
-		if !strings.HasPrefix(fwInv.Entity.ID, "Installed") {
+		if !strings.HasPrefix(fwInv.ID, "Installed") {
 			continue
 		}
 		inventoryItemList = append(inventoryItemList, models.Inventory{
-			EntityId:   types.StringValue(fwInv.Entity.ID),
-			EntityName: types.StringValue(fwInv.Entity.Name),
+			EntityId:   types.StringValue(fwInv.ID),
+			EntityName: types.StringValue(fwInv.Name),
 			Version:    types.StringValue(fwInv.Version),
 		})
 	}

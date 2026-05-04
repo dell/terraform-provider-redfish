@@ -496,7 +496,7 @@ func (r *BootOrderResource) updateBootOptions(service *gofish.Service, d *models
 		diags.AddError("unable to fetch boot Options Boot Options are not specified", "")
 		return nil, diags
 	}
-	url = bootOptions[0].Entity.ODataID
+	url = bootOptions[0].ODataID
 	lastIndx := strings.LastIndex(url, "/")
 	url = url[:lastIndx]
 
@@ -564,14 +564,14 @@ func (*BootOrderResource) setBootOrder(service *gofish.Service, d *models.BootOr
 	}
 	isGenerationSeventeenAndAbove, err := isServerGenerationSeventeenAndAbove(service)
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving the server generation %w", err)
+		return nil, fmt.Errorf("error retrieving the server generation %w", err)
 	}
 	// for 17G use system settings api for PATCH call
 	if isGenerationSeventeenAndAbove {
 		res, err := dell.ComputerSystems(system)
 		uri = res.Settings.OdataID
 		if err != nil {
-			return nil, fmt.Errorf("Error retrieving the systems settings URI %w", err)
+			return nil, fmt.Errorf("error retrieving the systems settings URI %w", err)
 		}
 	} else {
 		// Below 17G will have System API for PATCH call

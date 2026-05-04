@@ -15,6 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package common provides shared helpers for Redfish job management and polling.
+//
+//revive:disable-next-line:var-naming
 package common
 
 import (
@@ -145,7 +148,7 @@ func GetJobDetailsOnFinish(service *gofish.Service, jobURI string, timeBetweenAt
 			}
 		case <-timeoutTick.C:
 			if job == nil {
-				return nil, fmt.Errorf("Job details not available. Possible timeout")
+				return nil, fmt.Errorf("job details not available; possible timeout")
 			}
 			if job.JobState == redfish.StartingJobState ||
 				job.JobState == redfish.RunningJobState ||
@@ -154,7 +157,7 @@ func GetJobDetailsOnFinish(service *gofish.Service, jobURI string, timeBetweenAt
 				return job, nil
 			}
 			log.Printf("[DEBUG] - Error. Timeout reached\n")
-			return nil, fmt.Errorf("Job wait timed out after %d minutes", timeout/60)
+			return nil, fmt.Errorf("job wait timed out after %d minutes", timeout/60)
 		}
 	}
 }
@@ -219,7 +222,7 @@ type OEMJob struct {
 	JobState       string `json:"JobState"`
 	JobType        string `json:"JobType"`
 	Message        string `json:"Message"`
-	MessageId      string `json:"MessageId"`
+	MessageID      string `json:"MessageId"`
 	Name           string `json:"Name"`
 	CompletionTime string `json:"CompletionTime"`
 }
@@ -287,7 +290,9 @@ func DeleteDellJob(service *gofish.Service, taskID string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode != StatusCodeSuccess {
 		return fmt.Errorf(" error when deleting the task, Delete status code was %d", resp.StatusCode)
 	}

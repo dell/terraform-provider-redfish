@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package models defines Terraform state/config models for Redfish resources and datasources.
 package models
 
 import (

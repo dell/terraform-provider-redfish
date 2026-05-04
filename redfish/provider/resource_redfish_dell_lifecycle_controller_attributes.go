@@ -389,7 +389,7 @@ func updateRedfishDellLCAttributes(ctx context.Context, service *gofish.Service,
 		diags.AddError(idracError, err.Error())
 		return diags
 	}
-	response.Body.Close() // #nosec G104
+	_ = response.Body.Close() // #nosec G104
 	d.ID = types.StringValue(lcAttributes.ODataID)
 	diags = readRedfishDellLCAttributes(ctx, service, d)
 	return diags

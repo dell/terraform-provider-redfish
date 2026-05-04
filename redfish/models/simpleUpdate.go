@@ -23,14 +23,14 @@ import (
 
 // SimpleUpdateRes is struct for simple update resource
 type SimpleUpdateRes struct {
-	Id            types.String    `tfsdk:"id"`
+	Id            types.String    `tfsdk:"id"` //revive:disable-line:var-naming
 	RedfishServer []RedfishServer `tfsdk:"redfish_server"`
 	Protocol      types.String    `tfsdk:"transfer_protocol"`
 	Image         types.String    `tfsdk:"target_firmware_image"`
 	ResetType     types.String    `tfsdk:"reset_type"`
 	ResetTimeout  types.Int64     `tfsdk:"reset_timeout"`
 	JobTimeout    types.Int64     `tfsdk:"simple_update_job_timeout"`
-	SoftwareId    types.String    `tfsdk:"software_id"`
+	SoftwareId    types.String    `tfsdk:"software_id"` //revive:disable-line:var-naming
 	Version       types.String    `tfsdk:"version"`
 	SystemID      types.String    `tfsdk:"system_id"`
 }

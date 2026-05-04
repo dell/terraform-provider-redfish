@@ -56,7 +56,7 @@ type ManagerAttribute struct {
 type SupportedSystem struct {
 	FirmwareVersion string
 	ProductName     string
-	SystemId        string
+	SystemID        string
 }
 
 // ManagerAttributeRegistry contains attriutes for manager attribute registry
@@ -78,7 +78,9 @@ func GetDellManagerAttributeRegistry(c common.Client, uri string) (*ManagerAttri
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	var managerAttributeRegistry ManagerAttributeRegistry
 	err = json.NewDecoder(resp.Body).Decode(&managerAttributeRegistry)

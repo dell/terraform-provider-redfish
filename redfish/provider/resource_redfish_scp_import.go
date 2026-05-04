@@ -440,21 +440,22 @@ func (*ScpImportResource) ValidateConfig(ctx context.Context, req resource.Valid
 	var sp models.TFShareParameters
 	plan.ShareParameters.As(ctx, &sp, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true})
 	shareType := sp.ShareType.ValueString()
-	if shareType == "NFS" {
+	switch shareType {
+	case "NFS":
 		if sp.IPAddress.IsNull() || sp.ShareName.IsNull() {
 			resp.Diagnostics.AddError(
 				"Import NFS Error",
 				"When configuring the share type as ‘NFS’, it is essential to provide both the IP address and the share name.")
 			return
 		}
-	} else if shareType == "CIFS" {
+	case "CIFS":
 		if sp.IPAddress.IsNull() || sp.ShareName.IsNull() || sp.Username.IsNull() || sp.Password.IsNull() {
 			resp.Diagnostics.AddError(
 				"Import CIFS Error",
 				"When configuring the share type as CIFS, it is essential to provide the IP address, share name, username and password.")
 			return
 		}
-	} else if shareType == "HTTP" || shareType == "HTTPS" {
+	case "HTTP", "HTTPS":
 		if sp.IPAddress.IsNull() {
 			resp.Diagnostics.AddError(
 				"Import HTTP/HTTPS IP Error",

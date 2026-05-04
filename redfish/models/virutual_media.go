@@ -42,6 +42,6 @@ type VirtualMediaDataSource struct {
 
 // VirtualMediaData to get odata / id of virtual media
 type VirtualMediaData struct {
-	OdataId types.String `tfsdk:"odata_id"`
-	Id      types.String `tfsdk:"id"`
+	OdataId types.String `tfsdk:"odata_id"` //revive:disable-line:var-naming
+	Id      types.String `tfsdk:"id"`       //revive:disable-line:var-naming
 }

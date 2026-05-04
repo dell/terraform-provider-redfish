@@ -261,7 +261,9 @@ func certutils(params CertUtilsParam) (ok bool, summary string, details string) 
 	if err1 != nil {
 		return false, "Couldn't upload certificate from redfish API: ", err1.Error()
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	if res.StatusCode != http.StatusOK {
 		body, err := io.ReadAll(res.Body)
 		if err != nil {

@@ -89,7 +89,7 @@ func GetUpdatedList(updateListData []map[string]interface{}, jobs []redfish.Job)
 		// Create a map for properties
 		updateMap := make(map[string]attr.Value)
 		for _, prop := range properties {
-			jobId := ""
+			jobID := ""
 			propertyName := prop["name"].(string)
 			var propertyValue string
 			if propValue, ok := prop["value"].(string); ok {
@@ -112,23 +112,21 @@ func GetUpdatedList(updateListData []map[string]interface{}, jobs []redfish.Job)
 			case "DisplayName":
 				updateMap["display_name"] = types.StringValue(propertyValue)
 			case "JobID":
-				updateMap["job_id"] = types.StringValue(propertyValue)
-				jobId = propertyValue
+				jobID = propertyValue
 			default:
 			}
-			const jobStatus = "job_status"
-			const jobMessage = "job_message"
-			if len(jobs) > 0 {
+			if jobID != "" {
+				updateMap["job_id"] = types.StringValue(jobID)
 				for _, job := range jobs {
-					if job.ID == jobId {
-						updateMap[jobStatus] = types.StringValue(string(job.JobState))
-						updateMap[jobMessage] = types.StringValue(job.Messages[0].Message)
+					if job.ID == jobID {
+						updateMap["job_status"] = types.StringValue(string(job.JobState))
+						updateMap["job_message"] = types.StringValue(job.Messages[0].Message)
 					}
 				}
 			} else {
 				// if user just wants to get the updates and not actually apply them, these will be empty
-				updateMap[jobStatus] = types.StringValue("")
-				updateMap[jobMessage] = types.StringValue("")
+				updateMap["job_status"] = types.StringValue("")
+				updateMap["job_message"] = types.StringValue("")
 			}
 		}
 		updateObject, _ := types.ObjectValue(updateKey, updateMap)

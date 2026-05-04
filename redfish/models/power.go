@@ -23,7 +23,7 @@ import (
 
 // Power to construct terraform schema for power resource.
 type Power struct {
-	PowerId            types.String    `tfsdk:"id"`
+	PowerId            types.String    `tfsdk:"id"` //revive:disable-line:var-naming
 	RedfishServer      []RedfishServer `tfsdk:"redfish_server"`
 	DesiredPowerAction types.String    `tfsdk:"desired_power_action"`
 	MaximumWaitTime    types.Int64     `tfsdk:"maximum_wait_time"`

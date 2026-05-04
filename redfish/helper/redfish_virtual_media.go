@@ -82,7 +82,7 @@ func InsertMedia(id string, collection []*redfish.VirtualMedia, config redfish.V
 	if err != nil {
 		return nil, fmt.Errorf("virtual media selected doesn't exist: %w", err)
 	}
-	virtualMedia.Entity.SetETag("")
+	virtualMedia.SetETag("")
 
 	if !virtualMedia.Inserted {
 		err = virtualMedia.InsertMediaConfig(config)
@@ -98,15 +98,42 @@ func InsertMedia(id string, collection []*redfish.VirtualMedia, config redfish.V
 	return nil, err
 }
 
-// UpdateVirtualMediaState - Copy virtual media details from response to state object
+// UpdateVirtualMediaState - Copy virtual media details from response to state object.
+// When the server (e.g. R670) does not reflect back user-supplied fields in the GET
+// response (returning empty strings / zero bools), the plan/state values are used as
+// a fallback so Terraform does not see an "inconsistent result after apply" error.
 func UpdateVirtualMediaState(response *redfish.VirtualMedia, plan models.VirtualMedia) models.VirtualMedia {
+	image := plan.Image
+	if response.Image != "" {
+		image = types.StringValue(response.Image)
+	}
+
+	transferMethod := plan.TransferMethod
+	if string(response.TransferMethod) != "" {
+		transferMethod = types.StringValue(string(response.TransferMethod))
+	}
+
+	transferProtocolType := plan.TransferProtocolType
+	if string(response.TransferProtocolType) != "" {
+		transferProtocolType = types.StringValue(string(response.TransferProtocolType))
+	}
+
+	// WriteProtected has no sentinel empty value (bool), so use Image presence as an
+	// indicator that the server populated all fields. When Image is empty the server
+	// did not reflect the fields back and we keep the plan/state value.
+	writeProtected := plan.WriteProtected
+	if response.Image != "" {
+		writeProtected = types.BoolValue(response.WriteProtected)
+	}
+
 	return models.VirtualMedia{
 		VirtualMediaID:       types.StringValue(response.ODataID),
-		Image:                types.StringValue(response.Image),
+		Image:                image,
 		Inserted:             types.BoolValue(response.Inserted),
-		TransferMethod:       types.StringValue(string(response.TransferMethod)),
-		TransferProtocolType: types.StringValue(string(response.TransferProtocolType)),
-		WriteProtected:       types.BoolValue(response.WriteProtected),
+		TransferMethod:       transferMethod,
+		TransferProtocolType: transferProtocolType,
+		WriteProtected:       writeProtected,
+		SystemID:             plan.SystemID,
 		RedfishServer:        plan.RedfishServer,
 	}
 }
@@ -117,7 +144,7 @@ func GetNejectVirtualMedia(service *gofish.Service, uri string) (*redfish.Virtua
 	if err != nil {
 		return nil, fmt.Errorf("virtual Media doesn't exist:  %w", err) // This error won't be triggered ever
 	}
-	virtualMedia.Entity.SetETag("")
+	virtualMedia.SetETag("")
 
 	// Eject virtual media
 	err = virtualMedia.EjectMedia()

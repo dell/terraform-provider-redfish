@@ -376,14 +376,15 @@ func (u *simpleUpdater) updateRedfishSimpleUpdate(d models.SimpleUpdateRes) (dia
 	}
 	tflog.Debug(u.ctx, "resource_simple_update : update type "+transferProtocol+" is valid")
 
-	if transferProtocol == "NFS" {
+	switch transferProtocol {
+	case "NFS":
 		tflog.Info(u.ctx, "Remote NFS protocol detected")
 		ret, err = u.pullUpdate(ret)
 		if err != nil {
 			diags.AddError(err.Error(), "")
 		}
 		tflog.Debug(u.ctx, "Update Complete")
-	} else if transferProtocol == "HTTP" || transferProtocol == "HTTPS" {
+	case "HTTP", "HTTPS":
 		if strings.HasPrefix(targetFirmwareImage, "http") {
 			tflog.Info(u.ctx, "Remote HTTP protocol detected")
 			ret, err = u.pullUpdate(ret)
@@ -426,7 +427,7 @@ func (u *simpleUpdater) updateRedfishSimpleUpdate(d models.SimpleUpdateRes) (dia
 				ret = state
 			}
 		}
-	} else {
+	default:
 		diags.AddError("Transfer protocol not available in this implementation", "")
 	}
 
@@ -446,7 +447,7 @@ func (u *simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.
 	if err != nil {
 		return nil, fmt.Errorf("error while retrieving Etag from FirmwareInventory: %w", err)
 	}
-	response.Body.Close() // #nosec G104
+	_ = response.Body.Close() // #nosec G104
 	etag := response.Header.Get("ETag")
 
 	// Set custom headers
@@ -459,7 +460,9 @@ func (u *simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.
 	if err != nil {
 		return nil, fmt.Errorf("couldn't open FW file to upload - %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	// Set payload
 	payload := map[string]io.Reader{
@@ -471,7 +474,7 @@ func (u *simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.
 	if err != nil {
 		return nil, fmt.Errorf("there was an issue when uploading FW package to redfish - %w", err)
 	}
-	response.Body.Close() // #nosec G104
+	_ = response.Body.Close() // #nosec G104
 	packageLocation := response.Header.Get(locationKey)
 
 	// Get package information ( SoftwareID - Version )
@@ -492,7 +495,7 @@ func (u *simpleUpdater) uploadLocalFirmware(d models.SimpleUpdateRes) (*redfish.
 		// Delete uploaded package - TBD
 		return nil, fmt.Errorf("there was an issue when scheduling the update job - %w", err)
 	}
-	response.Body.Close() // #nosec G104
+	_ = response.Body.Close() // #nosec G104
 
 	// Get jobid
 	jobID := response.Header.Get(locationKey)
@@ -532,7 +535,9 @@ func (u *simpleUpdater) uploadLocalFirmwareSeventeenGeneration(d models.SimpleUp
 	if err != nil {
 		return d, fmt.Errorf("couldn't open FW file to upload - %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	// Set payload
 	payload := map[string]io.Reader{

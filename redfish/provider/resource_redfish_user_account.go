@@ -220,7 +220,7 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 				resp.Diagnostics.AddError("Invalid user ID", "Cannot convert user ID to int")
 				return
 			}
-			if !(userIdInt > minUserID && userIdInt <= maxUserID) {
+			if userIdInt <= minUserID || userIdInt > maxUserID {
 				resp.Diagnostics.AddError("user_id can vary between 3 to 16 only", "Please update user ID")
 				return
 			}
@@ -261,7 +261,7 @@ func (r *UserAccountResource) Create(ctx context.Context, req resource.CreateReq
 					resp.Diagnostics.AddError("Invalid user ID", "Cannot convert user ID to int")
 					return
 				}
-				if !(userIdInt > minUserID && userIdInt <= maxUserIDSeventeenAndAbove) {
+				if userIdInt <= minUserID || userIdInt > maxUserIDSeventeenAndAbove {
 					resp.Diagnostics.AddError("user_id can vary between 3 to 31 only", "Update user ID")
 					return
 				}
@@ -508,7 +508,7 @@ func (*UserAccountResource) ImportState(ctx context.Context, req resource.Import
 		Password     string `json:"password"`
 		Endpoint     string `json:"endpoint"`
 		SslInsecure  bool   `json:"ssl_insecure"`
-		Id           string `json:"id"`
+		Id           string `json:"id"` //revive:disable-line:var-naming
 		RedfishAlias string `json:"redfish_alias"`
 	}
 
