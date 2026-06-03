@@ -298,6 +298,7 @@ func newDellController(input dell.Controller) models.DellController {
 		MaxAvailablePCILinkSpeed:         types.StringValue(input.MaxAvailablePCILinkSpeed),
 		MaxPossiblePCILinkSpeed:          types.StringValue(input.MaxPossiblePCILinkSpeed),
 		Name:                             types.StringValue(input.Name),
+		PCISlot:                          types.StringValue(input.PCISlotString()),
 		PatrolReadState:                  types.StringValue(input.PatrolReadState),
 		PersistentHotspare:               types.StringValue(input.PersistentHotspare),
 		RealtimeCapability:               types.StringValue(input.RealtimeCapability),

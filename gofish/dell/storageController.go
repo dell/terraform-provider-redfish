@@ -19,6 +19,7 @@ package dell
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/stmcginnis/gofish/common"
 	"github.com/stmcginnis/gofish/redfish"
@@ -77,7 +78,7 @@ type DellStorageController struct {
 	MaxPossiblePCILinkSpeed                    string
 	MaxSpansInVolumeCount                      int64
 	MaxSupportedVolumesCount                   int64
-	PCISlot                                    string
+	PCISlot                                    any
 	PatrolReadIterationsCount                  int64
 	PatrolReadMode                             string
 	PatrolReadRatePercent                      int64
@@ -100,6 +101,15 @@ type DellStorageController struct {
 	SupportedInitializationTypes               []string
 	SupportsLKMtoSEKMTransition                string
 	T10PICapability                            string
+}
+
+// PCISlotString returns PCISlot as a string regardless of whether the
+// iDRAC firmware returned it as a JSON string or number.
+func (d DellStorageController) PCISlotString() string {
+	if d.PCISlot == nil {
+		return ""
+	}
+	return fmt.Sprintf("%v", d.PCISlot)
 }
 
 // StorageController given redfish.StorageController, returns dell.StorageControllerExtended.
