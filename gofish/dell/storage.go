@@ -19,6 +19,7 @@ package dell
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/stmcginnis/gofish/redfish"
 )
@@ -51,7 +52,7 @@ type Controller struct {
 	MaxAvailablePCILinkSpeed         string `json:"MaxAvailablePCILinkSpeed"`
 	MaxPossiblePCILinkSpeed          string `json:"MaxPossiblePCILinkSpeed"`
 	Name                             string `json:"Name"`
-	PCISlot                          string `json:"PCISlot"`
+	PCISlot                          any    `json:"PCISlot"`
 	PatrolReadState                  string `json:"PatrolReadState"`
 	PersistentHotspare               string `json:"PersistentHotspare"`
 	RealtimeCapability               string `json:"RealtimeCapability"`
@@ -65,6 +66,15 @@ type Controller struct {
 	SupportRAID10UnevenSpans         string `json:"SupportRAID10UnevenSpans"`
 	SupportsLKMtoSEKMTransition      string `json:"SupportsLKMtoSEKMTransition"`
 	T10PICapability                  string `json:"T10PICapability"`
+}
+
+// PCISlotString returns PCISlot as a string regardless of whether the
+// iDRAC firmware returned it as a JSON string or number.
+func (c Controller) PCISlotString() string {
+	if c.PCISlot == nil {
+		return ""
+	}
+	return fmt.Sprintf("%v", c.PCISlot)
 }
 
 // ControllerBattery to get controller battery data

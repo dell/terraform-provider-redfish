@@ -376,7 +376,7 @@ func newDellStorageController(input dell.DellStorageController) models.DellStora
 		MaxPossiblePCILinkSpeed:          types.StringValue(input.MaxPossiblePCILinkSpeed),
 		MaxSpansInVolumeCount:            types.Int64Value(input.MaxSpansInVolumeCount),
 		MaxSupportedVolumesCount:         types.Int64Value(input.MaxSupportedVolumesCount),
-		PCISlot:                          types.StringValue(input.PCISlot),
+		PCISlot:                          types.StringValue(input.PCISlotString()),
 		PatrolReadIterationsCount:        types.Int64Value(input.PatrolReadIterationsCount),
 		PatrolReadMode:                   types.StringValue(input.PatrolReadMode),
 		PatrolReadRatePercent:            types.Int64Value(input.PatrolReadRatePercent),
