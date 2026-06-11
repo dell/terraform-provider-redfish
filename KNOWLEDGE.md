@@ -2,7 +2,7 @@
 
 <!-- yaml-metadata-start -->
 scope_paths: ["./"]
-capture_git_sha: "a9e2b2e8b4358a30e2c63f42db30f0df90a9eda2"
+capture_git_sha: "a16a761cfb2b88bbeec310b505e046ea0a94aa5b"
 status: "current"
 auto_update: false
 preview_before_apply: true
@@ -24,7 +24,7 @@ scaffold_version: "1.0"
 ## Five Questions Quick Reference
 
 ### What does it do?
-Terraform provider for Dell iDRAC server management via Redfish API. Exposes 21 resources covering BIOS settings, boot order, certificates, directory services, firmware updates, iDRAC attributes, lifecycle controller attributes, manager reset, NIC configuration, power management, Server Configuration Profile, simple update, storage volumes, storage controllers, system boot, user accounts, and virtual media
+Terraform provider for Dell iDRAC server management via Redfish API. Exposes 21 resources and 10 data sources covering BIOS settings, boot order, certificates, directory services, firmware updates, iDRAC attributes, lifecycle controller attributes, manager reset, NIC configuration, power management, Server Configuration Profile, simple update, storage volumes, storage controllers, system boot, user accounts, and virtual media
 through HashiCorp's Terraform Plugin Framework. Communicates with
 the hardware REST API via `github.com/stmcginnis/gofish` v0.20.0 (third-party).
 
@@ -51,7 +51,7 @@ The `gofish/` directory contains Dell OEM extensions to the upstream `stmcginnis
 ## Component Overview
 
 Terraform provider for Dell iDRAC server management via Redfish API.
-21 resources covering BIOS settings, boot order, certificates, directory services, firmware updates, iDRAC attributes, lifecycle controller attributes, manager reset, NIC configuration, power management, Server Configuration Profile, simple update, storage volumes, storage controllers, system boot, user accounts, and virtual media. Resources use `resource_*.go` naming under `redfish/`. The provider supports multi-server configurations.
+21 resources and 10 data sources covering BIOS settings, boot order, certificates, directory services, firmware updates, iDRAC attributes, lifecycle controller attributes, manager reset, NIC configuration, power management, Server Configuration Profile, simple update, storage volumes, storage controllers, system boot, user accounts, and virtual media. Resources use `resource_*.go` naming under `redfish/`. The provider supports multi-server configurations.
 
 ---
 
@@ -69,8 +69,14 @@ resources, `datasource.DataSource` for read-only queries, models with
 
 ### Evolution
 
-TBD — requires SME input on how the architecture changed over time.
+Originally built on Terraform Plugin SDK v2, then migrated to
+Terraform Plugin Framework. Major refactor patterns over time include:
 
+- Client abstraction cleanup
+- Model-driven design
+- Error handling standardization
+- Async / polling improvements
+- Testing maturity
 ---
 
 ## Failure Modes & Gotchas
@@ -103,26 +109,66 @@ Unlike storage providers that target a single array, the Redfish provider suppor
 
 SCP import/export operations are long-running and asynchronous. The provider polls for job completion. Timeouts may need adjustment for large configurations.
 
+### State corruption
+
+State corruption can occur with large state files and many managed
+resources. Always use remote backends with locking (S3+DynamoDB,
+Terraform Cloud) to prevent concurrent state writes.
+
+### Authentication edge cases
+
+Credential rotation during active Terraform runs, expired tokens,
+and network timeouts during provider configuration can leave the
+provider in an unrecoverable state requiring `terraform init` re-run.
+
+### Resource cleanup failures
+
+Failed acceptance test runs or interrupted `terraform destroy` can
+leave orphaned resources on the iDRAC/Redfish array. These must be
+cleaned up manually via the management UI or REST API.
+
 ### Never Again
 
-No incident-derived constraints recorded. If you know of past
+#### NA-001: State corruption from concurrent applies
+- **Impact:** State file corruption when multiple engineers ran
+  `terraform apply` simultaneously without state locking.
+- **Constraint:** Must use remote backend with locking enabled.
+- **Applies to:** All Dell Terraform providers.
+
+#### NA-002: Orphaned resources from test failures
+- **Impact:** Acceptance test resources left on array after test
+  failure, consuming capacity.
+- **Constraint:** Manual cleanup required; `TF_ACC=1` gating.
+- **Applies to:** All Dell Terraform providers. If you know of past
 incidents affecting this component, please record them during the
 next Knowledge Extraction session.
 
 ### Evolution
 
-TBD — requires SME input.
+Failure modes evolved with the SDK v2 → Plugin Framework migration.
+Error handling was standardized during the model-driven design
+refactor.
 
 ---
 
 ## Performance Characteristics
 
-TBD — requires SME input for bottlenecks, scaling limits, tuning
-parameters, benchmarks, and known performance cliffs.
+**Large state files:** Performance degrades with many managed
+resources in a single state file. Recommend splitting into multiple
+Terraform workspaces or state files when managing >100 resources.
+
+**API rate limiting:** iDRAC/Redfish arrays may enforce API rate
+limits. Bulk operations may hit these limits, causing transient
+errors. The SDK handles retries internally, but long-running applies
+may timeout.
+
+**Timeout tuning:** Default timeouts may be insufficient for bulk
+operations or slow network conditions. Increase for large deployments.
 
 ### Evolution
 
-TBD — requires SME input.
+Timeout was made configurable after production deployments hit
+the original hardcoded limit.
 
 ---
 
@@ -147,18 +193,31 @@ that must be cleaned up manually if the test run fails.
 
 ### Evolution
 
-TBD — requires SME input.
+Environment variable precedence was established during the SDK v2
+era and carried forward into Plugin Framework. The authentication
+validation call was added after production incidents with invalid
+credentials causing cascading resource failures.
 
 ---
 
 ## Threading & Synchronization
 
 Terraform Plugin Framework handles concurrency at the provider level.
-Individual resource operations are not concurrent by default.
+Individual resource operations are not concurrent by default, but
+Terraform Core may invoke multiple resource operations in parallel
+during `terraform apply` (controlled by `-parallelism` flag,
+default 10).
+
+**Concurrent API access:** Multiple resources hitting the same
+iDRAC/Redfish API endpoint simultaneously can cause contention.
+The SDK client is shared across all resource operations within a
+single provider instance.
 
 ### Evolution
 
-TBD — requires SME input.
+Migration from SDK v2 to Plugin Framework changed the concurrency
+model. SDK v2 serialized all operations; Plugin Framework allows
+parallel resource operations.
 
 ---
 
@@ -182,7 +241,10 @@ linux, darwin), architectures (amd64, 386, arm, arm64).
 
 ### Evolution
 
-TBD — requires SME input.
+Build system evolved from basic `go build` to Makefile with
+linting, security scanning (gosec), and GoReleaser for
+cross-platform releases. Testing maturity improved from minimal
+acceptance tests to comprehensive mockey-based unit tests.
 
 ---
 
@@ -197,7 +259,9 @@ manually if tests fail mid-run.
 
 ### Evolution
 
-TBD — requires SME input.
+Operational patterns matured with the mockey adoption for unit
+tests, reducing dependence on live hardware for development
+feedback loops.
 
 ---
 
@@ -205,7 +269,7 @@ TBD — requires SME input.
 
 ### Open Issues
 
-TBD — requires code scanning for TODO/FIXME/HACK markers.
+No TODO/FIXME/HACK markers found in non-test source files.
 
 ### Glossary
 

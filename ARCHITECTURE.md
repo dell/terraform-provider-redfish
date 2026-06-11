@@ -4,7 +4,7 @@
 
 <!-- yaml-metadata-start -->
 scope_paths: ["./"]
-capture_git_sha: "a9e2b2e8b4358a30e2c63f42db30f0df90a9eda2"
+capture_git_sha: "a16a761cfb2b88bbeec310b505e046ea0a94aa5b"
 status: "current"
 auto_update: false
 preview_before_apply: true
@@ -16,7 +16,7 @@ scaffold_version: "1.0"
 ## Purpose and Structure
 
 Terraform provider for Dell iDRAC server management via Redfish API.
-Implements 21 managed resources and 0 data sources
+Implements 21 managed resources and 10 data sources
 using HashiCorp's Terraform Plugin Framework, enabling
 infrastructure-as-code management via REST API.
 
@@ -34,7 +34,7 @@ Core over gRPC (go-plugin protocol).
 | Entry point | `main.go` | `providerserver.Serve` — starts gRPC server |
 | Provider | `redfish/provider.go` | Schema, Configure, resource/datasource registration |
 | Resources | `redfish/*_resource.go` | CRUD lifecycle for 21 managed resources |
-| Data sources | `redfish/*_datasource.go` | Read-only queries for 0 data sources |
+| Data sources | `redfish/*_datasource.go` | Read-only queries for 10 data sources |
 | Dell OEM extensions | `gofish/` | Dell-specific Redfish extensions |
 | Common utilities | `common/` | Shared helper functions |
 | Mutex KV | `mutexkv/` | Mutex-based key-value for concurrent operations |
