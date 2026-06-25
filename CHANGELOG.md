@@ -18,6 +18,26 @@ limitations under the License.
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
+# v1.6.1 (June, 2025)
+## Release Summary
+Bug fixes and security enhancements.
+
+## Features
+N/A
+
+### Others
+N/A
+
+## Enhancements
+- Security and checkmarks fixes
+- Prevent virtual media resources from running in parallel to avoid conflicts
+
+## Bug Fixes
+- [#325](https://github.com/dell/terraform-provider-redfish/issues/325) - Added checks for BIOS datasource crash issue
+- [#328](https://github.com/dell/terraform-provider-redfish/issues/328) - Prevent virtual media resources from running in parallel
+- [#338](https://github.com/dell/terraform-provider-redfish/issues/338) - Fix PCISlot JSON unmarshal error when iDRAC returns numeric value
+- [#339](https://github.com/dell/terraform-provider-redfish/issues/339) - BD fixes
+
 # v1.6.0 (April, 2025)
 ## Release Summary
 Qualified with iDRAC 17G Server(iDRAC10).
