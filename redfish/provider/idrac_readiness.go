@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -35,6 +36,12 @@ type IDRACStatus struct {
 
 // NewIDRACReadinessChecker creates a new readiness checker
 func NewIDRACReadinessChecker(endpoint, username, password string, insecure bool, config RetryConfig) *IDRACReadinessChecker {
+	// Create HTTP client with TLS configuration
+	transport := &http.Transport{}
+	if insecure {
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+
 	return &IDRACReadinessChecker{
 		endpoint:      endpoint,
 		username:      username,
@@ -43,7 +50,8 @@ func NewIDRACReadinessChecker(endpoint, username, password string, insecure bool
 		maxRetries:    config.MaxRetries,
 		retryInterval: config.RetryInterval,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Transport: transport,
+			Timeout:   30 * time.Second,
 		},
 	}
 }

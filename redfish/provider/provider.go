@@ -19,8 +19,11 @@ package provider
 
 import (
 	"context"
+	"crypto/tls"
+	"net/http"
 	"terraform-provider-redfish/mutexkv"
 	"terraform-provider-redfish/redfish/models"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -53,6 +56,8 @@ func New() provider.Provider {
 
 type redfishProvider struct {
 	models.ProviderConfig
+	RetryConfig    RetryConfig
+	HTTPTransport  http.RoundTripper
 }
 
 // Metadata - provider metadata AKA name.
@@ -143,6 +148,27 @@ func (p *redfishProvider) Configure(ctx context.Context, req provider.ConfigureR
 	p.Password = config.Password
 	p.Servers = config.Servers
 
+	// Initialize retry configuration with default values
+	p.RetryConfig = DefaultRetryConfig()
+	tflog.Info(ctx, "Retry logic enabled", map[string]any{
+		"max_retries":    p.RetryConfig.MaxRetries,
+		"retry_interval": p.RetryConfig.RetryInterval.String(),
+		"retryable_codes": p.RetryConfig.RetryableStatusCodes,
+	})
+
+	// Create base HTTP transport with TLS configuration
+	// Note: Individual resources/data sources will wrap this with retry transport
+	// when creating their gofish clients
+	baseTransport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true, // TODO: Make this configurable via provider schema
+		},
+	}
+
+	// Wrap with retry transport
+	p.HTTPTransport = NewRetryableTransport(baseTransport, p.RetryConfig)
+	tflog.Info(ctx, "HTTP transport configured with retry logic")
+
 	resp.ResourceData = p
 	resp.DataSourceData = p
 
@@ -190,6 +216,15 @@ func (*redfishProvider) DataSources(_ context.Context) []func() datasource.DataS
 		NewStorageControllerDatasource,
 		NewDirectoryServiceAuthProviderDatasource,
 		NewDirectoryServiceAuthProviderCertificateDatasource,
+	}
+}
+
+// GetHTTPClient returns an HTTP client configured with retry logic
+// This method should be used by resources and data sources when creating gofish clients
+func (p *redfishProvider) GetHTTPClient() *http.Client {
+	return &http.Client{
+		Transport: p.HTTPTransport,
+		Timeout:   p.RetryConfig.TotalTimeout() + 60*time.Second,
 	}
 }
 
