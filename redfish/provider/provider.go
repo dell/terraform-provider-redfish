@@ -190,6 +190,7 @@ func (*redfishProvider) DataSources(_ context.Context) []func() datasource.DataS
 		NewStorageControllerDatasource,
 		NewDirectoryServiceAuthProviderDatasource,
 		NewDirectoryServiceAuthProviderCertificateDatasource,
+		NewStorageVolumeDataSource,
 	}
 }
 
