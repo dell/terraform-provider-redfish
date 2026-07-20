@@ -10,6 +10,7 @@ builds:
     # usage by users in CI/CD systems like Terraform Cloud where
     # they are unable to install libraries.
     - CGO_ENABLED=0
+    - GOPROXY=https://durjpd.artifactory.cec.lab.emc.com:443/artifactory/sysmgmt-sdp-proxy-golang-virtual/
   mod_timestamp: '{{ .CommitTimestamp }}'
   flags:
     - -trimpath
