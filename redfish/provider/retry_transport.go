@@ -41,7 +41,7 @@ func (t *RetryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 		if lastErr != nil {
 			return nil, fmt.Errorf("failed to read request body: %w", lastErr)
 		}
-		req.Body.Close()
+		_ = req.Body.Close()
 		req.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 	}
 
@@ -77,8 +77,8 @@ func (t *RetryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 			})
 			// Drain and close response body to reuse connection
 			if resp.Body != nil {
-				io.Copy(io.Discard, resp.Body)
-				resp.Body.Close()
+				_, _ = io.Copy(io.Discard, resp.Body)
+				_ = resp.Body.Close()
 			}
 			lastErr = fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
 		}

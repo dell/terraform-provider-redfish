@@ -5,6 +5,16 @@ import (
 	"time"
 )
 
+const (
+	defaultMaxRetries         = 15
+	defaultRetryInterval      = 90 * time.Second
+	maxAllowedMaxRetries      = 100
+	maxAllowedRetryInterval   = 300 * time.Second
+	statusTooManyRequests     = 429
+	statusInternalServerError = 500
+	statusServiceUnavailable  = 503
+)
+
 // RetryConfig defines retry behavior configuration
 type RetryConfig struct {
 	// MaxRetries is the maximum number of retry attempts
@@ -26,9 +36,9 @@ type RetryConfig struct {
 // DefaultRetryConfig returns the default retry configuration
 func DefaultRetryConfig() RetryConfig {
 	return RetryConfig{
-		MaxRetries:           15,
-		RetryInterval:        90 * time.Second,
-		RetryableStatusCodes: []int{429, 500, 503},
+		MaxRetries:           defaultMaxRetries,
+		RetryInterval:        defaultRetryInterval,
+		RetryableStatusCodes: []int{statusTooManyRequests, statusInternalServerError, statusServiceUnavailable},
 		EnableLogging:        true,
 		EnableReadinessCheck: true,
 	}
@@ -39,14 +49,14 @@ func (c *RetryConfig) Validate() error {
 	if c.MaxRetries < 0 {
 		return fmt.Errorf("max_retries must be non-negative, got %d", c.MaxRetries)
 	}
-	if c.MaxRetries > 100 {
-		return fmt.Errorf("max_retries must be <= 100, got %d", c.MaxRetries)
+	if c.MaxRetries > maxAllowedMaxRetries {
+		return fmt.Errorf("max_retries must be <= %d, got %d", maxAllowedMaxRetries, c.MaxRetries)
 	}
 	if c.RetryInterval < 0 {
 		return fmt.Errorf("retry_interval must be non-negative, got %v", c.RetryInterval)
 	}
-	if c.RetryInterval > 300*time.Second {
-		return fmt.Errorf("retry_interval must be <= 300 seconds, got %v", c.RetryInterval)
+	if c.RetryInterval > maxAllowedRetryInterval {
+		return fmt.Errorf("retry_interval must be <= %v, got %v", maxAllowedRetryInterval, c.RetryInterval)
 	}
 	return nil
 }
