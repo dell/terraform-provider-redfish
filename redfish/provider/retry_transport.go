@@ -1,3 +1,20 @@
+/*
+Copyright (c) 2025 Dell Inc., or its subsidiaries. All Rights Reserved.
+
+Licensed under the Mozilla Public License Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://mozilla.org/MPL/2.0/
+
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package provider
 
 import (
@@ -41,7 +58,7 @@ func (t *RetryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 		if lastErr != nil {
 			return nil, fmt.Errorf("failed to read request body: %w", lastErr)
 		}
-		req.Body.Close()
+		_ = req.Body.Close()
 		req.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 	}
 
@@ -77,8 +94,8 @@ func (t *RetryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 			})
 			// Drain and close response body to reuse connection
 			if resp.Body != nil {
-				io.Copy(io.Discard, resp.Body)
-				resp.Body.Close()
+				_, _ = io.Copy(io.Discard, resp.Body)
+				_ = resp.Body.Close()
 			}
 			lastErr = fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
 		}

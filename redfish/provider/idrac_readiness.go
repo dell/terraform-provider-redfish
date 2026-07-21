@@ -1,15 +1,37 @@
+/*
+Copyright (c) 2025 Dell Inc., or its subsidiaries. All Rights Reserved.
+
+Licensed under the Mozilla Public License Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://mozilla.org/MPL/2.0/
+
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package provider
 
 import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+)
+
+const (
+	defaultHTTPTimeout = 30 * time.Second
 )
 
 // IDRACReadinessChecker checks if iDRAC is ready for operations
@@ -35,10 +57,13 @@ type IDRACStatus struct {
 }
 
 // NewIDRACReadinessChecker creates a new readiness checker
+//
+//revive:disable:flag-parameter,argument-limit
 func NewIDRACReadinessChecker(endpoint, username, password string, insecure bool, config RetryConfig) *IDRACReadinessChecker {
 	// Create HTTP client with TLS configuration
 	transport := &http.Transport{}
 	if insecure {
+		// #nosec G402 - InsecureSkipVerify is intentional for insecure connections
 		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
@@ -51,7 +76,7 @@ func NewIDRACReadinessChecker(endpoint, username, password string, insecure bool
 		retryInterval: config.RetryInterval,
 		httpClient: &http.Client{
 			Transport: transport,
-			Timeout:   30 * time.Second,
+			Timeout:   defaultHTTPTimeout,
 		},
 	}
 }
@@ -87,16 +112,16 @@ func (c *IDRACReadinessChecker) WaitForReady(ctx context.Context) error {
 			})
 		} else if c.IsReady(status) {
 			tflog.Info(ctx, "iDRAC is ready", map[string]any{
-				"status":      status.Status,
-				"lc_status":   status.LCStatus,
+				"status":         status.Status,
+				"lc_status":      status.LCStatus,
 				"redfish_status": status.RedfishStatus,
 			})
 			return nil
 		} else {
 			tflog.Info(ctx, "iDRAC not ready yet", map[string]any{
-				"attempt":     attempt + 1,
-				"status":      status.Status,
-				"lc_status":   status.LCStatus,
+				"attempt":       attempt + 1,
+				"status":        status.Status,
+				"lc_status":     status.LCStatus,
 				"server_status": status.ServerStatus,
 			})
 		}
@@ -145,8 +170,8 @@ func (c *IDRACReadinessChecker) checkRedfishServiceAvailability(ctx context.Cont
 				"error":   err.Error(),
 			})
 		} else {
-			defer resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
+				_ = resp.Body.Close()
 				tflog.Info(ctx, "Redfish service is available")
 				return nil
 			}
@@ -214,7 +239,7 @@ func (c *IDRACReadinessChecker) CheckStatus(ctx context.Context) (*IDRACStatus, 
 }
 
 // IsReady checks if the iDRAC status indicates readiness
-func (c *IDRACReadinessChecker) IsReady(status *IDRACStatus) bool {
+func (*IDRACReadinessChecker) IsReady(status *IDRACStatus) bool {
 	if status == nil {
 		return false
 	}
@@ -232,6 +257,6 @@ func (e *NotFoundError) Error() string {
 
 // isNotFoundError checks if an error is a NotFoundError
 func isNotFoundError(err error) bool {
-	_, ok := err.(*NotFoundError)
-	return ok
+	var notFound *NotFoundError
+	return errors.As(err, &notFound)
 }

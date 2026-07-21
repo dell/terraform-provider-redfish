@@ -108,7 +108,8 @@ func RedfishSSLCertificateSchema() map[string]schema.Attribute {
 				" and not required for Server and CA certificates.",
 			Description: "A passphrase for certificate file. Note: This is optional parameter for CSC certificate," +
 				" and not required for Server and CA certificates.",
-			Optional: true,
+			Optional:  true,
+			Sensitive: true,
 			PlanModifiers: []planmodifier.String{
 				stringplanmodifier.RequiresReplace(),
 			},

@@ -56,8 +56,8 @@ func New() provider.Provider {
 
 type redfishProvider struct {
 	models.ProviderConfig
-	RetryConfig    RetryConfig
-	HTTPTransport  http.RoundTripper
+	RetryConfig   RetryConfig
+	HTTPTransport http.RoundTripper
 }
 
 // Metadata - provider metadata AKA name.
@@ -151,8 +151,8 @@ func (p *redfishProvider) Configure(ctx context.Context, req provider.ConfigureR
 	// Initialize retry configuration with default values
 	p.RetryConfig = DefaultRetryConfig()
 	tflog.Info(ctx, "Retry logic enabled", map[string]any{
-		"max_retries":    p.RetryConfig.MaxRetries,
-		"retry_interval": p.RetryConfig.RetryInterval.String(),
+		"max_retries":     p.RetryConfig.MaxRetries,
+		"retry_interval":  p.RetryConfig.RetryInterval.String(),
 		"retryable_codes": p.RetryConfig.RetryableStatusCodes,
 	})
 
@@ -161,6 +161,7 @@ func (p *redfishProvider) Configure(ctx context.Context, req provider.ConfigureR
 	// when creating their gofish clients
 	baseTransport := &http.Transport{
 		TLSClientConfig: &tls.Config{
+			// #nosec G402 - InsecureSkipVerify is intentional for insecure connections
 			InsecureSkipVerify: true, // TODO: Make this configurable via provider schema
 		},
 	}
@@ -172,7 +173,6 @@ func (p *redfishProvider) Configure(ctx context.Context, req provider.ConfigureR
 	resp.ResourceData = p
 	resp.DataSourceData = p
 
-	tflog.Trace(ctx, config.Username.ValueString()+" "+config.Password.ValueString())
 	tflog.Trace(ctx, "Finished configuring the provider")
 }
 
@@ -224,7 +224,7 @@ func (*redfishProvider) DataSources(_ context.Context) []func() datasource.DataS
 func (p *redfishProvider) GetHTTPClient() *http.Client {
 	return &http.Client{
 		Transport: p.HTTPTransport,
-		Timeout:   p.RetryConfig.TotalTimeout() + 60*time.Second,
+		Timeout:   p.RetryConfig.TotalTimeout() + time.Minute,
 	}
 }
 
