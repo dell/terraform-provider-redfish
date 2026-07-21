@@ -198,7 +198,7 @@ After the successful execution of the above resource block, the iDRAC web server
 
 ### Optional
 
-- `passphrase` (String) A passphrase for certificate file. Note: This is optional parameter for CSC certificate, and not required for Server and CA certificates.
+- `passphrase` (String, Sensitive) A passphrase for certificate file. Note: This is optional parameter for CSC certificate, and not required for Server and CA certificates.
 - `redfish_server` (Block List) List of server BMCs and their respective user credentials (see [below for nested schema](#nestedblock--redfish_server))
 
 ### Read-Only
