@@ -173,7 +173,6 @@ func (p *redfishProvider) Configure(ctx context.Context, req provider.ConfigureR
 	resp.ResourceData = p
 	resp.DataSourceData = p
 
-	tflog.Trace(ctx, config.Username.ValueString()+" "+config.Password.ValueString())
 	tflog.Trace(ctx, "Finished configuring the provider")
 }
 
