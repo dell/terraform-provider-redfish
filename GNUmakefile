@@ -28,11 +28,13 @@ errcheck:
 	@sh -c "'$(CURDIR)/scripts/errcheck.sh'"
 
 check:
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	golangci-lint run --fix
 
 lint:
 	@echo "==> Checking source code against linters..."
 	# TODO: renable - tfproviderlint ./redfish
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	golangci-lint run --fix
 
 # vets all .go files
