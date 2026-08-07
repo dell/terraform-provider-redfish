@@ -458,3 +458,47 @@ func testAccRedfishResourceIDracBelow17GConfigError(testingInfo TestingServerCre
 		username,
 	)
 }
+
+// TestAttributeValueToString_StringValue verifies that attributeValueToString
+// correctly converts a string attribute value.
+func TestAttributeValueToString_StringValue(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    interface{}
+		expected string
+	}{
+		{"simple string", "example.com", "example.com"},
+		{"empty string", "", ""},
+		{"string with dots", "NICStatic.1.DNSDomainName", "NICStatic.1.DNSDomainName"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := attributeValueToString(tc.input)
+			if result != tc.expected {
+				t.Errorf("attributeValueToString(%v) = %q, want %q", tc.input, result, tc.expected)
+			}
+		})
+	}
+}
+
+// TestAttributeValueToString_Float64Value verifies that attributeValueToString
+// correctly converts a float64 (numeric) attribute value to its string representation.
+func TestAttributeValueToString_Float64Value(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    float64
+		expected string
+	}{
+		{"integer value", 5.0, "5"},
+		{"zero", 0.0, "0"},
+		{"large integer", 511.0, "511"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := attributeValueToString(tc.input)
+			if result != tc.expected {
+				t.Errorf("attributeValueToString(%v) = %q, want %q", tc.input, result, tc.expected)
+			}
+		})
+	}
+}
