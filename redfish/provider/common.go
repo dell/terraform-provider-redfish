@@ -256,7 +256,7 @@ func NewConfig(pconfig *redfishProvider, rserver *[]models.RedfishServer) (*gofi
 		Username:   redfishClientUser,
 		Password:   redfishClientPass,
 		Insecure:   rserver1.SslInsecure.ValueBool(),
-		HTTPClient: pconfig.GetHTTPClient(), // Use retry-enabled HTTP client
+		HTTPClient: pconfig.GetHTTPClientWithTLS(rserver1.SslInsecure.ValueBool()), // Use retry-enabled HTTP client with TLS config
 	}
 
 	api, err := gofish.Connect(clientConfig)
