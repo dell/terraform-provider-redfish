@@ -156,13 +156,12 @@ func (p *redfishProvider) Configure(ctx context.Context, req provider.ConfigureR
 		"retryable_codes": p.RetryConfig.RetryableStatusCodes,
 	})
 
-	// Create base HTTP transport with TLS configuration
-	// Note: Individual resources/data sources will wrap this with retry transport
-	// when creating their gofish clients
+	// Create base HTTP transport with secure TLS configuration by default
+	// Individual resources/data sources can create per-connection transports
+	// with custom TLS settings via GetHTTPClientWithTLS()
 	baseTransport := &http.Transport{
 		TLSClientConfig: &tls.Config{
-			// #nosec G402 - InsecureSkipVerify is intentional for insecure connections
-			InsecureSkipVerify: true, // TODO: Make this configurable via provider schema
+			MinVersion: tls.VersionTLS12,
 		},
 	}
 
@@ -224,6 +223,28 @@ func (*redfishProvider) DataSources(_ context.Context) []func() datasource.DataS
 func (p *redfishProvider) GetHTTPClient() *http.Client {
 	return &http.Client{
 		Transport: p.HTTPTransport,
+		Timeout:   p.RetryConfig.TotalTimeout() + time.Minute,
+	}
+}
+
+// GetHTTPClientWithTLS returns an HTTP client configured with retry logic and custom TLS settings
+// This method should be used by resources and data sources when creating gofish clients
+// that require per-connection TLS configuration based on ssl_insecure setting
+func (p *redfishProvider) GetHTTPClientWithTLS(sslInsecure bool) *http.Client {
+	// Create base transport with TLS configuration based on ssl_insecure parameter
+	baseTransport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+			// #nosec G402 - InsecureSkipVerify is configurable via ssl_insecure parameter for user flexibility
+			InsecureSkipVerify: sslInsecure,
+		},
+	}
+
+	// Wrap with retry transport
+	retryTransport := NewRetryableTransport(baseTransport, p.RetryConfig)
+
+	return &http.Client{
+		Transport: retryTransport,
 		Timeout:   p.RetryConfig.TotalTimeout() + time.Minute,
 	}
 }

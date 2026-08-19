@@ -470,7 +470,19 @@ func readRedfishDellSystemAttributes(ctx context.Context, service *gofish.Servic
 			// This is done to avoid triggering an update when reading Password values,
 			// that are shown as null (nil to Go)
 			if attrValue != nil {
-				attributeValue(attrValue, readAttributes, k)
+				// When the server does not reflect back user-supplied fields correctly
+				// (returning a different value due to timing, attribute dependencies,
+				// or the attribute not being immediately applied), the plan/state
+				// values are used as a fallback so Terraform does not see an
+				// "inconsistent result after apply" error.
+				// This follows the same pattern used in UpdateVirtualMediaState.
+				serverValue := attributeValueToString(attrValue)
+				planValue := v.(types.String).ValueString()
+				if serverValue != planValue {
+					readAttributes[k] = v.(types.String)
+				} else {
+					attributeValue(attrValue, readAttributes, k)
+				}
 			} else {
 				readAttributes[k] = v.(types.String)
 			}
