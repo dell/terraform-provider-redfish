@@ -26,7 +26,7 @@ Create a file called `main.tf` in your workspace with the following contents
 terraform {
   required_providers {
     redfish = {
-      version = "1.6.1"
+      version = "1.6.2"
       source  = "registry.terraform.io/dell/redfish"
     }
   }
