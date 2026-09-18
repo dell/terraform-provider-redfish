@@ -18,6 +18,26 @@ limitations under the License.
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
+# v1.6.2 (September, 2026)
+## Release Summary
+Reliability, security, and maintenance updates.
+
+## Features
+N/A
+
+### Others
+N/A
+
+## Enhancements
+- [#345](https://github.com/dell/terraform-provider-redfish/pull/345) - Add retry logic with iDRAC readiness checks for temporary service unavailability
+- [#347](https://github.com/dell/terraform-provider-redfish/pull/347) - Mark the certificate passphrase as sensitive and prevent credentials from being logged
+- [#349](https://github.com/dell/terraform-provider-redfish/pull/349), [#356](https://github.com/dell/terraform-provider-redfish/pull/356), [#359](https://github.com/dell/terraform-provider-redfish/pull/359) - Update Go and dependencies to address security vulnerabilities
+- [#354](https://github.com/dell/terraform-provider-redfish/pull/354), [#355](https://github.com/dell/terraform-provider-redfish/pull/355) - Update the lint configuration and CI workflow for golangci-lint v2 compatibility
+
+## Bug Fixes
+- [#351](https://github.com/dell/terraform-provider-redfish/pull/351) - Prevent inconsistent results after apply for Dell iDRAC, system, and lifecycle controller attribute resources
+- [#357](https://github.com/dell/terraform-provider-redfish/pull/357) - Respect the `ssl_insecure` setting when configuring TLS certificate verification
+
 # v1.6.1 (June, 2025)
 ## Release Summary
 Bug fixes and security enhancements.
